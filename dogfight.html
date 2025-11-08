@@ -297,6 +297,10 @@
                 this.timeOnTarget = 0;
                 this.pilotSkill = 0.5 + Math.random() * 0.3; // 50-80%
                 this.gunnerySkill = 0.5 + Math.random() * 0.3;
+
+                // Flight path calculation
+                this.flightPath = null; // Will store calculated realistic path
+                this.inStall = false; // Track if aircraft is stalled
             }
 
             getScaleForAltitude() {
@@ -393,105 +397,227 @@
                 return distance < 40 * this.getScaleForAltitude();
             }
 
-            calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading) {
-                const dx = targetX - this.x;
-                const dy = targetY - this.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                const altitudeChange = targetAltitude - this.altitude;
+            // Calculate realistic flight path using physics simulation
+            calculateRealisticPath(targetX, targetY, targetAltitude, targetHeading) {
+                const TIME_STEP = 0.1; // 0.1 second time steps
+                const NUM_STEPS = Math.floor(TURN_TIME / TIME_STEP); // 40 steps
+                const g = 9.81;
 
-                // Calculate base required speed: distance / time
-                const baseSpeed = distance / TURN_TIME;
+                // Path array storing state at each time step
+                let path = [];
 
-                // Energy exchange: climbing reduces speed, diving increases speed
-                // Using energy conservation: v² = v₀² - 2g·Δh (where Δh is positive for climb)
-                const g = 9.81; // gravity m/s²
-                const currentSpeedSquared = this.speed * this.speed;
-                const energyAdjustedSpeedSquared = currentSpeedSquared - 2 * g * altitudeChange;
+                // Current state (will be updated each step)
+                let state = {
+                    x: this.x,
+                    y: this.y,
+                    altitude: this.altitude,
+                    heading: this.heading,
+                    speed: this.speed,
+                    time: 0
+                };
 
-                // Required speed accounting for altitude change
-                let requiredSpeed = baseSpeed;
-                if (energyAdjustedSpeedSquared > 0) {
-                    const energyAdjustedSpeed = Math.sqrt(energyAdjustedSpeedSquared);
-                    // Blend the base speed requirement with energy-adjusted speed
-                    requiredSpeed = (baseSpeed + energyAdjustedSpeed) / 2;
-                } else {
-                    // Climbing too high would stall the aircraft
-                    requiredSpeed = this.minSpeed;
-                }
-
-                // Calculate turn rate (shortest angle between headings)
-                const headingChange = Math.abs(targetHeading - this.heading);
-                const turnAngle = Math.min(headingChange, 360 - headingChange);
-
-                // Calculate climb/dive rate: altitude change / time
-                const verticalRate = Math.abs(altitudeChange) / TURN_TIME;
-
-                // Calculate G-force based on turn radius at current speed
-                // G = v² / r, where turn radius r = v / (angular_rate * π/180)
-                const avgSpeed = (this.speed + requiredSpeed) / 2;
-                const turnRateRadPerSec = (turnAngle / TURN_TIME) * (Math.PI / 180);
-                const turnRadius = turnRateRadPerSec > 0 ? avgSpeed / turnRateRadPerSec : Infinity;
-                const gForce = turnRadius !== Infinity ? (avgSpeed * avgSpeed) / (turnRadius * 9.81) : 0;
-
-                // Determine state
-                let state = 'valid';
+                // Validation tracking
+                let overallState = 'valid'; // 'valid', 'stressful', or 'illegal'
                 let warnings = [];
+                let maxGForce = 0;
 
-                // Speed checks
-                if (requiredSpeed > this.maxSpeed * 1.2) {
-                    state = 'illegal';
-                    warnings.push('SPEED TOO HIGH');
-                } else if (requiredSpeed > this.maxSpeed) {
-                    if (state !== 'illegal') state = 'stressful';
-                    warnings.push('Overspeed - Damage');
-                } else if (requiredSpeed < this.minSpeed) {
-                    if (state !== 'illegal') state = 'stressful';
-                    warnings.push('STALL WARNING');
-                }
+                // Add starting point
+                path.push({...state});
 
-                // Turn rate check - fixed maximum degrees regardless of distance
-                // This is the angular velocity limit (degrees per second)
-                if (turnAngle > this.maxTurnRate) {
-                    state = 'illegal';
-                    warnings.push('TURN TOO TIGHT');
-                }
+                for (let step = 0; step < NUM_STEPS; step++) {
+                    const stepTime = (step + 1) * TIME_STEP;
 
-                // Climb rate check
-                if (altitudeChange > 0 && verticalRate > this.maxClimbRate) {
-                    state = 'illegal';
-                    warnings.push('CLIMB RATE EXCEEDED');
-                } else if (altitudeChange < 0) {
-                    if (verticalRate > this.maxDiveRate * 1.2) {
-                        state = 'illegal';
-                        warnings.push('DIVE RATE CRITICAL');
-                    } else if (verticalRate > this.maxDiveRate) {
-                        if (state !== 'illegal') state = 'stressful';
-                        warnings.push('Dive Rate High - Damage');
+                    // Calculate desired heading towards target
+                    const dx = targetX - state.x;
+                    const dy = targetY - state.y;
+                    const distanceRemaining = Math.sqrt(dx * dx + dy * dy);
+                    const desiredHeading = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
+
+                    // Calculate heading difference (shortest angle)
+                    let headingDiff = desiredHeading - state.heading;
+                    if (headingDiff > 180) headingDiff -= 360;
+                    if (headingDiff < -180) headingDiff += 360;
+
+                    // Calculate maximum turn rate based on current speed and G-limits
+                    // Turn radius: r = v² / (g × √(n² - 1)) where n is load factor (G-force)
+                    // For now, use max sustainable G for turn rate calculation
+                    const maxSustainableG = this.maxGForce * 0.8; // Use 80% of max for sustained
+                    const turnRadius = (state.speed * state.speed) / (g * Math.sqrt(maxSustainableG * maxSustainableG - 1));
+                    const maxTurnRatePerSec = (state.speed / turnRadius) * (180 / Math.PI); // Convert to degrees/sec
+                    const maxTurnThisStep = maxTurnRatePerSec * TIME_STEP;
+
+                    // Apply turn rate limit
+                    const actualTurn = Math.max(-maxTurnThisStep, Math.min(maxTurnThisStep, headingDiff));
+                    const newHeading = (state.heading + actualTurn + 360) % 360;
+
+                    // Calculate actual G-force from this turn
+                    const turnRateRadPerSec = (Math.abs(actualTurn) / TIME_STEP) * (Math.PI / 180);
+                    const actualTurnRadius = turnRateRadPerSec > 0 ? state.speed / turnRateRadPerSec : Infinity;
+                    const turnGForce = actualTurnRadius !== Infinity ? (state.speed * state.speed) / (actualTurnRadius * g) : 0;
+
+                    // Calculate desired altitude change
+                    const altitudeRemaining = targetAltitude - state.altitude;
+                    const timeRemaining = TURN_TIME - stepTime;
+                    const desiredClimbRate = timeRemaining > 0 ? altitudeRemaining / timeRemaining : 0;
+
+                    // Limit climb/dive rate
+                    let actualClimbRate = desiredClimbRate;
+                    if (actualClimbRate > this.maxClimbRate) {
+                        actualClimbRate = this.maxClimbRate;
+                    } else if (actualClimbRate < -this.maxDiveRate) {
+                        actualClimbRate = -this.maxDiveRate;
+                    }
+
+                    // Calculate altitude change this step
+                    const altitudeChange = actualClimbRate * TIME_STEP;
+                    const newAltitude = state.altitude + altitudeChange;
+
+                    // Energy management: altitude affects speed
+                    // Base energy equation: v² = v₀² - 2g·Δh
+                    let energySpeed = state.speed;
+                    const energySpeedSquared = state.speed * state.speed - 2 * g * altitudeChange;
+                    if (energySpeedSquared > 0) {
+                        energySpeed = Math.sqrt(energySpeedSquared);
+                    } else {
+                        energySpeed = this.minSpeed;
+                    }
+
+                    // Pilot throttle compensation
+                    // When climbing: pilot applies full throttle to maintain speed
+                    // When diving: pilot reduces throttle to avoid overspeed
+                    let throttleAdjustment = 0;
+                    if (altitudeChange > 0) {
+                        // Climbing: add throttle (can add ~5-10 m/s per second at full throttle)
+                        throttleAdjustment = this.maxAcceleration * TIME_STEP * 0.6; // 60% effective
+                    } else if (altitudeChange < 0) {
+                        // Diving: reduce throttle
+                        throttleAdjustment = -this.maxBraking * TIME_STEP * 0.4; // 40% braking effectiveness
+                    }
+
+                    let newSpeed = energySpeed + throttleAdjustment;
+
+                    // Combined maneuver energy sharing
+                    // Turning while climbing/diving reduces efficiency
+                    if (Math.abs(altitudeChange) > 0 && Math.abs(actualTurn) > 0) {
+                        const maneuverIntensity = (Math.abs(actualTurn) / maxTurnThisStep) * (Math.abs(actualClimbRate) / this.maxClimbRate);
+                        newSpeed *= (1 - maneuverIntensity * 0.1); // Up to 10% speed loss for combined maneuvers
+                    }
+
+                    // Clamp speed
+                    newSpeed = Math.max(this.minSpeed, Math.min(this.maxSpeed * 1.2, newSpeed));
+
+                    // Move aircraft forward
+                    const avgSpeed = (state.speed + newSpeed) / 2;
+                    const distance = avgSpeed * TIME_STEP;
+                    const headingRad = (newHeading - 90) * Math.PI / 180;
+                    const newX = state.x + Math.cos(headingRad) * distance;
+                    const newY = state.y + Math.sin(headingRad) * distance;
+
+                    // Check for slip/skid (lateral forces during turn)
+                    let slipWarning = null;
+                    if (turnGForce > 0) {
+                        const bankAngle = Math.atan(turnGForce) * 180 / Math.PI;
+                        // Ideally, bank angle should match turn rate
+                        // If turning too fast for bank angle, you're skidding
+                        // If bank too steep for turn rate, you're slipping
+                        // Simplified: warn if turning hard (>50% of max G)
+                        if (turnGForce > this.maxGForce * 0.5) {
+                            slipWarning = `Skid/Slip at ${stepTime.toFixed(1)}s`;
+                        }
+                    }
+
+                    // Update state
+                    state = {
+                        x: newX,
+                        y: newY,
+                        altitude: newAltitude,
+                        heading: newHeading,
+                        speed: newSpeed,
+                        time: stepTime,
+                        gForce: turnGForce,
+                        climbRate: actualClimbRate
+                    };
+
+                    path.push({...state});
+
+                    // Track max G-force
+                    if (turnGForce > maxGForce) maxGForce = turnGForce;
+
+                    // Validation checks
+                    // Speed checks
+                    if (newSpeed > this.maxSpeed * 1.2) {
+                        overallState = 'illegal';
+                        warnings.push(`Speed too high at ${stepTime.toFixed(1)}s (${Math.round(newSpeed)} m/s)`);
+                    } else if (newSpeed > this.maxSpeed) {
+                        if (overallState !== 'illegal') overallState = 'stressful';
+                        if (!warnings.some(w => w.includes('Overspeed'))) {
+                            warnings.push(`Overspeed at ${stepTime.toFixed(1)}s - Damage`);
+                        }
+                    } else if (newSpeed < this.minSpeed) {
+                        if (overallState !== 'illegal') overallState = 'stressful';
+                        if (!warnings.some(w => w.includes('STALL'))) {
+                            warnings.push(`STALL WARNING at ${stepTime.toFixed(1)}s`);
+                        }
+                    }
+
+                    // G-force check
+                    if (turnGForce > this.maxGForce) {
+                        overallState = 'illegal';
+                        warnings.push(`G-force exceeded at ${stepTime.toFixed(1)}s (${turnGForce.toFixed(1)}G)`);
+                    } else if (turnGForce > this.maxGForce * 0.85) {
+                        if (overallState !== 'illegal') overallState = 'stressful';
+                        if (!warnings.some(w => w.includes('High G'))) {
+                            warnings.push(`High G-force (${turnGForce.toFixed(1)}G)`);
+                        }
+                    }
+
+                    // Slip/skid warning
+                    if (slipWarning && overallState !== 'illegal') {
+                        overallState = 'stressful';
+                        if (!warnings.some(w => w.includes('Skid'))) {
+                            warnings.push(slipWarning);
+                        }
+                    }
+
+                    // Terrain check
+                    const terrainHeight = terrain.getHeightAt(newX, newY);
+                    if (newAltitude < terrainHeight + 50) {
+                        overallState = 'illegal';
+                        warnings.push(`⚠ TERRAIN at ${stepTime.toFixed(1)}s ⚠`);
                     }
                 }
 
-                // G-force check
-                if (gForce > this.maxGForce) {
-                    state = 'illegal';
-                    warnings.push('G-FORCE EXCEEDED');
-                }
+                // Final position check - how close did we get?
+                const finalState = path[path.length - 1];
+                const finalDist = Math.sqrt((finalState.x - targetX)**2 + (finalState.y - targetY)**2);
+                const finalAltDiff = Math.abs(finalState.altitude - targetAltitude);
+                const finalHeadingDiff = Math.abs(finalState.heading - targetHeading);
 
-                // Terrain check
-                const terrainHeight = terrain.getHeightAt(targetX, targetY);
-                if (targetAltitude < terrainHeight + 50) {
-                    state = 'illegal';
-                    warnings.push('⚠ PULL UP ⚠');
+                if (finalDist > 100) {
+                    if (overallState !== 'illegal') overallState = 'stressful';
+                    warnings.push(`Won't reach target (${Math.round(finalDist)}m short)`);
                 }
 
                 return {
-                    state,
-                    warnings,
-                    targetSpeed: Math.round(requiredSpeed),
-                    gForce: gForce.toFixed(1),
-                    climbRate: Math.round(verticalRate),
+                    path: path,
+                    state: overallState,
+                    warnings: warnings,
+                    targetSpeed: Math.round(finalState.speed),
+                    gForce: maxGForce.toFixed(1),
+                    climbRate: Math.round(Math.abs(finalState.climbRate)),
                     targetAltitude: Math.round(targetAltitude),
                     targetHeading: Math.round(targetHeading)
                 };
+            }
+
+            calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading) {
+                // Use the new realistic path calculation
+                const result = this.calculateRealisticPath(targetX, targetY, targetAltitude, targetHeading);
+
+                // Store the path for rendering and execution
+                this.flightPath = result.path;
+
+                return result;
             }
 
             lockOrders(targetX, targetY, targetAltitude, targetHeading) {
@@ -525,33 +651,53 @@
 
             executeOrders(progress) {
                 // progress goes from 0 to 1
-                // Interpolate from start position to target position
-                this.x = this.startX + (this.targetX - this.startX) * progress;
-                this.y = this.startY + (this.targetY - this.startY) * progress;
-                this.altitude = this.startAltitude + (this.targetAltitude - this.startAltitude) * progress;
+                // Follow the precalculated realistic flight path
+                if (this.flightPath && this.flightPath.length > 1) {
+                    // Find the point in the path corresponding to current progress
+                    const pathIndex = Math.floor(progress * (this.flightPath.length - 1));
+                    const nextIndex = Math.min(pathIndex + 1, this.flightPath.length - 1);
 
-                // Smoothly interpolate heading
-                let headingDiff = this.targetHeading - this.startHeading;
-                if (headingDiff > 180) headingDiff -= 360;
-                if (headingDiff < -180) headingDiff += 360;
-                this.heading = this.startHeading + headingDiff * progress;
+                    // Interpolate between path points for smooth animation
+                    const localProgress = (progress * (this.flightPath.length - 1)) - pathIndex;
 
-                if (this.heading < 0) this.heading += 360;
-                if (this.heading >= 360) this.heading -= 360;
+                    const current = this.flightPath[pathIndex];
+                    const next = this.flightPath[nextIndex];
 
-                // Speed changes based on altitude change (energy conservation)
-                const altitudeChange = this.altitude - this.startAltitude;
-                const g = 9.81;
-                const energyAdjustedSpeedSquared = this.startSpeed * this.startSpeed - 2 * g * altitudeChange;
-                if (energyAdjustedSpeedSquared > 0) {
-                    this.speed = Math.sqrt(energyAdjustedSpeedSquared);
+                    this.x = current.x + (next.x - current.x) * localProgress;
+                    this.y = current.y + (next.y - current.y) * localProgress;
+                    this.altitude = current.altitude + (next.altitude - current.altitude) * localProgress;
+                    this.heading = current.heading + (next.heading - current.heading) * localProgress;
+                    this.speed = current.speed + (next.speed - current.speed) * localProgress;
+
+                    // Handle heading wraparound
+                    if (this.heading < 0) this.heading += 360;
+                    if (this.heading >= 360) this.heading -= 360;
+
+                    // Check for stall condition
+                    if (this.speed < this.minSpeed) {
+                        this.inStall = true;
+                    }
+
+                    // Apply damage for stressful maneuvers
+                    if (current.gForce && current.gForce > this.maxGForce * 0.85) {
+                        this.damage += 0.1; // Gradual damage from high G
+                    }
                 } else {
-                    this.speed = this.minSpeed; // Prevent negative speed
-                }
+                    // Fallback to old linear interpolation if no path (shouldn't happen)
+                    this.x = this.startX + (this.targetX - this.startX) * progress;
+                    this.y = this.startY + (this.targetY - this.startY) * progress;
+                    this.altitude = this.startAltitude + (this.targetAltitude - this.startAltitude) * progress;
 
-                // Also interpolate toward target speed (for thrust/drag effects)
-                const targetSpeedInterp = this.startSpeed + (this.targetSpeed - this.startSpeed) * progress;
-                this.speed = (this.speed + targetSpeedInterp) / 2; // Blend physics with target
+                    let headingDiff = this.targetHeading - this.startHeading;
+                    if (headingDiff > 180) headingDiff -= 360;
+                    if (headingDiff < -180) headingDiff += 360;
+                    this.heading = this.startHeading + headingDiff * progress;
+
+                    if (this.heading < 0) this.heading += 360;
+                    if (this.heading >= 360) this.heading -= 360;
+
+                    this.speed = this.startSpeed + (this.targetSpeed - this.startSpeed) * progress;
+                }
             }
 
             finalizeExecution() {
@@ -681,6 +827,43 @@
 
             // Render terrain
             terrain.render();
+
+            // Render flight paths (dotted lines)
+            for (let plane of aircraft) {
+                if (plane.flightPath && plane.flightPath.length > 1) {
+                    ctx.strokeStyle = plane.isPlayer ? '#00aaff' : '#ff6666';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]); // Dotted line
+
+                    ctx.beginPath();
+                    ctx.moveTo(plane.flightPath[0].x, plane.flightPath[0].y);
+                    for (let i = 1; i < plane.flightPath.length; i++) {
+                        ctx.lineTo(plane.flightPath[i].x, plane.flightPath[i].y);
+                    }
+                    ctx.stroke();
+                    ctx.setLineDash([]); // Reset to solid line
+                }
+            }
+
+            // Render ghost aircraft flight path
+            if (ghostAircraft && ghostAircraft.aircraft.flightPath && ghostAircraft.aircraft.flightPath.length > 1) {
+                // Color based on validation state
+                let pathColor = '#00ff00'; // valid = green
+                if (ghostAircraft.state === 'stressful') pathColor = '#ffaa00'; // yellow
+                if (ghostAircraft.state === 'illegal') pathColor = '#ff0000'; // red
+
+                ctx.strokeStyle = pathColor;
+                ctx.lineWidth = 3;
+                ctx.setLineDash([8, 4]); // Dotted line
+
+                ctx.beginPath();
+                ctx.moveTo(ghostAircraft.aircraft.flightPath[0].x, ghostAircraft.aircraft.flightPath[0].y);
+                for (let i = 1; i < ghostAircraft.aircraft.flightPath.length; i++) {
+                    ctx.lineTo(ghostAircraft.aircraft.flightPath[i].x, ghostAircraft.aircraft.flightPath[i].y);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]); // Reset to solid line
+            }
 
             // Render aircraft
             for (let plane of aircraft) {
@@ -978,6 +1161,25 @@
         document.getElementById('nextPhaseButton').addEventListener('click', () => {
             gameState = 'ORDER';
             currentTurn++;
+
+            // Handle stall recovery/loss of control for next turn
+            for (let plane of aircraft) {
+                if (plane.inStall) {
+                    // Aircraft stalled - lose control this turn (AI takes over recovery)
+                    console.log(`${plane.name} is recovering from stall!`);
+
+                    // Auto-generate recovery maneuver: nose down, gain speed
+                    const recoveryX = plane.x + Math.cos((plane.heading - 90) * Math.PI / 180) * 200;
+                    const recoveryY = plane.y + Math.sin((plane.heading - 90) * Math.PI / 180) * 200;
+                    const recoveryAltitude = Math.max(100, plane.altitude - 100); // Lose 100m altitude
+                    const recoveryHeading = plane.heading; // Maintain heading during recovery
+
+                    plane.lockOrders(recoveryX, recoveryY, recoveryAltitude, recoveryHeading);
+                    plane.inStall = false; // Clear stall for next turn
+                    plane.damage += 5; // Damage from stall
+                }
+            }
+
             document.getElementById('replayButton').style.display = 'none';
             document.getElementById('nextPhaseButton').style.display = 'none';
             updateUI();
