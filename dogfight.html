@@ -768,6 +768,24 @@
                     return;
                 }
             }
+
+            // If we didn't click on any aircraft, but we have a ghost selected, lock in orders
+            if (selectedAircraft && ghostAircraft && ghostAircraft.state !== 'illegal') {
+                selectedAircraft.lockOrders(
+                    ghostAircraft.aircraft.x,
+                    ghostAircraft.aircraft.y,
+                    ghostAircraft.aircraft.altitude,
+                    ghostAircraft.aircraft.heading
+                );
+                selectedAircraft = null;
+                ghostAircraft = null;
+                ghostRotation = 0;
+                ghostAltitudeOffset = 0;
+                document.getElementById('ghostPanel').style.display = 'none';
+
+                // Generate AI orders
+                generateAIOrders();
+            }
         });
 
         // Keyboard handling
