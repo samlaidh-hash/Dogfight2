@@ -157,7 +157,7 @@
                 <div>Controls:</div>
                 <div>• Click aircraft to order</div>
                 <div>• Move mouse to position</div>
-                <div>• Mouse wheel: rotate</div>
+                <div>• Mouse wheel: rotate (in maneuver) / zoom (otherwise)</div>
                 <div>• W/S: altitude up/down</div>
                 <div>• A/D: fire threshold</div>
                 <div>• Click again to lock</div>
@@ -267,27 +267,27 @@
                 this.startY = y;
                 this.startAltitude = altitude;
                 this.startHeading = heading;
-                this.startSpeed = 200;
+                this.startSpeed = 140; // Start at cruise speed
 
-                // Performance characteristics
+                // Performance characteristics (historically accurate)
                 if (type === 'Spitfire') {
-                    this.maxSpeed = 250;
-                    this.minSpeed = 80;
+                    this.maxSpeed = 170; // m/s (~600 km/h at altitude)
+                    this.minSpeed = 30; // m/s (~108 km/h stall speed)
                     this.maxTurnRate = 72; // degrees per turn (18°/sec × 4 sec)
                     this.maxClimbRate = 15; // m/s
-                    this.maxDiveRate = 30;
+                    this.maxDiveRate = 30; // m/s
                     this.maxGForce = 7;
-                    this.maxAcceleration = 20;
-                    this.maxBraking = 30;
+                    this.maxAcceleration = 15; // m/s²
+                    this.maxBraking = 20; // m/s²
                 } else { // Me-109
-                    this.maxSpeed = 260;
-                    this.minSpeed = 85;
+                    this.maxSpeed = 175; // m/s (~630 km/h, slightly faster than Spitfire)
+                    this.minSpeed = 30; // m/s (~108 km/h stall speed)
                     this.maxTurnRate = 64; // degrees per turn (16°/sec × 4 sec, slightly worse than Spitfire)
-                    this.maxClimbRate = 18;
-                    this.maxDiveRate = 35;
+                    this.maxClimbRate = 17; // m/s (slightly better climb)
+                    this.maxDiveRate = 35; // m/s
                     this.maxGForce = 6.5;
-                    this.maxAcceleration = 22;
-                    this.maxBraking = 28;
+                    this.maxAcceleration = 17; // m/s²
+                    this.maxBraking = 18; // m/s²
                 }
 
                 // Combat stats
@@ -399,8 +399,25 @@
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 const altitudeChange = targetAltitude - this.altitude;
 
-                // Calculate required speed: distance / time
-                const requiredSpeed = distance / TURN_TIME;
+                // Calculate base required speed: distance / time
+                const baseSpeed = distance / TURN_TIME;
+
+                // Energy exchange: climbing reduces speed, diving increases speed
+                // Using energy conservation: v² = v₀² - 2g·Δh (where Δh is positive for climb)
+                const g = 9.81; // gravity m/s²
+                const currentSpeedSquared = this.speed * this.speed;
+                const energyAdjustedSpeedSquared = currentSpeedSquared - 2 * g * altitudeChange;
+
+                // Required speed accounting for altitude change
+                let requiredSpeed = baseSpeed;
+                if (energyAdjustedSpeedSquared > 0) {
+                    const energyAdjustedSpeed = Math.sqrt(energyAdjustedSpeedSquared);
+                    // Blend the base speed requirement with energy-adjusted speed
+                    requiredSpeed = (baseSpeed + energyAdjustedSpeed) / 2;
+                } else {
+                    // Climbing too high would stall the aircraft
+                    requiredSpeed = this.minSpeed;
+                }
 
                 // Calculate turn rate (shortest angle between headings)
                 const headingChange = Math.abs(targetHeading - this.heading);
@@ -522,7 +539,19 @@
                 if (this.heading < 0) this.heading += 360;
                 if (this.heading >= 360) this.heading -= 360;
 
-                this.speed = this.startSpeed + (this.targetSpeed - this.startSpeed) * progress;
+                // Speed changes based on altitude change (energy conservation)
+                const altitudeChange = this.altitude - this.startAltitude;
+                const g = 9.81;
+                const energyAdjustedSpeedSquared = this.startSpeed * this.startSpeed - 2 * g * altitudeChange;
+                if (energyAdjustedSpeedSquared > 0) {
+                    this.speed = Math.sqrt(energyAdjustedSpeedSquared);
+                } else {
+                    this.speed = this.minSpeed; // Prevent negative speed
+                }
+
+                // Also interpolate toward target speed (for thrust/drag effects)
+                const targetSpeedInterp = this.startSpeed + (this.targetSpeed - this.startSpeed) * progress;
+                this.speed = (this.speed + targetSpeedInterp) / 2; // Blend physics with target
             }
 
             finalizeExecution() {
@@ -644,6 +673,12 @@
             ctx.fillStyle = '#16213e';
             ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
+            // Apply zoom transform
+            ctx.save();
+            ctx.translate(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+            ctx.scale(zoomLevel, zoomLevel);
+            ctx.translate(-CANVAS_WIDTH / 2, -CANVAS_HEIGHT / 2);
+
             // Render terrain
             terrain.render();
 
@@ -656,6 +691,8 @@
             if (ghostAircraft) {
                 ghostAircraft.aircraft.renderSVG(true, ghostAircraft.state);
             }
+
+            ctx.restore();
         }
 
         function updateUI() {
@@ -675,6 +712,7 @@
         let mouseY = 0;
         let ghostRotation = 0;
         let ghostAltitudeOffset = 0;
+        let zoomLevel = 1.0; // Zoom level for canvas (1.0 = no zoom)
 
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
@@ -818,13 +856,22 @@
         });
 
         canvas.addEventListener('wheel', (e) => {
-            if (!selectedAircraft || !ghostAircraft) return;
             e.preventDefault();
 
-            if (e.deltaY < 0) {
-                ghostRotation += 10;
+            if (selectedAircraft && ghostAircraft) {
+                // In maneuver mode: rotate ghost
+                if (e.deltaY < 0) {
+                    ghostRotation += 10;
+                } else {
+                    ghostRotation -= 10;
+                }
             } else {
-                ghostRotation -= 10;
+                // Not in maneuver mode: zoom in/out
+                if (e.deltaY < 0) {
+                    zoomLevel = Math.min(3.0, zoomLevel * 1.1); // Max 3x zoom
+                } else {
+                    zoomLevel = Math.max(0.5, zoomLevel / 1.1); // Min 0.5x zoom
+                }
             }
         });
 
