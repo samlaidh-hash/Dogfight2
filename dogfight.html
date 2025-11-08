@@ -176,7 +176,7 @@
         const CANVAS_WIDTH = 1200;
         const CANVAS_HEIGHT = 800;
         const EXECUTION_TIME = 4000; // 4 seconds
-        const TURN_DISTANCE = 100; // base distance moved per turn in meters
+        const TURN_TIME = 4; // execution time in seconds (matches EXECUTION_TIME)
         const ALTITUDE_MIN = 0;
         const ALTITUDE_MAX = 3000; // meters
         const MOUNTAIN_HEIGHT = 1000; // meters
@@ -399,53 +399,55 @@
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 const altitudeChange = targetAltitude - this.altitude;
 
-                // Calculate required speed (proportional to distance)
-                const targetSpeed = (distance / TURN_DISTANCE) * this.speed;
+                // Calculate required speed: distance / time
+                const requiredSpeed = distance / TURN_TIME;
 
-                // Calculate turn rate
+                // Calculate turn rate (shortest angle between headings)
                 const headingChange = Math.abs(targetHeading - this.heading);
-                const turnRate = Math.min(headingChange, 360 - headingChange);
+                const turnAngle = Math.min(headingChange, 360 - headingChange);
 
-                // Calculate climb/dive rate
-                const climbRate = Math.abs(altitudeChange);
+                // Calculate climb/dive rate: altitude change / time
+                const verticalRate = Math.abs(altitudeChange) / TURN_TIME;
 
-                // Calculate G-force (simplified: based on turn rate and speed)
-                const gForce = (turnRate / 10) * (targetSpeed / 100);
+                // Calculate G-force based on turn radius at current speed
+                // G = v² / r, where turn radius r = v / (angular_rate * π/180)
+                const avgSpeed = (this.speed + requiredSpeed) / 2;
+                const turnRateRadPerSec = (turnAngle / TURN_TIME) * (Math.PI / 180);
+                const turnRadius = turnRateRadPerSec > 0 ? avgSpeed / turnRateRadPerSec : Infinity;
+                const gForce = turnRadius !== Infinity ? (avgSpeed * avgSpeed) / (turnRadius * 9.81) : 0;
 
                 // Determine state
                 let state = 'valid';
                 let warnings = [];
 
                 // Speed checks
-                if (targetSpeed > this.maxSpeed * 1.2) {
+                if (requiredSpeed > this.maxSpeed * 1.2) {
                     state = 'illegal';
                     warnings.push('SPEED TOO HIGH');
-                } else if (targetSpeed > this.maxSpeed) {
+                } else if (requiredSpeed > this.maxSpeed) {
                     if (state !== 'illegal') state = 'stressful';
                     warnings.push('Overspeed - Damage');
-                } else if (targetSpeed < this.minSpeed) {
+                } else if (requiredSpeed < this.minSpeed) {
                     if (state !== 'illegal') state = 'stressful';
                     warnings.push('STALL WARNING');
                 }
 
-                // Turn rate check - scale allowed turn by distance traveled
-                // If traveling further, can turn more degrees (more time/distance to complete turn)
-                const distanceFactor = Math.max(0.5, distance / TURN_DISTANCE); // minimum 0.5x
-                const maxTurnAllowed = this.maxTurnRate * distanceFactor;
-                if (turnRate > maxTurnAllowed) {
+                // Turn rate check - fixed maximum degrees regardless of distance
+                // This is the angular velocity limit (degrees per second)
+                if (turnAngle > this.maxTurnRate) {
                     state = 'illegal';
                     warnings.push('TURN TOO TIGHT');
                 }
 
                 // Climb rate check
-                if (altitudeChange > 0 && climbRate > this.maxClimbRate * TURN_DISTANCE / 100) {
+                if (altitudeChange > 0 && verticalRate > this.maxClimbRate) {
                     state = 'illegal';
                     warnings.push('CLIMB RATE EXCEEDED');
                 } else if (altitudeChange < 0) {
-                    if (Math.abs(climbRate) > this.maxDiveRate * 1.2 * TURN_DISTANCE / 100) {
+                    if (verticalRate > this.maxDiveRate * 1.2) {
                         state = 'illegal';
                         warnings.push('DIVE RATE CRITICAL');
-                    } else if (Math.abs(climbRate) > this.maxDiveRate * TURN_DISTANCE / 100) {
+                    } else if (verticalRate > this.maxDiveRate) {
                         if (state !== 'illegal') state = 'stressful';
                         warnings.push('Dive Rate High - Damage');
                     }
@@ -467,9 +469,11 @@
                 return {
                     state,
                     warnings,
-                    targetSpeed: Math.round(targetSpeed),
+                    targetSpeed: Math.round(requiredSpeed),
                     gForce: gForce.toFixed(1),
-                    climbRate: Math.round(climbRate)
+                    climbRate: Math.round(verticalRate),
+                    targetAltitude: Math.round(targetAltitude),
+                    targetHeading: Math.round(targetHeading)
                 };
             }
 
@@ -703,7 +707,9 @@
                 panel.style.top = (mouseY - 50) + 'px';
 
                 let panelHTML = `
-                    <div>Target Speed: ${validation.targetSpeed} m/s</div>
+                    <div>Heading: ${validation.targetHeading}°</div>
+                    <div>Altitude: ${validation.targetAltitude}m</div>
+                    <div>Speed: ${validation.targetSpeed} m/s</div>
                     <div>G-Force: ${validation.gForce}G</div>
                 `;
 
