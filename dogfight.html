@@ -508,11 +508,11 @@
                 this.targetHeading = targetHeading;
                 this.hasOrders = true;
 
-                // Calculate target speed
+                // Calculate target speed: distance / time
                 const dx = targetX - this.startX;
                 const dy = targetY - this.startY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
-                this.targetSpeed = (distance / TURN_DISTANCE) * this.speed;
+                this.targetSpeed = distance / TURN_TIME;
             }
 
             unlockOrders() {
