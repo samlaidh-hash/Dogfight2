@@ -753,6 +753,34 @@
             ghostAircraft.validation = validation;
         }
 
+        // Helper function to update ghost panel
+        function updateGhostPanel() {
+            if (!ghostAircraft || !ghostAircraft.validation) return;
+
+            const panel = document.getElementById('ghostPanel');
+            panel.style.display = 'block';
+            panel.style.left = (lastScreenX + 50) + 'px';
+            panel.style.top = (lastScreenY - 50) + 'px';
+
+            const validation = ghostAircraft.validation;
+            let panelHTML = `
+                <div>Heading: ${validation.targetHeading}°</div>
+                <div>Altitude: ${validation.targetAltitude}m</div>
+                <div>Speed: ${validation.targetSpeed} m/s</div>
+                <div>G-Force: ${validation.gForce}G</div>
+            `;
+
+            if (validation.warnings.length > 0) {
+                panelHTML += '<div style="color: #ff4444; margin-top: 5px;">';
+                for (let warning of validation.warnings) {
+                    panelHTML += `<div>${warning}</div>`;
+                }
+                panelHTML += '</div>';
+            }
+
+            panel.innerHTML = panelHTML;
+        }
+
         let lastScreenX = 0;
         let lastScreenY = 0;
 
@@ -768,30 +796,7 @@
 
             if (selectedAircraft && ghostAircraft) {
                 updateGhost();
-
-                // Update ghost panel (position in screen coordinates)
-                const panel = document.getElementById('ghostPanel');
-                panel.style.display = 'block';
-                panel.style.left = (lastScreenX + 50) + 'px';
-                panel.style.top = (lastScreenY - 50) + 'px';
-
-                const validation = ghostAircraft.validation;
-                let panelHTML = `
-                    <div>Heading: ${validation.targetHeading}°</div>
-                    <div>Altitude: ${validation.targetAltitude}m</div>
-                    <div>Speed: ${validation.targetSpeed} m/s</div>
-                    <div>G-Force: ${validation.gForce}G</div>
-                `;
-
-                if (validation.warnings.length > 0) {
-                    panelHTML += '<div style="color: #ff4444; margin-top: 5px;">';
-                    for (let warning of validation.warnings) {
-                        panelHTML += `<div>${warning}</div>`;
-                    }
-                    panelHTML += '</div>';
-                }
-
-                panel.innerHTML = panelHTML;
+                updateGhostPanel();
             }
         });
 
@@ -826,8 +831,7 @@
                                 ghostAircraft.aircraft.altitude,
                                 ghostAircraft.aircraft.heading
                             );
-                            selectedAircraft = null;
-                            ghostAircraft = null;
+                            selectedAircraft = null; // Deselect but keep ghost visible
                             ghostRotation = 0;
                             ghostAltitudeOffset = 0;
                             document.getElementById('ghostPanel').style.display = 'none';
@@ -873,8 +877,7 @@
                     ghostAircraft.aircraft.altitude,
                     ghostAircraft.aircraft.heading
                 );
-                selectedAircraft = null;
-                ghostAircraft = null;
+                selectedAircraft = null; // Deselect but keep ghost visible
                 ghostRotation = 0;
                 ghostAltitudeOffset = 0;
                 document.getElementById('ghostPanel').style.display = 'none';
@@ -898,10 +901,12 @@
                 case 'w':
                     ghostAltitudeOffset += 50;
                     updateGhost();
+                    updateGhostPanel();
                     break;
                 case 's':
                     ghostAltitudeOffset -= 50;
                     updateGhost();
+                    updateGhostPanel();
                     break;
                 case 'a':
                     selectedAircraft.fireThreshold = Math.max(0.1, selectedAircraft.fireThreshold - 0.05);
@@ -923,6 +928,7 @@
                     ghostRotation -= 10;
                 }
                 updateGhost(); // Update ghost immediately after rotation
+                updateGhostPanel(); // Update panel to show new heading
             } else {
                 // Not in maneuver mode: zoom in/out
                 if (e.deltaY < 0) {
@@ -938,6 +944,12 @@
             gameState = 'EXECUTION';
             executionStartTime = Date.now();
             executionRecording = [];
+
+            // Clear ghost and selection when execution starts
+            ghostAircraft = null;
+            selectedAircraft = null;
+            document.getElementById('ghostPanel').style.display = 'none';
+
             updateUI();
         });
 
