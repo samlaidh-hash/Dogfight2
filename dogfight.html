@@ -641,8 +641,8 @@
             terrain.render();
 
             // Render aircraft
-            for (let aircraft of aircraft) {
-                aircraft.renderSVG();
+            for (let plane of aircraft) {
+                plane.renderSVG();
             }
 
             // Render ghost if in order mode
@@ -724,14 +724,14 @@
             const clickY = e.clientY - rect.top;
 
             // Check if clicking on an aircraft
-            for (let aircraft of aircraft) {
-                if (aircraft.isClicked(clickX, clickY)) {
-                    if (!aircraft.isPlayer) continue; // Only player can control their aircraft
+            for (let plane of aircraft) {
+                if (plane.isClicked(clickX, clickY)) {
+                    if (!plane.isPlayer) continue; // Only player can control their aircraft
 
-                    if (selectedAircraft === aircraft) {
+                    if (selectedAircraft === plane) {
                         // Lock in orders
                         if (ghostAircraft && ghostAircraft.state !== 'illegal') {
-                            aircraft.lockOrders(
+                            plane.lockOrders(
                                 ghostAircraft.aircraft.x,
                                 ghostAircraft.aircraft.y,
                                 ghostAircraft.aircraft.altitude,
@@ -746,9 +746,9 @@
                             // Generate AI orders
                             generateAIOrders();
                         }
-                    } else if (aircraft.hasOrders) {
+                    } else if (plane.hasOrders) {
                         // Unlock orders
-                        aircraft.unlockOrders();
+                        plane.unlockOrders();
                         selectedAircraft = null;
                         ghostAircraft = null;
                         ghostRotation = 0;
@@ -756,10 +756,10 @@
                         document.getElementById('ghostPanel').style.display = 'none';
                     } else {
                         // Select aircraft
-                        selectedAircraft = aircraft;
+                        selectedAircraft = plane;
                         ghostAircraft = {
-                            aircraft: new Aircraft(aircraft.name, aircraft.type, aircraft.x, aircraft.y,
-                                aircraft.altitude, aircraft.heading, aircraft.isPlayer),
+                            aircraft: new Aircraft(plane.name, plane.type, plane.x, plane.y,
+                                plane.altitude, plane.heading, plane.isPlayer),
                             state: 'valid'
                         };
                         ghostRotation = 0;
@@ -817,13 +817,13 @@
             document.getElementById('nextPhaseButton').style.display = 'none';
 
             // Reset aircraft to start of turn positions
-            for (let aircraft of aircraft) {
-                aircraft.x = aircraft.startX;
-                aircraft.y = aircraft.startY;
-                aircraft.altitude = aircraft.startAltitude;
-                aircraft.heading = aircraft.startHeading;
-                aircraft.speed = aircraft.startSpeed;
-                aircraft.hasOrders = true;
+            for (let plane of aircraft) {
+                plane.x = plane.startX;
+                plane.y = plane.startY;
+                plane.altitude = plane.startAltitude;
+                plane.heading = plane.startHeading;
+                plane.speed = plane.startSpeed;
+                plane.hasOrders = true;
             }
         });
 
@@ -842,9 +842,9 @@
                 const progress = Math.min(1, elapsed / EXECUTION_TIME);
 
                 // Move aircraft
-                for (let aircraft of aircraft) {
-                    if (aircraft.hasOrders) {
-                        aircraft.executeOrders(progress);
+                for (let plane of aircraft) {
+                    if (plane.hasOrders) {
+                        plane.executeOrders(progress);
                     }
                 }
 
@@ -853,8 +853,8 @@
 
                 if (progress >= 1) {
                     // Finalize execution
-                    for (let aircraft of aircraft) {
-                        aircraft.finalizeExecution();
+                    for (let plane of aircraft) {
+                        plane.finalizeExecution();
                     }
                     gameState = 'REVIEW';
                     document.getElementById('replayButton').style.display = 'block';
