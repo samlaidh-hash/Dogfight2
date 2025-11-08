@@ -730,41 +730,52 @@
             return { x: canvasX, y: canvasY };
         }
 
+        // Helper function to update ghost aircraft position and validation
+        function updateGhost() {
+            if (!selectedAircraft || !ghostAircraft) return;
+
+            // Update ghost position and orientation
+            ghostAircraft.aircraft.x = mouseX;
+            ghostAircraft.aircraft.y = mouseY;
+            ghostAircraft.aircraft.heading = (selectedAircraft.heading + ghostRotation + 360) % 360;
+            ghostAircraft.aircraft.altitude = Math.max(ALTITUDE_MIN,
+                Math.min(ALTITUDE_MAX, selectedAircraft.altitude + ghostAltitudeOffset));
+
+            // Validate maneuver
+            const validation = selectedAircraft.calculateManeuverValidation(
+                ghostAircraft.aircraft.x,
+                ghostAircraft.aircraft.y,
+                ghostAircraft.aircraft.altitude,
+                ghostAircraft.aircraft.heading
+            );
+
+            ghostAircraft.state = validation.state;
+            ghostAircraft.validation = validation;
+        }
+
+        let lastScreenX = 0;
+        let lastScreenY = 0;
+
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
-            const screenX = e.clientX - rect.left;
-            const screenY = e.clientY - rect.top;
+            lastScreenX = e.clientX - rect.left;
+            lastScreenY = e.clientY - rect.top;
 
             // Transform to canvas coordinates
-            const canvasCoords = screenToCanvas(screenX, screenY);
+            const canvasCoords = screenToCanvas(lastScreenX, lastScreenY);
             mouseX = canvasCoords.x;
             mouseY = canvasCoords.y;
 
             if (selectedAircraft && ghostAircraft) {
-                // Update ghost position
-                ghostAircraft.aircraft.x = mouseX;
-                ghostAircraft.aircraft.y = mouseY;
-                ghostAircraft.aircraft.heading = (selectedAircraft.heading + ghostRotation + 360) % 360;
-                ghostAircraft.aircraft.altitude = Math.max(ALTITUDE_MIN,
-                    Math.min(ALTITUDE_MAX, selectedAircraft.altitude + ghostAltitudeOffset));
-
-                // Validate maneuver
-                const validation = selectedAircraft.calculateManeuverValidation(
-                    ghostAircraft.aircraft.x,
-                    ghostAircraft.aircraft.y,
-                    ghostAircraft.aircraft.altitude,
-                    ghostAircraft.aircraft.heading
-                );
-
-                ghostAircraft.state = validation.state;
-                ghostAircraft.validation = validation;
+                updateGhost();
 
                 // Update ghost panel (position in screen coordinates)
                 const panel = document.getElementById('ghostPanel');
                 panel.style.display = 'block';
-                panel.style.left = (screenX + 50) + 'px';
-                panel.style.top = (screenY - 50) + 'px';
+                panel.style.left = (lastScreenX + 50) + 'px';
+                panel.style.top = (lastScreenY - 50) + 'px';
 
+                const validation = ghostAircraft.validation;
                 let panelHTML = `
                     <div>Heading: ${validation.targetHeading}°</div>
                     <div>Altitude: ${validation.targetAltitude}m</div>
@@ -796,14 +807,19 @@
             const clickX = canvasCoords.x;
             const clickY = canvasCoords.y;
 
+            console.log('Click at:', clickX, clickY, 'Ghost active:', !!ghostAircraft, 'State:', ghostAircraft?.state);
+
             // Check if clicking on an aircraft
             for (let plane of aircraft) {
                 if (plane.isClicked(clickX, clickY)) {
+                    console.log('Clicked on aircraft:', plane.name);
                     if (!plane.isPlayer) continue; // Only player can control their aircraft
 
                     if (selectedAircraft === plane) {
+                        console.log('Same aircraft - attempting to lock');
                         // Lock in orders
                         if (ghostAircraft && ghostAircraft.state !== 'illegal') {
+                            console.log('Locking orders!');
                             plane.lockOrders(
                                 ghostAircraft.aircraft.x,
                                 ghostAircraft.aircraft.y,
@@ -818,8 +834,11 @@
 
                             // Generate AI orders
                             generateAIOrders();
+                        } else {
+                            console.log('Ghost illegal, not locking');
                         }
                     } else if (plane.hasOrders) {
+                        console.log('Unlocking orders');
                         // Unlock orders
                         plane.unlockOrders();
                         selectedAircraft = null;
@@ -828,6 +847,7 @@
                         ghostAltitudeOffset = 0;
                         document.getElementById('ghostPanel').style.display = 'none';
                     } else {
+                        console.log('Selecting aircraft');
                         // Select aircraft
                         selectedAircraft = plane;
                         ghostAircraft = {
@@ -837,13 +857,16 @@
                         };
                         ghostRotation = 0;
                         ghostAltitudeOffset = 0;
+                        updateGhost(); // Update ghost immediately
                     }
                     return;
                 }
             }
 
+            console.log('Click did not hit aircraft - attempting to lock from anywhere');
             // If we didn't click on any aircraft, but we have a ghost selected, lock in orders
             if (selectedAircraft && ghostAircraft && ghostAircraft.state !== 'illegal') {
+                console.log('Locking orders from empty click!');
                 selectedAircraft.lockOrders(
                     ghostAircraft.aircraft.x,
                     ghostAircraft.aircraft.y,
@@ -858,6 +881,12 @@
 
                 // Generate AI orders
                 generateAIOrders();
+            } else {
+                console.log('Cannot lock:', {
+                    selectedAircraft: !!selectedAircraft,
+                    ghostAircraft: !!ghostAircraft,
+                    state: ghostAircraft?.state
+                });
             }
         });
 
@@ -868,9 +897,11 @@
             switch(e.key.toLowerCase()) {
                 case 'w':
                     ghostAltitudeOffset += 50;
+                    updateGhost();
                     break;
                 case 's':
                     ghostAltitudeOffset -= 50;
+                    updateGhost();
                     break;
                 case 'a':
                     selectedAircraft.fireThreshold = Math.max(0.1, selectedAircraft.fireThreshold - 0.05);
@@ -891,6 +922,7 @@
                 } else {
                     ghostRotation -= 10;
                 }
+                updateGhost(); // Update ghost immediately after rotation
             } else {
                 // Not in maneuver mode: zoom in/out
                 if (e.deltaY < 0) {
