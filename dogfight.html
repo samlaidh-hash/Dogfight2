@@ -262,6 +262,13 @@
                 this.targetHeading = heading;
                 this.targetSpeed = 200;
 
+                // Starting positions for interpolation
+                this.startX = x;
+                this.startY = y;
+                this.startAltitude = altitude;
+                this.startHeading = heading;
+                this.startSpeed = 200;
+
                 // Performance characteristics
                 if (type === 'Spitfire') {
                     this.maxSpeed = 250;
@@ -464,6 +471,13 @@
             }
 
             lockOrders(targetX, targetY, targetAltitude, targetHeading) {
+                // Save starting position for interpolation
+                this.startX = this.x;
+                this.startY = this.y;
+                this.startAltitude = this.altitude;
+                this.startHeading = this.heading;
+                this.startSpeed = this.speed;
+
                 this.targetX = targetX;
                 this.targetY = targetY;
                 this.targetAltitude = targetAltitude;
@@ -471,8 +485,8 @@
                 this.hasOrders = true;
 
                 // Calculate target speed
-                const dx = targetX - this.x;
-                const dy = targetY - this.y;
+                const dx = targetX - this.startX;
+                const dy = targetY - this.startY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 this.targetSpeed = (distance / TURN_DISTANCE) * this.speed;
             }
@@ -487,20 +501,21 @@
 
             executeOrders(progress) {
                 // progress goes from 0 to 1
-                this.x = this.x + (this.targetX - this.x) * progress;
-                this.y = this.y + (this.targetY - this.y) * progress;
-                this.altitude = this.altitude + (this.targetAltitude - this.altitude) * progress;
+                // Interpolate from start position to target position
+                this.x = this.startX + (this.targetX - this.startX) * progress;
+                this.y = this.startY + (this.targetY - this.startY) * progress;
+                this.altitude = this.startAltitude + (this.targetAltitude - this.startAltitude) * progress;
 
                 // Smoothly interpolate heading
-                let headingDiff = this.targetHeading - this.heading;
+                let headingDiff = this.targetHeading - this.startHeading;
                 if (headingDiff > 180) headingDiff -= 360;
                 if (headingDiff < -180) headingDiff += 360;
-                this.heading = this.heading + headingDiff * progress;
+                this.heading = this.startHeading + headingDiff * progress;
 
                 if (this.heading < 0) this.heading += 360;
                 if (this.heading >= 360) this.heading -= 360;
 
-                this.speed = this.speed + (this.targetSpeed - this.speed) * progress;
+                this.speed = this.startSpeed + (this.targetSpeed - this.startSpeed) * progress;
             }
 
             finalizeExecution() {
@@ -803,12 +818,11 @@
 
             // Reset aircraft to start of turn positions
             for (let aircraft of aircraft) {
-                const startX = aircraft.x - (aircraft.targetX - aircraft.x);
-                const startY = aircraft.y - (aircraft.targetY - aircraft.y);
-                const startAlt = aircraft.altitude - (aircraft.targetAltitude - aircraft.altitude);
-                aircraft.x = startX;
-                aircraft.y = startY;
-                aircraft.altitude = startAlt;
+                aircraft.x = aircraft.startX;
+                aircraft.y = aircraft.startY;
+                aircraft.altitude = aircraft.startAltitude;
+                aircraft.heading = aircraft.startHeading;
+                aircraft.speed = aircraft.startSpeed;
                 aircraft.hasOrders = true;
             }
         });
@@ -830,7 +844,7 @@
                 // Move aircraft
                 for (let aircraft of aircraft) {
                     if (aircraft.hasOrders) {
-                        aircraft.executeOrders(progress / aircraft.hasOrders);
+                        aircraft.executeOrders(progress);
                     }
                 }
 
