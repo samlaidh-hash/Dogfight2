@@ -714,10 +714,31 @@
         let ghostAltitudeOffset = 0;
         let zoomLevel = 1.0; // Zoom level for canvas (1.0 = no zoom)
 
+        // Helper function to transform screen coordinates to canvas coordinates (accounting for zoom)
+        function screenToCanvas(screenX, screenY) {
+            // Screen coords relative to canvas element
+            // Need to reverse the zoom transformation:
+            // 1. Translate to origin (center of canvas)
+            // 2. Divide by zoom (inverse of scale)
+            // 3. Translate back
+            const centerX = CANVAS_WIDTH / 2;
+            const centerY = CANVAS_HEIGHT / 2;
+
+            const canvasX = centerX + (screenX - centerX) / zoomLevel;
+            const canvasY = centerY + (screenY - centerY) / zoomLevel;
+
+            return { x: canvasX, y: canvasY };
+        }
+
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
-            mouseX = e.clientX - rect.left;
-            mouseY = e.clientY - rect.top;
+            const screenX = e.clientX - rect.left;
+            const screenY = e.clientY - rect.top;
+
+            // Transform to canvas coordinates
+            const canvasCoords = screenToCanvas(screenX, screenY);
+            mouseX = canvasCoords.x;
+            mouseY = canvasCoords.y;
 
             if (selectedAircraft && ghostAircraft) {
                 // Update ghost position
@@ -738,11 +759,11 @@
                 ghostAircraft.state = validation.state;
                 ghostAircraft.validation = validation;
 
-                // Update ghost panel
+                // Update ghost panel (position in screen coordinates)
                 const panel = document.getElementById('ghostPanel');
                 panel.style.display = 'block';
-                panel.style.left = (mouseX + 50) + 'px';
-                panel.style.top = (mouseY - 50) + 'px';
+                panel.style.left = (screenX + 50) + 'px';
+                panel.style.top = (screenY - 50) + 'px';
 
                 let panelHTML = `
                     <div>Heading: ${validation.targetHeading}°</div>
@@ -767,8 +788,13 @@
             if (gameState !== 'ORDER') return;
 
             const rect = canvas.getBoundingClientRect();
-            const clickX = e.clientX - rect.left;
-            const clickY = e.clientY - rect.top;
+            const screenX = e.clientX - rect.left;
+            const screenY = e.clientY - rect.top;
+
+            // Transform to canvas coordinates
+            const canvasCoords = screenToCanvas(screenX, screenY);
+            const clickX = canvasCoords.x;
+            const clickY = canvasCoords.y;
 
             // Check if clicking on an aircraft
             for (let plane of aircraft) {
