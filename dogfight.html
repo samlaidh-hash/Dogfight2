@@ -273,7 +273,7 @@
                 if (type === 'Spitfire') {
                     this.maxSpeed = 250;
                     this.minSpeed = 80;
-                    this.maxTurnRate = 20; // degrees per turn
+                    this.maxTurnRate = 72; // degrees per turn (18°/sec × 4 sec)
                     this.maxClimbRate = 15; // m/s
                     this.maxDiveRate = 30;
                     this.maxGForce = 7;
@@ -282,7 +282,7 @@
                 } else { // Me-109
                     this.maxSpeed = 260;
                     this.minSpeed = 85;
-                    this.maxTurnRate = 18;
+                    this.maxTurnRate = 64; // degrees per turn (16°/sec × 4 sec, slightly worse than Spitfire)
                     this.maxClimbRate = 18;
                     this.maxDiveRate = 35;
                     this.maxGForce = 6.5;
