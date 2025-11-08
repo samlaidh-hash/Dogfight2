@@ -428,8 +428,11 @@
                     warnings.push('STALL WARNING');
                 }
 
-                // Turn rate check
-                if (turnRate > this.maxTurnRate) {
+                // Turn rate check - scale allowed turn by distance traveled
+                // If traveling further, can turn more degrees (more time/distance to complete turn)
+                const distanceFactor = Math.max(0.5, distance / TURN_DISTANCE); // minimum 0.5x
+                const maxTurnAllowed = this.maxTurnRate * distanceFactor;
+                if (turnRate > maxTurnAllowed) {
                     state = 'illegal';
                     warnings.push('TURN TOO TIGHT');
                 }
