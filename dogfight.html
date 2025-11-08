@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dogfight 2 - Aerial Combat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a2e;
+            color: #eee;
+            overflow: hidden;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #gameCanvas {
+            border: 2px solid #0f3460;
+            background: #16213e;
+            cursor: crosshair;
+        }
+
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 5px;
+            min-width: 250px;
+        }
+
+        #executeButton {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            background: #e94560;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: none;
+            font-family: 'Courier New', monospace;
+        }
+
+        #executeButton:hover {
+            background: #c23555;
+        }
+
+        #executeButton:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        #replayButton, #nextPhaseButton {
+            position: absolute;
+            bottom: 30px;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            background: #0f3460;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: none;
+            font-family: 'Courier New', monospace;
+        }
+
+        #replayButton {
+            left: 50%;
+            transform: translateX(-120%);
+        }
+
+        #nextPhaseButton {
+            left: 50%;
+            transform: translateX(20%);
+        }
+
+        #replayButton:hover, #nextPhaseButton:hover {
+            background: #1a4d7a;
+        }
+
+        .warning {
+            color: #e94560;
+            font-weight: bold;
+            animation: blink 0.5s infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0.3; }
+        }
+
+        .stat-line {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .ghost-panel {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 10px;
+            border: 2px solid #0f3460;
+            border-radius: 5px;
+            font-size: 12px;
+            pointer-events: none;
+            display: none;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            font-size: 20px;
+            color: #e94560;
+        }
+
+        h2 {
+            margin-top: 10px;
+            margin-bottom: 5px;
+            font-size: 16px;
+            color: #0f9d58;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="1200" height="800"></canvas>
+
+        <div id="ui">
+            <h1>DOGFIGHT 2</h1>
+            <div id="phaseDisplay" class="stat-line">Phase: <span id="currentPhase">ORDER</span></div>
+            <div id="turnDisplay" class="stat-line">Turn: <span id="currentTurn">1</span></div>
+
+            <h2>Spitfire (You)</h2>
+            <div id="spitfireStats"></div>
+
+            <h2>Me-109 (Enemy)</h2>
+            <div id="me109Stats"></div>
+
+            <div style="margin-top: 15px; font-size: 11px; color: #888;">
+                <div>Controls:</div>
+                <div>• Click aircraft to order</div>
+                <div>• Move mouse to position</div>
+                <div>• Mouse wheel: rotate</div>
+                <div>• W/S: altitude up/down</div>
+                <div>• A/D: fire threshold</div>
+                <div>• Click again to lock</div>
+            </div>
+        </div>
+
+        <div id="ghostPanel" class="ghost-panel"></div>
+
+        <button id="executeButton">EXECUTE ORDERS</button>
+        <button id="replayButton">REPLAY</button>
+        <button id="nextPhaseButton">NEXT PHASE</button>
+    </div>
+
+    <script>
+        // Game constants
+        const CANVAS_WIDTH = 1200;
+        const CANVAS_HEIGHT = 800;
+        const EXECUTION_TIME = 4000; // 4 seconds
+        const TURN_DISTANCE = 100; // base distance moved per turn in meters
+        const ALTITUDE_MIN = 0;
+        const ALTITUDE_MAX = 3000; // meters
+        const MOUNTAIN_HEIGHT = 1000; // meters
+
+        // Game state
+        let gameState = 'ORDER'; // ORDER, EXECUTION, REVIEW
+        let currentTurn = 1;
+        let selectedAircraft = null;
+        let ghostAircraft = null;
+        let executionStartTime = 0;
+        let executionRecording = [];
+
+        // Canvas setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Terrain generation
+        class Terrain {
+            constructor() {
+                this.mountains = [];
+                this.generateMountains();
+            }
+
+            generateMountains() {
+                // Generate random mountains
+                for (let i = 0; i < 15; i++) {
+                    this.mountains.push({
+                        x: Math.random() * CANVAS_WIDTH,
+                        y: Math.random() * CANVAS_HEIGHT,
+                        radius: 30 + Math.random() * 80,
+                        height: 200 + Math.random() * 800
+                    });
+                }
+            }
+
+            getHeightAt(x, y) {
+                let maxHeight = 0;
+                for (let mountain of this.mountains) {
+                    const dx = x - mountain.x;
+                    const dy = y - mountain.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < mountain.radius) {
+                        const heightAtPoint = mountain.height * (1 - dist / mountain.radius);
+                        maxHeight = Math.max(maxHeight, heightAtPoint);
+                    }
+                }
+                return maxHeight;
+            }
+
+            render() {
+                for (let mountain of this.mountains) {
+                    const gradient = ctx.createRadialGradient(
+                        mountain.x, mountain.y, 0,
+                        mountain.x, mountain.y, mountain.radius
+                    );
+                    const intensity = mountain.height / MOUNTAIN_HEIGHT;
+                    gradient.addColorStop(0, `rgba(80, 80, 60, ${intensity * 0.6})`);
+                    gradient.addColorStop(1, 'rgba(40, 40, 30, 0)');
+
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(mountain.x, mountain.y, mountain.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        // Aircraft class
+        class Aircraft {
+            constructor(name, type, x, y, altitude, heading, isPlayer = false) {
+                this.name = name;
+                this.type = type;
+                this.x = x;
+                this.y = y;
+                this.altitude = altitude;
+                this.heading = heading; // degrees
+                this.speed = 200; // m/s
+                this.isPlayer = isPlayer;
+                this.hasOrders = false;
+                this.targetX = x;
+                this.targetY = y;
+                this.targetAltitude = altitude;
+                this.targetHeading = heading;
+                this.targetSpeed = 200;
+
+                // Starting positions for interpolation
+                this.startX = x;
+                this.startY = y;
+                this.startAltitude = altitude;
+                this.startHeading = heading;
+                this.startSpeed = 200;
+
+                // Performance characteristics
+                if (type === 'Spitfire') {
+                    this.maxSpeed = 250;
+                    this.minSpeed = 80;
+                    this.maxTurnRate = 20; // degrees per turn
+                    this.maxClimbRate = 15; // m/s
+                    this.maxDiveRate = 30;
+                    this.maxGForce = 7;
+                    this.maxAcceleration = 20;
+                    this.maxBraking = 30;
+                } else { // Me-109
+                    this.maxSpeed = 260;
+                    this.minSpeed = 85;
+                    this.maxTurnRate = 18;
+                    this.maxClimbRate = 18;
+                    this.maxDiveRate = 35;
+                    this.maxGForce = 6.5;
+                    this.maxAcceleration = 22;
+                    this.maxBraking = 28;
+                }
+
+                // Combat stats
+                this.ammunition = 500;
+                this.damage = 0;
+                this.fireThreshold = 0.3; // 30% hit chance to fire
+                this.timeOnTarget = 0;
+                this.pilotSkill = 0.5 + Math.random() * 0.3; // 50-80%
+                this.gunnerySkill = 0.5 + Math.random() * 0.3;
+            }
+
+            getScaleForAltitude() {
+                // Higher altitude = larger visual size
+                const baseScale = 0.5;
+                const altitudeFactor = this.altitude / 1000;
+                return baseScale + altitudeFactor * 0.5;
+            }
+
+            renderSVG(isGhost = false, ghostState = 'valid') {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate((this.heading * Math.PI) / 180);
+
+                const scale = this.getScaleForAltitude();
+                ctx.scale(scale, scale);
+
+                // Set color based on state
+                if (isGhost) {
+                    if (ghostState === 'illegal') {
+                        ctx.globalAlpha = 0.7;
+                        ctx.fillStyle = '#ff0000';
+                        ctx.strokeStyle = '#ff0000';
+                    } else if (ghostState === 'stressful') {
+                        ctx.globalAlpha = 0.7;
+                        ctx.fillStyle = '#ffff00';
+                        ctx.strokeStyle = '#ffff00';
+                    } else {
+                        ctx.globalAlpha = 0.5;
+                        ctx.fillStyle = '#00ff00';
+                        ctx.strokeStyle = '#00ff00';
+                    }
+                } else {
+                    if (this.isPlayer) {
+                        ctx.fillStyle = '#0099ff';
+                        ctx.strokeStyle = '#0099ff';
+                    } else {
+                        ctx.fillStyle = '#ff4444';
+                        ctx.strokeStyle = '#ff4444';
+                    }
+                }
+
+                ctx.lineWidth = 2;
+
+                // Draw aircraft shape (simplified top-down view)
+                ctx.beginPath();
+                // Fuselage
+                ctx.moveTo(0, -30);
+                ctx.lineTo(-5, 10);
+                ctx.lineTo(5, 10);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Wings
+                ctx.beginPath();
+                ctx.moveTo(-25, 0);
+                ctx.lineTo(-5, 0);
+                ctx.moveTo(5, 0);
+                ctx.lineTo(25, 0);
+                ctx.stroke();
+
+                // Tail
+                ctx.beginPath();
+                ctx.moveTo(-8, 10);
+                ctx.lineTo(-8, 15);
+                ctx.moveTo(8, 10);
+                ctx.lineTo(8, 15);
+                ctx.stroke();
+
+                // Draw orders indicator
+                if (!isGhost && this.hasOrders) {
+                    ctx.strokeStyle = '#00ff00';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 35, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                ctx.restore();
+
+                // Draw altitude indicator
+                if (!isGhost) {
+                    ctx.fillStyle = this.isPlayer ? '#0099ff' : '#ff4444';
+                    ctx.font = '12px Courier New';
+                    ctx.fillText(`${Math.round(this.altitude)}m`, this.x + 20, this.y - 20);
+                }
+            }
+
+            isClicked(mouseX, mouseY) {
+                const dx = mouseX - this.x;
+                const dy = mouseY - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                return distance < 40 * this.getScaleForAltitude();
+            }
+
+            calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading) {
+                const dx = targetX - this.x;
+                const dy = targetY - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const altitudeChange = targetAltitude - this.altitude;
+
+                // Calculate required speed (proportional to distance)
+                const targetSpeed = (distance / TURN_DISTANCE) * this.speed;
+
+                // Calculate turn rate
+                const headingChange = Math.abs(targetHeading - this.heading);
+                const turnRate = Math.min(headingChange, 360 - headingChange);
+
+                // Calculate climb/dive rate
+                const climbRate = Math.abs(altitudeChange);
+
+                // Calculate G-force (simplified: based on turn rate and speed)
+                const gForce = (turnRate / 10) * (targetSpeed / 100);
+
+                // Determine state
+                let state = 'valid';
+                let warnings = [];
+
+                // Speed checks
+                if (targetSpeed > this.maxSpeed * 1.2) {
+                    state = 'illegal';
+                    warnings.push('SPEED TOO HIGH');
+                } else if (targetSpeed > this.maxSpeed) {
+                    if (state !== 'illegal') state = 'stressful';
+                    warnings.push('Overspeed - Damage');
+                } else if (targetSpeed < this.minSpeed) {
+                    if (state !== 'illegal') state = 'stressful';
+                    warnings.push('STALL WARNING');
+                }
+
+                // Turn rate check
+                if (turnRate > this.maxTurnRate) {
+                    state = 'illegal';
+                    warnings.push('TURN TOO TIGHT');
+                }
+
+                // Climb rate check
+                if (altitudeChange > 0 && climbRate > this.maxClimbRate * TURN_DISTANCE / 100) {
+                    state = 'illegal';
+                    warnings.push('CLIMB RATE EXCEEDED');
+                } else if (altitudeChange < 0) {
+                    if (Math.abs(climbRate) > this.maxDiveRate * 1.2 * TURN_DISTANCE / 100) {
+                        state = 'illegal';
+                        warnings.push('DIVE RATE CRITICAL');
+                    } else if (Math.abs(climbRate) > this.maxDiveRate * TURN_DISTANCE / 100) {
+                        if (state !== 'illegal') state = 'stressful';
+                        warnings.push('Dive Rate High - Damage');
+                    }
+                }
+
+                // G-force check
+                if (gForce > this.maxGForce) {
+                    state = 'illegal';
+                    warnings.push('G-FORCE EXCEEDED');
+                }
+
+                // Terrain check
+                const terrainHeight = terrain.getHeightAt(targetX, targetY);
+                if (targetAltitude < terrainHeight + 50) {
+                    state = 'illegal';
+                    warnings.push('⚠ PULL UP ⚠');
+                }
+
+                return {
+                    state,
+                    warnings,
+                    targetSpeed: Math.round(targetSpeed),
+                    gForce: gForce.toFixed(1),
+                    climbRate: Math.round(climbRate)
+                };
+            }
+
+            lockOrders(targetX, targetY, targetAltitude, targetHeading) {
+                // Save starting position for interpolation
+                this.startX = this.x;
+                this.startY = this.y;
+                this.startAltitude = this.altitude;
+                this.startHeading = this.heading;
+                this.startSpeed = this.speed;
+
+                this.targetX = targetX;
+                this.targetY = targetY;
+                this.targetAltitude = targetAltitude;
+                this.targetHeading = targetHeading;
+                this.hasOrders = true;
+
+                // Calculate target speed
+                const dx = targetX - this.startX;
+                const dy = targetY - this.startY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                this.targetSpeed = (distance / TURN_DISTANCE) * this.speed;
+            }
+
+            unlockOrders() {
+                this.hasOrders = false;
+                this.targetX = this.x;
+                this.targetY = this.y;
+                this.targetAltitude = this.altitude;
+                this.targetHeading = this.heading;
+            }
+
+            executeOrders(progress) {
+                // progress goes from 0 to 1
+                // Interpolate from start position to target position
+                this.x = this.startX + (this.targetX - this.startX) * progress;
+                this.y = this.startY + (this.targetY - this.startY) * progress;
+                this.altitude = this.startAltitude + (this.targetAltitude - this.startAltitude) * progress;
+
+                // Smoothly interpolate heading
+                let headingDiff = this.targetHeading - this.startHeading;
+                if (headingDiff > 180) headingDiff -= 360;
+                if (headingDiff < -180) headingDiff += 360;
+                this.heading = this.startHeading + headingDiff * progress;
+
+                if (this.heading < 0) this.heading += 360;
+                if (this.heading >= 360) this.heading -= 360;
+
+                this.speed = this.startSpeed + (this.targetSpeed - this.startSpeed) * progress;
+            }
+
+            finalizeExecution() {
+                this.x = this.targetX;
+                this.y = this.targetY;
+                this.altitude = this.targetAltitude;
+                this.heading = this.targetHeading;
+                this.speed = this.targetSpeed;
+                this.hasOrders = false;
+            }
+
+            getStatsHTML() {
+                return `
+                    <div class="stat-line">Alt: ${Math.round(this.altitude)}m</div>
+                    <div class="stat-line">Speed: ${Math.round(this.speed)} m/s</div>
+                    <div class="stat-line">Hdg: ${Math.round(this.heading)}°</div>
+                    <div class="stat-line">Ammo: ${this.ammunition}</div>
+                    <div class="stat-line">Damage: ${Math.round(this.damage)}%</div>
+                    <div class="stat-line">Fire Threshold: ${Math.round(this.fireThreshold * 100)}%</div>
+                `;
+            }
+        }
+
+        // Initialize game
+        const terrain = new Terrain();
+        const spitfire = new Aircraft('Spitfire', 'Spitfire', 300, 400, 500, 90, true);
+        const me109 = new Aircraft('Me-109', 'Me-109', 800, 400, 500, 270, false);
+        const aircraft = [spitfire, me109];
+
+        // AI for Me-109
+        function generateAIOrders() {
+            if (me109.hasOrders) return;
+
+            // Simple AI: try to get behind the Spitfire
+            const dx = spitfire.x - me109.x;
+            const dy = spitfire.y - me109.y;
+            const angleToTarget = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+
+            // Move towards a position behind the Spitfire
+            const behindX = spitfire.x - Math.cos(spitfire.heading * Math.PI / 180) * 150;
+            const behindY = spitfire.y - Math.sin(spitfire.heading * Math.PI / 180) * 150;
+
+            // Constrain to canvas
+            const targetX = Math.max(50, Math.min(CANVAS_WIDTH - 50, behindX));
+            const targetY = Math.max(50, Math.min(CANVAS_HEIGHT - 50, behindY));
+
+            // Adjust altitude based on terrain and tactical position
+            const terrainHeight = terrain.getHeightAt(targetX, targetY);
+            let targetAltitude = Math.max(terrainHeight + 100, spitfire.altitude - 100);
+            targetAltitude = Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, targetAltitude));
+
+            // Face towards Spitfire
+            const targetHeading = angleToTarget;
+
+            // Validate and lock if valid
+            const validation = me109.calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading);
+            if (validation.state !== 'illegal') {
+                me109.lockOrders(targetX, targetY, targetAltitude, targetHeading);
+            } else {
+                // Fallback: simple forward movement
+                const fallbackX = me109.x + Math.cos(me109.heading * Math.PI / 180) * 80;
+                const fallbackY = me109.y + Math.sin(me109.heading * Math.PI / 180) * 80;
+                me109.lockOrders(
+                    Math.max(50, Math.min(CANVAS_WIDTH - 50, fallbackX)),
+                    Math.max(50, Math.min(CANVAS_HEIGHT - 50, fallbackY)),
+                    me109.altitude,
+                    me109.heading
+                );
+            }
+        }
+
+        // Combat system
+        function processCombat() {
+            // Check if aircraft can fire at each other
+            for (let shooter of aircraft) {
+                if (shooter.ammunition <= 0) continue;
+
+                for (let target of aircraft) {
+                    if (shooter === target) continue;
+
+                    // Calculate if target is in firing arc (roughly 30 degrees in front)
+                    const dx = target.x - shooter.x;
+                    const dy = target.y - shooter.y;
+                    const angleToTarget = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+                    let angleDiff = Math.abs(angleToTarget - shooter.heading);
+                    if (angleDiff > 180) angleDiff = 360 - angleDiff;
+
+                    if (angleDiff < 30) {
+                        // Target is in arc
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        const altitudeDiff = Math.abs(target.altitude - shooter.altitude);
+
+                        // Calculate hit chance
+                        let hitChance = shooter.gunnerySkill * 0.5;
+                        hitChance *= Math.max(0.1, 1 - distance / 500); // Distance factor
+                        hitChance *= Math.max(0.5, 1 - altitudeDiff / 1000); // Altitude factor
+                        hitChance *= Math.min(1, 0.3 + shooter.timeOnTarget / 10); // Time on target bonus
+
+                        shooter.timeOnTarget += 0.1;
+
+                        // Fire if chance exceeds threshold
+                        if (hitChance >= shooter.fireThreshold) {
+                            shooter.ammunition -= 5;
+
+                            // Check if hit
+                            if (Math.random() < hitChance) {
+                                target.damage += 2 + Math.random() * 3;
+                            }
+                        }
+                    } else {
+                        shooter.timeOnTarget = 0;
+                    }
+                }
+            }
+        }
+
+        // Rendering
+        function render() {
+            ctx.fillStyle = '#16213e';
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // Render terrain
+            terrain.render();
+
+            // Render aircraft
+            for (let aircraft of aircraft) {
+                aircraft.renderSVG();
+            }
+
+            // Render ghost if in order mode
+            if (ghostAircraft) {
+                ghostAircraft.aircraft.renderSVG(true, ghostAircraft.state);
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('currentPhase').textContent = gameState;
+            document.getElementById('currentTurn').textContent = currentTurn;
+            document.getElementById('spitfireStats').innerHTML = spitfire.getStatsHTML();
+            document.getElementById('me109Stats').innerHTML = me109.getStatsHTML();
+
+            // Show execute button if all aircraft have orders
+            const allHaveOrders = aircraft.every(a => a.hasOrders);
+            document.getElementById('executeButton').style.display =
+                (gameState === 'ORDER' && allHaveOrders) ? 'block' : 'none';
+        }
+
+        // Mouse handling
+        let mouseX = 0;
+        let mouseY = 0;
+        let ghostRotation = 0;
+        let ghostAltitudeOffset = 0;
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+
+            if (selectedAircraft && ghostAircraft) {
+                // Update ghost position
+                ghostAircraft.aircraft.x = mouseX;
+                ghostAircraft.aircraft.y = mouseY;
+                ghostAircraft.aircraft.heading = (selectedAircraft.heading + ghostRotation + 360) % 360;
+                ghostAircraft.aircraft.altitude = Math.max(ALTITUDE_MIN,
+                    Math.min(ALTITUDE_MAX, selectedAircraft.altitude + ghostAltitudeOffset));
+
+                // Validate maneuver
+                const validation = selectedAircraft.calculateManeuverValidation(
+                    ghostAircraft.aircraft.x,
+                    ghostAircraft.aircraft.y,
+                    ghostAircraft.aircraft.altitude,
+                    ghostAircraft.aircraft.heading
+                );
+
+                ghostAircraft.state = validation.state;
+                ghostAircraft.validation = validation;
+
+                // Update ghost panel
+                const panel = document.getElementById('ghostPanel');
+                panel.style.display = 'block';
+                panel.style.left = (mouseX + 50) + 'px';
+                panel.style.top = (mouseY - 50) + 'px';
+
+                let panelHTML = `
+                    <div>Target Speed: ${validation.targetSpeed} m/s</div>
+                    <div>G-Force: ${validation.gForce}G</div>
+                `;
+
+                if (validation.warnings.length > 0) {
+                    panelHTML += '<div style="color: #ff4444; margin-top: 5px;">';
+                    for (let warning of validation.warnings) {
+                        panelHTML += `<div>${warning}</div>`;
+                    }
+                    panelHTML += '</div>';
+                }
+
+                panel.innerHTML = panelHTML;
+            }
+        });
+
+        canvas.addEventListener('click', (e) => {
+            if (gameState !== 'ORDER') return;
+
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            // Check if clicking on an aircraft
+            for (let aircraft of aircraft) {
+                if (aircraft.isClicked(clickX, clickY)) {
+                    if (!aircraft.isPlayer) continue; // Only player can control their aircraft
+
+                    if (selectedAircraft === aircraft) {
+                        // Lock in orders
+                        if (ghostAircraft && ghostAircraft.state !== 'illegal') {
+                            aircraft.lockOrders(
+                                ghostAircraft.aircraft.x,
+                                ghostAircraft.aircraft.y,
+                                ghostAircraft.aircraft.altitude,
+                                ghostAircraft.aircraft.heading
+                            );
+                            selectedAircraft = null;
+                            ghostAircraft = null;
+                            ghostRotation = 0;
+                            ghostAltitudeOffset = 0;
+                            document.getElementById('ghostPanel').style.display = 'none';
+
+                            // Generate AI orders
+                            generateAIOrders();
+                        }
+                    } else if (aircraft.hasOrders) {
+                        // Unlock orders
+                        aircraft.unlockOrders();
+                        selectedAircraft = null;
+                        ghostAircraft = null;
+                        ghostRotation = 0;
+                        ghostAltitudeOffset = 0;
+                        document.getElementById('ghostPanel').style.display = 'none';
+                    } else {
+                        // Select aircraft
+                        selectedAircraft = aircraft;
+                        ghostAircraft = {
+                            aircraft: new Aircraft(aircraft.name, aircraft.type, aircraft.x, aircraft.y,
+                                aircraft.altitude, aircraft.heading, aircraft.isPlayer),
+                            state: 'valid'
+                        };
+                        ghostRotation = 0;
+                        ghostAltitudeOffset = 0;
+                    }
+                    return;
+                }
+            }
+        });
+
+        // Keyboard handling
+        window.addEventListener('keydown', (e) => {
+            if (!selectedAircraft || !ghostAircraft) return;
+
+            switch(e.key.toLowerCase()) {
+                case 'w':
+                    ghostAltitudeOffset += 50;
+                    break;
+                case 's':
+                    ghostAltitudeOffset -= 50;
+                    break;
+                case 'a':
+                    selectedAircraft.fireThreshold = Math.max(0.1, selectedAircraft.fireThreshold - 0.05);
+                    break;
+                case 'd':
+                    selectedAircraft.fireThreshold = Math.min(0.9, selectedAircraft.fireThreshold + 0.05);
+                    break;
+            }
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            if (!selectedAircraft || !ghostAircraft) return;
+            e.preventDefault();
+
+            if (e.deltaY < 0) {
+                ghostRotation += 10;
+            } else {
+                ghostRotation -= 10;
+            }
+        });
+
+        // Execute button
+        document.getElementById('executeButton').addEventListener('click', () => {
+            gameState = 'EXECUTION';
+            executionStartTime = Date.now();
+            executionRecording = [];
+            updateUI();
+        });
+
+        document.getElementById('replayButton').addEventListener('click', () => {
+            // Replay execution
+            gameState = 'EXECUTION';
+            executionStartTime = Date.now();
+            document.getElementById('replayButton').style.display = 'none';
+            document.getElementById('nextPhaseButton').style.display = 'none';
+
+            // Reset aircraft to start of turn positions
+            for (let aircraft of aircraft) {
+                aircraft.x = aircraft.startX;
+                aircraft.y = aircraft.startY;
+                aircraft.altitude = aircraft.startAltitude;
+                aircraft.heading = aircraft.startHeading;
+                aircraft.speed = aircraft.startSpeed;
+                aircraft.hasOrders = true;
+            }
+        });
+
+        document.getElementById('nextPhaseButton').addEventListener('click', () => {
+            gameState = 'ORDER';
+            currentTurn++;
+            document.getElementById('replayButton').style.display = 'none';
+            document.getElementById('nextPhaseButton').style.display = 'none';
+            updateUI();
+        });
+
+        // Main game loop
+        function gameLoop() {
+            if (gameState === 'EXECUTION') {
+                const elapsed = Date.now() - executionStartTime;
+                const progress = Math.min(1, elapsed / EXECUTION_TIME);
+
+                // Move aircraft
+                for (let aircraft of aircraft) {
+                    if (aircraft.hasOrders) {
+                        aircraft.executeOrders(progress);
+                    }
+                }
+
+                // Process combat
+                processCombat();
+
+                if (progress >= 1) {
+                    // Finalize execution
+                    for (let aircraft of aircraft) {
+                        aircraft.finalizeExecution();
+                    }
+                    gameState = 'REVIEW';
+                    document.getElementById('replayButton').style.display = 'block';
+                    document.getElementById('nextPhaseButton').style.display = 'block';
+                }
+            }
+
+            render();
+            updateUI();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start game
+        gameLoop();
+    </script>
+</body>
+</html>
