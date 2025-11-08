@@ -843,13 +843,17 @@
                         }
                     } else if (plane.hasOrders) {
                         console.log('Unlocking orders');
-                        // Unlock orders
+                        // Unlock orders - but recreate ghost at unlocked position
                         plane.unlockOrders();
-                        selectedAircraft = null;
-                        ghostAircraft = null;
+                        selectedAircraft = plane;
+                        ghostAircraft = {
+                            aircraft: new Aircraft(plane.name, plane.type, plane.targetX, plane.targetY,
+                                plane.targetAltitude, plane.targetHeading, plane.isPlayer),
+                            state: 'valid'
+                        };
                         ghostRotation = 0;
                         ghostAltitudeOffset = 0;
-                        document.getElementById('ghostPanel').style.display = 'none';
+                        updateGhost();
                     } else {
                         console.log('Selecting aircraft');
                         // Select aircraft
