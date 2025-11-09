@@ -69,11 +69,11 @@
             cursor: not-allowed;
         }
 
-        #replayButton, #nextPhaseButton {
+        #replayButton, .nextPhaseButton {
             position: absolute;
             bottom: 30px;
-            padding: 15px 30px;
-            font-size: 16px;
+            padding: 15px 20px;
+            font-size: 14px;
             font-weight: bold;
             background: #0f3460;
             color: white;
@@ -86,15 +86,30 @@
 
         #replayButton {
             left: 50%;
-            transform: translateX(-120%);
+            transform: translateX(-320px);
         }
 
-        #nextPhaseButton {
+        #nextPhase2s {
             left: 50%;
-            transform: translateX(20%);
+            transform: translateX(-140px);
         }
 
-        #replayButton:hover, #nextPhaseButton:hover {
+        #nextPhase4s {
+            left: 50%;
+            transform: translateX(10px);
+        }
+
+        #nextPhase6s {
+            left: 50%;
+            transform: translateX(160px);
+        }
+
+        #nextPhase8s {
+            left: 50%;
+            transform: translateX(310px);
+        }
+
+        #replayButton:hover, .nextPhaseButton:hover {
             background: #1a4d7a;
         }
 
@@ -169,15 +184,18 @@
 
         <button id="executeButton">EXECUTE ORDERS</button>
         <button id="replayButton">REPLAY</button>
-        <button id="nextPhaseButton">NEXT PHASE</button>
+        <button id="nextPhase2s" class="nextPhaseButton">NEXT PHASE (2s)</button>
+        <button id="nextPhase4s" class="nextPhaseButton">NEXT PHASE (4s)</button>
+        <button id="nextPhase6s" class="nextPhaseButton">NEXT PHASE (6s)</button>
+        <button id="nextPhase8s" class="nextPhaseButton">NEXT PHASE (8s)</button>
     </div>
 
     <script>
         // Game constants
         const CANVAS_WIDTH = 1200;
         const CANVAS_HEIGHT = 800;
-        const EXECUTION_TIME = 4000; // 4 seconds
-        const TURN_TIME = 4; // execution time in seconds (matches EXECUTION_TIME)
+        let executionTime = 4000; // milliseconds - can be changed by player (2s, 4s, 6s, 8s)
+        let turnTime = 4; // seconds - matches executionTime / 1000
         const ALTITUDE_MIN = 0;
         const ALTITUDE_MAX = 3000; // meters
         const MOUNTAIN_HEIGHT = 1000; // meters
@@ -409,7 +427,7 @@
             // Calculate realistic flight path using physics simulation
             calculateRealisticPath(targetX, targetY, targetAltitude, targetHeading, slipAngle = 0) {
                 const TIME_STEP = 0.1; // 0.1 second time steps
-                const NUM_STEPS = Math.floor(TURN_TIME / TIME_STEP); // 40 steps
+                const NUM_STEPS = Math.floor(turnTime / TIME_STEP); // Variable number of steps based on turn duration
                 const g = 9.81;
 
                 // Calculate target speed from current throttle setting
@@ -482,7 +500,7 @@
 
                     // Calculate desired altitude change
                     const altitudeRemaining = targetAltitude - state.altitude;
-                    const timeRemaining = TURN_TIME - stepTime;
+                    const timeRemaining = turnTime - stepTime;
                     const desiredClimbRate = timeRemaining > 0 ? altitudeRemaining / timeRemaining : 0;
 
                     // Limit climb/dive rate
@@ -649,15 +667,15 @@
 
                 // Check altitude achievement
                 const requestedAltChange = targetAltitude - this.altitude;
-                const maxPossibleClimb = this.maxClimbRate * TURN_TIME;
-                const maxPossibleDive = this.maxDiveRate * TURN_TIME;
+                const maxPossibleClimb = this.maxClimbRate * turnTime;
+                const maxPossibleDive = this.maxDiveRate * turnTime;
 
                 if (requestedAltChange > maxPossibleClimb) {
                     if (overallState !== 'illegal') overallState = 'stressful';
-                    warnings.push(`Climb too steep - max ${Math.round(maxPossibleClimb)}m in ${TURN_TIME}s`);
+                    warnings.push(`Climb too steep - max ${Math.round(maxPossibleClimb)}m in ${turnTime}s`);
                 } else if (requestedAltChange < -maxPossibleDive) {
                     if (overallState !== 'illegal') overallState = 'stressful';
-                    warnings.push(`Dive too steep - max ${Math.round(maxPossibleDive)}m in ${TURN_TIME}s`);
+                    warnings.push(`Dive too steep - max ${Math.round(maxPossibleDive)}m in ${turnTime}s`);
                 } else if (finalAltDiff > 20) {
                     // Couldn't reach target altitude even though it should be possible
                     if (overallState !== 'illegal') overallState = 'stressful';
@@ -714,7 +732,7 @@
                 const dx = targetX - this.startX;
                 const dy = targetY - this.startY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
-                this.targetSpeed = distance / TURN_TIME;
+                this.targetSpeed = distance / turnTime;
             }
 
             unlockOrders() {
@@ -1215,8 +1233,8 @@
                 case 'q':
                     // Decrease altitude (dive)
                     ghostAltitudeOffset -= 50;
-                    // Limit to max dive rate over TURN_TIME
-                    const maxDive = -selectedAircraft.maxDiveRate * TURN_TIME;
+                    // Limit to max dive rate over current turn time
+                    const maxDive = -selectedAircraft.maxDiveRate * turnTime;
                     ghostAltitudeOffset = Math.max(maxDive, ghostAltitudeOffset);
                     updateGhost();
                     updateGhostPanel();
@@ -1224,8 +1242,8 @@
                 case 'e':
                     // Increase altitude (climb)
                     ghostAltitudeOffset += 50;
-                    // Limit to max climb rate over TURN_TIME
-                    const maxClimb = selectedAircraft.maxClimbRate * TURN_TIME;
+                    // Limit to max climb rate over current turn time
+                    const maxClimb = selectedAircraft.maxClimbRate * turnTime;
                     ghostAltitudeOffset = Math.min(maxClimb, ghostAltitudeOffset);
                     updateGhost();
                     updateGhostPanel();
@@ -1275,7 +1293,10 @@
             gameState = 'EXECUTION';
             executionStartTime = Date.now();
             document.getElementById('replayButton').style.display = 'none';
-            document.getElementById('nextPhaseButton').style.display = 'none';
+            document.getElementById('nextPhase2s').style.display = 'none';
+            document.getElementById('nextPhase4s').style.display = 'none';
+            document.getElementById('nextPhase6s').style.display = 'none';
+            document.getElementById('nextPhase8s').style.display = 'none';
 
             // Reset aircraft to start of turn positions
             for (let plane of aircraft) {
@@ -1288,7 +1309,12 @@
             }
         });
 
-        document.getElementById('nextPhaseButton').addEventListener('click', () => {
+        // Helper function for next phase transition with variable duration
+        function startNextPhase(duration) {
+            // Set the turn duration for next phase
+            turnTime = duration;
+            executionTime = duration * 1000; // Convert to milliseconds
+
             gameState = 'ORDER';
             currentTurn++;
 
@@ -1310,16 +1336,26 @@
                 }
             }
 
+            // Hide all phase buttons
             document.getElementById('replayButton').style.display = 'none';
-            document.getElementById('nextPhaseButton').style.display = 'none';
+            document.getElementById('nextPhase2s').style.display = 'none';
+            document.getElementById('nextPhase4s').style.display = 'none';
+            document.getElementById('nextPhase6s').style.display = 'none';
+            document.getElementById('nextPhase8s').style.display = 'none';
             updateUI();
-        });
+        }
+
+        // Event listeners for next phase buttons (2s, 4s, 6s, 8s)
+        document.getElementById('nextPhase2s').addEventListener('click', () => startNextPhase(2));
+        document.getElementById('nextPhase4s').addEventListener('click', () => startNextPhase(4));
+        document.getElementById('nextPhase6s').addEventListener('click', () => startNextPhase(6));
+        document.getElementById('nextPhase8s').addEventListener('click', () => startNextPhase(8));
 
         // Main game loop
         function gameLoop() {
             if (gameState === 'EXECUTION') {
                 const elapsed = Date.now() - executionStartTime;
-                const progress = Math.min(1, elapsed / EXECUTION_TIME);
+                const progress = Math.min(1, elapsed / executionTime);
 
                 // Move aircraft
                 for (let plane of aircraft) {
@@ -1338,7 +1374,10 @@
                     }
                     gameState = 'REVIEW';
                     document.getElementById('replayButton').style.display = 'block';
-                    document.getElementById('nextPhaseButton').style.display = 'block';
+                    document.getElementById('nextPhase2s').style.display = 'block';
+                    document.getElementById('nextPhase4s').style.display = 'block';
+                    document.getElementById('nextPhase6s').style.display = 'block';
+                    document.getElementById('nextPhase8s').style.display = 'block';
                 }
             }
 
