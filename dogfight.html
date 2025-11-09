@@ -1150,9 +1150,10 @@
             ctx.fillStyle = '#16213e';
             ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-            // Apply zoom transform
+            // Apply zoom and pan transform
             ctx.save();
             ctx.translate(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+            ctx.translate(panX, panY); // Apply pan offset
             ctx.scale(zoomLevel, zoomLevel);
             ctx.translate(-CANVAS_WIDTH / 2, -CANVAS_HEIGHT / 2);
 
@@ -1267,19 +1268,25 @@
         let ghostAltitudeOffset = 0;
         let ghostSlipAngle = 0; // Slip/skid angle in degrees (nose pointing different direction than movement)
         let zoomLevel = 1.0; // Zoom level for canvas (1.0 = no zoom)
+        let panX = 0; // Pan offset X
+        let panY = 0; // Pan offset Y
+        let isPanning = false; // Middle mouse button panning active
+        let lastPanX = 0; // Last pan mouse position
+        let lastPanY = 0;
 
-        // Helper function to transform screen coordinates to canvas coordinates (accounting for zoom)
+        // Helper function to transform screen coordinates to canvas coordinates (accounting for zoom and pan)
         function screenToCanvas(screenX, screenY) {
             // Screen coords relative to canvas element
-            // Need to reverse the zoom transformation:
+            // Need to reverse the zoom and pan transformation:
             // 1. Translate to origin (center of canvas)
-            // 2. Divide by zoom (inverse of scale)
-            // 3. Translate back
+            // 2. Account for pan offset
+            // 3. Divide by zoom (inverse of scale)
+            // 4. Translate back
             const centerX = CANVAS_WIDTH / 2;
             const centerY = CANVAS_HEIGHT / 2;
 
-            const canvasX = centerX + (screenX - centerX) / zoomLevel;
-            const canvasY = centerY + (screenY - centerY) / zoomLevel;
+            const canvasX = centerX + ((screenX - centerX) - panX) / zoomLevel;
+            const canvasY = centerY + ((screenY - centerY) - panY) / zoomLevel;
 
             return { x: canvasX, y: canvasY };
         }
@@ -1368,6 +1375,16 @@
             lastScreenX = e.clientX - rect.left;
             lastScreenY = e.clientY - rect.top;
 
+            // Handle middle mouse button panning
+            if (isPanning) {
+                const deltaX = lastScreenX - lastPanX;
+                const deltaY = lastScreenY - lastPanY;
+                panX += deltaX;
+                panY += deltaY;
+                lastPanX = lastScreenX;
+                lastPanY = lastScreenY;
+            }
+
             // Transform to canvas coordinates
             const canvasCoords = screenToCanvas(lastScreenX, lastScreenY);
             mouseX = canvasCoords.x;
@@ -1376,6 +1393,34 @@
             if (selectedAircraft && ghostAircraft) {
                 updateGhost();
                 updateGhostPanel();
+            }
+        });
+
+        // Middle mouse button down - start panning
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 1) { // Middle mouse button
+                e.preventDefault();
+                isPanning = true;
+                const rect = canvas.getBoundingClientRect();
+                lastPanX = e.clientX - rect.left;
+                lastPanY = e.clientY - rect.top;
+                canvas.style.cursor = 'grabbing';
+            }
+        });
+
+        // Mouse up - stop panning
+        canvas.addEventListener('mouseup', (e) => {
+            if (e.button === 1) { // Middle mouse button
+                isPanning = false;
+                canvas.style.cursor = 'default';
+            }
+        });
+
+        // Mouse leave - stop panning if active
+        canvas.addEventListener('mouseleave', () => {
+            if (isPanning) {
+                isPanning = false;
+                canvas.style.cursor = 'default';
             }
         });
 
