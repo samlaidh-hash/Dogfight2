@@ -317,6 +317,10 @@
                 this.timeOnTarget = 0;
                 this.pilotSkill = 0.5 + Math.random() * 0.3; // 50-80%
                 this.gunnerySkill = 0.5 + Math.random() * 0.3;
+                this.isFiring = false; // Visual state for gun firing
+                this.firingCooldown = 0; // Frames until can fire again
+                this.lastHitBy = null; // Track who hit us
+                this.lastHitTime = 0; // Timestamp of last hit
 
                 // Flight path calculation
                 this.flightPath = null; // Will store calculated realistic path
@@ -819,14 +823,18 @@
             }
 
             getStatsHTML() {
+                const ammoColor = this.ammunition < 100 ? 'color: #ff4444;' : '';
+                const damageColor = this.damage > 50 ? 'color: #ff4444;' : this.damage > 25 ? 'color: #ffaa00;' : '';
+                const hitWarning = this.lastHitBy ? `<div style="color: #ff0000; animation: blink 0.5s infinite;">⚠ HIT BY ${this.lastHitBy.toUpperCase()}!</div>` : '';
+
                 return `
                     <div class="stat-line">Alt: ${Math.round(this.altitude)}m</div>
                     <div class="stat-line">Speed: ${Math.round(this.speed)} m/s</div>
                     <div class="stat-line">Throttle: ${Math.round(this.throttle * 100)}%</div>
                     <div class="stat-line">Hdg: ${Math.round(this.heading)}°</div>
-                    <div class="stat-line">Ammo: ${this.ammunition}</div>
-                    <div class="stat-line">Damage: ${Math.round(this.damage)}%</div>
-                    <div class="stat-line">Fire Threshold: ${Math.round(this.fireThreshold * 100)}%</div>
+                    <div class="stat-line" style="${ammoColor}">Ammo: ${this.ammunition} ${this.isFiring ? '🔥' : ''}</div>
+                    <div class="stat-line" style="${damageColor}">Damage: ${Math.round(this.damage)}%</div>
+                    ${hitWarning}
                 `;
             }
         }
@@ -1029,44 +1037,79 @@
 
         // Combat system
         function processCombat() {
+            // Reset firing states and clear old hit warnings
+            for (let plane of aircraft) {
+                plane.isFiring = false;
+                if (plane.firingCooldown > 0) plane.firingCooldown--;
+
+                // Clear hit warning after 2 seconds
+                if (plane.lastHitBy && (Date.now() - plane.lastHitTime) > 2000) {
+                    plane.lastHitBy = null;
+                }
+            }
+
             // Check if aircraft can fire at each other
             for (let shooter of aircraft) {
                 if (shooter.ammunition <= 0) continue;
+                if (shooter.firingCooldown > 0) continue;
 
                 for (let target of aircraft) {
                     if (shooter === target) continue;
 
-                    // Calculate if target is in firing arc (roughly 30 degrees in front)
+                    // Calculate if target is in firing arc
                     const dx = target.x - shooter.x;
                     const dy = target.y - shooter.y;
-                    const angleToTarget = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
-                    let angleDiff = Math.abs(angleToTarget - shooter.heading);
-                    if (angleDiff > 180) angleDiff = 360 - angleDiff;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
 
-                    if (angleDiff < 30) {
-                        // Target is in arc
-                        const distance = Math.sqrt(dx * dx + dy * dy);
+                    // Get shooter's FLIGHT heading (not nose heading which includes slip)
+                    // During execution, the aircraft is flying in the direction of the path, not where nose points
+                    let shooterFlightHeading = shooter.heading;
+
+                    // If aircraft is using slip/skid, subtract it to get flight direction
+                    if (shooter.slipAngle !== 0) {
+                        shooterFlightHeading = (shooter.heading - shooter.slipAngle + 360) % 360;
+                    }
+
+                    const angleToTarget = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
+                    let angleDiff = angleToTarget - shooterFlightHeading;
+                    if (angleDiff > 180) angleDiff -= 360;
+                    if (angleDiff < -180) angleDiff += 360;
+                    angleDiff = Math.abs(angleDiff);
+
+                    // Firing cone: 20 degrees for realistic gunnery
+                    if (angleDiff < 20 && distance < 400) {
+                        // Target is in arc and range
                         const altitudeDiff = Math.abs(target.altitude - shooter.altitude);
 
                         // Calculate hit chance
-                        let hitChance = shooter.gunnerySkill * 0.5;
-                        hitChance *= Math.max(0.1, 1 - distance / 500); // Distance factor
-                        hitChance *= Math.max(0.5, 1 - altitudeDiff / 1000); // Altitude factor
-                        hitChance *= Math.min(1, 0.3 + shooter.timeOnTarget / 10); // Time on target bonus
+                        let hitChance = shooter.gunnerySkill * 0.6;
+                        hitChance *= Math.max(0.1, 1 - distance / 400); // Distance factor (max 400m)
+                        hitChance *= Math.max(0.3, 1 - altitudeDiff / 500); // Altitude factor
+                        hitChance *= Math.min(1, 0.2 + shooter.timeOnTarget / 8); // Time on target bonus
 
                         shooter.timeOnTarget += 0.1;
 
-                        // Fire if chance exceeds threshold
-                        if (hitChance >= shooter.fireThreshold) {
+                        // Fire if chance exceeds threshold and angle is good
+                        if (hitChance >= shooter.fireThreshold && angleDiff < 15) {
+                            shooter.isFiring = true;
                             shooter.ammunition -= 5;
+                            shooter.firingCooldown = 2; // 2 frames between bursts
+
+                            console.log(`${shooter.name} FIRING at ${target.name}! Distance: ${Math.round(distance)}m, Angle: ${angleDiff.toFixed(1)}°, Hit chance: ${(hitChance * 100).toFixed(1)}%`);
 
                             // Check if hit
                             if (Math.random() < hitChance) {
-                                target.damage += 2 + Math.random() * 3;
+                                const damageAmount = 3 + Math.random() * 5;
+                                target.damage += damageAmount;
+                                target.lastHitBy = shooter.name;
+                                target.lastHitTime = Date.now();
+                                console.log(`  HIT! ${target.name} took ${damageAmount.toFixed(1)} damage (total: ${target.damage.toFixed(1)})`);
+                            } else {
+                                console.log(`  MISS!`);
                             }
                         }
                     } else {
-                        shooter.timeOnTarget = 0;
+                        shooter.timeOnTarget = Math.max(0, shooter.timeOnTarget - 0.05);
                     }
                 }
             }
@@ -1129,6 +1172,42 @@
             // Render aircraft
             for (let plane of aircraft) {
                 plane.renderSVG();
+            }
+
+            // Render gun fire effects (tracers and muzzle flash)
+            for (let plane of aircraft) {
+                if (plane.isFiring) {
+                    // Muzzle flash
+                    ctx.save();
+                    ctx.translate(plane.x, plane.y);
+
+                    // Get flight heading (not nose heading)
+                    let flightHeading = plane.heading;
+                    if (plane.slipAngle !== 0) {
+                        flightHeading = (plane.heading - plane.slipAngle + 360) % 360;
+                    }
+
+                    ctx.rotate((flightHeading) * Math.PI / 180);
+
+                    // Flash effect
+                    ctx.fillStyle = 'rgba(255, 200, 0, 0.8)';
+                    ctx.beginPath();
+                    ctx.arc(0, -35, 10, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Tracer bullets - draw several short lines ahead
+                    ctx.strokeStyle = 'rgba(255, 255, 100, 0.7)';
+                    ctx.lineWidth = 2;
+                    for (let i = 0; i < 5; i++) {
+                        const tracerStart = -40 - (i * 30);
+                        const tracerEnd = tracerStart - 15;
+                        ctx.beginPath();
+                        ctx.moveTo(0, tracerStart);
+                        ctx.lineTo(0, tracerEnd);
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+                }
             }
 
             // Render ghost if in order mode
