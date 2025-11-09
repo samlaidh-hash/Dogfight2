@@ -321,6 +321,7 @@
                 this.firingCooldown = 0; // Frames until can fire again
                 this.lastHitBy = null; // Track who hit us
                 this.lastHitTime = 0; // Timestamp of last hit
+                this.isDestroyed = false; // Aircraft destroyed state
 
                 // Flight path calculation
                 this.flightPath = null; // Will store calculated realistic path
@@ -344,7 +345,12 @@
                 ctx.scale(scale, scale);
 
                 // Set color based on state
-                if (isGhost) {
+                if (this.isDestroyed && !isGhost) {
+                    // Destroyed aircraft - gray/black wreckage
+                    ctx.globalAlpha = 0.6;
+                    ctx.fillStyle = '#444444';
+                    ctx.strokeStyle = '#222222';
+                } else if (isGhost) {
                     if (ghostState === 'illegal') {
                         ctx.globalAlpha = 0.7;
                         ctx.fillStyle = '#ff0000';
@@ -407,11 +413,25 @@
 
                 ctx.restore();
 
-                // Draw altitude indicator
+                // Draw altitude indicator or destruction label
                 if (!isGhost) {
-                    ctx.fillStyle = this.isPlayer ? '#0099ff' : '#ff4444';
-                    ctx.font = '12px Courier New';
-                    ctx.fillText(`${Math.round(this.altitude)}m`, this.x + 20, this.y - 20);
+                    if (this.isDestroyed) {
+                        ctx.fillStyle = '#ff0000';
+                        ctx.font = 'bold 16px Courier New';
+                        ctx.fillText('💥 DESTROYED', this.x - 60, this.y - 30);
+
+                        // Smoke effect
+                        ctx.fillStyle = 'rgba(50, 50, 50, 0.5)';
+                        for (let i = 0; i < 3; i++) {
+                            ctx.beginPath();
+                            ctx.arc(this.x + (Math.random() - 0.5) * 20, this.y - 10 + (Math.random() - 0.5) * 10, 8 + Math.random() * 5, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    } else {
+                        ctx.fillStyle = this.isPlayer ? '#0099ff' : '#ff4444';
+                        ctx.font = '12px Courier New';
+                        ctx.fillText(`${Math.round(this.altitude)}m`, this.x + 20, this.y - 20);
+                    }
                 }
             }
 
@@ -848,6 +868,8 @@
         // AI for Me-109 - Tactical Dogfight AI
         function generateAIOrders() {
             if (me109.hasOrders) return;
+            if (me109.isDestroyed) return; // Dead AI can't give orders
+            if (spitfire.isDestroyed) return; // No target to attack
 
             // ===== SITUATIONAL AWARENESS =====
 
@@ -1050,11 +1072,13 @@
 
             // Check if aircraft can fire at each other
             for (let shooter of aircraft) {
+                if (shooter.isDestroyed) continue; // Dead aircraft can't shoot
                 if (shooter.ammunition <= 0) continue;
                 if (shooter.firingCooldown > 0) continue;
 
                 for (let target of aircraft) {
                     if (shooter === target) continue;
+                    if (target.isDestroyed) continue; // Don't shoot at wreckage
 
                     // Calculate if target is in firing arc
                     const dx = target.x - shooter.x;
@@ -1104,6 +1128,12 @@
                                 target.lastHitBy = shooter.name;
                                 target.lastHitTime = Date.now();
                                 console.log(`  HIT! ${target.name} took ${damageAmount.toFixed(1)} damage (total: ${target.damage.toFixed(1)})`);
+
+                                // Check for destruction
+                                if (target.damage >= 100 && !target.isDestroyed) {
+                                    target.isDestroyed = true;
+                                    console.log(`💥 ${target.name} DESTROYED by ${shooter.name}!`);
+                                }
                             } else {
                                 console.log(`  MISS!`);
                             }
@@ -1368,6 +1398,7 @@
                 if (plane.isClicked(clickX, clickY)) {
                     console.log('Clicked on aircraft:', plane.name);
                     if (!plane.isPlayer) continue; // Only player can control their aircraft
+                    if (plane.isDestroyed) continue; // Can't control destroyed aircraft
 
                     if (selectedAircraft === plane) {
                         console.log('Same aircraft - attempting to lock');
@@ -1618,7 +1649,15 @@
                 // Process combat
                 processCombat();
 
-                if (progress >= 1) {
+                // Check for game over
+                const playerDestroyed = spitfire.isDestroyed;
+                const enemyDestroyed = me109.isDestroyed;
+
+                if (playerDestroyed || enemyDestroyed) {
+                    gameState = 'GAMEOVER';
+                }
+
+                if (progress >= 1 && gameState !== 'GAMEOVER') {
                     // Finalize execution
                     for (let plane of aircraft) {
                         plane.finalizeExecution();
@@ -1630,6 +1669,35 @@
                     document.getElementById('nextPhase6s').style.display = 'block';
                     document.getElementById('nextPhase8s').style.display = 'block';
                 }
+            }
+
+            // Game over screen
+            if (gameState === 'GAMEOVER') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 48px Courier New';
+                ctx.textAlign = 'center';
+
+                if (spitfire.isDestroyed) {
+                    ctx.fillStyle = '#ff4444';
+                    ctx.fillText('DEFEAT', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40);
+                    ctx.font = '24px Courier New';
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText(`Your Spitfire was destroyed by ${spitfire.lastHitBy}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
+                } else if (me109.isDestroyed) {
+                    ctx.fillStyle = '#00ff00';
+                    ctx.fillText('VICTORY!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40);
+                    ctx.font = '24px Courier New';
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText('Enemy Me-109 destroyed!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
+                }
+
+                ctx.font = '18px Courier New';
+                ctx.fillStyle = '#aaaaaa';
+                ctx.fillText('Refresh page to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80);
+                ctx.textAlign = 'left';
             }
 
             render();
