@@ -1217,6 +1217,9 @@
         window.addEventListener('keydown', (e) => {
             if (!selectedAircraft || !ghostAircraft) return;
 
+            // Prevent key repeat from causing multiple rapid changes
+            if (e.repeat) return;
+
             switch(e.key.toLowerCase()) {
                 case 'w':
                     // Increase throttle
