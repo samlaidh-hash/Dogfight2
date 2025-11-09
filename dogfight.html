@@ -155,7 +155,7 @@
 </head>
 <body>
     <div id="gameContainer">
-        <canvas id="gameCanvas" width="1200" height="800"></canvas>
+        <canvas id="gameCanvas" width="1800" height="1000"></canvas>
 
         <div id="ui">
             <h1>DOGFIGHT 2</h1>
@@ -192,8 +192,8 @@
 
     <script>
         // Game constants
-        const CANVAS_WIDTH = 1200;
-        const CANVAS_HEIGHT = 800;
+        const CANVAS_WIDTH = 1800;
+        const CANVAS_HEIGHT = 1000;
         let executionTime = 4000; // milliseconds - can be changed by player (2s, 4s, 6s, 8s)
         let turnTime = 4; // seconds - matches executionTime / 1000
         const ALTITUDE_MIN = 0;
@@ -221,8 +221,40 @@
                 this.generateClouds();
             }
 
+            // Fractal subdivision helper - adds naturalistic detail to mountain edges
+            subdivideLine(p1, p2, depth, roughness) {
+                if (depth === 0) {
+                    return [p2];
+                }
+
+                // Calculate midpoint with random displacement perpendicular to line
+                const midX = (p1.x + p2.x) / 2;
+                const midY = (p1.y + p2.y) / 2;
+
+                // Direction perpendicular to the line
+                const dx = p2.x - p1.x;
+                const dy = p2.y - p1.y;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                const perpX = -dy / length;
+                const perpY = dx / length;
+
+                // Random displacement (decreases with depth for natural fractal look)
+                const displacement = (Math.random() - 0.5) * roughness * Math.pow(0.5, depth);
+
+                const mid = {
+                    x: midX + perpX * displacement,
+                    y: midY + perpY * displacement
+                };
+
+                // Recursively subdivide both segments
+                const left = this.subdivideLine(p1, mid, depth - 1, roughness);
+                const right = this.subdivideLine(mid, p2, depth - 1, roughness);
+
+                return [mid, ...left, ...right];
+            }
+
             generateMountains() {
-                // Generate realistic mountain ranges with jagged polygonal peaks
+                // Generate realistic mountain ranges with fractal edges
                 for (let i = 0; i < 8; i++) {
                     const baseX = Math.random() * CANVAS_WIDTH;
                     const baseY = Math.random() * CANVAS_HEIGHT;
@@ -230,27 +262,43 @@
 
                     // Create a cluster of peaks for each mountain
                     for (let j = 0; j < 3; j++) {
-                        // Generate random jagged polygon for mountain shape
-                        const numPeaks = 5 + Math.floor(Math.random() * 4); // 5-8 vertices
-                        const vertices = [];
+                        // Generate initial rough polygon
+                        const numPeaks = 4 + Math.floor(Math.random() * 3); // 4-6 initial vertices
+                        const baseVertices = [];
                         const centerX = baseX + (Math.random() - 0.5) * 150;
                         const centerY = baseY + (Math.random() - 0.5) * 150;
                         const baseRadius = 40 + Math.random() * 60;
 
                         for (let v = 0; v < numPeaks; v++) {
                             const angle = (v / numPeaks) * Math.PI * 2;
-                            // Vary the radius for each vertex to create jagged shape
-                            const radiusVariation = 0.6 + Math.random() * 0.7; // 60% to 130% of base
+                            // Vary the radius for each vertex to create base jagged shape
+                            const radiusVariation = 0.5 + Math.random() * 0.8; // 50% to 130% of base
                             const vx = centerX + Math.cos(angle) * baseRadius * radiusVariation;
                             const vy = centerY + Math.sin(angle) * baseRadius * radiusVariation;
-                            vertices.push({ x: vx, y: vy });
+                            baseVertices.push({ x: vx, y: vy });
+                        }
+
+                        // Apply fractal subdivision to each edge for natural jagged peaks
+                        const fractalVertices = [];
+                        const roughness = baseRadius * 0.8; // Controls how jagged the edges are
+                        const subdivisionDepth = 2; // 2-3 levels of subdivision for detail
+
+                        for (let v = 0; v < baseVertices.length; v++) {
+                            const p1 = baseVertices[v];
+                            const p2 = baseVertices[(v + 1) % baseVertices.length];
+
+                            fractalVertices.push(p1);
+                            // Add subdivided points between p1 and p2
+                            const subdivided = this.subdivideLine(p1, p2, subdivisionDepth, roughness);
+                            // Remove the last point (p2) as it will be added in next iteration
+                            fractalVertices.push(...subdivided.slice(0, -1));
                         }
 
                         this.mountains.push({
                             x: centerX,
                             y: centerY,
                             radius: baseRadius, // Keep for height calculations
-                            vertices: vertices,
+                            vertices: fractalVertices,
                             height: baseHeight * (0.7 + Math.random() * 0.6),
                             peakOffset: Math.random() * 20 - 10
                         });
@@ -260,7 +308,7 @@
 
             generateClouds() {
                 // Generate cloud layers at various altitudes - viewed from above
-                for (let i = 0; i < 20; i++) {
+                for (let i = 0; i < 10; i++) {
                     const centerX = Math.random() * CANVAS_WIDTH;
                     const centerY = Math.random() * CANVAS_HEIGHT;
                     const baseRadius = 60 + Math.random() * 100;
@@ -1054,8 +1102,8 @@
 
         // Initialize game
         const terrain = new Terrain();
-        const spitfire = new Aircraft('Spitfire', 'Spitfire', 300, 400, 500, 90, true);
-        const me109 = new Aircraft('Me-109', 'Me-109', 800, 400, 500, 270, false);
+        const spitfire = new Aircraft('Spitfire', 'Spitfire', 400, 500, 500, 90, true);
+        const me109 = new Aircraft('Me-109', 'Me-109', 1400, 500, 500, 270, false);
         const aircraft = [spitfire, me109];
 
         // AI for Me-109 - Tactical Dogfight AI
