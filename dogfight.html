@@ -158,8 +158,8 @@
                 <div>• Click aircraft to order</div>
                 <div>• Move mouse to position</div>
                 <div>• Mouse wheel: rotate (in maneuver) / zoom (otherwise)</div>
-                <div>• W/S: altitude up/down</div>
-                <div>• Q/E: throttle down/up (path length)</div>
+                <div>• W/S: throttle up/down</div>
+                <div>• Q/E: altitude up/down</div>
                 <div>• A/D: fire threshold</div>
                 <div>• Click again to lock</div>
             </div>
@@ -483,29 +483,36 @@
                     const altitudeChange = actualClimbRate * TIME_STEP;
                     const newAltitude = state.altitude + altitudeChange;
 
-                    // Energy management: altitude affects speed
-                    // Base energy equation: v² = v₀² - 2g·Δh
-                    let energySpeed = state.speed;
+                    // Speed calculation with acceleration limits and energy effects
+
+                    // Step 1: Calculate energy effect from altitude change (diving gains speed, climbing loses speed)
+                    // Energy equation: v² = v₀² - 2g·Δh
+                    let energyDelta = 0;
                     const energySpeedSquared = state.speed * state.speed - 2 * g * altitudeChange;
                     if (energySpeedSquared > 0) {
-                        energySpeed = Math.sqrt(energySpeedSquared);
+                        const energySpeed = Math.sqrt(energySpeedSquared);
+                        energyDelta = energySpeed - state.speed; // Positive when diving, negative when climbing
                     } else {
-                        energySpeed = this.minSpeed;
+                        energyDelta = this.minSpeed - state.speed; // Would stall
                     }
 
-                    // Pilot throttle compensation
-                    // When climbing: pilot applies full throttle to maintain speed
-                    // When diving: pilot reduces throttle to avoid overspeed
-                    let throttleAdjustment = 0;
-                    if (altitudeChange > 0) {
-                        // Climbing: add throttle (can add ~5-10 m/s per second at full throttle)
-                        throttleAdjustment = this.maxAcceleration * TIME_STEP * 0.6; // 60% effective
-                    } else if (altitudeChange < 0) {
-                        // Diving: reduce throttle
-                        throttleAdjustment = -this.maxBraking * TIME_STEP * 0.4; // 40% braking effectiveness
+                    // Step 2: Calculate throttle adjustment towards target speed
+                    const speedDiff = targetSpeedFromThrottle - state.speed;
+                    let throttleAcceleration = 0;
+
+                    if (speedDiff > 0) {
+                        // Need to accelerate
+                        throttleAcceleration = Math.min(speedDiff / TIME_STEP, this.maxAcceleration);
+                    } else if (speedDiff < 0) {
+                        // Need to decelerate
+                        throttleAcceleration = Math.max(speedDiff / TIME_STEP, -this.maxBraking);
                     }
 
-                    let newSpeed = energySpeed + throttleAdjustment;
+                    const throttleDelta = throttleAcceleration * TIME_STEP;
+
+                    // Step 3: Combine energy effect and throttle adjustment
+                    // Energy effect happens naturally, throttle tries to compensate
+                    let newSpeed = state.speed + energyDelta + throttleDelta;
 
                     // Combined maneuver energy sharing
                     // Turning while climbing/diving reduces efficiency
@@ -1121,24 +1128,24 @@
 
             switch(e.key.toLowerCase()) {
                 case 'w':
-                    ghostAltitudeOffset += 50;
+                    // Increase throttle
+                    selectedAircraft.throttle = Math.min(1.0, selectedAircraft.throttle + 0.1);
                     updateGhost();
                     updateGhostPanel();
                     break;
                 case 's':
-                    ghostAltitudeOffset -= 50;
-                    updateGhost();
-                    updateGhostPanel();
-                    break;
-                case 'q':
                     // Reduce throttle
                     selectedAircraft.throttle = Math.max(0.0, selectedAircraft.throttle - 0.1);
                     updateGhost();
                     updateGhostPanel();
                     break;
+                case 'q':
+                    ghostAltitudeOffset -= 50;
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
                 case 'e':
-                    // Increase throttle
-                    selectedAircraft.throttle = Math.min(1.0, selectedAircraft.throttle + 0.1);
+                    ghostAltitudeOffset += 50;
                     updateGhost();
                     updateGhostPanel();
                     break;
