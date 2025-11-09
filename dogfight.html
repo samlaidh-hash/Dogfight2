@@ -796,11 +796,25 @@
             }
 
             finalizeExecution() {
-                this.x = this.targetX;
-                this.y = this.targetY;
-                this.altitude = this.targetAltitude;
-                this.heading = this.targetHeading;
-                this.speed = this.targetSpeed;
+                // Use actual final position from flight path (not desired target)
+                // This prevents jumping when physics prevents reaching exact target
+                if (this.flightPath && this.flightPath.length > 0) {
+                    const finalState = this.flightPath[this.flightPath.length - 1];
+                    this.x = finalState.x;
+                    this.y = finalState.y;
+                    this.altitude = finalState.altitude;
+                    // Apply slip angle to final heading (nose vs flight direction)
+                    const flightHeading = finalState.heading;
+                    this.heading = (flightHeading + this.slipAngle + 360) % 360;
+                    this.speed = finalState.speed;
+                } else {
+                    // Fallback if no flight path (shouldn't happen)
+                    this.x = this.targetX;
+                    this.y = this.targetY;
+                    this.altitude = this.targetAltitude;
+                    this.heading = this.targetHeading;
+                    this.speed = this.targetSpeed;
+                }
                 this.hasOrders = false;
             }
 
@@ -851,16 +865,30 @@
             // Validate and lock if valid
             const validation = me109.calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading);
             if (validation.state !== 'illegal') {
-                me109.lockOrders(targetX, targetY, targetAltitude, targetHeading);
+                // Use actual final position from physics calculation (not desired target)
+                me109.lockOrders(
+                    validation.finalX,
+                    validation.finalY,
+                    validation.finalAltitude,
+                    validation.finalFlightHeading,
+                    0 // AI doesn't use slip/skid
+                );
             } else {
                 // Fallback: simple forward movement
                 const fallbackX = me109.x + Math.cos(me109.heading * Math.PI / 180) * 80;
                 const fallbackY = me109.y + Math.sin(me109.heading * Math.PI / 180) * 80;
-                me109.lockOrders(
+                const fallbackValidation = me109.calculateManeuverValidation(
                     Math.max(50, Math.min(CANVAS_WIDTH - 50, fallbackX)),
                     Math.max(50, Math.min(CANVAS_HEIGHT - 50, fallbackY)),
                     me109.altitude,
                     me109.heading
+                );
+                me109.lockOrders(
+                    fallbackValidation.finalX,
+                    fallbackValidation.finalY,
+                    fallbackValidation.finalAltitude,
+                    fallbackValidation.finalFlightHeading,
+                    0
                 );
             }
         }
@@ -1333,7 +1361,14 @@
                     const recoveryAltitude = Math.max(100, plane.altitude - 100); // Lose 100m altitude
                     const recoveryHeading = plane.heading; // Maintain heading during recovery
 
-                    plane.lockOrders(recoveryX, recoveryY, recoveryAltitude, recoveryHeading);
+                    const recoveryValidation = plane.calculateManeuverValidation(recoveryX, recoveryY, recoveryAltitude, recoveryHeading);
+                    plane.lockOrders(
+                        recoveryValidation.finalX,
+                        recoveryValidation.finalY,
+                        recoveryValidation.finalAltitude,
+                        recoveryValidation.finalFlightHeading,
+                        0
+                    );
                     plane.inStall = false; // Clear stall for next turn
                     plane.damage += 5; // Damage from stall
                 }
