@@ -647,6 +647,23 @@
                 const finalAltDiff = Math.abs(finalState.altitude - targetAltitude);
                 const finalHeadingDiff = Math.abs(finalState.heading - targetHeading);
 
+                // Check altitude achievement
+                const requestedAltChange = targetAltitude - this.altitude;
+                const maxPossibleClimb = this.maxClimbRate * TURN_TIME;
+                const maxPossibleDive = this.maxDiveRate * TURN_TIME;
+
+                if (requestedAltChange > maxPossibleClimb) {
+                    if (overallState !== 'illegal') overallState = 'stressful';
+                    warnings.push(`Climb too steep - max ${Math.round(maxPossibleClimb)}m in ${TURN_TIME}s`);
+                } else if (requestedAltChange < -maxPossibleDive) {
+                    if (overallState !== 'illegal') overallState = 'stressful';
+                    warnings.push(`Dive too steep - max ${Math.round(maxPossibleDive)}m in ${TURN_TIME}s`);
+                } else if (finalAltDiff > 20) {
+                    // Couldn't reach target altitude even though it should be possible
+                    if (overallState !== 'illegal') overallState = 'stressful';
+                    warnings.push(`Altitude missed by ${Math.round(finalAltDiff)}m`);
+                }
+
                 if (finalDist > 100) {
                     if (overallState !== 'illegal') overallState = 'stressful';
                     warnings.push(`Won't reach target (${Math.round(finalDist)}m short)`);
@@ -1032,11 +1049,13 @@
 
             const validation = ghostAircraft.validation;
             const throttlePercent = Math.round(selectedAircraft.throttle * 100);
+            const altChange = Math.round(validation.targetAltitude - selectedAircraft.altitude);
+            const altChangeSymbol = altChange > 0 ? '↑' : altChange < 0 ? '↓' : '→';
             let panelHTML = `
                 <div>Throttle: ${throttlePercent}%</div>
                 <div>Heading: ${validation.targetHeading}°</div>
                 <div>Slip: ${ghostSlipAngle}° ${ghostSlipAngle > 0 ? '→' : ghostSlipAngle < 0 ? '←' : ''}</div>
-                <div>Altitude: ${validation.targetAltitude}m</div>
+                <div>Altitude: ${validation.targetAltitude}m (${altChange >= 0 ? '+' : ''}${altChange}m ${altChangeSymbol})</div>
                 <div>Speed: ${validation.targetSpeed} m/s</div>
                 <div>G-Force: ${validation.gForce}G</div>
             `;
@@ -1194,12 +1213,20 @@
                     updateGhostPanel();
                     break;
                 case 'q':
+                    // Decrease altitude (dive)
                     ghostAltitudeOffset -= 50;
+                    // Limit to max dive rate over TURN_TIME
+                    const maxDive = -selectedAircraft.maxDiveRate * TURN_TIME;
+                    ghostAltitudeOffset = Math.max(maxDive, ghostAltitudeOffset);
                     updateGhost();
                     updateGhostPanel();
                     break;
                 case 'e':
+                    // Increase altitude (climb)
                     ghostAltitudeOffset += 50;
+                    // Limit to max climb rate over TURN_TIME
+                    const maxClimb = selectedAircraft.maxClimbRate * TURN_TIME;
+                    ghostAltitudeOffset = Math.min(maxClimb, ghostAltitudeOffset);
                     updateGhost();
                     updateGhostPanel();
                     break;
