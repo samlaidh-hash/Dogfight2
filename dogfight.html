@@ -157,10 +157,10 @@
                 <div>Controls:</div>
                 <div>• Click aircraft to order</div>
                 <div>• Move mouse to position</div>
-                <div>• Mouse wheel: rotate (in maneuver) / zoom (otherwise)</div>
+                <div>• Mouse wheel: zoom in/out</div>
                 <div>• W/S: throttle up/down</div>
-                <div>• Q/E: altitude up/down</div>
-                <div>• A/D: fire threshold</div>
+                <div>• Q/E: altitude down/up</div>
+                <div>• A/D: slip/skid left/right</div>
                 <div>• Click again to lock</div>
             </div>
         </div>
@@ -917,6 +917,7 @@
         let mouseY = 0;
         let ghostRotation = 0;
         let ghostAltitudeOffset = 0;
+        let ghostSlipAngle = 0; // Slip/skid angle in degrees (nose pointing different direction than movement)
         let zoomLevel = 1.0; // Zoom level for canvas (1.0 = no zoom)
 
         // Helper function to transform screen coordinates to canvas coordinates (accounting for zoom)
@@ -966,13 +967,14 @@
                 ghostAircraft.aircraft.x = finalState.x;
                 ghostAircraft.aircraft.y = finalState.y;
                 ghostAircraft.aircraft.altitude = finalState.altitude;
-                ghostAircraft.aircraft.heading = finalState.heading;
+                // Apply slip/skid angle to final heading (nose points different direction than movement)
+                ghostAircraft.aircraft.heading = (finalState.heading + ghostSlipAngle + 360) % 360;
             } else {
                 // Fallback if no path calculated
                 ghostAircraft.aircraft.x = targetX;
                 ghostAircraft.aircraft.y = targetY;
                 ghostAircraft.aircraft.altitude = targetAltitude;
-                ghostAircraft.aircraft.heading = targetHeading;
+                ghostAircraft.aircraft.heading = (targetHeading + ghostSlipAngle + 360) % 360;
             }
         }
 
@@ -990,6 +992,7 @@
             let panelHTML = `
                 <div>Throttle: ${throttlePercent}%</div>
                 <div>Heading: ${validation.targetHeading}°</div>
+                <div>Slip: ${ghostSlipAngle}° ${ghostSlipAngle > 0 ? '→' : ghostSlipAngle < 0 ? '←' : ''}</div>
                 <div>Altitude: ${validation.targetAltitude}m</div>
                 <div>Speed: ${validation.targetSpeed} m/s</div>
                 <div>G-Force: ${validation.gForce}G</div>
@@ -1059,6 +1062,7 @@
                             selectedAircraft = null; // Deselect but keep ghost visible
                             ghostRotation = 0;
                             ghostAltitudeOffset = 0;
+                            ghostSlipAngle = 0;
                             document.getElementById('ghostPanel').style.display = 'none';
 
                             // Generate AI orders
@@ -1078,6 +1082,7 @@
                         };
                         ghostRotation = 0;
                         ghostAltitudeOffset = 0;
+                        ghostSlipAngle = 0;
                         updateGhost();
                     } else {
                         console.log('Selecting aircraft');
@@ -1090,6 +1095,7 @@
                         };
                         ghostRotation = 0;
                         ghostAltitudeOffset = 0;
+                        ghostSlipAngle = 0;
                         updateGhost(); // Update ghost immediately
                     }
                     return;
@@ -1109,6 +1115,7 @@
                 selectedAircraft = null; // Deselect but keep ghost visible
                 ghostRotation = 0;
                 ghostAltitudeOffset = 0;
+                ghostSlipAngle = 0;
                 document.getElementById('ghostPanel').style.display = 'none';
 
                 // Generate AI orders
@@ -1150,10 +1157,16 @@
                     updateGhostPanel();
                     break;
                 case 'a':
-                    selectedAircraft.fireThreshold = Math.max(0.1, selectedAircraft.fireThreshold - 0.05);
+                    // Slip/skid left (nose points left of direction of travel)
+                    ghostSlipAngle = Math.max(-30, ghostSlipAngle - 5);
+                    updateGhost();
+                    updateGhostPanel();
                     break;
                 case 'd':
-                    selectedAircraft.fireThreshold = Math.min(0.9, selectedAircraft.fireThreshold + 0.05);
+                    // Slip/skid right (nose points right of direction of travel)
+                    ghostSlipAngle = Math.min(30, ghostSlipAngle + 5);
+                    updateGhost();
+                    updateGhostPanel();
                     break;
             }
         });
@@ -1161,22 +1174,11 @@
         canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
 
-            if (selectedAircraft && ghostAircraft) {
-                // In maneuver mode: rotate ghost
-                if (e.deltaY < 0) {
-                    ghostRotation += 10;
-                } else {
-                    ghostRotation -= 10;
-                }
-                updateGhost(); // Update ghost immediately after rotation
-                updateGhostPanel(); // Update panel to show new heading
+            // Always zoom in/out with mouse wheel
+            if (e.deltaY < 0) {
+                zoomLevel = Math.min(3.0, zoomLevel * 1.1); // Max 3x zoom
             } else {
-                // Not in maneuver mode: zoom in/out
-                if (e.deltaY < 0) {
-                    zoomLevel = Math.min(3.0, zoomLevel * 1.1); // Max 3x zoom
-                } else {
-                    zoomLevel = Math.max(0.5, zoomLevel / 1.1); // Min 0.5x zoom
-                }
+                zoomLevel = Math.max(0.5, zoomLevel / 1.1); // Min 0.5x zoom
             }
         });
 
