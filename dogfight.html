@@ -837,52 +837,186 @@
         const me109 = new Aircraft('Me-109', 'Me-109', 800, 400, 500, 270, false);
         const aircraft = [spitfire, me109];
 
-        // AI for Me-109
+        // AI for Me-109 - Tactical Dogfight AI
         function generateAIOrders() {
             if (me109.hasOrders) return;
 
-            // Simple AI: try to get behind the Spitfire
+            // ===== SITUATIONAL AWARENESS =====
+
+            // Calculate relative positions
             const dx = spitfire.x - me109.x;
             const dy = spitfire.y - me109.y;
-            const angleToTarget = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const angleToEnemy = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
 
-            // Move towards a position behind the Spitfire
-            const behindX = spitfire.x - Math.cos(spitfire.heading * Math.PI / 180) * 150;
-            const behindY = spitfire.y - Math.sin(spitfire.heading * Math.PI / 180) * 150;
+            // Calculate angle difference from my heading to enemy
+            let myAngleToEnemy = angleToEnemy - me109.heading;
+            if (myAngleToEnemy > 180) myAngleToEnemy -= 360;
+            if (myAngleToEnemy < -180) myAngleToEnemy += 360;
+
+            // Calculate angle from enemy's heading to me (am I behind them?)
+            const angleFromEnemyToMe = (Math.atan2(-dy, -dx) * 180 / Math.PI + 360) % 360;
+            let enemyAngleToMe = angleFromEnemyToMe - spitfire.heading;
+            if (enemyAngleToMe > 180) enemyAngleToMe -= 360;
+            if (enemyAngleToMe < -180) enemyAngleToMe += 360;
+
+            // Energy states (altitude = potential energy, speed = kinetic energy)
+            const myEnergy = me109.altitude + (me109.speed * 0.5); // Simple energy metric
+            const enemyEnergy = spitfire.altitude + (spitfire.speed * 0.5);
+            const energyAdvantage = myEnergy - enemyEnergy;
+
+            // Positional assessment
+            const isBehindEnemy = Math.abs(enemyAngleToMe) > 120; // Enemy not facing me
+            const enemyBehindMe = Math.abs(myAngleToEnemy) > 120; // I'm not facing enemy
+            const inFiringPosition = isBehindEnemy && distance < 300 && Math.abs(myAngleToEnemy) < 30;
+            const underAttack = enemyBehindMe && distance < 400;
+
+            // ===== DECISION MAKING =====
+
+            let targetX, targetY, targetAltitude, targetHeading;
+            let aiThrottle = me109.throttle;
+            let useSlip = 0;
+
+            // STATE 1: DEFENSIVE - Enemy is behind me, evade!
+            if (underAttack) {
+                console.log("AI: DEFENSIVE - Evading!");
+
+                // Break turn - hard turn perpendicular to enemy
+                const breakDirection = myAngleToEnemy > 0 ? 90 : -90;
+                const breakHeading = (me109.heading + breakDirection + 360) % 360;
+
+                // Turn hard and dive for speed (or climb if low)
+                const diveOrClimb = me109.altitude > 300 ? -100 : 50;
+                targetAltitude = Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, me109.altitude + diveOrClimb));
+
+                // Move in break direction
+                const breakDistance = 250;
+                targetX = me109.x + Math.cos((breakHeading - 90) * Math.PI / 180) * breakDistance;
+                targetY = me109.y + Math.sin((breakHeading - 90) * Math.PI / 180) * breakDistance;
+                targetHeading = breakHeading;
+
+                // Full throttle for evasion
+                aiThrottle = 1.0;
+
+            // STATE 2: OFFENSIVE - I'm in good position, press the attack!
+            } else if (isBehindEnemy && Math.abs(myAngleToEnemy) < 60) {
+                console.log("AI: OFFENSIVE - Attacking!");
+
+                // Lead the target - predict where they'll be
+                const leadDistance = distance * 0.3;
+                const predictedX = spitfire.x + Math.cos((spitfire.heading - 90) * Math.PI / 180) * leadDistance;
+                const predictedY = spitfire.y + Math.sin((spitfire.heading - 90) * Math.PI / 180) * leadDistance;
+
+                targetX = predictedX;
+                targetY = predictedY;
+
+                // Match enemy altitude (slight advantage)
+                targetAltitude = Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, spitfire.altitude + 50));
+
+                // Face the predicted position
+                const dxPred = predictedX - me109.x;
+                const dyPred = predictedY - me109.y;
+                targetHeading = (Math.atan2(dyPred, dxPred) * 180 / Math.PI + 90 + 360) % 360;
+
+                // Use slip for gun solution if very close
+                if (distance < 200 && inFiringPosition) {
+                    useSlip = Math.random() > 0.5 ? 10 : -10; // Random slip for deflection shot
+                }
+
+                // Moderate throttle to maintain position
+                aiThrottle = 0.8;
+
+            // STATE 3: ENERGY ADVANTAGE - Use altitude for boom and zoom
+            } else if (energyAdvantage > 200 && me109.altitude > spitfire.altitude + 150) {
+                console.log("AI: ENERGY ADVANTAGE - Boom and Zoom!");
+
+                // Dive towards enemy for speed advantage
+                targetX = spitfire.x;
+                targetY = spitfire.y;
+                targetAltitude = Math.max(ALTITUDE_MIN, spitfire.altitude + 100); // Dive to near their altitude
+
+                // Point nose at enemy
+                targetHeading = angleToEnemy;
+
+                // Full throttle for the dive
+                aiThrottle = 1.0;
+
+            // STATE 4: ENERGY RECOVERY - Low energy, gain altitude
+            } else if (me109.speed < me109.minSpeed * 1.3 || (energyAdvantage < -200 && me109.altitude < 800)) {
+                console.log("AI: ENERGY RECOVERY - Gaining altitude!");
+
+                // Climb away from enemy to gain energy
+                const escapeHeading = (angleToEnemy + 180 + 360) % 360; // Opposite direction
+                targetHeading = escapeHeading;
+
+                targetX = me109.x + Math.cos((escapeHeading - 90) * Math.PI / 180) * 200;
+                targetY = me109.y + Math.sin((escapeHeading - 90) * Math.PI / 180) * 200;
+
+                // Climb for energy
+                targetAltitude = Math.min(ALTITUDE_MAX, me109.altitude + 100);
+
+                // Full throttle for climb
+                aiThrottle = 1.0;
+
+            // STATE 5: NEUTRAL - Maneuver for position
+            } else {
+                console.log("AI: NEUTRAL - Maneuvering for position");
+
+                // Try to get to enemy's 6 o'clock (behind them)
+                const behindDistance = 200;
+                const behindX = spitfire.x - Math.cos((spitfire.heading - 90) * Math.PI / 180) * behindDistance;
+                const behindY = spitfire.y - Math.sin((spitfire.heading - 90) * Math.PI / 180) * behindDistance;
+
+                targetX = behindX;
+                targetY = behindY;
+
+                // Slight altitude advantage
+                targetAltitude = Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, spitfire.altitude + 100));
+
+                // Face towards the behind position
+                const dxBehind = behindX - me109.x;
+                const dyBehind = behindY - me109.y;
+                targetHeading = (Math.atan2(dyBehind, dxBehind) * 180 / Math.PI + 90 + 360) % 360;
+
+                // Moderate throttle
+                aiThrottle = 0.8;
+            }
+
+            // ===== APPLY THROTTLE SETTING =====
+            me109.throttle = Math.max(0.0, Math.min(1.0, aiThrottle));
+
+            // ===== VALIDATE AND EXECUTE =====
 
             // Constrain to canvas
-            const targetX = Math.max(50, Math.min(CANVAS_WIDTH - 50, behindX));
-            const targetY = Math.max(50, Math.min(CANVAS_HEIGHT - 50, behindY));
+            targetX = Math.max(50, Math.min(CANVAS_WIDTH - 50, targetX));
+            targetY = Math.max(50, Math.min(CANVAS_HEIGHT - 50, targetY));
 
-            // Adjust altitude based on terrain and tactical position
-            const terrainHeight = terrain.getHeightAt(targetX, targetY);
-            let targetAltitude = Math.max(terrainHeight + 100, spitfire.altitude - 100);
-            targetAltitude = Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, targetAltitude));
+            // Validate maneuver
+            const validation = me109.calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading, useSlip);
 
-            // Face towards Spitfire
-            const targetHeading = angleToTarget;
-
-            // Validate and lock if valid
-            const validation = me109.calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading);
             if (validation.state !== 'illegal') {
-                // Use actual final position from physics calculation (not desired target)
+                // Use actual final position from physics calculation
                 me109.lockOrders(
                     validation.finalX,
                     validation.finalY,
                     validation.finalAltitude,
                     validation.finalFlightHeading,
-                    0 // AI doesn't use slip/skid
+                    useSlip
                 );
             } else {
-                // Fallback: simple forward movement
-                const fallbackX = me109.x + Math.cos(me109.heading * Math.PI / 180) * 80;
-                const fallbackY = me109.y + Math.sin(me109.heading * Math.PI / 180) * 80;
+                // Fallback: simple forward movement with current heading
+                const fallbackDistance = 150;
+                const fallbackX = me109.x + Math.cos((me109.heading - 90) * Math.PI / 180) * fallbackDistance;
+                const fallbackY = me109.y + Math.sin((me109.heading - 90) * Math.PI / 180) * fallbackDistance;
+
                 const fallbackValidation = me109.calculateManeuverValidation(
                     Math.max(50, Math.min(CANVAS_WIDTH - 50, fallbackX)),
                     Math.max(50, Math.min(CANVAS_HEIGHT - 50, fallbackY)),
-                    me109.altitude,
-                    me109.heading
+                    Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, me109.altitude)),
+                    me109.heading,
+                    0
                 );
+
                 me109.lockOrders(
                     fallbackValidation.finalX,
                     fallbackValidation.finalY,
