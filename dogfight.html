@@ -216,17 +216,41 @@
         class Terrain {
             constructor() {
                 this.mountains = [];
+                this.clouds = [];
                 this.generateMountains();
+                this.generateClouds();
             }
 
             generateMountains() {
-                // Generate random mountains
-                for (let i = 0; i < 15; i++) {
-                    this.mountains.push({
+                // Generate realistic mountain ranges
+                for (let i = 0; i < 8; i++) {
+                    const baseX = Math.random() * CANVAS_WIDTH;
+                    const baseY = Math.random() * CANVAS_HEIGHT;
+                    const baseHeight = 400 + Math.random() * 600;
+
+                    // Create a cluster of peaks for each mountain
+                    for (let j = 0; j < 3; j++) {
+                        this.mountains.push({
+                            x: baseX + (Math.random() - 0.5) * 150,
+                            y: baseY + (Math.random() - 0.5) * 150,
+                            radius: 40 + Math.random() * 60,
+                            height: baseHeight * (0.7 + Math.random() * 0.6),
+                            peakOffset: Math.random() * 20 - 10 // Offset peak from center
+                        });
+                    }
+                }
+            }
+
+            generateClouds() {
+                // Generate cloud layers at various altitudes
+                for (let i = 0; i < 20; i++) {
+                    this.clouds.push({
                         x: Math.random() * CANVAS_WIDTH,
                         y: Math.random() * CANVAS_HEIGHT,
-                        radius: 30 + Math.random() * 80,
-                        height: 200 + Math.random() * 800
+                        radius: 60 + Math.random() * 100,
+                        altitude: 300 + Math.random() * 1500, // Clouds at 300-1800m
+                        thickness: 100 + Math.random() * 200, // Vertical thickness
+                        opacity: 0.3 + Math.random() * 0.4
                     });
                 }
             }
@@ -245,19 +269,90 @@
                 return maxHeight;
             }
 
+            // Check if line of sight is blocked by clouds
+            isLineOfSightClear(x1, y1, alt1, x2, y2, alt2) {
+                // Sample points along the line
+                const samples = 10;
+                for (let i = 0; i <= samples; i++) {
+                    const t = i / samples;
+                    const x = x1 + (x2 - x1) * t;
+                    const y = y1 + (y2 - y1) * t;
+                    const alt = alt1 + (alt2 - alt1) * t;
+
+                    // Check if this point is inside any cloud
+                    for (let cloud of this.clouds) {
+                        const dx = x - cloud.x;
+                        const dy = y - cloud.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+
+                        if (dist < cloud.radius) {
+                            // Check altitude overlap
+                            const cloudBottom = cloud.altitude - cloud.thickness / 2;
+                            const cloudTop = cloud.altitude + cloud.thickness / 2;
+                            if (alt >= cloudBottom && alt <= cloudTop) {
+                                return false; // Line of sight blocked
+                            }
+                        }
+                    }
+                }
+                return true; // Clear line of sight
+            }
+
             render() {
+                // Render mountains with better definition
                 for (let mountain of this.mountains) {
+                    const intensity = mountain.height / MOUNTAIN_HEIGHT;
+
+                    // Mountain body with peak
                     const gradient = ctx.createRadialGradient(
-                        mountain.x, mountain.y, 0,
+                        mountain.x + mountain.peakOffset, mountain.y, 0,
                         mountain.x, mountain.y, mountain.radius
                     );
-                    const intensity = mountain.height / MOUNTAIN_HEIGHT;
-                    gradient.addColorStop(0, `rgba(80, 80, 60, ${intensity * 0.6})`);
-                    gradient.addColorStop(1, 'rgba(40, 40, 30, 0)');
+
+                    // Snow-capped peaks for high mountains
+                    if (mountain.height > 700) {
+                        gradient.addColorStop(0, `rgba(200, 200, 210, ${intensity * 0.8})`); // Snowy peak
+                        gradient.addColorStop(0.3, `rgba(120, 110, 100, ${intensity * 0.7})`); // Rocky middle
+                        gradient.addColorStop(0.7, `rgba(80, 70, 60, ${intensity * 0.5})`); // Dark base
+                    } else {
+                        gradient.addColorStop(0, `rgba(100, 95, 80, ${intensity * 0.7})`); // Peak
+                        gradient.addColorStop(0.5, `rgba(70, 65, 55, ${intensity * 0.6})`); // Middle
+                        gradient.addColorStop(0.8, `rgba(50, 45, 40, ${intensity * 0.4})`); // Base
+                    }
+                    gradient.addColorStop(1, 'rgba(30, 30, 25, 0)');
 
                     ctx.fillStyle = gradient;
                     ctx.beginPath();
                     ctx.arc(mountain.x, mountain.y, mountain.radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Add contour line for definition
+                    ctx.strokeStyle = `rgba(40, 35, 30, ${intensity * 0.4})`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(mountain.x, mountain.y, mountain.radius * 0.6, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // Render clouds
+                for (let cloud of this.clouds) {
+                    const gradient = ctx.createRadialGradient(
+                        cloud.x, cloud.y, 0,
+                        cloud.x, cloud.y, cloud.radius
+                    );
+                    gradient.addColorStop(0, `rgba(255, 255, 255, ${cloud.opacity})`);
+                    gradient.addColorStop(0.5, `rgba(240, 240, 250, ${cloud.opacity * 0.7})`);
+                    gradient.addColorStop(1, 'rgba(220, 220, 240, 0)');
+
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(cloud.x, cloud.y, cloud.radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Add wispy detail
+                    ctx.fillStyle = `rgba(255, 255, 255, ${cloud.opacity * 0.3})`;
+                    ctx.beginPath();
+                    ctx.arc(cloud.x + cloud.radius * 0.3, cloud.y - cloud.radius * 0.2, cloud.radius * 0.6, 0, Math.PI * 2);
                     ctx.fill();
                 }
             }
@@ -310,10 +405,25 @@
                     this.maxBraking = 18; // m/s²
                 }
 
-                // Combat stats
-                this.ammunition = 500;
-                this.damage = 0;
-                this.fireThreshold = 0.3; // 30% hit chance to fire
+                // Combat stats - historically accurate weapons
+                if (type === 'Spitfire') {
+                    // 8× .303 Browning machine guns
+                    this.ammunition = 2660; // Total rounds (8 guns × 350 rounds each ÷ 8 rounds per burst)
+                    this.ammoPerBurst = 8; // 1 round from each gun
+                    this.damage = 0;
+                    this.damagePerHit = 2 + Math.random() * 3; // Lower damage per hit (lighter caliber)
+                    this.fireThreshold = 0.25; // Lower threshold (easier to fire - more ammo)
+                    this.rateOfFire = 1; // Can fire every frame (very high ROF)
+                } else { // Me-109
+                    // 2× 13mm MG 131 + 1× 20mm MG 151/20 cannon
+                    this.ammunition = 450; // Limited cannon ammo (300 rounds ÷ 5 rounds per burst + machine gun)
+                    this.ammoPerBurst = 5; // Mixed armament burst
+                    this.damage = 0;
+                    this.damagePerHit = 5 + Math.random() * 7; // Higher damage (cannon hits hard!)
+                    this.fireThreshold = 0.35; // Higher threshold (conserve limited cannon ammo)
+                    this.rateOfFire = 3; // Slower rate of fire (cannon)
+                }
+
                 this.timeOnTarget = 0;
                 this.pilotSkill = 0.5 + Math.random() * 0.3; // 50-80%
                 this.gunnerySkill = 0.5 + Math.random() * 0.3;
@@ -1102,7 +1212,19 @@
 
                     // Firing cone: 20 degrees for realistic gunnery
                     if (angleDiff < 20 && distance < 400) {
-                        // Target is in arc and range
+                        // Check line of sight - clouds can block vision!
+                        const losBlocked = !terrain.isLineOfSightClear(
+                            shooter.x, shooter.y, shooter.altitude,
+                            target.x, target.y, target.altitude
+                        );
+
+                        if (losBlocked) {
+                            // Can't see target through clouds
+                            shooter.timeOnTarget = 0;
+                            continue;
+                        }
+
+                        // Target is in arc, range, and visible
                         const altitudeDiff = Math.abs(target.altitude - shooter.altitude);
 
                         // Calculate hit chance
@@ -1116,14 +1238,14 @@
                         // Fire if chance exceeds threshold and angle is good
                         if (hitChance >= shooter.fireThreshold && angleDiff < 15) {
                             shooter.isFiring = true;
-                            shooter.ammunition -= 5;
-                            shooter.firingCooldown = 2; // 2 frames between bursts
+                            shooter.ammunition -= shooter.ammoPerBurst; // Use weapon-specific ammo
+                            shooter.firingCooldown = shooter.rateOfFire; // Use weapon-specific ROF
 
                             console.log(`${shooter.name} FIRING at ${target.name}! Distance: ${Math.round(distance)}m, Angle: ${angleDiff.toFixed(1)}°, Hit chance: ${(hitChance * 100).toFixed(1)}%`);
 
                             // Check if hit
                             if (Math.random() < hitChance) {
-                                const damageAmount = 3 + Math.random() * 5;
+                                const damageAmount = shooter.damagePerHit; // Use weapon-specific damage
                                 target.damage += damageAmount;
                                 target.lastHitBy = shooter.name;
                                 target.lastHitTime = Date.now();
@@ -1247,6 +1369,38 @@
             }
 
             ctx.restore();
+
+            // Draw scale bar (in screen space, not affected by zoom/pan)
+            const scaleBarLength = 100; // Represents 100 meters
+            const scaleBarX = 20;
+            const scaleBarY = CANVAS_HEIGHT - 40;
+
+            ctx.strokeStyle = '#ffffff';
+            ctx.fillStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.font = '14px Courier New';
+
+            // Draw scale bar line
+            ctx.beginPath();
+            ctx.moveTo(scaleBarX, scaleBarY);
+            ctx.lineTo(scaleBarX + scaleBarLength, scaleBarY);
+            ctx.stroke();
+
+            // Draw end caps
+            ctx.beginPath();
+            ctx.moveTo(scaleBarX, scaleBarY - 5);
+            ctx.lineTo(scaleBarX, scaleBarY + 5);
+            ctx.moveTo(scaleBarX + scaleBarLength, scaleBarY - 5);
+            ctx.lineTo(scaleBarX + scaleBarLength, scaleBarY + 5);
+            ctx.stroke();
+
+            // Draw label
+            ctx.fillText('100m', scaleBarX + scaleBarLength / 2 - 20, scaleBarY - 10);
+
+            // Draw zoom level indicator
+            ctx.fillStyle = '#aaaaaa';
+            ctx.font = '12px Courier New';
+            ctx.fillText(`Zoom: ${zoomLevel.toFixed(1)}x`, scaleBarX, scaleBarY + 20);
         }
 
         function updateUI() {
