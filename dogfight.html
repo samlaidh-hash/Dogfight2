@@ -159,6 +159,7 @@
                 <div>• Move mouse to position</div>
                 <div>• Mouse wheel: rotate (in maneuver) / zoom (otherwise)</div>
                 <div>• W/S: altitude up/down</div>
+                <div>• Q/E: throttle down/up (path length)</div>
                 <div>• A/D: fire threshold</div>
                 <div>• Click again to lock</div>
             </div>
@@ -253,14 +254,15 @@
                 this.y = y;
                 this.altitude = altitude;
                 this.heading = heading; // degrees
-                this.speed = 200; // m/s
+                this.speed = 140; // m/s - start at cruise speed
+                this.throttle = 0.7; // 0.0 to 1.0 (70% = cruise)
                 this.isPlayer = isPlayer;
                 this.hasOrders = false;
                 this.targetX = x;
                 this.targetY = y;
                 this.targetAltitude = altitude;
                 this.targetHeading = heading;
-                this.targetSpeed = 200;
+                this.targetSpeed = 140;
 
                 // Starting positions for interpolation
                 this.startX = x;
@@ -397,11 +399,20 @@
                 return distance < 40 * this.getScaleForAltitude();
             }
 
+            // Calculate speed from throttle setting
+            getSpeedFromThrottle() {
+                // Linear interpolation between min and max speed based on throttle
+                return this.minSpeed + (this.maxSpeed - this.minSpeed) * this.throttle;
+            }
+
             // Calculate realistic flight path using physics simulation
             calculateRealisticPath(targetX, targetY, targetAltitude, targetHeading) {
                 const TIME_STEP = 0.1; // 0.1 second time steps
                 const NUM_STEPS = Math.floor(TURN_TIME / TIME_STEP); // 40 steps
                 const g = 9.81;
+
+                // Calculate target speed from current throttle setting
+                const targetSpeedFromThrottle = this.getSpeedFromThrottle();
 
                 // Path array storing state at each time step
                 let path = [];
@@ -412,7 +423,7 @@
                     y: this.y,
                     altitude: this.altitude,
                     heading: this.heading,
-                    speed: this.speed,
+                    speed: targetSpeedFromThrottle, // Use throttle-based speed
                     time: 0
                 };
 
@@ -713,6 +724,7 @@
                 return `
                     <div class="stat-line">Alt: ${Math.round(this.altitude)}m</div>
                     <div class="stat-line">Speed: ${Math.round(this.speed)} m/s</div>
+                    <div class="stat-line">Throttle: ${Math.round(this.throttle * 100)}%</div>
                     <div class="stat-line">Hdg: ${Math.round(this.heading)}°</div>
                     <div class="stat-line">Ammo: ${this.ammunition}</div>
                     <div class="stat-line">Damage: ${Math.round(this.damage)}%</div>
@@ -967,7 +979,9 @@
             panel.style.top = (lastScreenY - 50) + 'px';
 
             const validation = ghostAircraft.validation;
+            const throttlePercent = Math.round(selectedAircraft.throttle * 100);
             let panelHTML = `
+                <div>Throttle: ${throttlePercent}%</div>
                 <div>Heading: ${validation.targetHeading}°</div>
                 <div>Altitude: ${validation.targetAltitude}m</div>
                 <div>Speed: ${validation.targetSpeed} m/s</div>
@@ -1113,6 +1127,18 @@
                     break;
                 case 's':
                     ghostAltitudeOffset -= 50;
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'q':
+                    // Reduce throttle
+                    selectedAircraft.throttle = Math.max(0.0, selectedAircraft.throttle - 0.1);
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'e':
+                    // Increase throttle
+                    selectedAircraft.throttle = Math.min(1.0, selectedAircraft.throttle + 0.1);
                     updateGhost();
                     updateGhostPanel();
                     break;
