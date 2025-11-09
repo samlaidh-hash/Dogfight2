@@ -303,6 +303,7 @@
                 // Flight path calculation
                 this.flightPath = null; // Will store calculated realistic path
                 this.inStall = false; // Track if aircraft is stalled
+                this.slipAngle = 0; // Slip/skid angle (nose direction vs flight direction)
             }
 
             getScaleForAltitude() {
@@ -406,13 +407,26 @@
             }
 
             // Calculate realistic flight path using physics simulation
-            calculateRealisticPath(targetX, targetY, targetAltitude, targetHeading) {
+            calculateRealisticPath(targetX, targetY, targetAltitude, targetHeading, slipAngle = 0) {
                 const TIME_STEP = 0.1; // 0.1 second time steps
                 const NUM_STEPS = Math.floor(TURN_TIME / TIME_STEP); // 40 steps
                 const g = 9.81;
 
                 // Calculate target speed from current throttle setting
                 const targetSpeedFromThrottle = this.getSpeedFromThrottle();
+
+                // Calculate slip/skid physics effects
+                const slipAngleRad = Math.abs(slipAngle) * Math.PI / 180;
+                const slipSin = Math.sin(slipAngleRad);
+
+                // Drag penalty: increases with sin²(slip angle)
+                // At 30° slip: sin(30°) = 0.5, sin²(30°) = 0.25, drag factor = 1.125 (12.5% more drag)
+                const slipDragFactor = 1 + (slipSin * slipSin) * 0.5;
+
+                // G-force reduction: uncoordinated turns are less efficient
+                // At 30° slip: lose 30% of max G capability
+                const slipGReduction = Math.abs(slipAngle) / 30 * 0.3;
+                const slipEffectiveMaxG = this.maxGForce * (1 - slipGReduction);
 
                 // Path array storing state at each time step
                 let path = [];
@@ -451,8 +465,8 @@
 
                     // Calculate maximum turn rate based on current speed and G-limits
                     // Turn radius: r = v² / (g × √(n² - 1)) where n is load factor (G-force)
-                    // For now, use max sustainable G for turn rate calculation
-                    const maxSustainableG = this.maxGForce * 0.8; // Use 80% of max for sustained
+                    // For now, use max sustainable G for turn rate calculation (reduced by slip/skid)
+                    const maxSustainableG = slipEffectiveMaxG * 0.8; // Use 80% of effective max for sustained
                     const turnRadius = (state.speed * state.speed) / (g * Math.sqrt(maxSustainableG * maxSustainableG - 1));
                     const maxTurnRatePerSec = (state.speed / turnRadius) * (180 / Math.PI); // Convert to degrees/sec
                     const maxTurnThisStep = maxTurnRatePerSec * TIME_STEP;
@@ -519,6 +533,13 @@
                     if (Math.abs(altitudeChange) > 0 && Math.abs(actualTurn) > 0) {
                         const maneuverIntensity = (Math.abs(actualTurn) / maxTurnThisStep) * (Math.abs(actualClimbRate) / this.maxClimbRate);
                         newSpeed *= (1 - maneuverIntensity * 0.1); // Up to 10% speed loss for combined maneuvers
+                    }
+
+                    // Step 4: Apply slip/skid drag penalty
+                    // Sideways flight creates additional drag that bleeds energy
+                    if (slipAngle !== 0) {
+                        const slipDragPerStep = (slipDragFactor - 1) * state.speed * TIME_STEP * 0.5; // Drag reduces speed
+                        newSpeed -= slipDragPerStep;
                     }
 
                     // Clamp speed
@@ -597,6 +618,21 @@
                         }
                     }
 
+                    // Intentional slip/skid angle warnings
+                    if (Math.abs(slipAngle) > 20) {
+                        if (overallState !== 'illegal') overallState = 'stressful';
+                        if (!warnings.some(w => w.includes('Slip/Skid'))) {
+                            warnings.push(`High Slip/Skid Angle (${Math.abs(slipAngle)}°) - Increased drag`);
+                        }
+                    }
+                    // Extreme slip at low speed risks accelerated stall
+                    if (Math.abs(slipAngle) > 20 && newSpeed < this.minSpeed * 1.2) {
+                        if (overallState !== 'illegal') overallState = 'stressful';
+                        if (!warnings.some(w => w.includes('Accelerated stall'))) {
+                            warnings.push(`⚠ Accelerated stall risk - slip + low speed`);
+                        }
+                    }
+
                     // Terrain check
                     const terrainHeight = terrain.getHeightAt(newX, newY);
                     if (newAltitude < terrainHeight + 50) {
@@ -624,13 +660,17 @@
                     gForce: maxGForce.toFixed(1),
                     climbRate: Math.round(Math.abs(finalState.climbRate)),
                     targetAltitude: Math.round(targetAltitude),
-                    targetHeading: Math.round(targetHeading)
+                    targetHeading: Math.round(targetHeading),
+                    finalX: finalState.x,
+                    finalY: finalState.y,
+                    finalAltitude: finalState.altitude,
+                    finalFlightHeading: finalState.heading // Actual flight heading achieved (not nose heading)
                 };
             }
 
-            calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading) {
+            calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading, slipAngle = 0) {
                 // Use the new realistic path calculation
-                const result = this.calculateRealisticPath(targetX, targetY, targetAltitude, targetHeading);
+                const result = this.calculateRealisticPath(targetX, targetY, targetAltitude, targetHeading, slipAngle);
 
                 // Store the path for rendering and execution
                 this.flightPath = result.path;
@@ -638,7 +678,7 @@
                 return result;
             }
 
-            lockOrders(targetX, targetY, targetAltitude, targetHeading) {
+            lockOrders(targetX, targetY, targetAltitude, targetHeading, slipAngle = 0) {
                 // Save starting position for interpolation
                 this.startX = this.x;
                 this.startY = this.y;
@@ -650,6 +690,7 @@
                 this.targetY = targetY;
                 this.targetAltitude = targetAltitude;
                 this.targetHeading = targetHeading;
+                this.slipAngle = slipAngle; // Save slip angle for execution
                 this.hasOrders = true;
 
                 // Calculate target speed: distance / time
@@ -684,12 +725,13 @@
                     this.x = current.x + (next.x - current.x) * localProgress;
                     this.y = current.y + (next.y - current.y) * localProgress;
                     this.altitude = current.altitude + (next.altitude - current.altitude) * localProgress;
-                    this.heading = current.heading + (next.heading - current.heading) * localProgress;
-                    this.speed = current.speed + (next.speed - current.speed) * localProgress;
 
-                    // Handle heading wraparound
-                    if (this.heading < 0) this.heading += 360;
-                    if (this.heading >= 360) this.heading -= 360;
+                    // Flight heading from path (direction of movement)
+                    const flightHeading = current.heading + (next.heading - current.heading) * localProgress;
+
+                    // Nose heading = flight heading + slip angle
+                    this.heading = (flightHeading + this.slipAngle + 360) % 360;
+                    this.speed = current.speed + (next.speed - current.speed) * localProgress;
 
                     // Check for stall condition
                     if (this.speed < this.minSpeed) {
@@ -947,12 +989,13 @@
             const targetAltitude = Math.max(ALTITUDE_MIN,
                 Math.min(ALTITUDE_MAX, selectedAircraft.altitude + ghostAltitudeOffset));
 
-            // Calculate realistic path from current position to target
+            // Calculate realistic path from current position to target (with slip/skid angle)
             const validation = selectedAircraft.calculateManeuverValidation(
                 targetX,
                 targetY,
                 targetAltitude,
-                targetHeading
+                targetHeading,
+                ghostSlipAngle
             );
 
             ghostAircraft.state = validation.state;
@@ -1050,14 +1093,16 @@
 
                     if (selectedAircraft === plane) {
                         console.log('Same aircraft - attempting to lock');
-                        // Lock in orders
-                        if (ghostAircraft && ghostAircraft.state !== 'illegal') {
+                        // Lock in orders (using final flight heading from validation, not nose heading)
+                        if (ghostAircraft && ghostAircraft.state !== 'illegal' && ghostAircraft.validation) {
                             console.log('Locking orders!');
+                            const val = ghostAircraft.validation;
                             plane.lockOrders(
-                                ghostAircraft.aircraft.x,
-                                ghostAircraft.aircraft.y,
-                                ghostAircraft.aircraft.altitude,
-                                ghostAircraft.aircraft.heading
+                                val.finalX,
+                                val.finalY,
+                                val.finalAltitude,
+                                val.finalFlightHeading,
+                                ghostSlipAngle // Save slip angle for nose direction during execution
                             );
                             selectedAircraft = null; // Deselect but keep ghost visible
                             ghostRotation = 0;
@@ -1104,13 +1149,15 @@
 
             console.log('Click did not hit aircraft - attempting to lock from anywhere');
             // If we didn't click on any aircraft, but we have a ghost selected, lock in orders
-            if (selectedAircraft && ghostAircraft && ghostAircraft.state !== 'illegal') {
+            if (selectedAircraft && ghostAircraft && ghostAircraft.state !== 'illegal' && ghostAircraft.validation) {
                 console.log('Locking orders from empty click!');
+                const val = ghostAircraft.validation;
                 selectedAircraft.lockOrders(
-                    ghostAircraft.aircraft.x,
-                    ghostAircraft.aircraft.y,
-                    ghostAircraft.aircraft.altitude,
-                    ghostAircraft.aircraft.heading
+                    val.finalX,
+                    val.finalY,
+                    val.finalAltitude,
+                    val.finalFlightHeading,
+                    ghostSlipAngle // Save slip angle for nose direction during execution
                 );
                 selectedAircraft = null; // Deselect but keep ghost visible
                 ghostRotation = 0;
