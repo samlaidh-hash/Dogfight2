@@ -828,9 +828,12 @@
             // Render terrain
             terrain.render();
 
-            // Render flight paths (dotted lines)
+            // Render flight paths (dotted lines) for locked orders
             for (let plane of aircraft) {
-                if (plane.flightPath && plane.flightPath.length > 1) {
+                // Don't draw the path if this aircraft is currently being edited (has a ghost)
+                if (plane === selectedAircraft && ghostAircraft) continue;
+
+                if (plane.flightPath && plane.flightPath.length > 1 && plane.hasOrders) {
                     ctx.strokeStyle = plane.isPlayer ? '#00aaff' : '#ff6666';
                     ctx.lineWidth = 2;
                     ctx.setLineDash([5, 5]); // Dotted line
