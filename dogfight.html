@@ -917,19 +917,19 @@
         function updateGhost() {
             if (!selectedAircraft || !ghostAircraft) return;
 
-            // Update ghost position and orientation
-            ghostAircraft.aircraft.x = mouseX;
-            ghostAircraft.aircraft.y = mouseY;
-            ghostAircraft.aircraft.heading = (selectedAircraft.heading + ghostRotation + 360) % 360;
-            ghostAircraft.aircraft.altitude = Math.max(ALTITUDE_MIN,
+            // Target position (where mouse is pointing)
+            const targetX = mouseX;
+            const targetY = mouseY;
+            const targetHeading = (selectedAircraft.heading + ghostRotation + 360) % 360;
+            const targetAltitude = Math.max(ALTITUDE_MIN,
                 Math.min(ALTITUDE_MAX, selectedAircraft.altitude + ghostAltitudeOffset));
 
-            // Validate maneuver from REAL aircraft's position to ghost position
+            // Calculate realistic path from current position to target
             const validation = selectedAircraft.calculateManeuverValidation(
-                ghostAircraft.aircraft.x,
-                ghostAircraft.aircraft.y,
-                ghostAircraft.aircraft.altitude,
-                ghostAircraft.aircraft.heading
+                targetX,
+                targetY,
+                targetAltitude,
+                targetHeading
             );
 
             ghostAircraft.state = validation.state;
@@ -937,6 +937,21 @@
 
             // Copy the calculated flight path to the ghost aircraft for rendering
             ghostAircraft.aircraft.flightPath = selectedAircraft.flightPath;
+
+            // Position ghost at the END of the calculated path (where aircraft will actually end up)
+            if (selectedAircraft.flightPath && selectedAircraft.flightPath.length > 0) {
+                const finalState = selectedAircraft.flightPath[selectedAircraft.flightPath.length - 1];
+                ghostAircraft.aircraft.x = finalState.x;
+                ghostAircraft.aircraft.y = finalState.y;
+                ghostAircraft.aircraft.altitude = finalState.altitude;
+                ghostAircraft.aircraft.heading = finalState.heading;
+            } else {
+                // Fallback if no path calculated
+                ghostAircraft.aircraft.x = targetX;
+                ghostAircraft.aircraft.y = targetY;
+                ghostAircraft.aircraft.altitude = targetAltitude;
+                ghostAircraft.aircraft.heading = targetHeading;
+            }
         }
 
         // Helper function to update ghost panel
