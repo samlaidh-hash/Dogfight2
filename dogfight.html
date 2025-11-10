@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Courier New', monospace;
-            background: #1a1a2e;
+            background: #2a3a2a;
             color: #eee;
             overflow: hidden;
         }
@@ -28,8 +28,8 @@
         }
 
         #gameCanvas {
-            border: 2px solid #0f3460;
-            background: #16213e;
+            border: 2px solid #4a5a3a;
+            background: #3d5235;
             cursor: crosshair;
         }
 
@@ -191,6 +191,28 @@
     </div>
 
     <script>
+        /*
+         * SOUND EFFECTS - Add these files to your project:
+         *
+         * Free sources found:
+         * - Spitfire MG sounds: https://www.zapsplat.com (search "machine gun"), https://pixabay.com/sound-effects/
+         * - Me-109 Autocannon: https://pixabay.com/sound-effects/autocannon-20mm-143113/, https://audio.com/decibelphantomx/audio/20mm-autocannon-sound
+         * - Aircraft flyby/whoosh: https://pixabay.com/sound-effects/search/fly%20by/, https://www.zapsplat.com/sound-effect-category/airplanes/
+         * - WW2 Engine ambient: https://www.zapsplat.com/music/aircraft-ww2-spitfire-flying-low-overhead/, https://pixabay.com/sound-effects/search/ww2/
+         *
+         * SVG Aircraft (replace renderSVG with actual SVG paths):
+         * - Spitfire: https://freesvg.org/supermarine-spitfire-plane-vector-illustration, https://www.vecteezy.com/free-vector/spitfire
+         * - Me-109: Check Etsy for paid SVG or convert free PDF plans from https://outerzone.co.uk/plan_details.asp?ID=11066
+         */
+
+        // Sound effects (uncomment and add actual file paths when ready)
+        // const soundSpitfireMG = new Audio('sounds/spitfire_mg.mp3');
+        // const soundMe109Cannon = new Audio('sounds/me109_cannon.mp3');
+        // const soundFlyby = new Audio('sounds/aircraft_flyby.mp3');
+        // const soundEngineAmbient = new Audio('sounds/engine_ambient.mp3');
+        // const soundExplosion = new Audio('sounds/explosion.mp3');
+        // const soundHitMetal = new Audio('sounds/hit_metal.mp3');
+
         // Game constants
         const CANVAS_WIDTH = 1800;
         const CANVAS_HEIGHT = 1000;
@@ -564,6 +586,10 @@
                 this.lastHitTime = 0; // Timestamp of last hit
                 this.isDestroyed = false; // Aircraft destroyed state
 
+                // Visual hit effects
+                this.hitEffects = []; // Array of {x, y, type: 'mg'|'cannon', time, duration}
+                this.smokeParticles = []; // Smoke trail particles when damaged
+
                 // Flight path calculation
                 this.flightPath = null; // Will store calculated realistic path
                 this.inStall = false; // Track if aircraft is stalled
@@ -653,6 +679,54 @@
                 }
 
                 ctx.restore();
+
+                // Draw damage effects (smoke and fire) - NOT in ghost mode
+                if (!isGhost && !this.isDestroyed) {
+                    const now = Date.now();
+
+                    // Heavy damage (70%+) - FIRE
+                    if (this.damage >= 70) {
+                        for (let i = 0; i < 5; i++) {
+                            const flameX = this.x + (Math.random() - 0.5) * 20;
+                            const flameY = this.y + (Math.random() - 0.5) * 20;
+                            const flameSize = 5 + Math.random() * 8;
+
+                            // Animated fire colors
+                            const fireColors = ['rgba(255, 100, 0, 0.8)', 'rgba(255, 150, 0, 0.7)', 'rgba(255, 200, 50, 0.6)'];
+                            ctx.fillStyle = fireColors[Math.floor(Math.random() * fireColors.length)];
+                            ctx.beginPath();
+                            ctx.arc(flameX, flameY, flameSize, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+
+                        // Heavy black smoke with fire
+                        for (let i = 0; i < 8; i++) {
+                            const smokeX = this.x + (Math.random() - 0.5) * 30 + (Math.random() - 0.5) * 10;
+                            const smokeY = this.y - 15 + i * 8 + (Math.random() - 0.5) * 15;
+                            const smokeSize = 8 + Math.random() * 10 + i * 1.5;
+                            const smokeOpacity = 0.6 - (i * 0.06);
+
+                            ctx.fillStyle = `rgba(30, 30, 30, ${smokeOpacity})`;
+                            ctx.beginPath();
+                            ctx.arc(smokeX, smokeY, smokeSize, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                    // Moderate damage (40-70%) - SMOKE only
+                    else if (this.damage >= 40) {
+                        for (let i = 0; i < 5; i++) {
+                            const smokeX = this.x + (Math.random() - 0.5) * 25 + (Math.random() - 0.5) * 8;
+                            const smokeY = this.y - 10 + i * 10 + (Math.random() - 0.5) * 12;
+                            const smokeSize = 6 + Math.random() * 7 + i * 1.2;
+                            const smokeOpacity = 0.4 - (i * 0.06);
+
+                            ctx.fillStyle = `rgba(60, 60, 60, ${smokeOpacity})`;
+                            ctx.beginPath();
+                            ctx.arc(smokeX, smokeY, smokeSize, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                }
 
                 // Draw altitude indicator or destruction label
                 if (!isGhost) {
@@ -1382,6 +1456,25 @@
                                 target.lastHitTime = Date.now();
                                 console.log(`  HIT! ${target.name} took ${damageAmount.toFixed(1)} damage (total: ${target.damage.toFixed(1)})`);
 
+                                // Add visual hit effect based on weapon type
+                                const hitType = shooter.type === 'Spitfire' ? 'mg' : 'cannon';
+                                target.hitEffects.push({
+                                    x: target.x + (Math.random() - 0.5) * 30,
+                                    y: target.y + (Math.random() - 0.5) * 30,
+                                    type: hitType,
+                                    time: Date.now(),
+                                    duration: hitType === 'cannon' ? 300 : 150 // Cannon effects last longer
+                                });
+
+                                // Play sound effect (when implemented)
+                                // if (hitType === 'cannon') {
+                                //     soundExplosion.currentTime = 0;
+                                //     soundExplosion.play();
+                                // } else {
+                                //     soundHitMetal.currentTime = 0;
+                                //     soundHitMetal.play();
+                                // }
+
                                 // Check for destruction
                                 if (target.damage >= 100 && !target.isDestroyed) {
                                     target.isDestroyed = true;
@@ -1400,7 +1493,7 @@
 
         // Rendering
         function render() {
-            ctx.fillStyle = '#16213e';
+            ctx.fillStyle = '#3d5235';
             ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
             // Apply zoom and pan transform
@@ -1456,6 +1549,78 @@
             // Render aircraft
             for (let plane of aircraft) {
                 plane.renderSVG();
+            }
+
+            // Render hit effects
+            const now = Date.now();
+            for (let plane of aircraft) {
+                // Clean up old hit effects
+                plane.hitEffects = plane.hitEffects.filter(effect => now - effect.time < effect.duration);
+
+                // Render active hit effects
+                for (let effect of plane.hitEffects) {
+                    const age = now - effect.time;
+                    const progress = age / effect.duration;
+                    const alpha = 1 - progress; // Fade out over time
+
+                    if (effect.type === 'cannon') {
+                        // Autocannon hit - explosion effect
+                        const size = 15 + (1 - progress) * 10; // Expands then fades
+
+                        // Orange explosion core
+                        ctx.fillStyle = `rgba(255, 150, 0, ${alpha * 0.8})`;
+                        ctx.beginPath();
+                        ctx.arc(effect.x, effect.y, size * 0.6, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Yellow outer glow
+                        ctx.fillStyle = `rgba(255, 220, 100, ${alpha * 0.5})`;
+                        ctx.beginPath();
+                        ctx.arc(effect.x, effect.y, size, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Spark particles
+                        for (let i = 0; i < 4; i++) {
+                            const angle = (i / 4) * Math.PI * 2 + progress * Math.PI;
+                            const dist = size * 1.5 * progress;
+                            const sparkX = effect.x + Math.cos(angle) * dist;
+                            const sparkY = effect.y + Math.sin(angle) * dist;
+
+                            ctx.fillStyle = `rgba(255, 200, 50, ${alpha * 0.7})`;
+                            ctx.beginPath();
+                            ctx.arc(sparkX, sparkY, 3, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    } else {
+                        // Machine gun hit - bullet strike effect
+                        const size = 8 + (1 - progress) * 5;
+
+                        // White/yellow impact flash
+                        ctx.fillStyle = `rgba(255, 255, 200, ${alpha})`;
+                        ctx.beginPath();
+                        ctx.arc(effect.x, effect.y, size * 0.5, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Metal spark
+                        ctx.fillStyle = `rgba(200, 200, 255, ${alpha * 0.7})`;
+                        ctx.beginPath();
+                        ctx.arc(effect.x, effect.y, size, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Small debris particles
+                        for (let i = 0; i < 2; i++) {
+                            const angle = Math.random() * Math.PI * 2;
+                            const dist = size * progress * 2;
+                            const debrisX = effect.x + Math.cos(angle) * dist;
+                            const debrisY = effect.y + Math.sin(angle) * dist;
+
+                            ctx.fillStyle = `rgba(100, 100, 100, ${alpha * 0.5})`;
+                            ctx.beginPath();
+                            ctx.arc(debrisX, debrisY, 2, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                }
             }
 
             // Render gun fire effects (tracers and muzzle flash)
