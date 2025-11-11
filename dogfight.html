@@ -177,6 +177,7 @@
                 <div>• Q/E: altitude down/up</div>
                 <div>• A/D: slip/skid left/right</div>
                 <div>• R: cycle roll (none/half/full)</div>
+                <div>• Z/X: fire threshold down/up</div>
                 <div>• Click again to lock</div>
             </div>
         </div>
@@ -628,6 +629,27 @@
 
                 const scale = this.getScaleForAltitude();
                 ctx.scale(scale, scale);
+
+                // Apply roll animation - simulate banking by scaling x-axis
+                let rollAngle = 0; // 0 to 360 degrees
+                if (this.isRolling && !isGhost) {
+                    if (this.rollType === 'half') {
+                        // Half roll: 0° to 180°
+                        rollAngle = this.rollProgress * 180;
+                    } else if (this.rollType === 'full') {
+                        // Full roll: 0° to 360°
+                        rollAngle = this.rollProgress * 360;
+                    }
+                } else if (this.isInverted && !isGhost) {
+                    // Maintain inverted appearance (180°)
+                    rollAngle = 180;
+                }
+
+                // Convert roll angle to x-axis scale for top-down view
+                // 0° = scale 1.0 (wings full width), 90° = scale 0.1 (edge-on), 180° = scale 1.0 (inverted)
+                const rollRad = (rollAngle * Math.PI) / 180;
+                const xScale = Math.abs(Math.cos(rollRad)) * 0.9 + 0.1; // Range from 0.1 to 1.0
+                ctx.scale(xScale, 1.0);
 
                 // Set color based on state
                 if (this.isDestroyed && !isGhost) {
@@ -1267,6 +1289,11 @@
                 const invertedDisplay = this.isInverted ?
                     `<div class="stat-line" style="color: #ffaa00;">⤺ INVERTED</div>` : '';
 
+                // Show fire threshold
+                const fireThresholdPercent = Math.round(this.fireThreshold * 100);
+                const fireThresholdColor = this.fireThreshold < 0.20 ? '#ff4444' :
+                                          this.fireThreshold < 0.30 ? '#ffaa00' : '#88ff88';
+
                 return `
                     <div class="stat-line">Alt: ${Math.round(this.altitude)}m</div>
                     <div class="stat-line">Speed: ${Math.round(this.speed)} m/s</div>
@@ -1274,6 +1301,7 @@
                     <div class="stat-line">Hdg: ${Math.round(this.heading)}°</div>
                     <div class="stat-line" style="${ammoColor}">Ammo: ${this.ammunition} ${this.isFiring ? '🔥' : ''}</div>
                     <div class="stat-line" style="${damageColor}">Damage: ${Math.round(this.damage)}%</div>
+                    <div class="stat-line" style="color: ${fireThresholdColor}">Fire Min: ${fireThresholdPercent}%</div>
                     ${gForceDisplay}
                     ${gPenaltyDisplay}
                     ${invertedDisplay}
@@ -1929,6 +1957,9 @@
                                selectedAircraft.rollType === 'half' ? 'Half Roll (Inverted)' :
                                'Full Roll';
             const rollColor = selectedAircraft.rollType !== 'none' ? '#ffaa00' : '#ffffff';
+            const fireThresholdPercent = Math.round(selectedAircraft.fireThreshold * 100);
+            const fireThresholdColor = selectedAircraft.fireThreshold < 0.20 ? '#ff4444' :
+                                      selectedAircraft.fireThreshold < 0.30 ? '#ffaa00' : '#00ff00';
             let panelHTML = `
                 <div>Throttle: ${throttlePercent}%</div>
                 <div>Heading: ${validation.targetHeading}°</div>
@@ -1937,6 +1968,7 @@
                 <div>Speed: ${validation.targetSpeed} m/s</div>
                 <div>G-Force: ${validation.gForce}G</div>
                 <div style="color: ${rollColor}">Roll: ${rollDisplay}</div>
+                <div style="color: ${fireThresholdColor}">Fire Threshold: ${fireThresholdPercent}%</div>
             `;
 
             if (validation.warnings.length > 0) {
@@ -2172,6 +2204,18 @@
                     } else {
                         selectedAircraft.rollType = 'none';
                     }
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'z':
+                    // Decrease fire threshold (fire more aggressively, less accurate)
+                    selectedAircraft.fireThreshold = Math.max(0.05, selectedAircraft.fireThreshold - 0.05);
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'x':
+                    // Increase fire threshold (fire more conservatively, wait for better shots)
+                    selectedAircraft.fireThreshold = Math.min(0.80, selectedAircraft.fireThreshold + 0.05);
                     updateGhost();
                     updateGhostPanel();
                     break;
