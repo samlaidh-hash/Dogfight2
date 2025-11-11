@@ -176,6 +176,7 @@
                 <div>• W/S: throttle up/down</div>
                 <div>• Q/E: altitude down/up</div>
                 <div>• A/D: slip/skid left/right</div>
+                <div>• R: cycle roll (none/half/full)</div>
                 <div>• Click again to lock</div>
             </div>
         </div>
@@ -602,6 +603,15 @@
                 this.flightPath = null; // Will store calculated realistic path
                 this.inStall = false; // Track if aircraft is stalled
                 this.slipAngle = 0; // Slip/skid angle (nose direction vs flight direction)
+
+                // Roll mechanics
+                this.rollType = 'none'; // 'none', 'half', 'full'
+                this.isInverted = false; // True if upside down
+                this.isRolling = false; // True during execution of roll
+                this.rollProgress = 0; // 0 to 1 during roll execution
+                this.currentGForce = 1.0; // Current G-force (1.0 = normal)
+                this.peakGForce = 1.0; // Peak G-force this turn
+                this.gForcePenalty = 0; // Skill penalty from previous turn's G-forces (0-1)
             }
 
             getScaleForAltitude() {
@@ -754,6 +764,20 @@
                         ctx.fillStyle = this.isPlayer ? '#0099ff' : '#ff4444';
                         ctx.font = '12px Courier New';
                         ctx.fillText(`${Math.round(this.altitude)}m`, this.x + 20, this.y - 20);
+
+                        // Show inverted indicator
+                        if (this.isInverted) {
+                            ctx.fillStyle = '#ffaa00';
+                            ctx.font = 'bold 14px Courier New';
+                            ctx.fillText('⤺ INVERTED', this.x - 40, this.y + 40);
+                        }
+
+                        // Show rolling indicator with progress
+                        if (this.isRolling) {
+                            ctx.fillStyle = '#ffaa00';
+                            ctx.font = 'bold 12px Courier New';
+                            ctx.fillText(`ROLLING ${Math.round(this.rollProgress * 100)}%`, this.x - 35, this.y + 55);
+                        }
                     }
                 }
             }
@@ -1092,6 +1116,44 @@
 
             executeOrders(progress) {
                 // progress goes from 0 to 1
+
+                // Handle roll mechanics during execution
+                if (this.rollType !== 'none') {
+                    // Roll happens smoothly over first 40% of maneuver
+                    const rollDuration = 0.4;
+                    if (progress <= rollDuration) {
+                        this.isRolling = true;
+                        this.rollProgress = progress / rollDuration;
+
+                        // Calculate if inverted based on roll type and progress
+                        if (this.rollType === 'half') {
+                            // Half roll: become inverted at 50% and stay inverted
+                            this.isInverted = this.rollProgress >= 0.5;
+                        } else if (this.rollType === 'full') {
+                            // Full roll: inverted from 25% to 75%, then right-side up
+                            this.isInverted = this.rollProgress >= 0.25 && this.rollProgress < 0.75;
+                        }
+
+                        // Add G-force spike during roll (2-3G)
+                        this.currentGForce = 1.0 + (Math.sin(this.rollProgress * Math.PI) * 2.0);
+                    } else {
+                        this.isRolling = false;
+                        this.rollProgress = 1.0;
+                        this.currentGForce = 1.0;
+                        // Maintain inverted state if half roll
+                        if (this.rollType === 'half') {
+                            this.isInverted = true;
+                        } else if (this.rollType === 'full') {
+                            this.isInverted = false;
+                        }
+                    }
+                } else {
+                    this.isRolling = false;
+                    this.rollProgress = 0;
+                    this.isInverted = false;
+                    this.currentGForce = 1.0;
+                }
+
                 // Follow the precalculated realistic flight path
                 if (this.flightPath && this.flightPath.length > 1) {
                     // Find the point in the path corresponding to current progress
@@ -1120,8 +1182,13 @@
                         this.inStall = true;
                     }
 
+                    // Track G-forces from maneuvers (combine path G-force with roll G-force)
+                    const pathGForce = current.gForce || 1.0;
+                    this.currentGForce = Math.max(this.currentGForce, pathGForce);
+                    this.peakGForce = Math.max(this.peakGForce, this.currentGForce);
+
                     // Apply damage for stressful maneuvers
-                    if (current.gForce && current.gForce > this.maxGForce * 0.85) {
+                    if (this.currentGForce > this.maxGForce * 0.85) {
                         this.damage += 0.1; // Gradual damage from high G
                     }
                 } else {
@@ -1162,6 +1229,25 @@
                     this.heading = this.targetHeading;
                     this.speed = this.targetSpeed;
                 }
+
+                // Calculate G-force penalty for next turn
+                // High G-forces reduce pilot skill for the next turn
+                if (this.peakGForce > 4.0) {
+                    // Penalty scales with G-force: 4G = 10% penalty, 7G = 40% penalty
+                    this.gForcePenalty = Math.min(0.5, (this.peakGForce - 4.0) * 0.1);
+                    console.log(`${this.name} experienced ${this.peakGForce.toFixed(1)}G - skill penalty: ${(this.gForcePenalty * 100).toFixed(0)}% next turn`);
+                } else {
+                    this.gForcePenalty = 0;
+                }
+
+                // Reset roll state and G-force tracking for next turn
+                this.rollType = 'none';
+                this.isRolling = false;
+                this.rollProgress = 0;
+                this.peakGForce = 1.0;
+                this.currentGForce = 1.0;
+                // Keep isInverted state if half roll was performed
+
                 this.hasOrders = false;
             }
 
@@ -1170,6 +1256,17 @@
                 const damageColor = this.damage > 50 ? 'color: #ff4444;' : this.damage > 25 ? 'color: #ffaa00;' : '';
                 const hitWarning = this.lastHitBy ? `<div style="color: #ff0000; animation: blink 0.5s infinite;">⚠ HIT BY ${this.lastHitBy.toUpperCase()}!</div>` : '';
 
+                // Show G-force during execution
+                const gForceDisplay = this.currentGForce > 1.5 ? `<div class="stat-line" style="color: #ffaa00;">G-Force: ${this.currentGForce.toFixed(1)}G</div>` : '';
+
+                // Show G-force penalty from previous turn
+                const gPenaltyDisplay = this.gForcePenalty > 0 ?
+                    `<div class="stat-line" style="color: #ff8800;">⚠ G-Strain: -${Math.round(this.gForcePenalty * 100)}% skill</div>` : '';
+
+                // Show inverted status
+                const invertedDisplay = this.isInverted ?
+                    `<div class="stat-line" style="color: #ffaa00;">⤺ INVERTED</div>` : '';
+
                 return `
                     <div class="stat-line">Alt: ${Math.round(this.altitude)}m</div>
                     <div class="stat-line">Speed: ${Math.round(this.speed)} m/s</div>
@@ -1177,6 +1274,9 @@
                     <div class="stat-line">Hdg: ${Math.round(this.heading)}°</div>
                     <div class="stat-line" style="${ammoColor}">Ammo: ${this.ammunition} ${this.isFiring ? '🔥' : ''}</div>
                     <div class="stat-line" style="${damageColor}">Damage: ${Math.round(this.damage)}%</div>
+                    ${gForceDisplay}
+                    ${gPenaltyDisplay}
+                    ${invertedDisplay}
                     ${hitWarning}
                 `;
             }
@@ -1441,10 +1541,21 @@
                         const altitudeDiff = Math.abs(target.altitude - shooter.altitude);
 
                         // Calculate hit chance
-                        let hitChance = shooter.gunnerySkill * 0.6;
+                        let effectiveGunnerySkill = shooter.gunnerySkill * (1 - shooter.gForcePenalty);
+                        let hitChance = effectiveGunnerySkill * 0.6;
                         hitChance *= Math.max(0.1, 1 - distance / 400); // Distance factor (max 400m)
                         hitChance *= Math.max(0.3, 1 - altitudeDiff / 500); // Altitude factor
                         hitChance *= Math.min(1, 0.2 + shooter.timeOnTarget / 8); // Time on target bonus
+
+                        // Apply roll penalties
+                        if (shooter.isRolling) {
+                            // Very hard to aim while rolling (50% penalty)
+                            hitChance *= 0.5;
+                        }
+                        if (target.isRolling) {
+                            // Target harder to hit while rolling (30% penalty)
+                            hitChance *= 0.7;
+                        }
 
                         shooter.timeOnTarget += 0.1;
 
@@ -1814,6 +1925,10 @@
             const throttlePercent = Math.round(selectedAircraft.throttle * 100);
             const altChange = Math.round(validation.targetAltitude - selectedAircraft.altitude);
             const altChangeSymbol = altChange > 0 ? '↑' : altChange < 0 ? '↓' : '→';
+            const rollDisplay = selectedAircraft.rollType === 'none' ? 'None' :
+                               selectedAircraft.rollType === 'half' ? 'Half Roll (Inverted)' :
+                               'Full Roll';
+            const rollColor = selectedAircraft.rollType !== 'none' ? '#ffaa00' : '#ffffff';
             let panelHTML = `
                 <div>Throttle: ${throttlePercent}%</div>
                 <div>Heading: ${validation.targetHeading}°</div>
@@ -1821,6 +1936,7 @@
                 <div>Altitude: ${validation.targetAltitude}m (${altChange >= 0 ? '+' : ''}${altChange}m ${altChangeSymbol})</div>
                 <div>Speed: ${validation.targetSpeed} m/s</div>
                 <div>G-Force: ${validation.gForce}G</div>
+                <div style="color: ${rollColor}">Roll: ${rollDisplay}</div>
             `;
 
             if (validation.warnings.length > 0) {
@@ -2044,6 +2160,18 @@
                 case 'd':
                     // Slip/skid right (nose points right of direction of travel)
                     ghostSlipAngle = Math.min(30, ghostSlipAngle + 5);
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'r':
+                    // Cycle roll type: none -> half -> full -> none
+                    if (selectedAircraft.rollType === 'none') {
+                        selectedAircraft.rollType = 'half';
+                    } else if (selectedAircraft.rollType === 'half') {
+                        selectedAircraft.rollType = 'full';
+                    } else {
+                        selectedAircraft.rollType = 'none';
+                    }
                     updateGhost();
                     updateGhostPanel();
                     break;
