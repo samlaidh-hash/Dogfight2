@@ -205,13 +205,21 @@
          * - Me-109: Check Etsy for paid SVG or convert free PDF plans from https://outerzone.co.uk/plan_details.asp?ID=11066
          */
 
-        // Sound effects (uncomment and add actual file paths when ready)
-        // const soundSpitfireMG = new Audio('sounds/spitfire_mg.mp3');
-        // const soundMe109Cannon = new Audio('sounds/me109_cannon.mp3');
-        // const soundFlyby = new Audio('sounds/aircraft_flyby.mp3');
-        // const soundEngineAmbient = new Audio('sounds/engine_ambient.mp3');
-        // const soundExplosion = new Audio('sounds/explosion.mp3');
-        // const soundHitMetal = new Audio('sounds/hit_metal.mp3');
+        // Sound effects
+        const soundSpitfireMG = new Audio('sounds/LMG.mp3');
+        const soundMe109Cannon = new Audio('sounds/AC.mp3');
+        const soundSpitfireEngine = new Audio('sounds/SPITFIRE.mp3');
+        const soundMe109Engine = new Audio('sounds/BF109.mp3');
+
+        // Configure engine sounds to loop
+        soundSpitfireEngine.loop = true;
+        soundMe109Engine.loop = true;
+        soundSpitfireEngine.volume = 0.3; // Keep engine sounds subtle
+        soundMe109Engine.volume = 0.3;
+
+        // Configure weapon sounds
+        soundSpitfireMG.volume = 0.6;
+        soundMe109Cannon.volume = 0.7;
 
         // Game constants
         const CANVAS_WIDTH = 1800;
@@ -1448,6 +1456,15 @@
 
                             console.log(`${shooter.name} FIRING at ${target.name}! Distance: ${Math.round(distance)}m, Angle: ${angleDiff.toFixed(1)}°, Hit chance: ${(hitChance * 100).toFixed(1)}%`);
 
+                            // Play weapon sound
+                            if (shooter.type === 'Spitfire') {
+                                soundSpitfireMG.currentTime = 0;
+                                soundSpitfireMG.play().catch(e => console.log('Audio play failed:', e));
+                            } else {
+                                soundMe109Cannon.currentTime = 0;
+                                soundMe109Cannon.play().catch(e => console.log('Audio play failed:', e));
+                            }
+
                             // Check if hit
                             if (Math.random() < hitChance) {
                                 const damageAmount = shooter.damagePerHit; // Use weapon-specific damage
@@ -2130,6 +2147,27 @@
 
         // Main game loop
         function gameLoop() {
+            // Manage engine sounds based on game state and aircraft status
+            if (gameState === 'EXECUTION') {
+                if (!spitfire.isDestroyed && soundSpitfireEngine.paused) {
+                    soundSpitfireEngine.play().catch(e => console.log('Engine audio failed:', e));
+                }
+                if (!me109.isDestroyed && soundMe109Engine.paused) {
+                    soundMe109Engine.play().catch(e => console.log('Engine audio failed:', e));
+                }
+            } else {
+                if (!soundSpitfireEngine.paused) soundSpitfireEngine.pause();
+                if (!soundMe109Engine.paused) soundMe109Engine.pause();
+            }
+
+            // Stop engine sounds for destroyed aircraft
+            if (spitfire.isDestroyed && !soundSpitfireEngine.paused) {
+                soundSpitfireEngine.pause();
+            }
+            if (me109.isDestroyed && !soundMe109Engine.paused) {
+                soundMe109Engine.pause();
+            }
+
             if (gameState === 'EXECUTION') {
                 const elapsed = Date.now() - executionStartTime;
                 const progress = Math.min(1, elapsed / executionTime);
