@@ -33,6 +33,24 @@ This proposal outlines a phased approach to add roll/bank angle mechanics to Dog
 - `Aircraft.renderSVG()` - Lines 309-387 (visual rendering)
 - `Aircraft.lockOrders()` - Lines 473-492 (order setting)
 
+### ⚠️ IMPORTANT DISCOVERY: Existing Turn Rate Issue
+
+**Current code has the same problem!** Line 276 in dogfight.html:
+```javascript
+this.maxTurnRate = 20; // degrees per turn
+```
+
+This should also be **degrees per second** for the same reasons as roll rate. The current implementation works because turns happen to complete in a fixed time (4 seconds), but this is fragile.
+
+**Recommendation**: Fix both turn rate AND roll rate to use degrees/second in Phase 1. This ensures consistency and prepares for potential variable-length execution phases in the future.
+
+**Impact**:
+- Current: `maxTurnRate = 20` degrees/turn ÷ 4 seconds = **5°/s** (very slow!)
+- Realistic WWII fighters: **15-25°/s** turn rate
+- Suggested values:
+  - Spitfire: `maxTurnRate = 20` → 20°/s (realistic)
+  - Me-109: `maxTurnRate = 18` → 18°/s (realistic)
+
 ---
 
 ## Proposed Roll Mechanics Design
@@ -42,19 +60,31 @@ This proposal outlines a phased approach to add roll/bank angle mechanics to Dog
 this.roll = 0;              // Current bank angle (-180 to +180, 0 = wings level)
 this.targetRoll = 0;        // Desired bank angle
 this.startRoll = 0;         // Starting bank angle for interpolation
-this.maxRollRate = 180;     // Max degrees per turn (Spitfire)
+this.maxRollRate = 90;      // Max degrees per SECOND (Spitfire)
 ```
 
 ### Roll Timing Specification
-- **Half Roll (180°)**: Completes at **50%** of execution phase
-- **Full Roll (360°)**: Completes at **100%** of execution phase
-- **Partial Rolls**: Linear interpolation based on angle
-  - 90° → 25% completion
-  - 270° → 75% completion
+Given current `EXECUTION_TIME = 4000ms` (4 seconds):
 
-### Roll Rate Limits (Per Aircraft Type)
-- **Spitfire**: 180°/turn max roll rate
-- **Me-109**: 200°/turn max roll rate (slightly better roll performance)
+- **Half Roll (180°)**: Completes at **50%** of execution phase (2 seconds)
+  - Spitfire @ 90°/s: 180° in 2.0s ✓
+  - Me-109 @ 110°/s: 180° in 1.64s ✓
+
+- **Full Roll (360°)**: Completes at **100%** of execution phase (4 seconds)
+  - Spitfire @ 90°/s: 360° in 4.0s ✓
+  - Me-109 @ 110°/s: 360° in 3.27s ✓
+
+- **Partial Rolls**: Time-based interpolation
+  - 90° @ 90°/s → 1.0s (25% of execution)
+  - 270° @ 90°/s → 3.0s (75% of execution)
+
+### Roll Rate Limits (Per Aircraft Type - Degrees per Second)
+- **Spitfire**: 90°/s max roll rate (realistic for Spitfire Mk V)
+- **Me-109**: 110°/s max roll rate (slightly better roll performance, historically accurate)
+- **Future aircraft**:
+  - FW-190: 150°/s (famously excellent roll rate)
+  - P-51 Mustang: 100°/s
+  - Zero: 60°/s (poor at high speed)
 
 ### Physics Integration
 
@@ -76,23 +106,37 @@ this.maxRollRate = 180;     // Max degrees per turn (Spitfire)
 ## Implementation Plan - 4 Phases
 
 ### **PHASE 1: Foundation (Non-Breaking)**
-**Goal**: Add roll variables without changing behavior
+**Goal**: Add roll variables AND fix existing turn rate units without changing behavior
 
 **Changes**:
-1. Add roll properties to `Aircraft` constructor
-2. Initialize to 0 (wings level)
-3. Add to interpolation in `executeOrders()` but don't use yet
-4. Add to UI display (show current roll angle)
+1. **Fix existing turn rate units**:
+   - Change `maxTurnRate` comments from "degrees per turn" to "degrees per second"
+   - Update values: Spitfire 20→20°/s, Me-109 18→18°/s (same numbers, correct units)
+   - Update turn validation to use time-based calculation
+   - **Note**: This doesn't change behavior since execution time is currently fixed at 4s
+
+2. **Add roll properties** to `Aircraft` constructor:
+   ```javascript
+   this.roll = 0;
+   this.targetRoll = 0;
+   this.startRoll = 0;
+   this.maxRollRate = 90;  // Spitfire: 90°/s, Me-109: 110°/s
+   ```
+
+3. Initialize to 0 (wings level)
+4. Add to interpolation in `executeOrders()` but don't use yet
+5. Add to UI display (show current roll angle)
 
 **Testing**:
-- ✓ All existing maneuvers work identically
+- ✓ All existing maneuvers work identically (turn rate change is cosmetic)
 - ✓ No visual changes
 - ✓ No physics changes
 - ✓ UI displays "Roll: 0°" for all aircraft
+- ✓ Turn validation still works correctly
 
-**Rollback**: Simply remove new properties if issues occur
+**Rollback**: Simply remove new properties and revert comments if issues occur
 
-**Risk**: VERY LOW - Additive only, no behavior changes
+**Risk**: VERY LOW - Turn rate change is unit clarification only; roll is additive only, no behavior changes
 
 ---
 
@@ -131,32 +175,59 @@ this.maxRollRate = 180;     // Max degrees per turn (Spitfire)
 const rollChange = Math.abs(targetRoll - this.roll);
 const normalizedRoll = rollChange > 180 ? 360 - rollChange : rollChange;
 
-if (normalizedRoll > this.maxRollRate) {
+// Calculate time required for this roll (in seconds)
+const executionTimeSeconds = EXECUTION_TIME / 1000; // 4.0 seconds
+const rollTimeRequired = normalizedRoll / this.maxRollRate; // degrees / (degrees/second) = seconds
+
+if (rollTimeRequired > executionTimeSeconds) {
     state = 'illegal';
     warnings.push('ROLL RATE EXCEEDED');
 }
 
-// Calculate completion time
-const rollCompletionFactor = normalizedRoll / 360;
-// Half roll (180°) = 0.5 factor → completes at 50%
-// Full roll (360°) = 1.0 factor → completes at 100%
+// Calculate when roll will complete (as fraction of execution phase)
+const rollCompletionFactor = rollTimeRequired / executionTimeSeconds;
+// Examples with Spitfire (90°/s):
+// - Half roll (180°): 180/90 = 2.0s → 2.0/4.0 = 0.5 (50% completion) ✓
+// - Full roll (360°): 360/90 = 4.0s → 4.0/4.0 = 1.0 (100% completion) ✓
+// - Quarter roll (90°): 90/90 = 1.0s → 1.0/4.0 = 0.25 (25% completion) ✓
 ```
 
 **Roll Interpolation**:
 ```javascript
-// In executeOrders()
-// Accelerated roll completion based on angle
-let rollProgress = progress;
-if (rollChange <= 180) {
-    // Half roll or less: complete at 50% + proportional
-    rollProgress = Math.min(1, progress * 2);
-} else {
-    // More than half roll: full execution time
-    rollProgress = progress;
-}
+// In executeOrders(progress)
+// progress goes from 0 to 1 over EXECUTION_TIME (4 seconds)
 
+const rollChange = Math.abs(this.targetRoll - this.startRoll);
+const normalizedRoll = rollChange > 180 ? 360 - rollChange : rollChange;
+
+// Time-based roll completion
+const executionTimeSeconds = EXECUTION_TIME / 1000; // 4.0 seconds
+const currentTimeSeconds = progress * executionTimeSeconds; // 0 to 4.0 seconds
+
+// How much can we roll in the current elapsed time?
+const maxRollPossible = this.maxRollRate * currentTimeSeconds;
+
+// Calculate roll progress (clamped to 1.0 when complete)
+const rollProgress = Math.min(1, maxRollPossible / normalizedRoll);
+
+// Apply the roll
+let rollDiff = this.targetRoll - this.startRoll;
+if (Math.abs(rollDiff) > 180) {
+    // Take shorter path
+    rollDiff = rollDiff > 0 ? rollDiff - 360 : rollDiff + 360;
+}
 this.roll = this.startRoll + rollDiff * rollProgress;
+
+// Normalize to -180 to +180
+if (this.roll < -180) this.roll += 360;
+if (this.roll > 180) this.roll -= 360;
 ```
+
+**Example with Spitfire (90°/s) doing half roll**:
+- At progress = 0.25 (1.0s elapsed): maxRollPossible = 90°, rollProgress = 90/180 = 0.5 → 50% rolled
+- At progress = 0.50 (2.0s elapsed): maxRollPossible = 180°, rollProgress = 180/180 = 1.0 → **100% rolled** ✓
+- At progress = 0.75 (3.0s elapsed): rollProgress still 1.0 → stays at target roll
+- At progress = 1.00 (4.0s elapsed): rollProgress still 1.0 → stays at target roll
 
 **Testing**:
 - ✓ Q/E keys change ghost roll angle
@@ -532,10 +603,10 @@ This proposal provides a safe, incremental path to add roll mechanics to Dogfigh
 - Event listeners (line ~774+) - Add Q/E key handlers
 
 ### Key Variables
-- `this.heading` - Current direction (already exists)
-- `this.roll` - NEW: Current bank angle
-- `this.targetRoll` - NEW: Desired bank angle
-- `this.maxRollRate` - NEW: Aircraft-specific limit
+- `this.heading` - Current direction in degrees (already exists)
+- `this.roll` - NEW: Current bank angle in degrees (-180 to +180)
+- `this.targetRoll` - NEW: Desired bank angle in degrees
+- `this.maxRollRate` - NEW: Aircraft-specific limit in **degrees per second**
 
 ---
 
