@@ -190,6 +190,9 @@
         let aiGhostAircraft = null; // AI's planned move
         let executionStartTime = 0;
         let executionRecording = [];
+        let tracerBullets = []; // Active tracer rounds
+        let muzzleFlashes = []; // Active muzzle flashes
+        let hitMarkers = []; // Hit effect markers
 
         // Canvas setup
         const canvas = document.getElementById('gameCanvas');
@@ -740,9 +743,42 @@
                         if (hitChance >= shooter.fireThreshold) {
                             shooter.ammunition -= 5;
 
+                            // Create muzzle flash
+                            muzzleFlashes.push({
+                                x: shooter.x,
+                                y: shooter.y,
+                                lifetime: 0.1, // seconds
+                                startTime: Date.now()
+                            });
+
+                            // Create tracer bullets
+                            const bulletCount = 3;
+                            for (let i = 0; i < bulletCount; i++) {
+                                const spread = (Math.random() - 0.5) * 10; // degrees
+                                tracerBullets.push({
+                                    x: shooter.x,
+                                    y: shooter.y,
+                                    angle: shooter.heading + spread,
+                                    speed: 800, // m/s
+                                    lifetime: 1.0, // seconds
+                                    startTime: Date.now(),
+                                    startX: shooter.x,
+                                    startY: shooter.y
+                                });
+                            }
+
                             // Check if hit
-                            if (Math.random() < hitChance) {
+                            const isHit = Math.random() < hitChance;
+                            if (isHit) {
                                 target.damage += 2 + Math.random() * 3;
+
+                                // Create hit marker
+                                hitMarkers.push({
+                                    x: target.x,
+                                    y: target.y,
+                                    lifetime: 0.3,
+                                    startTime: Date.now()
+                                });
                             }
                         }
                     } else {
@@ -752,6 +788,87 @@
             }
         }
 
+        // Update and render combat effects
+        function updateCombatEffects() {
+            const now = Date.now();
+
+            // Update tracer bullets
+            tracerBullets = tracerBullets.filter(bullet => {
+                const elapsed = (now - bullet.startTime) / 1000;
+                if (elapsed > bullet.lifetime) return false;
+
+                // Move bullet
+                const distance = bullet.speed * elapsed;
+                bullet.x = bullet.startX + Math.cos(bullet.angle * Math.PI / 180) * distance;
+                bullet.y = bullet.startY + Math.sin(bullet.angle * Math.PI / 180) * distance;
+
+                return true;
+            });
+
+            // Update muzzle flashes
+            muzzleFlashes = muzzleFlashes.filter(flash => {
+                const elapsed = (now - flash.startTime) / 1000;
+                return elapsed < flash.lifetime;
+            });
+
+            // Update hit markers
+            hitMarkers = hitMarkers.filter(marker => {
+                const elapsed = (now - marker.startTime) / 1000;
+                return elapsed < marker.lifetime;
+            });
+        }
+
+        function renderCombatEffects() {
+            const now = Date.now();
+
+            // Render tracer bullets
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 2;
+            for (let bullet of tracerBullets) {
+                const elapsed = (now - bullet.startTime) / 1000;
+                const alpha = 1 - elapsed / bullet.lifetime;
+                ctx.globalAlpha = alpha;
+
+                ctx.beginPath();
+                const tailLength = 20;
+                const tailX = bullet.x - Math.cos(bullet.angle * Math.PI / 180) * tailLength;
+                const tailY = bullet.y - Math.sin(bullet.angle * Math.PI / 180) * tailLength;
+                ctx.moveTo(tailX, tailY);
+                ctx.lineTo(bullet.x, bullet.y);
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1.0;
+
+            // Render muzzle flashes
+            for (let flash of muzzleFlashes) {
+                const elapsed = (now - flash.startTime) / 1000;
+                const alpha = 1 - elapsed / flash.lifetime;
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = '#ffaa00';
+                ctx.beginPath();
+                ctx.arc(flash.x, flash.y, 8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1.0;
+
+            // Render hit markers
+            for (let marker of hitMarkers) {
+                const elapsed = (now - marker.startTime) / 1000;
+                const alpha = 1 - elapsed / marker.lifetime;
+                const size = 10 + elapsed * 20;
+                ctx.globalAlpha = alpha;
+                ctx.strokeStyle = '#ff0000';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(marker.x - size, marker.y);
+                ctx.lineTo(marker.x + size, marker.y);
+                ctx.moveTo(marker.x, marker.y - size);
+                ctx.lineTo(marker.x, marker.y + size);
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1.0;
+        }
+
         // Rendering
         function render() {
             ctx.fillStyle = '#16213e';
@@ -759,6 +876,9 @@
 
             // Render terrain
             terrain.render();
+
+            // Render combat effects (behind aircraft)
+            renderCombatEffects();
 
             // Render aircraft
             for (let aircraft of aircraft) {
@@ -1016,6 +1136,9 @@
                     document.getElementById('nextPhaseButton').style.display = 'block';
                 }
             }
+
+            // Update combat effects (tracers, flashes, etc.) every frame
+            updateCombatEffects();
 
             render();
             updateUI();
