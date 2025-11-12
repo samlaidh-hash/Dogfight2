@@ -1617,31 +1617,205 @@
 
                 ctx.lineWidth = 2;
 
-                // Draw aircraft shape (simplified top-down view)
-                ctx.beginPath();
-                // Fuselage
-                ctx.moveTo(0, -30);
-                ctx.lineTo(-5, 10);
-                ctx.lineTo(5, 10);
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
+                // Draw aircraft-specific shape (distinctive top-down silhouettes)
+                switch(this.type) {
+                    case 'Spitfire':
+                        // Famous elliptical wings
+                        ctx.beginPath();
+                        ctx.moveTo(0, -30); // Nose
+                        ctx.lineTo(-4, 0); // Leading edge to wing root
+                        ctx.ellipse(-15, 0, 12, 6, 0, 0, Math.PI * 2); // Port elliptical wing
+                        ctx.moveTo(-4, 0);
+                        ctx.lineTo(-4, 10);
+                        ctx.lineTo(4, 10);
+                        ctx.lineTo(4, 0); // Fuselage
+                        ctx.ellipse(15, 0, 12, 6, 0, 0, Math.PI * 2); // Starboard elliptical wing
+                        ctx.moveTo(4, 0);
+                        ctx.lineTo(0, -30);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                        // Tail
+                        ctx.beginPath();
+                        ctx.moveTo(-6, 10);
+                        ctx.lineTo(-6, 14);
+                        ctx.lineTo(6, 14);
+                        ctx.lineTo(6, 10);
+                        ctx.stroke();
+                        break;
 
-                // Wings
-                ctx.beginPath();
-                ctx.moveTo(-25, 0);
-                ctx.lineTo(-5, 0);
-                ctx.moveTo(5, 0);
-                ctx.lineTo(25, 0);
-                ctx.stroke();
+                    case 'Me-109':
+                        // Angular German fighter
+                        ctx.beginPath();
+                        ctx.moveTo(0, -30); // Nose
+                        ctx.lineTo(-5, -5); // Angled to wing
+                        ctx.lineTo(-22, -2); // Wing leading edge
+                        ctx.lineTo(-22, 2); // Wing trailing edge
+                        ctx.lineTo(-5, 10); // Back to fuselage
+                        ctx.lineTo(-5, 15); // Tail
+                        ctx.lineTo(5, 15);
+                        ctx.lineTo(5, 10);
+                        ctx.lineTo(22, 2);
+                        ctx.lineTo(22, -2);
+                        ctx.lineTo(5, -5);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                        break;
 
-                // Tail
-                ctx.beginPath();
-                ctx.moveTo(-8, 10);
-                ctx.lineTo(-8, 15);
-                ctx.moveTo(8, 10);
-                ctx.lineTo(8, 15);
-                ctx.stroke();
+                    case 'P-51':
+                        // Laminar flow wings, square wingtips
+                        ctx.beginPath();
+                        ctx.moveTo(0, -32); // Long nose (radiator scoop)
+                        ctx.lineTo(-4, -8);
+                        ctx.lineTo(-24, -5); // Square wingtip
+                        ctx.lineTo(-24, 3);
+                        ctx.lineTo(-5, 8);
+                        ctx.lineTo(-5, 12); // Tail
+                        ctx.lineTo(5, 12);
+                        ctx.lineTo(5, 8);
+                        ctx.lineTo(24, 3);
+                        ctx.lineTo(24, -5);
+                        ctx.lineTo(4, -8);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                        break;
+
+                    case 'P-47':
+                        // Big bulky "Jug"
+                        ctx.beginPath();
+                        ctx.moveTo(0, -28); // Blunt nose
+                        ctx.lineTo(-7, -10); // Wide fuselage
+                        ctx.lineTo(-26, -8); // Wide wings
+                        ctx.lineTo(-26, 4);
+                        ctx.lineTo(-7, 6);
+                        ctx.lineTo(-7, 14); // Wide tail
+                        ctx.lineTo(7, 14);
+                        ctx.lineTo(7, 6);
+                        ctx.lineTo(26, 4);
+                        ctx.lineTo(26, -8);
+                        ctx.lineTo(7, -10);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                        break;
+
+                    case 'Hurricane':
+                        // Similar to Spitfire but less refined
+                        ctx.beginPath();
+                        ctx.moveTo(0, -28); // Shorter nose
+                        ctx.lineTo(-5, 0);
+                        ctx.lineTo(-23, 0); // Straighter wings
+                        ctx.lineTo(-20, 5);
+                        ctx.lineTo(-5, 8);
+                        ctx.lineTo(-5, 13);
+                        ctx.lineTo(5, 13);
+                        ctx.lineTo(5, 8);
+                        ctx.lineTo(20, 5);
+                        ctx.lineTo(23, 0);
+                        ctx.lineTo(5, 0);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                        break;
+
+                    case 'P-40':
+                        // Shark-mouth fuselage, swept-back look
+                        ctx.beginPath();
+                        ctx.moveTo(0, -30); // Shark nose
+                        ctx.lineTo(-6, -8); // Wider fuselage for shark mouth
+                        ctx.lineTo(-25, 0); // Slightly swept wings
+                        ctx.lineTo(-22, 6);
+                        ctx.lineTo(-6, 10);
+                        ctx.lineTo(-5, 14);
+                        ctx.lineTo(5, 14);
+                        ctx.lineTo(6, 10);
+                        ctx.lineTo(22, 6);
+                        ctx.lineTo(25, 0);
+                        ctx.lineTo(6, -8);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                        break;
+
+                    case 'Fw-190':
+                        // Wide "Butcher Bird" - radial engine
+                        ctx.beginPath();
+                        ctx.moveTo(0, -26); // Blunt radial nose
+                        ctx.lineTo(-8, -10); // Very wide fuselage
+                        ctx.lineTo(-23, -6); // Short stubby wings
+                        ctx.lineTo(-23, 2);
+                        ctx.lineTo(-8, 4);
+                        ctx.lineTo(-8, 12);
+                        ctx.lineTo(8, 12);
+                        ctx.lineTo(8, 4);
+                        ctx.lineTo(23, 2);
+                        ctx.lineTo(23, -6);
+                        ctx.lineTo(8, -10);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                        break;
+
+                    case 'Me-262':
+                        // Swept-wing jet fighter with engine nacelles
+                        ctx.beginPath();
+                        ctx.moveTo(0, -28); // Jet nose
+                        ctx.lineTo(-5, -5);
+                        ctx.lineTo(-28, 8); // Swept wings!
+                        ctx.lineTo(-24, 12);
+                        ctx.lineTo(-6, 8);
+                        ctx.lineTo(-5, 16); // Jet tail
+                        ctx.lineTo(5, 16);
+                        ctx.lineTo(6, 8);
+                        ctx.lineTo(24, 12);
+                        ctx.lineTo(28, 8);
+                        ctx.lineTo(5, -5);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                        // Engine nacelles
+                        ctx.fillRect(-18, 2, 4, 8);
+                        ctx.fillRect(14, 2, 4, 8);
+                        break;
+
+                    case 'Zero':
+                        // Long thin wings, rounded tips
+                        ctx.beginPath();
+                        ctx.moveTo(0, -30); // Pointed nose
+                        ctx.lineTo(-3, -2);
+                        ctx.lineTo(-27, -2); // Very long wings
+                        ctx.arc(-27, 0, 4, -Math.PI/2, Math.PI/2); // Rounded wingtip
+                        ctx.lineTo(-3, 6);
+                        ctx.lineTo(-4, 13); // Thin tail
+                        ctx.lineTo(4, 13);
+                        ctx.lineTo(3, 6);
+                        ctx.lineTo(27, 2);
+                        ctx.arc(27, 0, 4, Math.PI/2, -Math.PI/2); // Rounded wingtip
+                        ctx.lineTo(3, -2);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                        break;
+
+                    default:
+                        // Generic aircraft (fallback)
+                        ctx.beginPath();
+                        ctx.moveTo(0, -30);
+                        ctx.lineTo(-5, 10);
+                        ctx.lineTo(5, 10);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(-25, 0);
+                        ctx.lineTo(-5, 0);
+                        ctx.moveTo(5, 0);
+                        ctx.lineTo(25, 0);
+                        ctx.stroke();
+                        break;
+                }
 
                 // Draw orders indicator
                 if (!isGhost && this.hasOrders) {
