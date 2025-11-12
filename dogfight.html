@@ -258,6 +258,10 @@
             }
 
             render() {
+                // Ensure alpha is reset
+                ctx.globalAlpha = 1.0;
+                ctx.globalCompositeOperation = 'source-over';
+
                 for (let mountain of this.mountains) {
                     const gradient = ctx.createRadialGradient(
                         mountain.x, mountain.y, 0,
@@ -996,6 +1000,11 @@
 
         // Rendering
         function render() {
+            // Reset context state
+            ctx.globalAlpha = 1.0;
+            ctx.globalCompositeOperation = 'source-over';
+
+            // Clear canvas
             ctx.fillStyle = '#16213e';
             ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
@@ -1022,6 +1031,10 @@
             if (aiGhostAircraft) {
                 aiGhostAircraft.aircraft.renderSVG(true, 'valid');
             }
+
+            // Reset context state after rendering
+            ctx.globalAlpha = 1.0;
+            ctx.globalCompositeOperation = 'source-over';
         }
 
         function updateUI() {
@@ -1274,6 +1287,11 @@
         }
 
         // Start game
+        console.log('Game initializing...');
+        console.log('Canvas:', canvas.width, 'x', canvas.height);
+        console.log('Terrain mountains:', terrain.mountains.length);
+        console.log('Spitfire position:', spitfire.x, spitfire.y);
+        console.log('Me-109 position:', me109.x, me109.y);
         gameLoop();
     </script>
 </body>
