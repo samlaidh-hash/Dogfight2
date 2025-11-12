@@ -158,7 +158,7 @@
         <canvas id="gameCanvas" width="1800" height="1000"></canvas>
 
         <div id="ui">
-            <h1>DOGFIGHT 2</h1>
+            <h1>DOGFIGHT 2 <span id="gameVersion" style="font-size: 0.5em; color: #888;">v1.6.0</span></h1>
             <div id="phaseDisplay" class="stat-line">Phase: <span id="currentPhase">ORDER</span></div>
             <div id="turnDisplay" class="stat-line">Turn: <span id="currentTurn">1</span></div>
             <div id="timeDisplay" class="stat-line">Time: <span id="currentTime">12:00</span> (<span id="timeOfDay">Day</span>)</div>
@@ -224,6 +224,9 @@
         soundSpitfireMG.volume = 0.6;
         soundMe109Cannon.volume = 0.7;
 
+        // Game version
+        const GAME_VERSION = "v1.6.0";
+
         // Game constants
         const CANVAS_WIDTH = 1800;
         const CANVAS_HEIGHT = 1000;
@@ -237,7 +240,7 @@
 
         // Time and lighting constants
         const GAME_START_HOUR = 12.0; // Start at noon
-        const HOURS_PER_TURN = 0.5; // Each turn = 30 minutes
+        const TIME_MULTIPLIER = 1.0; // Multiplier for time progression (1.0 = real-time, higher = faster)
         const LATITUDE = 51.5; // London area (degrees north)
 
         // Game state
@@ -2691,8 +2694,9 @@
             gameState = 'ORDER';
             currentTurn++;
 
-            // Advance game time
-            gameHour += HOURS_PER_TURN;
+            // Advance game time based on actual turn duration (turnTime is in seconds)
+            // Convert seconds to hours and apply time multiplier
+            gameHour += (turnTime / 3600) * TIME_MULTIPLIER;
             updateSunPosition();
 
             // Handle stall recovery/loss of control for next turn
