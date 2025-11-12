@@ -181,6 +181,8 @@
         const ALTITUDE_MIN = 0;
         const ALTITUDE_MAX = 3000; // meters
         const MOUNTAIN_HEIGHT = 1000; // meters
+        const EFFECTIVE_RANGE = 350; // pixels (~350 meters effective gun range)
+        const MAX_RANGE = 500; // pixels (absolute maximum, very low hit chance)
 
         // Game state
         let gameState = 'ORDER'; // ORDER, EXECUTION, REVIEW
@@ -645,11 +647,27 @@
             }
 
             getStatsHTML() {
+                // Calculate range to enemy
+                const enemy = this.isPlayer ? me109 : spitfire;
+                const dx = enemy.x - this.x;
+                const dy = enemy.y - this.y;
+                const rangeToEnemy = Math.round(Math.sqrt(dx * dx + dy * dy));
+
+                let rangeStatus = '';
+                if (rangeToEnemy <= EFFECTIVE_RANGE) {
+                    rangeStatus = '<span style="color: #00ff00">IN RANGE</span>';
+                } else if (rangeToEnemy <= MAX_RANGE) {
+                    rangeStatus = '<span style="color: #ffff00">LONG RANGE</span>';
+                } else {
+                    rangeStatus = '<span style="color: #ff4444">OUT OF RANGE</span>';
+                }
+
                 return `
                     <div class="stat-line">Alt: ${Math.round(this.altitude)}m</div>
                     <div class="stat-line">Speed: ${Math.round(this.speed)} m/s</div>
                     <div class="stat-line">Hdg: ${Math.round(this.heading)}°</div>
                     <div class="stat-line">Roll: ${Math.round(this.roll)}°</div>
+                    <div class="stat-line">Range: ${rangeToEnemy}m ${rangeStatus}</div>
                     <div class="stat-line">Ammo: ${this.ammunition}</div>
                     <div class="stat-line">Damage: ${Math.round(this.damage)}%</div>
                     <div class="stat-line">Fire Threshold: ${Math.round(this.fireThreshold * 100)}%</div>
@@ -746,9 +764,25 @@
                         const distance = Math.sqrt(dx * dx + dy * dy);
                         const altitudeDiff = Math.abs(target.altitude - shooter.altitude);
 
+                        // Check if target is within maximum range
+                        if (distance > MAX_RANGE) {
+                            shooter.timeOnTarget = 0;
+                            continue;
+                        }
+
                         // Calculate hit chance
                         let hitChance = shooter.gunnerySkill * 0.5;
-                        hitChance *= Math.max(0.1, 1 - distance / 500); // Distance factor
+
+                        // Distance factor - drops off sharply after effective range
+                        if (distance <= EFFECTIVE_RANGE) {
+                            hitChance *= Math.max(0.3, 1 - distance / EFFECTIVE_RANGE);
+                        } else {
+                            // Beyond effective range, hit chance drops rapidly
+                            const excessRange = distance - EFFECTIVE_RANGE;
+                            const maxExcess = MAX_RANGE - EFFECTIVE_RANGE;
+                            hitChance *= 0.3 * (1 - excessRange / maxExcess);
+                        }
+
                         hitChance *= Math.max(0.5, 1 - altitudeDiff / 1000); // Altitude factor
                         hitChance *= Math.min(1, 0.3 + shooter.timeOnTarget / 10); // Time on target bonus
 
@@ -884,6 +918,45 @@
             ctx.globalAlpha = 1.0;
         }
 
+        // Render range indicators
+        function renderRangeIndicators() {
+            // Only show during execution phase
+            if (gameState !== 'EXECUTION') return;
+
+            for (let aircraft of aircraft) {
+                ctx.save();
+
+                // Effective range circle (green)
+                ctx.strokeStyle = 'rgba(0, 255, 0, 0.2)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(aircraft.x, aircraft.y, EFFECTIVE_RANGE, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Maximum range circle (red)
+                ctx.strokeStyle = 'rgba(255, 0, 0, 0.15)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(aircraft.x, aircraft.y, MAX_RANGE, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Draw firing arc cone (30 degrees)
+                ctx.strokeStyle = aircraft.isPlayer ? 'rgba(0, 153, 255, 0.3)' : 'rgba(255, 68, 68, 0.3)';
+                ctx.fillStyle = aircraft.isPlayer ? 'rgba(0, 153, 255, 0.1)' : 'rgba(255, 68, 68, 0.1)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(aircraft.x, aircraft.y);
+                const startAngle = (aircraft.heading - 15) * Math.PI / 180;
+                const endAngle = (aircraft.heading + 15) * Math.PI / 180;
+                ctx.arc(aircraft.x, aircraft.y, EFFECTIVE_RANGE, startAngle, endAngle);
+                ctx.lineTo(aircraft.x, aircraft.y);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.restore();
+            }
+        }
+
         // Rendering
         function render() {
             ctx.fillStyle = '#16213e';
@@ -891,6 +964,9 @@
 
             // Render terrain
             terrain.render();
+
+            // Render range indicators (during execution)
+            renderRangeIndicators();
 
             // Render combat effects (behind aircraft)
             renderCombatEffects();
