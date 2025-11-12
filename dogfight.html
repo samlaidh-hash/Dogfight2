@@ -372,6 +372,13 @@
                     <option value="storm">Storm</option>
                 </select>
             </div>
+            <div class="setting-row">
+                <span class="setting-label">Multiplayer:</span>
+                <select id="multiplayerSelect">
+                    <option value="single">Single Player</option>
+                    <option value="hotseat">Hot-seat (2 Players)</option>
+                </select>
+            </div>
             <div style="text-align: center; margin-top: 20px;">
                 <button class="btn btn-primary" onclick="closeSettings()">CLOSE</button>
             </div>
@@ -392,6 +399,16 @@
             <div id="aircraftList"></div>
             <div style="text-align: center; margin-top: 20px;">
                 <button class="btn btn-primary" onclick="confirmAircraftSelection()">CONFIRM</button>
+            </div>
+        </div>
+
+        <!-- Hot-seat Player Switch Screen (Enhancement #14) -->
+        <div id="playerSwitchScreen" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); display: none; z-index: 2000; justify-content: center; align-items: center; flex-direction: column;">
+            <div style="text-align: center; color: #fff;">
+                <h1 style="font-size: 48px; color: #e94560; margin-bottom: 30px;" id="playerSwitchTitle">PASS DEVICE TO PLAYER 2</h1>
+                <p style="font-size: 24px; margin-bottom: 20px;">Player 1's orders are locked in.</p>
+                <p style="font-size: 18px; color: #aaa; margin-bottom: 40px;">Click the button when ready to continue.</p>
+                <button class="btn btn-primary" style="font-size: 24px; padding: 20px 40px;" onclick="completePlayerSwitch()">READY</button>
             </div>
         </div>
     </div>
@@ -445,6 +462,13 @@
         let executionRecording = [];
         let isPaused = false;
         let pausedTime = 0;
+
+        // Hot-seat multiplayer (Enhancement #14)
+        let hotSeatMode = false;
+        let currentPlayer = 1; // 1 or 2
+        let player1Aircraft = [];
+        let player2Aircraft = [];
+        let awaitingPlayerSwitch = false;
 
         // Game settings
         let gameSettings = {
@@ -2553,8 +2577,14 @@
         }
 
         function updateUI() {
-            document.getElementById('currentPhase').textContent = gameState;
+            // Update phase and turn
+            let phaseText = gameState;
+            if (hotSeatMode && gameState === 'ORDER') {
+                phaseText = `PLAYER ${currentPlayer} ORDER`;
+            }
+            document.getElementById('currentPhase').textContent = phaseText;
             document.getElementById('currentTurn').textContent = currentTurn;
+
             document.getElementById('spitfireStats').innerHTML = spitfire.getStatsHTML();
             document.getElementById('me109Stats').innerHTML = me109.getStatsHTML();
 
@@ -2570,10 +2600,20 @@
                 document.getElementById('squadronStatus').style.display = 'none';
             }
 
-            // Show execute button if all aircraft have orders
-            const allHaveOrders = aircraft.every(a => a.hasOrders);
-            document.getElementById('executeButton').style.display =
-                (gameState === 'ORDER' && allHaveOrders) ? 'block' : 'none';
+            // Show execute button logic
+            let showExecute = false;
+            if (gameState === 'ORDER' && !awaitingPlayerSwitch) {
+                if (hotSeatMode) {
+                    // In hot-seat, show execute only when both players have ordered
+                    const allHaveOrders = aircraft.every(a => a.hasOrders || a.isDestroyed);
+                    showExecute = allHaveOrders;
+                } else {
+                    // In single-player, show when all aircraft have orders
+                    const allHaveOrders = aircraft.every(a => a.hasOrders);
+                    showExecute = allHaveOrders;
+                }
+            }
+            document.getElementById('executeButton').style.display = showExecute ? 'block' : 'none';
         }
 
         // Mouse handling
@@ -2766,7 +2806,12 @@
             for (let plane of aircraft) {
                 if (plane.isClicked(clickX, clickY)) {
                     console.log('Clicked on aircraft:', plane.name);
-                    if (!plane.isPlayer) continue; // Only player can control their aircraft
+
+                    // Hot-seat mode: check if current player can control this aircraft
+                    if (!canPlayerControlAircraft(plane)) {
+                        console.log('Cannot control opponent aircraft in hot-seat mode');
+                        continue;
+                    }
                     if (plane.isDestroyed) continue; // Can't control destroyed aircraft
 
                     if (selectedAircraft === plane) {
@@ -2788,10 +2833,15 @@
                             ghostSlipAngle = 0;
                             document.getElementById('ghostPanel').style.display = 'none';
 
-                            // Generate AI orders for all AI aircraft
-                            for (let aiPlane of aircraft) {
-                                if (!aiPlane.isPlayer && !aiPlane.isDestroyed) {
-                                    generateAIOrders(aiPlane);
+                            // Hot-seat mode: check if we need to switch players
+                            if (hotSeatMode) {
+                                checkHotSeatOrdersComplete();
+                            } else {
+                                // Generate AI orders for all AI aircraft (single player only)
+                                for (let aiPlane of aircraft) {
+                                    if (!aiPlane.isPlayer && !aiPlane.isDestroyed) {
+                                        generateAIOrders(aiPlane);
+                                    }
                                 }
                             }
                         } else {
@@ -3101,10 +3151,18 @@
                 processCombat();
 
                 // Check for game over
-                const playerDestroyed = spitfire.isDestroyed;
-                const enemyDestroyed = me109.isDestroyed;
+                let player1Destroyed = false;
+                let player2Destroyed = false;
 
-                if (playerDestroyed || enemyDestroyed) {
+                if (hotSeatMode) {
+                    player1Destroyed = player1Aircraft.every(a => a.isDestroyed);
+                    player2Destroyed = player2Aircraft.every(a => a.isDestroyed);
+                } else {
+                    player1Destroyed = spitfire.isDestroyed;
+                    player2Destroyed = me109.isDestroyed;
+                }
+
+                if (player1Destroyed || player2Destroyed) {
                     gameState = 'GAMEOVER';
                 }
 
@@ -3114,6 +3172,12 @@
                         plane.finalizeExecution();
                     }
                     gameState = 'REVIEW';
+
+                    // Reset hot-seat mode for next turn
+                    if (hotSeatMode) {
+                        currentPlayer = 1;
+                    }
+
                     document.getElementById('replayButton').style.display = 'block';
                     document.getElementById('nextPhase2s').style.display = 'block';
                     document.getElementById('nextPhase4s').style.display = 'block';
@@ -3131,18 +3195,37 @@
                 ctx.font = 'bold 48px Courier New';
                 ctx.textAlign = 'center';
 
-                if (spitfire.isDestroyed) {
-                    ctx.fillStyle = '#ff4444';
-                    ctx.fillText('DEFEAT', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40);
-                    ctx.font = '24px Courier New';
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillText(`Your Spitfire was destroyed by ${spitfire.lastHitBy}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
-                } else if (me109.isDestroyed) {
-                    ctx.fillStyle = '#00ff00';
-                    ctx.fillText('VICTORY!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40);
-                    ctx.font = '24px Courier New';
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillText('Enemy Me-109 destroyed!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
+                if (hotSeatMode) {
+                    // Hot-seat victory message
+                    const player1Lost = player1Aircraft.every(a => a.isDestroyed);
+                    if (player1Lost) {
+                        ctx.fillStyle = '#00ff00';
+                        ctx.fillText('PLAYER 2 WINS!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40);
+                        ctx.font = '24px Courier New';
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillText('Player 1 aircraft destroyed', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
+                    } else {
+                        ctx.fillStyle = '#00ff00';
+                        ctx.fillText('PLAYER 1 WINS!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40);
+                        ctx.font = '24px Courier New';
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillText('Player 2 aircraft destroyed', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
+                    }
+                } else {
+                    // Single-player victory message
+                    if (spitfire.isDestroyed) {
+                        ctx.fillStyle = '#ff4444';
+                        ctx.fillText('DEFEAT', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40);
+                        ctx.font = '24px Courier New';
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillText(`Your Spitfire was destroyed by ${spitfire.lastHitBy}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
+                    } else if (me109.isDestroyed) {
+                        ctx.fillStyle = '#00ff00';
+                        ctx.fillText('VICTORY!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40);
+                        ctx.font = '24px Courier New';
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillText('Enemy Me-109 destroyed!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
+                    }
                 }
 
                 ctx.font = '18px Courier New';
@@ -3229,6 +3312,24 @@
 
             // Apply weather
             applyWeather(gameSettings.weather);
+
+            // Apply multiplayer setting
+            const multiplayerMode = document.getElementById('multiplayerSelect').value;
+            if (multiplayerMode === 'hotseat' && !hotSeatMode) {
+                enableHotSeatMode();
+            } else if (multiplayerMode === 'single' && hotSeatMode) {
+                // Disable hot-seat mode
+                hotSeatMode = false;
+                currentPlayer = 1;
+                // Restore AI control to player2 aircraft
+                for (let plane of player2Aircraft) {
+                    plane.isPlayer = false;
+                    plane.hotSeatPlayer = undefined;
+                }
+                player1Aircraft = [];
+                player2Aircraft = [];
+                updateUI();
+            }
         }
 
         // Enhancement #7: Weather System
@@ -3693,6 +3794,92 @@
                 squadron.formation = newFormation;
                 console.log(`Formation changed to: ${newFormation}`);
             }
+        }
+
+        // Enhancement #14: Hot-seat Multiplayer Functions
+        function enableHotSeatMode() {
+            hotSeatMode = true;
+            currentPlayer = 1;
+
+            // Assign aircraft to players
+            player1Aircraft = aircraft.filter(a => a.isPlayer);
+            player2Aircraft = aircraft.filter(a => !a.isPlayer);
+
+            // Mark all player2 aircraft as player-controlled for hot-seat
+            for (let plane of player2Aircraft) {
+                plane.isPlayer = true;
+                plane.hotSeatPlayer = 2;
+            }
+            for (let plane of player1Aircraft) {
+                plane.hotSeatPlayer = 1;
+            }
+
+            console.log('Hot-seat mode enabled!', {
+                player1: player1Aircraft.map(a => a.name),
+                player2: player2Aircraft.map(a => a.name)
+            });
+
+            updateUI();
+        }
+
+        function showPlayerSwitchScreen(playerNum) {
+            awaitingPlayerSwitch = true;
+            currentPlayer = playerNum;
+
+            const screen = document.getElementById('playerSwitchScreen');
+            const title = document.getElementById('playerSwitchTitle');
+
+            title.textContent = `PASS DEVICE TO PLAYER ${playerNum}`;
+            screen.style.display = 'flex';
+        }
+
+        function completePlayerSwitch() {
+            const screen = document.getElementById('playerSwitchScreen');
+            screen.style.display = 'none';
+            awaitingPlayerSwitch = false;
+
+            // Clear selection to prevent accidental viewing of opponent orders
+            selectedAircraft = null;
+            ghostAircraft = null;
+            document.getElementById('ghostPanel').style.display = 'none';
+
+            updateUI();
+        }
+
+        function canPlayerControlAircraft(aircraft) {
+            if (!hotSeatMode) return aircraft.isPlayer;
+            return aircraft.hotSeatPlayer === currentPlayer;
+        }
+
+        function getCurrentPlayerAircraft() {
+            if (!hotSeatMode) return aircraft.filter(a => a.isPlayer);
+            return currentPlayer === 1 ? player1Aircraft : player2Aircraft;
+        }
+
+        function getOpponentAircraft() {
+            if (!hotSeatMode) return aircraft.filter(a => !a.isPlayer);
+            return currentPlayer === 1 ? player2Aircraft : player1Aircraft;
+        }
+
+        function checkHotSeatOrdersComplete() {
+            if (!hotSeatMode) return false;
+
+            const currentPlayerPlanes = getCurrentPlayerAircraft();
+            const allCurrentPlayerHaveOrders = currentPlayerPlanes.every(a => a.hasOrders || a.isDestroyed);
+
+            if (allCurrentPlayerHaveOrders) {
+                // Switch to other player
+                if (currentPlayer === 1) {
+                    // Player 1 done, switch to player 2
+                    showPlayerSwitchScreen(2);
+                    return false; // Not ready to execute yet
+                } else {
+                    // Player 2 done, ready to execute
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         // Enhancement #1: Campaign/Mission System
