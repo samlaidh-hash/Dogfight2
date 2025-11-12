@@ -365,7 +365,7 @@
         <canvas id="gameCanvas" width="1800" height="1000"></canvas>
 
         <div id="ui">
-            <h1>DOGFIGHT 2 <span id="gameVersion" style="font-size: 0.5em; color: #888;">v1.8.0</span></h1>
+            <h1>DOGFIGHT 2 <span id="gameVersion" style="font-size: 0.5em; color: #888;">v1.9.0</span></h1>
             <div id="phaseDisplay" class="stat-line">Phase: <span id="currentPhase">ORDER</span></div>
             <div id="turnDisplay" class="stat-line">Turn: <span id="currentTurn">1</span></div>
             <div id="timeDisplay" class="stat-line">Time: <span id="currentTime">12:00</span> (<span id="timeOfDay">Day</span>)</div>
@@ -385,6 +385,10 @@
                 <div>• Q/E: altitude down/up</div>
                 <div>• A/D: slip/skid left/right</div>
                 <div>• R: cycle roll (none/half/full)</div>
+                <div>• I: Immelmann turn</div>
+                <div>• T: Split-S</div>
+                <div>• L: Loop</div>
+                <div>• H: Half-loop</div>
                 <div>• Z/X: fire threshold down/up</div>
                 <div>• Click again to lock</div>
             </div>
@@ -432,7 +436,7 @@
         soundMe109Cannon.volume = 0.7;
 
         // Game version
-        const GAME_VERSION = "v1.8.0";
+        const GAME_VERSION = "v1.9.0";
 
         // Game constants
         const CANVAS_WIDTH = 1800;
@@ -992,6 +996,11 @@
                 this.currentGForce = 1.0; // Current G-force (1.0 = normal)
                 this.peakGForce = 1.0; // Peak G-force this turn
                 this.gForcePenalty = 0; // Skill penalty from previous turn's G-forces (0-1)
+
+                // Aerobatic maneuvers
+                this.maneuverType = 'none'; // 'none', 'immelmann', 'split-s', 'loop', 'half-loop'
+                this.maneuverProgress = 0; // 0 to 1 during maneuver execution
+                this.isPerformingManeuver = false; // True during maneuver
             }
 
             getScaleForAltitude() {
@@ -1539,6 +1548,249 @@
                 return result;
             }
 
+            // Calculate Immelmann Turn: half loop up + half roll to reverse direction while gaining altitude
+            calculateImmelmannPath() {
+                const TIME_STEP = 0.1;
+                const NUM_STEPS = Math.floor(turnTime / TIME_STEP);
+                const path = [];
+
+                // Immelmann requires minimum speed (120 m/s)
+                const startSpeed = Math.max(120, this.speed);
+                const loopRadius = (startSpeed * startSpeed) / (this.maxGForce * 9.81); // Physics: r = v²/g
+                const halfLoopTime = (Math.PI * loopRadius) / startSpeed; // Time for half loop
+
+                let currentHeading = this.heading;
+                let currentAltitude = this.altitude;
+                let currentX = this.x;
+                let currentY = this.y;
+                let currentSpeed = startSpeed;
+
+                for (let i = 0; i <= NUM_STEPS; i++) {
+                    const progress = i / NUM_STEPS;
+                    const time = progress * turnTime;
+
+                    if (time < halfLoopTime) {
+                        // First half: climb in a loop
+                        const loopProgress = time / halfLoopTime;
+                        const angle = loopProgress * Math.PI; // 0 to π (180°)
+
+                        // Calculate position on circular arc
+                        const arcX = Math.sin(angle) * loopRadius;
+                        const arcY = -(1 - Math.cos(angle)) * loopRadius; // Negative because climbing
+
+                        // Rotate arc based on initial heading
+                        const headingRad = (currentHeading - 90) * Math.PI / 180;
+                        currentX = this.x + (arcX * Math.cos(headingRad) - arcY * Math.sin(headingRad));
+                        currentY = this.y + (arcX * Math.sin(headingRad) + arcY * Math.cos(headingRad));
+                        currentAltitude = this.altitude + (1 - Math.cos(angle)) * loopRadius;
+
+                        // Aircraft heading follows the loop
+                        currentHeading = (this.heading + angle * 180 / Math.PI) % 360;
+
+                        // Speed bleeds off during climb
+                        currentSpeed = startSpeed * (1 - 0.3 * loopProgress);
+
+                        // High G-force during loop (4-6G)
+                        this.currentGForce = 1 + Math.sin(angle) * 5;
+                    } else {
+                        // Second half: roll to upright while continuing forward
+                        // At top of loop, heading is reversed, now roll to upright
+                        const rollProgress = (time - halfLoopTime) / (turnTime - halfLoopTime);
+
+                        // Continue forward at reduced speed
+                        const forwardDist = (time - halfLoopTime) * currentSpeed;
+                        const headingRad = (this.heading + 180) * Math.PI / 180;
+                        currentX = this.x + (Math.sin(angle) * loopRadius + forwardDist) * Math.cos(headingRad - Math.PI/2);
+                        currentY = this.y + (Math.sin(angle) * loopRadius + forwardDist) * Math.sin(headingRad - Math.PI/2);
+
+                        // Maintain altitude
+                        currentAltitude = this.altitude + loopRadius * 2;
+                        currentHeading = (this.heading + 180) % 360;
+
+                        // Recover from G-forces
+                        this.currentGForce = 1 + (1 - rollProgress) * 2;
+                    }
+
+                    path.push({
+                        x: currentX,
+                        y: currentY,
+                        altitude: currentAltitude,
+                        heading: currentHeading,
+                        speed: currentSpeed
+                    });
+                }
+
+                this.flightPath = path;
+                return { path, valid: startSpeed >= 120 };
+            }
+
+            // Calculate Split-S: half roll inverted + half loop down to reverse direction while losing altitude
+            calculateSplitSPath() {
+                const TIME_STEP = 0.1;
+                const NUM_STEPS = Math.floor(turnTime / TIME_STEP);
+                const path = [];
+
+                // Split-S requires sufficient altitude (500m minimum)
+                const startSpeed = this.speed;
+                const loopRadius = (startSpeed * startSpeed) / (this.maxGForce * 9.81);
+                const halfRollTime = turnTime * 0.3; // Roll takes 30% of maneuver
+                const halfLoopTime = (Math.PI * loopRadius) / startSpeed;
+
+                let currentHeading = this.heading;
+                let currentAltitude = this.altitude;
+                let currentX = this.x;
+                let currentY = this.y;
+                let currentSpeed = startSpeed;
+
+                for (let i = 0; i <= NUM_STEPS; i++) {
+                    const progress = i / NUM_STEPS;
+                    const time = progress * turnTime;
+
+                    if (time < halfRollTime) {
+                        // First: roll inverted
+                        const rollProgress = time / halfRollTime;
+                        // Continue mostly straight while rolling
+                        const forwardDist = time * currentSpeed;
+                        const headingRad = this.heading * Math.PI / 180;
+                        currentX = this.x + forwardDist * Math.cos(headingRad - Math.PI/2);
+                        currentY = this.y + forwardDist * Math.sin(headingRad - Math.PI/2);
+                        currentAltitude = this.altitude; // Slight loss
+                        currentHeading = this.heading;
+
+                        this.currentGForce = 1 + Math.sin(rollProgress * Math.PI) * 2;
+                    } else {
+                        // Second: dive in half loop
+                        const loopProgress = (time - halfRollTime) / halfLoopTime;
+                        const angle = loopProgress * Math.PI; // 0 to π
+
+                        // Calculate position on circular arc (diving)
+                        const arcX = Math.sin(angle) * loopRadius;
+                        const arcY = (1 - Math.cos(angle)) * loopRadius; // Positive because diving
+
+                        // Rotate arc based on heading
+                        const headingRad = (this.heading - 90) * Math.PI / 180;
+                        const rollDist = halfRollTime * startSpeed;
+                        const baseX = this.x + rollDist * Math.cos(this.heading * Math.PI / 180 - Math.PI/2);
+                        const baseY = this.y + rollDist * Math.sin(this.heading * Math.PI / 180 - Math.PI/2);
+
+                        currentX = baseX + (arcX * Math.cos(headingRad) - arcY * Math.sin(headingRad));
+                        currentY = baseY + (arcX * Math.sin(headingRad) + arcY * Math.cos(headingRad));
+                        currentAltitude = this.altitude - (1 - Math.cos(angle)) * loopRadius;
+
+                        // Heading reverses through the dive
+                        currentHeading = (this.heading + angle * 180 / Math.PI) % 360;
+
+                        // Speed increases in dive
+                        currentSpeed = startSpeed * (1 + 0.4 * loopProgress);
+
+                        // High G-force during dive pull-out
+                        this.currentGForce = 1 + Math.sin(angle) * 5;
+                    }
+
+                    path.push({
+                        x: currentX,
+                        y: currentY,
+                        altitude: Math.max(0, currentAltitude),
+                        heading: currentHeading,
+                        speed: currentSpeed
+                    });
+                }
+
+                this.flightPath = path;
+                return { path, valid: this.altitude >= 500 };
+            }
+
+            // Calculate Full Loop: complete vertical loop returning to original heading
+            calculateLoopPath() {
+                const TIME_STEP = 0.1;
+                const NUM_STEPS = Math.floor(turnTime / TIME_STEP);
+                const path = [];
+
+                // Loop requires high speed (140 m/s minimum) and altitude
+                const startSpeed = Math.max(140, this.speed);
+                const loopRadius = (startSpeed * startSpeed) / (this.maxGForce * 9.81);
+
+                for (let i = 0; i <= NUM_STEPS; i++) {
+                    const progress = i / NUM_STEPS;
+                    const angle = progress * 2 * Math.PI; // Full 360°
+
+                    // Calculate position on circular arc
+                    const arcX = Math.sin(angle) * loopRadius;
+                    const arcY = -(1 - Math.cos(angle)) * loopRadius;
+
+                    // Rotate arc based on initial heading
+                    const headingRad = (this.heading - 90) * Math.PI / 180;
+                    const currentX = this.x + (arcX * Math.cos(headingRad) - arcY * Math.sin(headingRad));
+                    const currentY = this.y + (arcX * Math.sin(headingRad) + arcY * Math.cos(headingRad));
+                    const currentAltitude = this.altitude + (1 - Math.cos(angle)) * loopRadius;
+
+                    // Speed varies: loses speed climbing, gains diving
+                    let currentSpeed = startSpeed;
+                    if (progress < 0.5) {
+                        currentSpeed = startSpeed * (1 - 0.4 * progress * 2);
+                    } else {
+                        currentSpeed = startSpeed * (0.6 + 0.4 * (progress - 0.5) * 2);
+                    }
+
+                    // G-force peaks at bottom and top
+                    this.currentGForce = 1 + Math.abs(Math.sin(angle)) * 5;
+
+                    path.push({
+                        x: currentX,
+                        y: currentY,
+                        altitude: Math.max(this.altitude, currentAltitude),
+                        heading: (this.heading + angle * 180 / Math.PI) % 360,
+                        speed: currentSpeed
+                    });
+                }
+
+                this.flightPath = path;
+                return { path, valid: startSpeed >= 140 && this.altitude >= loopRadius };
+            }
+
+            // Calculate Half Loop: half of vertical loop (ends inverted, heading reversed, altitude gained)
+            calculateHalfLoopPath() {
+                const TIME_STEP = 0.1;
+                const NUM_STEPS = Math.floor(turnTime / TIME_STEP);
+                const path = [];
+
+                // Half loop requires good speed (130 m/s minimum)
+                const startSpeed = Math.max(130, this.speed);
+                const loopRadius = (startSpeed * startSpeed) / (this.maxGForce * 9.81);
+
+                for (let i = 0; i <= NUM_STEPS; i++) {
+                    const progress = i / NUM_STEPS;
+                    const angle = progress * Math.PI; // Half loop: 0 to π
+
+                    // Calculate position on circular arc
+                    const arcX = Math.sin(angle) * loopRadius;
+                    const arcY = -(1 - Math.cos(angle)) * loopRadius;
+
+                    // Rotate arc based on initial heading
+                    const headingRad = (this.heading - 90) * Math.PI / 180;
+                    const currentX = this.x + (arcX * Math.cos(headingRad) - arcY * Math.sin(headingRad));
+                    const currentY = this.y + (arcX * Math.sin(headingRad) + arcY * Math.cos(headingRad));
+                    const currentAltitude = this.altitude + (1 - Math.cos(angle)) * loopRadius;
+
+                    // Speed bleeds off during climb
+                    const currentSpeed = startSpeed * (1 - 0.3 * progress);
+
+                    // G-force during climb
+                    this.currentGForce = 1 + Math.sin(angle) * 5;
+
+                    path.push({
+                        x: currentX,
+                        y: currentY,
+                        altitude: currentAltitude,
+                        heading: (this.heading + angle * 180 / Math.PI) % 360,
+                        speed: currentSpeed
+                    });
+                }
+
+                this.flightPath = path;
+                return { path, valid: startSpeed >= 130 };
+            }
+
             lockOrders(targetX, targetY, targetAltitude, targetHeading, slipAngle = 0) {
                 // Save starting position for interpolation
                 this.startX = this.x;
@@ -1554,11 +1806,38 @@
                 this.slipAngle = slipAngle; // Save slip angle for execution
                 this.hasOrders = true;
 
-                // Calculate target speed: distance / time
-                const dx = targetX - this.startX;
-                const dy = targetY - this.startY;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                this.targetSpeed = distance / turnTime;
+                // If performing an aerobatic maneuver, calculate that path instead
+                if (this.maneuverType !== 'none') {
+                    switch (this.maneuverType) {
+                        case 'immelmann':
+                            this.calculateImmelmannPath();
+                            break;
+                        case 'split-s':
+                            this.calculateSplitSPath();
+                            break;
+                        case 'loop':
+                            this.calculateLoopPath();
+                            break;
+                        case 'half-loop':
+                            this.calculateHalfLoopPath();
+                            break;
+                    }
+                    // Update target values from maneuver end state
+                    if (this.flightPath && this.flightPath.length > 0) {
+                        const endState = this.flightPath[this.flightPath.length - 1];
+                        this.targetX = endState.x;
+                        this.targetY = endState.y;
+                        this.targetAltitude = endState.altitude;
+                        this.targetHeading = endState.heading;
+                        this.targetSpeed = endState.speed;
+                    }
+                } else {
+                    // Calculate target speed: distance / time
+                    const dx = targetX - this.startX;
+                    const dy = targetY - this.startY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    this.targetSpeed = distance / turnTime;
+                }
             }
 
             unlockOrders() {
@@ -1567,6 +1846,8 @@
                 this.targetY = this.y;
                 this.targetAltitude = this.altitude;
                 this.targetHeading = this.heading;
+                this.maneuverType = 'none'; // Reset maneuver
+                this.isPerformingManeuver = false;
             }
 
             executeOrders(progress) {
@@ -1722,6 +2003,16 @@
                 const invertedDisplay = this.isInverted ?
                     `<div class="stat-line" style="color: #ffaa00;">⤺ INVERTED</div>` : '';
 
+                // Show selected maneuver
+                const maneuverNames = {
+                    'immelmann': 'IMMELMANN',
+                    'split-s': 'SPLIT-S',
+                    'loop': 'LOOP',
+                    'half-loop': 'HALF LOOP'
+                };
+                const maneuverDisplay = this.maneuverType !== 'none' ?
+                    `<div class="stat-line" style="color: #00aaff;">✈ ${maneuverNames[this.maneuverType]}</div>` : '';
+
                 // Show fire threshold
                 const fireThresholdPercent = Math.round(this.fireThreshold * 100);
                 const fireThresholdColor = this.fireThreshold < 0.20 ? '#ff4444' :
@@ -1749,6 +2040,7 @@
                     <div class="stat-line" style="${ammoColor}">Ammo: ${this.ammunition} ${this.isFiring ? '🔥' : ''}</div>
                     <div class="stat-line" style="${damageColor}">Damage: ${Math.round(this.damage)}%</div>
                     <div class="stat-line" style="color: ${fireThresholdColor}">Fire Min: ${fireThresholdPercent}%</div>
+                    ${maneuverDisplay}
                     ${critDisplay}
                     ${critTakenDisplay}
                     ${engineDamageDisplay}
@@ -3029,6 +3321,42 @@
                         selectedAircraft.rollType = 'full';
                     } else {
                         selectedAircraft.rollType = 'none';
+                    }
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'i':
+                    // Toggle Immelmann turn
+                    selectedAircraft.maneuverType = selectedAircraft.maneuverType === 'immelmann' ? 'none' : 'immelmann';
+                    if (selectedAircraft.maneuverType === 'immelmann') {
+                        selectedAircraft.rollType = 'none'; // Clear roll
+                    }
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 't':
+                    // Toggle Split-S
+                    selectedAircraft.maneuverType = selectedAircraft.maneuverType === 'split-s' ? 'none' : 'split-s';
+                    if (selectedAircraft.maneuverType === 'split-s') {
+                        selectedAircraft.rollType = 'none'; // Clear roll
+                    }
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'l':
+                    // Toggle Loop
+                    selectedAircraft.maneuverType = selectedAircraft.maneuverType === 'loop' ? 'none' : 'loop';
+                    if (selectedAircraft.maneuverType === 'loop') {
+                        selectedAircraft.rollType = 'none'; // Clear roll
+                    }
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'h':
+                    // Toggle Half-loop
+                    selectedAircraft.maneuverType = selectedAircraft.maneuverType === 'half-loop' ? 'none' : 'half-loop';
+                    if (selectedAircraft.maneuverType === 'half-loop') {
+                        selectedAircraft.rollType = 'none'; // Clear roll
                     }
                     updateGhost();
                     updateGhostPanel();
