@@ -493,42 +493,132 @@
             score: 0
         };
 
-        // Mission system
+        // Mission system (Medium Task: Enhanced with 10 missions)
         let currentMission = null;
         const missions = [
             {
                 id: 1,
                 name: "First Blood",
                 type: "dogfight",
-                description: "Engage and destroy a single enemy fighter.",
+                description: "Your first combat sortie. Engage and destroy a single enemy fighter over the channel.",
                 objectives: ["Destroy enemy aircraft"],
                 playerAircraft: "Spitfire",
                 enemyAircraft: ["Me-109"],
                 weather: "clear",
-                timeOfDay: "noon"
+                timeOfDay: "noon",
+                briefing: "Intelligence reports a lone Me-109 on patrol. This is your chance to prove yourself. Engage and destroy the enemy fighter. Remember your training - energy management is key."
             },
             {
                 id: 2,
-                name: "Escort Duty",
-                type: "escort",
-                description: "Protect friendly bombers from enemy fighters.",
-                objectives: ["Protect bombers", "Destroy enemy fighters"],
+                name: "Baptism of Fire",
+                type: "dogfight",
+                description: "Two enemy fighters detected. You're outnumbered but not outmatched.",
+                objectives: ["Destroy both enemy aircraft", "Survive"],
                 playerAircraft: "Spitfire",
                 enemyAircraft: ["Me-109", "Me-109"],
                 weather: "wind",
-                timeOfDay: "morning"
+                timeOfDay: "morning",
+                briefing: "Two Me-109s have been spotted heading for our coast. You must intercept and destroy them both. Watch your six and manage your ammunition carefully."
             },
             {
                 id: 3,
-                name: "Ground Attack",
+                name: "Furball",
+                type: "dogfight",
+                description: "2v2 dogfight with wingman support.",
+                objectives: ["Destroy enemy fighters", "Keep your wingman alive"],
+                playerAircraft: "Spitfire",
+                playerWingmen: ["Spitfire"],
+                enemyAircraft: ["Me-109", "Fw-190"],
+                weather: "clear",
+                timeOfDay: "noon",
+                briefing: "You'll fly with a wingman today. Two enemy fighters approach - a Me-109 and the deadly Fw-190. Use wingman commands (keys 1-4) to coordinate your attack."
+            },
+            {
+                id: 4,
+                name: "The Jug's Debut",
                 type: "ground_attack",
-                description: "Strafe enemy ground positions.",
-                objectives: ["Destroy 3 ground targets", "Survive AA fire"],
+                description: "Your first mission in the P-47 Thunderbolt. Destroy enemy ground forces.",
+                objectives: ["Destroy 4 ground targets", "Survive AA fire"],
                 playerAircraft: "P-47",
                 enemyAircraft: [],
-                groundTargets: 3,
+                groundTargets: 4,
                 weather: "clear",
-                timeOfDay: "afternoon"
+                timeOfDay: "afternoon",
+                briefing: "You've been assigned a P-47 Thunderbolt for this ground attack mission. Target enemy supply trucks and fuel depots. Be warned - they have AA guns defending the area. Stay above 300m when possible."
+            },
+            {
+                id: 5,
+                name: "Escort Duty",
+                type: "escort",
+                description: "Protect friendly bombers from enemy interceptors.",
+                objectives: ["Protect bombers", "Destroy enemy fighters"],
+                playerAircraft: "P-51",
+                enemyAircraft: ["Me-109", "Fw-190"],
+                weather: "wind",
+                timeOfDay: "morning",
+                briefing: "Our bombers need escort deep into enemy territory. You'll fly the long-range P-51 Mustang. Two enemy fighters will try to intercept. Your priority is bomber protection - don't chase enemies too far."
+            },
+            {
+                id: 6,
+                name: "Hurricane Force",
+                type: "dogfight",
+                description: "Fly the Hurricane in a close-quarters dogfight.",
+                objectives: ["Destroy 2 enemy aircraft"],
+                playerAircraft: "Hurricane",
+                enemyAircraft: ["Me-109", "Me-109"],
+                weather: "rain",
+                timeOfDay: "evening",
+                briefing: "Rain reduces visibility and weapon accuracy. You'll fly a Hurricane - less speed than the Spitfire but armed with 4× 20mm cannons. Make every shot count in these weather conditions."
+            },
+            {
+                id: 7,
+                name: "The Zero Threat",
+                type: "dogfight",
+                description: "Face the legendary Japanese Zero fighter.",
+                objectives: ["Destroy the Zero", "Do not engage in turning fight"],
+                playerAircraft: "P-40",
+                enemyAircraft: ["Zero"],
+                weather: "clear",
+                timeOfDay: "dawn",
+                briefing: "A Zero has been spotted. Never try to turn-fight a Zero - it will out-turn anything we have. Use boom-and-zoom tactics: dive on it, fire, and climb away. Speed is your advantage."
+            },
+            {
+                id: 8,
+                name: "Butcher Bird",
+                type: "dogfight",
+                description: "Duel with the formidable Fw-190.",
+                objectives: ["Destroy the Fw-190"],
+                playerAircraft: "Spitfire",
+                enemyAircraft: ["Fw-190"],
+                weather: "storm",
+                timeOfDay: "afternoon",
+                briefing: "The Fw-190 'Butcher Bird' is faster and climbs better than your Spitfire. Storm conditions will affect both aircraft. Use your superior turn rate and keep the fight slow."
+            },
+            {
+                id: 9,
+                name: "Bridge Busters",
+                type: "ground_attack",
+                description: "Destroy a strategic bridge while under fire.",
+                objectives: ["Destroy the bridge", "Survive AA fire"],
+                playerAircraft: "P-47",
+                enemyAircraft: [],
+                groundTargets: 1,
+                groundTargetTypes: ["bridge"],
+                weather: "wind",
+                timeOfDay: "morning",
+                briefing: "Enemy supplies cross this bridge. Destroy it. Heavy AA defenses surround the target. You'll need multiple strafing runs. The bridge is tough - expect to use most of your ammunition."
+            },
+            {
+                id: 10,
+                name: "Jet Age",
+                type: "dogfight",
+                description: "Face the revolutionary Me-262 jet fighter.",
+                objectives: ["Destroy the Me-262", "Survive"],
+                playerAircraft: "P-51",
+                enemyAircraft: ["Me-262"],
+                weather: "clear",
+                timeOfDay: "noon",
+                briefing: "Intelligence reports an Me-262 jet fighter in the area. It's much faster than any propeller aircraft. Attack during turns when it's slow, or catch it landing. Head-on attacks are suicide - those 30mm cannons will tear you apart."
             }
         ];
 
