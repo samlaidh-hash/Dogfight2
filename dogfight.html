@@ -298,6 +298,19 @@
                 <div>• R: cycle roll (none/half/full)</div>
                 <div>• Z/X: fire threshold down/up</div>
                 <div>• Click again to lock</div>
+                <div style="margin-top: 10px; color: #88ff88;">Wingman Commands:</div>
+                <div>• 1: Attack my target</div>
+                <div>• 2: Cover me</div>
+                <div>• 3: Break and attack</div>
+                <div>• 4: Rejoin formation</div>
+                <div>• 5: Free hunt</div>
+                <div>• F: Cycle formation</div>
+            </div>
+            <div id="squadronStatus" style="margin-top: 15px; font-size: 11px; color: #88ff88; display: none;">
+                <div style="font-weight: bold;">Squadron Status:</div>
+                <div id="formationDisplay"></div>
+                <div id="wingmanCount"></div>
+                <div id="formationBonusDisplay"></div>
             </div>
         </div>
 
@@ -663,6 +676,54 @@
             rainfall: 0,
             visibility: 1.0
         };
+
+        // Enhancement #3: Wingman/Squadron Mechanics
+        const formations = {
+            'finger_four': [
+                { x: 0, y: 0 },      // Lead
+                { x: 50, y: -50 },   // Right wing
+                { x: -50, y: -50 },  // Left wing
+                { x: 50, y: -100 }   // Tail end charlie
+            ],
+            'vic': [
+                { x: 0, y: 0 },      // Lead
+                { x: 60, y: -40 },   // Right
+                { x: -60, y: -40 }   // Left
+            ],
+            'line_abreast': [
+                { x: -80, y: 0 },    // Left
+                { x: 0, y: 0 },      // Center
+                { x: 80, y: 0 }      // Right
+            ],
+            'echelon_right': [
+                { x: 0, y: 0 },
+                { x: 50, y: -50 },
+                { x: 100, y: -100 }
+            ],
+            'echelon_left': [
+                { x: 0, y: 0 },
+                { x: -50, y: -50 },
+                { x: -100, y: -100 }
+            ]
+        };
+
+        let squadron = {
+            formation: 'finger_four',
+            leader: null,
+            wingmen: [],
+            inFormation: false,
+            formationBonus: 0
+        };
+
+        let wingmanCommands = {
+            'ATTACK_MY_TARGET': 'attack_my_target',
+            'COVER_ME': 'cover_me',
+            'BREAK_ATTACK': 'break_attack',
+            'REJOIN': 'rejoin',
+            'FREE_HUNT': 'free_hunt'
+        };
+
+        let activeWingmanCommand = null;
 
         // Ground targets (Enhancement #6)
         class GroundTarget {
@@ -1882,33 +1943,58 @@
         const aircraft = [spitfire, me109];
 
         // AI for Me-109 - Tactical Dogfight AI
-        function generateAIOrders() {
-            if (me109.hasOrders) return;
-            if (me109.isDestroyed) return; // Dead AI can't give orders
-            if (spitfire.isDestroyed) return; // No target to attack
+        function generateAIOrders(aiAircraft = null) {
+            // If no aircraft specified, use me109 for backward compatibility
+            if (!aiAircraft) aiAircraft = me109;
+
+            if (aiAircraft.hasOrders) return;
+            if (aiAircraft.isDestroyed) return; // Dead AI can't give orders
+
+            // Check if this is a wingman - use wingman AI instead
+            if (aiAircraft.isWingman) {
+                applyWingmanAI(aiAircraft);
+                aiAircraft.hasOrders = true;
+                return;
+            }
+
+            // Find target (closest enemy aircraft)
+            let target = null;
+            let minDist = Infinity;
+            for (let plane of aircraft) {
+                if (plane.isPlayer === aiAircraft.isPlayer || plane.isDestroyed) continue;
+                const dx2 = plane.x - aiAircraft.x;
+                const dy2 = plane.y - aiAircraft.y;
+                const dist = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+                if (dist < minDist) {
+                    minDist = dist;
+                    target = plane;
+                }
+            }
+
+            if (!target) return; // No target to attack
 
             // ===== SITUATIONAL AWARENESS =====
 
             // Calculate relative positions
-            const dx = spitfire.x - me109.x;
-            const dy = spitfire.y - me109.y;
+            const dx = target.x - aiAircraft.x;
+            const dy = target.y - aiAircraft.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
             const angleToEnemy = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
 
             // Calculate angle difference from my heading to enemy
-            let myAngleToEnemy = angleToEnemy - me109.heading;
+            let myAngleToEnemy = angleToEnemy - aiAircraft.heading;
             if (myAngleToEnemy > 180) myAngleToEnemy -= 360;
             if (myAngleToEnemy < -180) myAngleToEnemy += 360;
 
             // Calculate angle from enemy's heading to me (am I behind them?)
             const angleFromEnemyToMe = (Math.atan2(-dy, -dx) * 180 / Math.PI + 360) % 360;
-            let enemyAngleToMe = angleFromEnemyToMe - spitfire.heading;
+            let enemyAngleToMe = angleFromEnemyToMe - target.heading;
             if (enemyAngleToMe > 180) enemyAngleToMe -= 360;
             if (enemyAngleToMe < -180) enemyAngleToMe += 360;
 
             // Energy states (altitude = potential energy, speed = kinetic energy)
-            const myEnergy = me109.altitude + (me109.speed * 0.5); // Simple energy metric
-            const enemyEnergy = spitfire.altitude + (spitfire.speed * 0.5);
+            const myEnergy = aiAircraft.altitude + (aiAircraft.speed * 0.5); // Simple energy metric
+            const enemyEnergy = target.altitude + (target.speed * 0.5);
             const energyAdvantage = myEnergy - enemyEnergy;
 
             // Positional assessment
@@ -1920,25 +2006,25 @@
             // ===== DECISION MAKING =====
 
             let targetX, targetY, targetAltitude, targetHeading;
-            let aiThrottle = me109.throttle;
+            let aiThrottle = aiAircraft.throttle;
             let useSlip = 0;
 
             // STATE 1: DEFENSIVE - Enemy is behind me, evade!
             if (underAttack) {
-                console.log("AI: DEFENSIVE - Evading!");
+                console.log(`${aiAircraft.name} AI: DEFENSIVE - Evading!`);
 
                 // Break turn - hard turn perpendicular to enemy
                 const breakDirection = myAngleToEnemy > 0 ? 90 : -90;
-                const breakHeading = (me109.heading + breakDirection + 360) % 360;
+                const breakHeading = (aiAircraft.heading + breakDirection + 360) % 360;
 
                 // Turn hard and dive for speed (or climb if low)
-                const diveOrClimb = me109.altitude > 300 ? -100 : 50;
-                targetAltitude = Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, me109.altitude + diveOrClimb));
+                const diveOrClimb = aiAircraft.altitude > 300 ? -100 : 50;
+                targetAltitude = Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, aiAircraft.altitude + diveOrClimb));
 
                 // Move in break direction
                 const breakDistance = 250;
-                targetX = me109.x + Math.cos((breakHeading - 90) * Math.PI / 180) * breakDistance;
-                targetY = me109.y + Math.sin((breakHeading - 90) * Math.PI / 180) * breakDistance;
+                targetX = aiAircraft.x + Math.cos((breakHeading - 90) * Math.PI / 180) * breakDistance;
+                targetY = aiAircraft.y + Math.sin((breakHeading - 90) * Math.PI / 180) * breakDistance;
                 targetHeading = breakHeading;
 
                 // Full throttle for evasion
@@ -1946,22 +2032,22 @@
 
             // STATE 2: OFFENSIVE - I'm in good position, press the attack!
             } else if (isBehindEnemy && Math.abs(myAngleToEnemy) < 60) {
-                console.log("AI: OFFENSIVE - Attacking!");
+                console.log(`${aiAircraft.name} AI: OFFENSIVE - Attacking!`);
 
                 // Lead the target - predict where they'll be
                 const leadDistance = distance * 0.3;
-                const predictedX = spitfire.x + Math.cos((spitfire.heading - 90) * Math.PI / 180) * leadDistance;
-                const predictedY = spitfire.y + Math.sin((spitfire.heading - 90) * Math.PI / 180) * leadDistance;
+                const predictedX = target.x + Math.cos((target.heading - 90) * Math.PI / 180) * leadDistance;
+                const predictedY = target.y + Math.sin((target.heading - 90) * Math.PI / 180) * leadDistance;
 
                 targetX = predictedX;
                 targetY = predictedY;
 
                 // Match enemy altitude (slight advantage)
-                targetAltitude = Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, spitfire.altitude + 50));
+                targetAltitude = Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, target.altitude + 50));
 
                 // Face the predicted position
-                const dxPred = predictedX - me109.x;
-                const dyPred = predictedY - me109.y;
+                const dxPred = predictedX - aiAircraft.x;
+                const dyPred = predictedY - aiAircraft.y;
                 targetHeading = (Math.atan2(dyPred, dxPred) * 180 / Math.PI + 90 + 360) % 360;
 
                 // Use slip for gun solution if very close
@@ -1973,13 +2059,13 @@
                 aiThrottle = 0.8;
 
             // STATE 3: ENERGY ADVANTAGE - Use altitude for boom and zoom
-            } else if (energyAdvantage > 200 && me109.altitude > spitfire.altitude + 150) {
-                console.log("AI: ENERGY ADVANTAGE - Boom and Zoom!");
+            } else if (energyAdvantage > 200 && aiAircraft.altitude > target.altitude + 150) {
+                console.log(`${aiAircraft.name} AI: ENERGY ADVANTAGE - Boom and Zoom!`);
 
                 // Dive towards enemy for speed advantage
-                targetX = spitfire.x;
-                targetY = spitfire.y;
-                targetAltitude = Math.max(ALTITUDE_MIN, spitfire.altitude + 100); // Dive to near their altitude
+                targetX = target.x;
+                targetY = target.y;
+                targetAltitude = Math.max(ALTITUDE_MIN, target.altitude + 100); // Dive to near their altitude
 
                 // Point nose at enemy
                 targetHeading = angleToEnemy;
@@ -1988,40 +2074,40 @@
                 aiThrottle = 1.0;
 
             // STATE 4: ENERGY RECOVERY - Low energy, gain altitude
-            } else if (me109.speed < me109.minSpeed * 1.3 || (energyAdvantage < -200 && me109.altitude < 800)) {
-                console.log("AI: ENERGY RECOVERY - Gaining altitude!");
+            } else if (aiAircraft.speed < aiAircraft.minSpeed * 1.3 || (energyAdvantage < -200 && aiAircraft.altitude < 800)) {
+                console.log(`${aiAircraft.name} AI: ENERGY RECOVERY - Gaining altitude!`);
 
                 // Climb away from enemy to gain energy
                 const escapeHeading = (angleToEnemy + 180 + 360) % 360; // Opposite direction
                 targetHeading = escapeHeading;
 
-                targetX = me109.x + Math.cos((escapeHeading - 90) * Math.PI / 180) * 200;
-                targetY = me109.y + Math.sin((escapeHeading - 90) * Math.PI / 180) * 200;
+                targetX = aiAircraft.x + Math.cos((escapeHeading - 90) * Math.PI / 180) * 200;
+                targetY = aiAircraft.y + Math.sin((escapeHeading - 90) * Math.PI / 180) * 200;
 
                 // Climb for energy
-                targetAltitude = Math.min(ALTITUDE_MAX, me109.altitude + 100);
+                targetAltitude = Math.min(ALTITUDE_MAX, aiAircraft.altitude + 100);
 
                 // Full throttle for climb
                 aiThrottle = 1.0;
 
             // STATE 5: NEUTRAL - Maneuver for position
             } else {
-                console.log("AI: NEUTRAL - Maneuvering for position");
+                console.log(`${aiAircraft.name} AI: NEUTRAL - Maneuvering for position`);
 
                 // Try to get to enemy's 6 o'clock (behind them)
                 const behindDistance = 200;
-                const behindX = spitfire.x - Math.cos((spitfire.heading - 90) * Math.PI / 180) * behindDistance;
-                const behindY = spitfire.y - Math.sin((spitfire.heading - 90) * Math.PI / 180) * behindDistance;
+                const behindX = target.x - Math.cos((target.heading - 90) * Math.PI / 180) * behindDistance;
+                const behindY = target.y - Math.sin((target.heading - 90) * Math.PI / 180) * behindDistance;
 
                 targetX = behindX;
                 targetY = behindY;
 
                 // Slight altitude advantage
-                targetAltitude = Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, spitfire.altitude + 100));
+                targetAltitude = Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, target.altitude + 100));
 
                 // Face towards the behind position
-                const dxBehind = behindX - me109.x;
-                const dyBehind = behindY - me109.y;
+                const dxBehind = behindX - aiAircraft.x;
+                const dyBehind = behindY - aiAircraft.y;
                 targetHeading = (Math.atan2(dyBehind, dxBehind) * 180 / Math.PI + 90 + 360) % 360;
 
                 // Moderate throttle
@@ -2029,7 +2115,7 @@
             }
 
             // ===== APPLY THROTTLE SETTING =====
-            me109.throttle = Math.max(0.0, Math.min(1.0, aiThrottle));
+            aiAircraft.throttle = Math.max(0.0, Math.min(1.0, aiThrottle));
 
             // ===== VALIDATE AND EXECUTE =====
 
@@ -2038,11 +2124,11 @@
             targetY = Math.max(50, Math.min(CANVAS_HEIGHT - 50, targetY));
 
             // Validate maneuver
-            const validation = me109.calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading, useSlip);
+            const validation = aiAircraft.calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading, useSlip);
 
             if (validation.state !== 'illegal') {
                 // Use actual final position from physics calculation
-                me109.lockOrders(
+                aiAircraft.lockOrders(
                     validation.finalX,
                     validation.finalY,
                     validation.finalAltitude,
@@ -2052,18 +2138,18 @@
             } else {
                 // Fallback: simple forward movement with current heading
                 const fallbackDistance = 150;
-                const fallbackX = me109.x + Math.cos((me109.heading - 90) * Math.PI / 180) * fallbackDistance;
-                const fallbackY = me109.y + Math.sin((me109.heading - 90) * Math.PI / 180) * fallbackDistance;
+                const fallbackX = aiAircraft.x + Math.cos((aiAircraft.heading - 90) * Math.PI / 180) * fallbackDistance;
+                const fallbackY = aiAircraft.y + Math.sin((aiAircraft.heading - 90) * Math.PI / 180) * fallbackDistance;
 
-                const fallbackValidation = me109.calculateManeuverValidation(
+                const fallbackValidation = aiAircraft.calculateManeuverValidation(
                     Math.max(50, Math.min(CANVAS_WIDTH - 50, fallbackX)),
                     Math.max(50, Math.min(CANVAS_HEIGHT - 50, fallbackY)),
-                    Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, me109.altitude)),
-                    me109.heading,
+                    Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, aiAircraft.altitude)),
+                    aiAircraft.heading,
                     0
                 );
 
-                me109.lockOrders(
+                aiAircraft.lockOrders(
                     fallbackValidation.finalX,
                     fallbackValidation.finalY,
                     fallbackValidation.finalAltitude,
@@ -2148,6 +2234,18 @@
                         if (target.isRolling) {
                             // Target harder to hit while rolling (30% penalty)
                             hitChance *= 0.7;
+                        }
+
+                        // Apply formation bonus (Enhancement #3)
+                        if (squadron.inFormation && squadron.formationBonus > 0) {
+                            // Check if shooter or wingmates are attacking same target
+                            let coordinatedAttack = false;
+                            if (shooter.squadron === squadron || target.squadron === squadron) {
+                                coordinatedAttack = true;
+                            }
+                            if (coordinatedAttack) {
+                                hitChance *= (1 + squadron.formationBonus);
+                            }
                         }
 
                         shooter.timeOnTarget += 0.1;
@@ -2460,6 +2558,18 @@
             document.getElementById('spitfireStats').innerHTML = spitfire.getStatsHTML();
             document.getElementById('me109Stats').innerHTML = me109.getStatsHTML();
 
+            // Squadron status display
+            if (squadron.leader && squadron.wingmen.length > 0) {
+                document.getElementById('squadronStatus').style.display = 'block';
+                document.getElementById('formationDisplay').textContent = `Formation: ${squadron.formation.replace('_', ' ').toUpperCase()}`;
+                document.getElementById('wingmanCount').textContent = `Wingmen: ${squadron.wingmen.length}`;
+                const bonusPercent = Math.round(squadron.formationBonus * 100);
+                document.getElementById('formationBonusDisplay').textContent = squadron.inFormation ?
+                    `Formation Bonus: +${bonusPercent}%` : 'Formation: BROKEN';
+            } else {
+                document.getElementById('squadronStatus').style.display = 'none';
+            }
+
             // Show execute button if all aircraft have orders
             const allHaveOrders = aircraft.every(a => a.hasOrders);
             document.getElementById('executeButton').style.display =
@@ -2678,8 +2788,12 @@
                             ghostSlipAngle = 0;
                             document.getElementById('ghostPanel').style.display = 'none';
 
-                            // Generate AI orders
-                            generateAIOrders();
+                            // Generate AI orders for all AI aircraft
+                            for (let aiPlane of aircraft) {
+                                if (!aiPlane.isPlayer && !aiPlane.isDestroyed) {
+                                    generateAIOrders(aiPlane);
+                                }
+                            }
                         } else {
                             console.log('Ghost illegal, not locking');
                         }
@@ -2733,8 +2847,12 @@
                 ghostSlipAngle = 0;
                 document.getElementById('ghostPanel').style.display = 'none';
 
-                // Generate AI orders
-                generateAIOrders();
+                // Generate AI orders for all AI aircraft
+                for (let aiPlane of aircraft) {
+                    if (!aiPlane.isPlayer && !aiPlane.isDestroyed) {
+                        generateAIOrders(aiPlane);
+                    }
+                }
             } else {
                 console.log('Cannot lock:', {
                     selectedAircraft: !!selectedAircraft,
@@ -2746,10 +2864,39 @@
 
         // Keyboard handling
         window.addEventListener('keydown', (e) => {
-            if (!selectedAircraft || !ghostAircraft) return;
-
             // Prevent key repeat from causing multiple rapid changes
             if (e.repeat) return;
+
+            // Wingman commands (work anytime)
+            if (squadron.leader && squadron.wingmen.length > 0) {
+                switch(e.key) {
+                    case '1':
+                        issueWingmanCommand('attack_my_target');
+                        return;
+                    case '2':
+                        issueWingmanCommand('cover_me');
+                        return;
+                    case '3':
+                        issueWingmanCommand('break_attack');
+                        return;
+                    case '4':
+                        issueWingmanCommand('rejoin');
+                        return;
+                    case '5':
+                        issueWingmanCommand('free_hunt');
+                        return;
+                    case 'f':
+                    case 'F':
+                        // Cycle through formations
+                        const formationTypes = Object.keys(formations);
+                        const currentIndex = formationTypes.indexOf(squadron.formation);
+                        const nextIndex = (currentIndex + 1) % formationTypes.length;
+                        changeFormation(formationTypes[nextIndex]);
+                        return;
+                }
+            }
+
+            if (!selectedAircraft || !ghostAircraft) return;
 
             switch(e.key.toLowerCase()) {
                 case 'w':
@@ -3403,6 +3550,148 @@
                         }
                     }
                 }
+            }
+        }
+
+        // Enhancement #3: Wingman/Squadron Formation System
+        function setupSquadron(leaderAircraft, wingmenAircraft, formationType = 'finger_four') {
+            squadron.leader = leaderAircraft;
+            squadron.wingmen = wingmenAircraft;
+            squadron.formation = formationType;
+            squadron.inFormation = true;
+
+            // Mark all as part of squadron
+            leaderAircraft.isSquadronLeader = true;
+            leaderAircraft.squadron = squadron;
+            for (let wingman of wingmenAircraft) {
+                wingman.isWingman = true;
+                wingman.squadron = squadron;
+                wingman.wingmanCommand = 'rejoin'; // Default: stay in formation
+            }
+        }
+
+        function getFormationPosition(leaderAircraft, wingmanIndex, formationType) {
+            const formation = formations[formationType] || formations['finger_four'];
+            if (wingmanIndex >= formation.length) wingmanIndex = formation.length - 1;
+
+            const offset = formation[wingmanIndex];
+
+            // Convert leader's heading to radians
+            const headingRad = (leaderAircraft.heading - 90) * Math.PI / 180;
+
+            // Rotate offset by leader's heading
+            const rotatedX = offset.x * Math.cos(headingRad) - offset.y * Math.sin(headingRad);
+            const rotatedY = offset.x * Math.sin(headingRad) + offset.y * Math.cos(headingRad);
+
+            return {
+                x: leaderAircraft.x + rotatedX,
+                y: leaderAircraft.y + rotatedY,
+                altitude: leaderAircraft.altitude,
+                heading: leaderAircraft.heading
+            };
+        }
+
+        function issueWingmanCommand(command) {
+            if (!squadron.leader || squadron.wingmen.length === 0) return;
+
+            activeWingmanCommand = command;
+
+            for (let wingman of squadron.wingmen) {
+                wingman.wingmanCommand = command;
+            }
+
+            // Show command notification
+            console.log(`Wingman Command: ${command.toUpperCase().replace('_', ' ')}`);
+        }
+
+        function applyWingmanAI(wingman) {
+            if (!wingman.isWingman || !squadron.leader) return;
+
+            const leader = squadron.leader;
+            const command = wingman.wingmanCommand || 'rejoin';
+
+            // Get wingman's formation position
+            const wingmanIndex = squadron.wingmen.indexOf(wingman) + 1; // +1 because leader is position 0
+            const formationPos = getFormationPosition(leader, wingmanIndex, squadron.formation);
+
+            const dx = formationPos.x - wingman.x;
+            const dy = formationPos.y - wingman.y;
+            const distanceToFormation = Math.sqrt(dx * dx + dy * dy);
+
+            switch (command) {
+                case 'rejoin':
+                case 'cover_me':
+                    // Stay in formation
+                    if (distanceToFormation > 30) {
+                        // Move toward formation position
+                        wingman.targetX = formationPos.x;
+                        wingman.targetY = formationPos.y;
+                        wingman.targetAltitude = formationPos.altitude;
+                        wingman.targetHeading = formationPos.heading;
+                    } else {
+                        // In formation - match leader exactly
+                        squadron.inFormation = true;
+                        wingman.targetX = formationPos.x;
+                        wingman.targetY = formationPos.y;
+                        wingman.targetAltitude = leader.altitude;
+                        wingman.targetHeading = leader.heading;
+                        wingman.throttle = leader.throttle;
+                    }
+                    break;
+
+                case 'attack_my_target':
+                    // Find leader's target (closest enemy aircraft leader is attacking)
+                    let leaderTarget = null;
+                    let minDist = Infinity;
+                    for (let plane of aircraft) {
+                        if (plane.isPlayer === leader.isPlayer || plane.isDestroyed) continue;
+                        const dx2 = plane.x - leader.x;
+                        const dy2 = plane.y - leader.y;
+                        const dist = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            leaderTarget = plane;
+                        }
+                    }
+
+                    if (leaderTarget) {
+                        // Attack from different angle (coordinated attack)
+                        const angleOffset = (wingmanIndex % 2 === 0) ? 45 : -45;
+                        const targetAngle = (Math.atan2(leaderTarget.y - wingman.y, leaderTarget.x - wingman.x) * 180 / Math.PI + 90 + angleOffset + 360) % 360;
+
+                        wingman.targetX = leaderTarget.x;
+                        wingman.targetY = leaderTarget.y;
+                        wingman.targetAltitude = leaderTarget.altitude;
+                        wingman.targetHeading = targetAngle;
+                        wingman.throttle = 1.0; // Full throttle for attack
+                    }
+                    break;
+
+                case 'break_attack':
+                    // Break formation and attack nearest enemy
+                    squadron.inFormation = false;
+                    generateAIOrders(wingman); // Use standard AI
+                    break;
+
+                case 'free_hunt':
+                    // Independent hunting
+                    squadron.inFormation = false;
+                    generateAIOrders(wingman); // Use standard AI
+                    break;
+            }
+
+            // Calculate formation bonus
+            if (squadron.inFormation && distanceToFormation < 50) {
+                squadron.formationBonus = 0.15; // 15% mutual defense bonus
+            } else {
+                squadron.formationBonus = 0;
+            }
+        }
+
+        function changeFormation(newFormation) {
+            if (formations[newFormation]) {
+                squadron.formation = newFormation;
+                console.log(`Formation changed to: ${newFormation}`);
             }
         }
 
