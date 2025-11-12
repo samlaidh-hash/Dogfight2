@@ -758,9 +758,41 @@
                 this.health = 100;
                 this.isDestroyed = false;
                 this.size = type === 'bridge' ? 60 : type === 'fuel_depot' ? 40 : 20;
+
+                // AA gun specific properties (Quick Win #3)
+                this.isAAGun = type === 'aa_gun';
+                this.fireCooldown = 0;
+                this.rateOfFire = 20; // Frames between shots
+                this.range = 600; // meters
+                this.accuracy = 0.15; // 15% hit chance at optimal range
+                this.flakEffects = []; // Visual flak bursts
             }
 
             render() {
+                // Render flak bursts (Quick Win #3)
+                const now = Date.now();
+                this.flakEffects = this.flakEffects.filter(flak => now - flak.time < flak.duration);
+                for (let flak of this.flakEffects) {
+                    const age = now - flak.time;
+                    const progress = age / flak.duration;
+                    const alpha = 1 - progress;
+
+                    // Black smoke puff
+                    ctx.fillStyle = `rgba(40, 40, 40, ${alpha * 0.6})`;
+                    const size = 15 + progress * 20;
+                    ctx.beginPath();
+                    ctx.arc(flak.x, flak.y, size, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Orange flash at start
+                    if (progress < 0.2) {
+                        ctx.fillStyle = `rgba(255, 150, 0, ${(1 - progress / 0.2) * 0.8})`;
+                        ctx.beginPath();
+                        ctx.arc(flak.x, flak.y, size * 0.6, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
                 if (this.isDestroyed) {
                     // Render destroyed target
                     ctx.fillStyle = 'rgba(50, 50, 50, 0.6)';
@@ -826,6 +858,69 @@
                     return true;
                 }
                 return false;
+            }
+
+            // Quick Win #3: AA Gun fire-back
+            fireAtAircraft(aircraft) {
+                if (!this.isAAGun || this.isDestroyed) return null;
+                if (this.fireCooldown > 0) {
+                    this.fireCooldown--;
+                    return null;
+                }
+
+                // Find closest aircraft in range
+                let target = null;
+                let minDist = Infinity;
+
+                for (let plane of aircraft) {
+                    if (plane.isDestroyed) continue;
+
+                    const dx = plane.x - this.x;
+                    const dy = plane.y - this.y;
+                    const distance2D = Math.sqrt(dx * dx + dy * dy);
+                    const distance3D = Math.sqrt(distance2D * distance2D + plane.altitude * plane.altitude);
+
+                    if (distance3D < this.range && distance3D < minDist) {
+                        minDist = distance3D;
+                        target = plane;
+                    }
+                }
+
+                if (!target) return null;
+
+                // Fire!
+                this.fireCooldown = this.rateOfFire;
+
+                // Calculate hit chance (decreases with altitude and distance)
+                const dx = target.x - this.x;
+                const dy = target.y - this.y;
+                const distance2D = Math.sqrt(dx * dx + dy * dy);
+
+                let hitChance = this.accuracy;
+                hitChance *= Math.max(0.1, 1 - distance2D / this.range); // Distance factor
+                hitChance *= Math.max(0.2, 1 - target.altitude / 1000); // Altitude factor (harder to hit high aircraft)
+                hitChance *= Math.max(0.5, 1 - target.speed / target.maxSpeed); // Speed factor (harder to hit fast aircraft)
+
+                // Create flak burst visual
+                const flakX = target.x + (Math.random() - 0.5) * 50;
+                const flakY = target.y + (Math.random() - 0.5) * 50;
+                this.flakEffects.push({
+                    x: flakX,
+                    y: flakY,
+                    altitude: target.altitude,
+                    time: Date.now(),
+                    duration: 800
+                });
+
+                // Check if hit
+                if (Math.random() < hitChance) {
+                    const damage = 15 + Math.random() * 15; // 15-30 damage
+                    applyComponentDamage(target, damage);
+                    console.log(`AA Gun HIT ${target.name}! Damage: ${damage.toFixed(1)}, Distance: ${distance2D.toFixed(0)}m, Alt: ${target.altitude.toFixed(0)}m`);
+                    return { hit: true, target: target, damage: damage };
+                } else {
+                    return { hit: false, target: target };
+                }
             }
         }
 
@@ -2349,6 +2444,17 @@
                         }
                     } else {
                         shooter.timeOnTarget = Math.max(0, shooter.timeOnTarget - 0.05);
+                    }
+                }
+            }
+
+            // Quick Win #3: AA Guns fire at aircraft
+            for (let target of groundTargets) {
+                if (target.isAAGun && !target.isDestroyed) {
+                    const result = target.fireAtAircraft(aircraft);
+                    if (result && result.hit) {
+                        // AA gun hit an aircraft!
+                        // Hit effect already handled in fireAtAircraft via applyComponentDamage
                     }
                 }
             }
