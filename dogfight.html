@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Courier New', monospace;
-            background: #1a1a2e;
+            background: #2a3a2a;
             color: #eee;
             overflow: hidden;
         }
@@ -28,8 +28,8 @@
         }
 
         #gameCanvas {
-            border: 2px solid #0f3460;
-            background: #16213e;
+            border: 2px solid #4a5a3a;
+            background: #3d5235;
             cursor: crosshair;
         }
 
@@ -69,11 +69,11 @@
             cursor: not-allowed;
         }
 
-        #replayButton, #nextPhaseButton {
+        #replayButton, .nextPhaseButton {
             position: absolute;
             bottom: 30px;
-            padding: 15px 30px;
-            font-size: 16px;
+            padding: 15px 20px;
+            font-size: 14px;
             font-weight: bold;
             background: #0f3460;
             color: white;
@@ -86,15 +86,30 @@
 
         #replayButton {
             left: 50%;
-            transform: translateX(-120%);
+            transform: translateX(-320px);
         }
 
-        #nextPhaseButton {
+        #nextPhase2s {
             left: 50%;
-            transform: translateX(20%);
+            transform: translateX(-140px);
         }
 
-        #replayButton:hover, #nextPhaseButton:hover {
+        #nextPhase4s {
+            left: 50%;
+            transform: translateX(10px);
+        }
+
+        #nextPhase6s {
+            left: 50%;
+            transform: translateX(160px);
+        }
+
+        #nextPhase8s {
+            left: 50%;
+            transform: translateX(310px);
+        }
+
+        #replayButton:hover, .nextPhaseButton:hover {
             background: #1a4d7a;
         }
 
@@ -140,7 +155,7 @@
 </head>
 <body>
     <div id="gameContainer">
-        <canvas id="gameCanvas" width="1200" height="800"></canvas>
+        <canvas id="gameCanvas" width="1800" height="1000"></canvas>
 
         <div id="ui">
             <h1>DOGFIGHT 2</h1>
@@ -157,10 +172,12 @@
                 <div>Controls:</div>
                 <div>• Click aircraft to order</div>
                 <div>• Move mouse to position</div>
-                <div>• Mouse wheel: rotate</div>
-                <div>• W/S: altitude up/down</div>
-                <div>• Q/E: roll left/right</div>
-                <div>• A/D: fire threshold</div>
+                <div>• Mouse wheel: zoom in/out</div>
+                <div>• W/S: throttle up/down</div>
+                <div>• Q/E: altitude down/up</div>
+                <div>• A/D: slip/skid left/right</div>
+                <div>• R: cycle roll (none/half/full)</div>
+                <div>• Z/X: fire threshold down/up</div>
                 <div>• Click again to lock</div>
             </div>
         </div>
@@ -169,30 +186,62 @@
 
         <button id="executeButton">EXECUTE ORDERS</button>
         <button id="replayButton">REPLAY</button>
-        <button id="nextPhaseButton">NEXT PHASE</button>
+        <button id="nextPhase2s" class="nextPhaseButton">NEXT PHASE (2s)</button>
+        <button id="nextPhase4s" class="nextPhaseButton">NEXT PHASE (4s)</button>
+        <button id="nextPhase6s" class="nextPhaseButton">NEXT PHASE (6s)</button>
+        <button id="nextPhase8s" class="nextPhaseButton">NEXT PHASE (8s)</button>
     </div>
 
     <script>
+        /*
+         * SOUND EFFECTS - Add these files to your project:
+         *
+         * Free sources found:
+         * - Spitfire MG sounds: https://www.zapsplat.com (search "machine gun"), https://pixabay.com/sound-effects/
+         * - Me-109 Autocannon: https://pixabay.com/sound-effects/autocannon-20mm-143113/, https://audio.com/decibelphantomx/audio/20mm-autocannon-sound
+         * - Aircraft flyby/whoosh: https://pixabay.com/sound-effects/search/fly%20by/, https://www.zapsplat.com/sound-effect-category/airplanes/
+         * - WW2 Engine ambient: https://www.zapsplat.com/music/aircraft-ww2-spitfire-flying-low-overhead/, https://pixabay.com/sound-effects/search/ww2/
+         *
+         * SVG Aircraft (replace renderSVG with actual SVG paths):
+         * - Spitfire: https://freesvg.org/supermarine-spitfire-plane-vector-illustration, https://www.vecteezy.com/free-vector/spitfire
+         * - Me-109: Check Etsy for paid SVG or convert free PDF plans from https://outerzone.co.uk/plan_details.asp?ID=11066
+         */
+
+        // Sound effects
+        const soundSpitfireMG = new Audio('sounds/LMG.mp3');
+        const soundMe109Cannon = new Audio('sounds/AC.mp3');
+        const soundSpitfireEngine = new Audio('sounds/SPITFIRE.mp3');
+        const soundMe109Engine = new Audio('sounds/BF109.mp3');
+
+        // Configure engine sounds to loop
+        soundSpitfireEngine.loop = true;
+        soundMe109Engine.loop = true;
+        soundSpitfireEngine.volume = 0.3; // Keep engine sounds subtle
+        soundMe109Engine.volume = 0.3;
+
+        // Configure weapon sounds
+        soundSpitfireMG.volume = 0.6;
+        soundMe109Cannon.volume = 0.7;
+
         // Game constants
-        const CANVAS_WIDTH = 1200;
-        const CANVAS_HEIGHT = 800;
-        const EXECUTION_TIME = 4000; // 4 seconds
-        const TURN_DISTANCE = 100; // base distance moved per turn in meters
+        const CANVAS_WIDTH = 1800;
+        const CANVAS_HEIGHT = 1000;
+        let executionTime = 4000; // milliseconds - can be changed by player (2s, 4s, 6s, 8s)
+        let turnTime = 4; // seconds - matches executionTime / 1000
         const ALTITUDE_MIN = 0;
         const ALTITUDE_MAX = 3000; // meters
         const MOUNTAIN_HEIGHT = 1000; // meters
-        const EFFECTIVE_RANGE = 350; // pixels (~350 meters effective gun range)
-        const MAX_RANGE = 500; // pixels (absolute maximum, very low hit chance)
+        const EFFECTIVE_RANGE = 525; // pixels (~525 meters effective gun range - scaled for 1800x1000)
+        const MAX_RANGE = 750; // pixels (absolute maximum, very low hit chance)
 
         // Game state
         let gameState = 'ORDER'; // ORDER, EXECUTION, REVIEW
         let currentTurn = 1;
         let selectedAircraft = null;
         let ghostAircraft = null;
-        let aiGhostAircraft = null; // AI's planned move
         let executionStartTime = 0;
         let executionRecording = [];
-        let tracerBullets = []; // Active tracer rounds
+        let tracerBullets = []; // Active tracer rounds with lifetime
         let muzzleFlashes = []; // Active muzzle flashes
         let hitMarkers = []; // Hit effect markers
 
@@ -266,20 +315,20 @@
             }
 
             generateMountains() {
-                // Generate realistic mountain ranges with fractal edges
+                // Generate realistic mountain ranges with fractal edges - INCREASED SIZE
                 for (let i = 0; i < 8; i++) {
                     const baseX = Math.random() * CANVAS_WIDTH;
                     const baseY = Math.random() * CANVAS_HEIGHT;
-                    const baseHeight = 400 + Math.random() * 600;
+                    const baseHeight = 600 + Math.random() * 800; // Increased from 400-1000 to 600-1400
 
                     // Create a cluster of peaks for each mountain
                     for (let j = 0; j < 3; j++) {
                         // Generate initial rough polygon
                         const numPeaks = 4 + Math.floor(Math.random() * 3); // 4-6 initial vertices
                         const baseVertices = [];
-                        const centerX = baseX + (Math.random() - 0.5) * 150;
-                        const centerY = baseY + (Math.random() - 0.5) * 150;
-                        const baseRadius = 40 + Math.random() * 60;
+                        const centerX = baseX + (Math.random() - 0.5) * 250; // Increased spread from 150 to 250
+                        const centerY = baseY + (Math.random() - 0.5) * 250;
+                        const baseRadius = 80 + Math.random() * 120; // Doubled: from 40-100 to 80-200
 
                         for (let v = 0; v < numPeaks; v++) {
                             const angle = (v / numPeaks) * Math.PI * 2;
@@ -319,11 +368,11 @@
             }
 
             generateClouds() {
-                // Generate cloud layers at various altitudes - viewed from above
+                // Generate cloud layers at various altitudes - viewed from above - INCREASED SIZE
                 for (let i = 0; i < 10; i++) {
                     const centerX = Math.random() * CANVAS_WIDTH;
                     const centerY = Math.random() * CANVAS_HEIGHT;
-                    const baseRadius = 60 + Math.random() * 100;
+                    const baseRadius = 120 + Math.random() * 180; // Doubled: from 60-160 to 120-300
 
                     // Create fluffy cloud shape with multiple lobes (like cumulus clouds from above)
                     const numLobes = 4 + Math.floor(Math.random() * 5); // 4-8 lobes
@@ -397,10 +446,6 @@
             }
 
             render() {
-                // Ensure alpha is reset
-                ctx.globalAlpha = 1.0;
-                ctx.globalCompositeOperation = 'source-over';
-
                 // Render mountains with jagged, polyhedrous peaks
                 for (let mountain of this.mountains) {
                     const intensity = mountain.height / MOUNTAIN_HEIGHT;
@@ -514,96 +559,141 @@
                 this.y = y;
                 this.altitude = altitude;
                 this.heading = heading; // degrees
-                this.speed = 200; // m/s
+                this.speed = 140; // m/s - start at cruise speed
+                this.throttle = 0.7; // 0.0 to 1.0 (70% = cruise)
                 this.isPlayer = isPlayer;
                 this.hasOrders = false;
                 this.targetX = x;
                 this.targetY = y;
                 this.targetAltitude = altitude;
                 this.targetHeading = heading;
-                this.targetSpeed = 200;
-
-                // Roll properties (Phase 1 - Foundation)
-                this.roll = 0;              // Current bank angle (-180 to +180, 0 = wings level)
-                this.targetRoll = 0;        // Desired bank angle
-                this.startRoll = 0;         // Starting bank angle for interpolation
+                this.targetSpeed = 140;
 
                 // Starting positions for interpolation
                 this.startX = x;
                 this.startY = y;
                 this.startAltitude = altitude;
                 this.startHeading = heading;
-                this.startSpeed = 200;
+                this.startSpeed = 140; // Start at cruise speed
 
-                // Performance characteristics
+                // Performance characteristics (historically accurate)
                 if (type === 'Spitfire') {
-                    this.maxSpeed = 250;
-                    this.minSpeed = 80;
-                    this.maxTurnRate = 20; // degrees per second (fixed from degrees per turn)
-                    this.maxRollRate = 90; // degrees per second
+                    this.maxSpeed = 170; // m/s (~600 km/h at altitude)
+                    this.minSpeed = 30; // m/s (~108 km/h stall speed)
+                    this.maxTurnRate = 72; // degrees per turn (18°/sec × 4 sec)
                     this.maxClimbRate = 15; // m/s
-                    this.maxDiveRate = 30;
+                    this.maxDiveRate = 30; // m/s
                     this.maxGForce = 7;
-                    this.maxAcceleration = 20;
-                    this.maxBraking = 30;
+                    this.maxAcceleration = 15; // m/s²
+                    this.maxBraking = 20; // m/s²
                 } else { // Me-109
-                    this.maxSpeed = 260;
-                    this.minSpeed = 85;
-                    this.maxTurnRate = 18; // degrees per second (fixed from degrees per turn)
-                    this.maxRollRate = 110; // degrees per second
-                    this.maxClimbRate = 18;
-                    this.maxDiveRate = 35;
+                    this.maxSpeed = 175; // m/s (~630 km/h, slightly faster than Spitfire)
+                    this.minSpeed = 30; // m/s (~108 km/h stall speed)
+                    this.maxTurnRate = 64; // degrees per turn (16°/sec × 4 sec, slightly worse than Spitfire)
+                    this.maxClimbRate = 17; // m/s (slightly better climb)
+                    this.maxDiveRate = 35; // m/s
                     this.maxGForce = 6.5;
-                    this.maxAcceleration = 22;
-                    this.maxBraking = 28;
+                    this.maxAcceleration = 17; // m/s²
+                    this.maxBraking = 18; // m/s²
                 }
 
-                // Combat stats
-                this.ammunition = 500;
-                this.damage = 0;
-                this.fireThreshold = 0.3; // 30% hit chance to fire
+                // Combat stats - historically accurate weapons
+                if (type === 'Spitfire') {
+                    // 8× .303 Browning machine guns
+                    this.ammunition = 2660; // Total rounds (8 guns × 350 rounds each ÷ 8 rounds per burst)
+                    this.ammoPerBurst = 8; // 1 round from each gun
+                    this.damage = 0;
+                    this.damagePerHit = 2 + Math.random() * 3; // Lower damage per hit (lighter caliber)
+                    this.fireThreshold = 0.25; // Lower threshold (easier to fire - more ammo)
+                    this.rateOfFire = 1; // Can fire every frame (very high ROF)
+                } else { // Me-109
+                    // 2× 13mm MG 131 + 1× 20mm MG 151/20 cannon
+                    this.ammunition = 450; // Limited cannon ammo (300 rounds ÷ 5 rounds per burst + machine gun)
+                    this.ammoPerBurst = 5; // Mixed armament burst
+                    this.damage = 0;
+                    this.damagePerHit = 5 + Math.random() * 7; // Higher damage (cannon hits hard!)
+                    this.fireThreshold = 0.35; // Higher threshold (conserve limited cannon ammo)
+                    this.rateOfFire = 3; // Slower rate of fire (cannon)
+                }
+
                 this.timeOnTarget = 0;
                 this.pilotSkill = 0.5 + Math.random() * 0.3; // 50-80%
                 this.gunnerySkill = 0.5 + Math.random() * 0.3;
+                this.isFiring = false; // Visual state for gun firing
+                this.firingCooldown = 0; // Frames until can fire again
+                this.lastHitBy = null; // Track who hit us
+                this.lastHitTime = 0; // Timestamp of last hit
+                this.isDestroyed = false; // Aircraft destroyed state
+
+                // Visual hit effects
+                this.hitEffects = []; // Array of {x, y, type: 'mg'|'cannon', time, duration}
+                this.smokeParticles = []; // Smoke trail particles when damaged
+
+                // Flight path calculation
+                this.flightPath = null; // Will store calculated realistic path
+                this.inStall = false; // Track if aircraft is stalled
+                this.slipAngle = 0; // Slip/skid angle (nose direction vs flight direction)
+
+                // Roll mechanics
+                this.rollType = 'none'; // 'none', 'half', 'full'
+                this.isInverted = false; // True if upside down
+                this.isRolling = false; // True during execution of roll
+                this.rollProgress = 0; // 0 to 1 during roll execution
+                this.currentGForce = 1.0; // Current G-force (1.0 = normal)
+                this.peakGForce = 1.0; // Peak G-force this turn
+                this.gForcePenalty = 0; // Skill penalty from previous turn's G-forces (0-1)
             }
 
             getScaleForAltitude() {
                 // Higher altitude = larger visual size
-                const baseScale = 0.5;
+                // REDUCED base scale for more realistic proportions
+                const baseScale = 0.25;  // Reduced from 0.5 to 0.25
                 const altitudeFactor = this.altitude / 1000;
-                return baseScale + altitudeFactor * 0.5;
+                return baseScale + altitudeFactor * 0.3;  // Reduced altitude factor too
             }
 
             renderSVG(isGhost = false, ghostState = 'valid') {
-                // Get the appropriate image
-                const img = this.type === 'Spitfire' ? aircraftImages.spitfire : aircraftImages.bf109;
-
-                // Check if image loaded, if not use fallback geometry
-                const useImage = img.complete && img.naturalWidth > 0;
-
                 ctx.save();
                 ctx.translate(this.x, this.y);
                 ctx.rotate((this.heading * Math.PI) / 180);
 
                 const scale = this.getScaleForAltitude();
-
-                // Phase 2: Apply roll transformation for 3D effect
-                // When banked, wings appear narrower from top-down view
-                const rollFactor = Math.abs(Math.cos((this.roll * Math.PI) / 180));
                 ctx.scale(scale, scale);
-                // Apply horizontal squash based on roll angle
-                // At 0° roll: factor = 1 (full width), at 90° roll: factor = 0 (minimal width)
-                const wingScale = 0.2 + 0.8 * rollFactor; // Never fully disappear (min 20%)
-                ctx.scale(wingScale, 1); // Squash horizontally, keep vertical
+
+                // Apply roll animation - simulate banking by scaling x-axis
+                let rollAngle = 0; // 0 to 360 degrees
+                if (this.isRolling && !isGhost) {
+                    if (this.rollType === 'half') {
+                        // Half roll: 0° to 180°
+                        rollAngle = this.rollProgress * 180;
+                    } else if (this.rollType === 'full') {
+                        // Full roll: 0° to 360°
+                        rollAngle = this.rollProgress * 360;
+                    }
+                } else if (this.isInverted && !isGhost) {
+                    // Maintain inverted appearance (180°)
+                    rollAngle = 180;
+                }
+
+                // Convert roll angle to x-axis scale for top-down view
+                // 0° = scale 1.0 (wings full width), 90° = scale 0.1 (edge-on), 180° = scale 1.0 (inverted)
+                const rollRad = (rollAngle * Math.PI) / 180;
+                const xScale = Math.abs(Math.cos(rollRad)) * 0.9 + 0.1; // Range from 0.1 to 1.0
+                ctx.scale(xScale, 1.0);
 
                 // Set color based on state
-                if (isGhost) {
+                if (this.isDestroyed && !isGhost) {
+                    // Destroyed aircraft - gray/black wreckage
+                    ctx.globalAlpha = 0.6;
+                    ctx.fillStyle = '#444444';
+                    ctx.strokeStyle = '#222222';
+                } else if (isGhost) {
                     if (ghostState === 'illegal') {
-                        ctx.globalAlpha = 0.6;
+                        ctx.globalAlpha = 0.7;
                         ctx.fillStyle = '#ff0000';
                         ctx.strokeStyle = '#ff0000';
                     } else if (ghostState === 'stressful') {
-                        ctx.globalAlpha = 0.6;
+                        ctx.globalAlpha = 0.7;
                         ctx.fillStyle = '#ffff00';
                         ctx.strokeStyle = '#ffff00';
                     } else {
@@ -612,7 +702,6 @@
                         ctx.strokeStyle = '#00ff00';
                     }
                 } else {
-                    ctx.globalAlpha = 1.0;
                     if (this.isPlayer) {
                         ctx.fillStyle = '#0099ff';
                         ctx.strokeStyle = '#0099ff';
@@ -622,29 +711,44 @@
                     }
                 }
 
+                // Get the appropriate SVG image
+                const img = this.type === 'Spitfire' ? aircraftImages.spitfire : aircraftImages.bf109;
+                const useImage = img.complete && img.naturalWidth > 0;
+
                 if (useImage) {
-                    // Draw the aircraft image centered
+                    // Draw the aircraft SVG image centered
                     const imgWidth = 80;
                     const imgHeight = 80;
 
+                    // Set composite operation for transparency
                     if (isGhost) {
+                        // For ghosts, draw image then apply color overlay
                         ctx.globalCompositeOperation = 'source-over';
-                    }
+                        ctx.drawImage(img, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
 
-                    ctx.drawImage(img, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
-
-                    // Apply color overlay for ghosts
-                    if (isGhost) {
+                        // Apply color tint for ghost state
                         ctx.globalCompositeOperation = 'source-atop';
                         ctx.fillRect(-imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
                         ctx.globalCompositeOperation = 'source-over';
+                    } else {
+                        // Normal drawing with full transparency support
+                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.drawImage(img, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
+
+                        // Only apply color tint if not using natural aircraft colors
+                        if (this.isDestroyed) {
+                            ctx.globalCompositeOperation = 'source-atop';
+                            ctx.fillRect(-imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
+                            ctx.globalCompositeOperation = 'source-over';
+                        }
                     }
                 } else {
-                    // Fallback: draw simple geometric shape
+                    // Fallback to geometric shapes if SVG not loaded
                     ctx.lineWidth = 2;
 
-                    // Fuselage
+                    // Draw aircraft shape (simplified top-down view)
                     ctx.beginPath();
+                    // Fuselage
                     ctx.moveTo(0, -30);
                     ctx.lineTo(-5, 10);
                     ctx.lineTo(5, 10);
@@ -669,24 +773,98 @@
                     ctx.stroke();
                 }
 
-                ctx.globalAlpha = 1.0;
-
                 // Draw orders indicator
                 if (!isGhost && this.hasOrders) {
                     ctx.strokeStyle = '#00ff00';
                     ctx.lineWidth = 2;
                     ctx.beginPath();
-                    ctx.arc(0, 0, 50, 0, Math.PI * 2);
+                    ctx.arc(0, 0, 35, 0, Math.PI * 2);
                     ctx.stroke();
                 }
 
                 ctx.restore();
 
-                // Draw altitude indicator
+                // Draw damage effects (smoke and fire) - NOT in ghost mode
+                if (!isGhost && !this.isDestroyed) {
+                    const now = Date.now();
+
+                    // Heavy damage (70%+) - FIRE
+                    if (this.damage >= 70) {
+                        for (let i = 0; i < 5; i++) {
+                            const flameX = this.x + (Math.random() - 0.5) * 20;
+                            const flameY = this.y + (Math.random() - 0.5) * 20;
+                            const flameSize = 5 + Math.random() * 8;
+
+                            // Animated fire colors
+                            const fireColors = ['rgba(255, 100, 0, 0.8)', 'rgba(255, 150, 0, 0.7)', 'rgba(255, 200, 50, 0.6)'];
+                            ctx.fillStyle = fireColors[Math.floor(Math.random() * fireColors.length)];
+                            ctx.beginPath();
+                            ctx.arc(flameX, flameY, flameSize, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+
+                        // Heavy black smoke with fire
+                        for (let i = 0; i < 8; i++) {
+                            const smokeX = this.x + (Math.random() - 0.5) * 30 + (Math.random() - 0.5) * 10;
+                            const smokeY = this.y - 15 + i * 8 + (Math.random() - 0.5) * 15;
+                            const smokeSize = 8 + Math.random() * 10 + i * 1.5;
+                            const smokeOpacity = 0.6 - (i * 0.06);
+
+                            ctx.fillStyle = `rgba(30, 30, 30, ${smokeOpacity})`;
+                            ctx.beginPath();
+                            ctx.arc(smokeX, smokeY, smokeSize, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                    // Moderate damage (40-70%) - SMOKE only
+                    else if (this.damage >= 40) {
+                        for (let i = 0; i < 5; i++) {
+                            const smokeX = this.x + (Math.random() - 0.5) * 25 + (Math.random() - 0.5) * 8;
+                            const smokeY = this.y - 10 + i * 10 + (Math.random() - 0.5) * 12;
+                            const smokeSize = 6 + Math.random() * 7 + i * 1.2;
+                            const smokeOpacity = 0.4 - (i * 0.06);
+
+                            ctx.fillStyle = `rgba(60, 60, 60, ${smokeOpacity})`;
+                            ctx.beginPath();
+                            ctx.arc(smokeX, smokeY, smokeSize, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                }
+
+                // Draw altitude indicator or destruction label
                 if (!isGhost) {
-                    ctx.fillStyle = this.isPlayer ? '#0099ff' : '#ff4444';
-                    ctx.font = '12px Courier New';
-                    ctx.fillText(`${Math.round(this.altitude)}m`, this.x + 20, this.y - 20);
+                    if (this.isDestroyed) {
+                        ctx.fillStyle = '#ff0000';
+                        ctx.font = 'bold 16px Courier New';
+                        ctx.fillText('💥 DESTROYED', this.x - 60, this.y - 30);
+
+                        // Smoke effect
+                        ctx.fillStyle = 'rgba(50, 50, 50, 0.5)';
+                        for (let i = 0; i < 3; i++) {
+                            ctx.beginPath();
+                            ctx.arc(this.x + (Math.random() - 0.5) * 20, this.y - 10 + (Math.random() - 0.5) * 10, 8 + Math.random() * 5, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    } else {
+                        ctx.fillStyle = this.isPlayer ? '#0099ff' : '#ff4444';
+                        ctx.font = '12px Courier New';
+                        ctx.fillText(`${Math.round(this.altitude)}m`, this.x + 20, this.y - 20);
+
+                        // Show inverted indicator
+                        if (this.isInverted) {
+                            ctx.fillStyle = '#ffaa00';
+                            ctx.font = 'bold 14px Courier New';
+                            ctx.fillText('⤺ INVERTED', this.x - 40, this.y + 40);
+                        }
+
+                        // Show rolling indicator with progress
+                        if (this.isRolling) {
+                            ctx.fillStyle = '#ffaa00';
+                            ctx.font = 'bold 12px Courier New';
+                            ctx.fillText(`ROLLING ${Math.round(this.rollProgress * 100)}%`, this.x - 35, this.y + 55);
+                        }
+                    }
                 }
             }
 
@@ -697,156 +875,321 @@
                 return distance < 40 * this.getScaleForAltitude();
             }
 
-            calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading, targetRoll = 0) {
-                const dx = targetX - this.x;
-                const dy = targetY - this.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                const altitudeChange = targetAltitude - this.altitude;
+            // Calculate speed from throttle setting
+            getSpeedFromThrottle() {
+                // Linear interpolation between min and max speed based on throttle
+                return this.minSpeed + (this.maxSpeed - this.minSpeed) * this.throttle;
+            }
 
-                // Calculate required speed (proportional to distance)
-                const targetSpeed = (distance / TURN_DISTANCE) * this.speed;
+            // Calculate realistic flight path using physics simulation
+            calculateRealisticPath(targetX, targetY, targetAltitude, targetHeading, slipAngle = 0) {
+                const TIME_STEP = 0.1; // 0.1 second time steps
+                const NUM_STEPS = Math.floor(turnTime / TIME_STEP); // Variable number of steps based on turn duration
+                const g = 9.81;
 
-                // Calculate turn rate
-                const headingChange = Math.abs(targetHeading - this.heading);
-                const baseTurnRate = Math.min(headingChange, 360 - headingChange);
+                // Calculate target speed from current throttle setting
+                const targetSpeedFromThrottle = this.getSpeedFromThrottle();
 
-                // Phase 3: Calculate roll rate
-                const rollChange = Math.abs(targetRoll - this.roll);
-                const normalizedRoll = rollChange > 180 ? 360 - rollChange : rollChange;
+                // Calculate slip/skid physics effects
+                const slipAngleRad = Math.abs(slipAngle) * Math.PI / 180;
+                const slipSin = Math.sin(slipAngleRad);
 
-                // Phase 4: Roll affects turn performance
-                // Banked turns get up to 30% bonus to turn rate
-                const bankBonus = Math.abs(targetRoll) / 180 * 0.3; // 0 to 0.3
-                const effectiveMaxTurnRate = this.maxTurnRate * (1 + bankBonus);
+                // Drag penalty: increases with sin²(slip angle)
+                // At 30° slip: sin(30°) = 0.5, sin²(30°) = 0.25, drag factor = 1.125 (12.5% more drag)
+                const slipDragFactor = 1 + (slipSin * slipSin) * 0.5;
 
-                // Calculate climb/dive rate
-                const climbRate = Math.abs(altitudeChange);
+                // G-force reduction: uncoordinated turns are less efficient
+                // At 30° slip: lose 30% of max G capability
+                const slipGReduction = Math.abs(slipAngle) / 30 * 0.3;
+                const slipEffectiveMaxG = this.maxGForce * (1 - slipGReduction);
 
-                // Determine state
-                let state = 'valid';
+                // Path array storing state at each time step
+                let path = [];
+
+                // Current state (will be updated each step)
+                let state = {
+                    x: this.x,
+                    y: this.y,
+                    altitude: this.altitude,
+                    heading: this.heading,
+                    speed: targetSpeedFromThrottle, // Use throttle-based speed
+                    time: 0
+                };
+
+                // Validation tracking
+                let overallState = 'valid'; // 'valid', 'stressful', or 'illegal'
                 let warnings = [];
+                let maxGForce = 0;
 
-                // Phase 4: Calculate G-force with roll physics
-                let gForce = (baseTurnRate / 10) * (targetSpeed / 100);
+                // Add starting point
+                path.push({...state});
 
-                // Determine if turn is coordinated (roll matches turn direction)
-                const isTurning = baseTurnRate > 5; // More than 5 degrees is a turn
-                const isBanked = Math.abs(targetRoll) > 10; // More than 10 degrees is banked
+                for (let step = 0; step < NUM_STEPS; step++) {
+                    const stepTime = (step + 1) * TIME_STEP;
 
-                if (isTurning && isBanked) {
-                    // Check if roll and turn are coordinated
-                    const turnDirection = targetHeading > this.heading ?
-                        (targetHeading - this.heading < 180 ? 'right' : 'left') :
-                        (this.heading - targetHeading < 180 ? 'left' : 'right');
-                    const rollDirection = targetRoll > 0 ? 'right' : 'left';
+                    // Calculate desired heading towards target
+                    const dx = targetX - state.x;
+                    const dy = targetY - state.y;
+                    const distanceRemaining = Math.sqrt(dx * dx + dy * dy);
+                    const desiredHeading = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
 
-                    if (turnDirection === rollDirection) {
-                        // Coordinated turn - reduced G-force
-                        gForce *= 0.8;
+                    // Calculate heading difference (shortest angle)
+                    let headingDiff = desiredHeading - state.heading;
+                    if (headingDiff > 180) headingDiff -= 360;
+                    if (headingDiff < -180) headingDiff += 360;
+
+                    // Calculate maximum turn rate based on current speed and G-limits
+                    // Turn radius: r = v² / (g × √(n² - 1)) where n is load factor (G-force)
+                    // For now, use max sustainable G for turn rate calculation (reduced by slip/skid)
+                    const maxSustainableG = slipEffectiveMaxG * 0.8; // Use 80% of effective max for sustained
+                    const turnRadius = (state.speed * state.speed) / (g * Math.sqrt(maxSustainableG * maxSustainableG - 1));
+                    const maxTurnRatePerSec = (state.speed / turnRadius) * (180 / Math.PI); // Convert to degrees/sec
+                    const maxTurnThisStep = maxTurnRatePerSec * TIME_STEP;
+
+                    // Apply turn rate limit
+                    const actualTurn = Math.max(-maxTurnThisStep, Math.min(maxTurnThisStep, headingDiff));
+                    const newHeading = (state.heading + actualTurn + 360) % 360;
+
+                    // Calculate actual G-force from this turn
+                    const turnRateRadPerSec = (Math.abs(actualTurn) / TIME_STEP) * (Math.PI / 180);
+                    const actualTurnRadius = turnRateRadPerSec > 0 ? state.speed / turnRateRadPerSec : Infinity;
+                    const turnGForce = actualTurnRadius !== Infinity ? (state.speed * state.speed) / (actualTurnRadius * g) : 0;
+
+                    // Calculate desired altitude change
+                    const altitudeRemaining = targetAltitude - state.altitude;
+                    const timeRemaining = turnTime - stepTime;
+                    const desiredClimbRate = timeRemaining > 0 ? altitudeRemaining / timeRemaining : 0;
+
+                    // Limit climb/dive rate
+                    let actualClimbRate = desiredClimbRate;
+                    if (actualClimbRate > this.maxClimbRate) {
+                        actualClimbRate = this.maxClimbRate;
+                    } else if (actualClimbRate < -this.maxDiveRate) {
+                        actualClimbRate = -this.maxDiveRate;
+                    }
+
+                    // Calculate altitude change this step
+                    const altitudeChange = actualClimbRate * TIME_STEP;
+                    const newAltitude = state.altitude + altitudeChange;
+
+                    // Speed calculation with acceleration limits and energy effects
+
+                    // Step 1: Calculate energy effect from altitude change (diving gains speed, climbing loses speed)
+                    // Energy equation: v² = v₀² - 2g·Δh
+                    let energyDelta = 0;
+                    const energySpeedSquared = state.speed * state.speed - 2 * g * altitudeChange;
+                    if (energySpeedSquared > 0) {
+                        const energySpeed = Math.sqrt(energySpeedSquared);
+                        energyDelta = energySpeed - state.speed; // Positive when diving, negative when climbing
                     } else {
-                        // Uncoordinated turn - increased G-force
-                        gForce *= 1.2;
-                        if (state !== 'illegal') state = 'stressful';
-                        warnings.push('Uncoordinated Turn');
+                        energyDelta = this.minSpeed - state.speed; // Would stall
+                    }
+
+                    // Step 2: Calculate throttle adjustment towards target speed
+                    const speedDiff = targetSpeedFromThrottle - state.speed;
+                    let throttleAcceleration = 0;
+
+                    if (speedDiff > 0) {
+                        // Need to accelerate
+                        throttleAcceleration = Math.min(speedDiff / TIME_STEP, this.maxAcceleration);
+                    } else if (speedDiff < 0) {
+                        // Need to decelerate
+                        throttleAcceleration = Math.max(speedDiff / TIME_STEP, -this.maxBraking);
+                    }
+
+                    const throttleDelta = throttleAcceleration * TIME_STEP;
+
+                    // Step 3: Combine energy effect and throttle adjustment
+                    // Energy effect happens naturally, throttle tries to compensate
+                    let newSpeed = state.speed + energyDelta + throttleDelta;
+
+                    // Combined maneuver energy sharing
+                    // Turning while climbing/diving reduces efficiency
+                    if (Math.abs(altitudeChange) > 0 && Math.abs(actualTurn) > 0) {
+                        const maneuverIntensity = (Math.abs(actualTurn) / maxTurnThisStep) * (Math.abs(actualClimbRate) / this.maxClimbRate);
+                        newSpeed *= (1 - maneuverIntensity * 0.1); // Up to 10% speed loss for combined maneuvers
+                    }
+
+                    // Step 4: Apply slip/skid drag penalty
+                    // Sideways flight creates additional drag that bleeds energy
+                    if (slipAngle !== 0) {
+                        const slipDragPerStep = (slipDragFactor - 1) * state.speed * TIME_STEP * 0.5; // Drag reduces speed
+                        newSpeed -= slipDragPerStep;
+                    }
+
+                    // Clamp speed
+                    newSpeed = Math.max(this.minSpeed, Math.min(this.maxSpeed * 1.2, newSpeed));
+
+                    // Move aircraft forward
+                    const avgSpeed = (state.speed + newSpeed) / 2;
+                    const distance = avgSpeed * TIME_STEP;
+                    const headingRad = (newHeading - 90) * Math.PI / 180;
+                    const newX = state.x + Math.cos(headingRad) * distance;
+                    const newY = state.y + Math.sin(headingRad) * distance;
+
+                    // Check for slip/skid (lateral forces during turn)
+                    let slipWarning = null;
+                    if (turnGForce > 0) {
+                        const bankAngle = Math.atan(turnGForce) * 180 / Math.PI;
+                        // Ideally, bank angle should match turn rate
+                        // If turning too fast for bank angle, you're skidding
+                        // If bank too steep for turn rate, you're slipping
+                        // Simplified: warn if turning hard (>50% of max G)
+                        if (turnGForce > this.maxGForce * 0.5) {
+                            slipWarning = `Skid/Slip at ${stepTime.toFixed(1)}s`;
+                        }
+                    }
+
+                    // Update state
+                    state = {
+                        x: newX,
+                        y: newY,
+                        altitude: newAltitude,
+                        heading: newHeading,
+                        speed: newSpeed,
+                        time: stepTime,
+                        gForce: turnGForce,
+                        climbRate: actualClimbRate
+                    };
+
+                    path.push({...state});
+
+                    // Track max G-force
+                    if (turnGForce > maxGForce) maxGForce = turnGForce;
+
+                    // Validation checks
+                    // Speed checks
+                    if (newSpeed > this.maxSpeed * 1.2) {
+                        overallState = 'illegal';
+                        warnings.push(`Speed too high at ${stepTime.toFixed(1)}s (${Math.round(newSpeed)} m/s)`);
+                    } else if (newSpeed > this.maxSpeed) {
+                        if (overallState !== 'illegal') overallState = 'stressful';
+                        if (!warnings.some(w => w.includes('Overspeed'))) {
+                            warnings.push(`Overspeed at ${stepTime.toFixed(1)}s - Damage`);
+                        }
+                    } else if (newSpeed < this.minSpeed) {
+                        if (overallState !== 'illegal') overallState = 'stressful';
+                        if (!warnings.some(w => w.includes('STALL'))) {
+                            warnings.push(`STALL WARNING at ${stepTime.toFixed(1)}s`);
+                        }
+                    }
+
+                    // G-force check
+                    if (turnGForce > this.maxGForce) {
+                        overallState = 'illegal';
+                        warnings.push(`G-force exceeded at ${stepTime.toFixed(1)}s (${turnGForce.toFixed(1)}G)`);
+                    } else if (turnGForce > this.maxGForce * 0.85) {
+                        if (overallState !== 'illegal') overallState = 'stressful';
+                        if (!warnings.some(w => w.includes('High G'))) {
+                            warnings.push(`High G-force (${turnGForce.toFixed(1)}G)`);
+                        }
+                    }
+
+                    // Slip/skid warning
+                    if (slipWarning && overallState !== 'illegal') {
+                        overallState = 'stressful';
+                        if (!warnings.some(w => w.includes('Skid'))) {
+                            warnings.push(slipWarning);
+                        }
+                    }
+
+                    // Intentional slip/skid angle warnings
+                    if (Math.abs(slipAngle) > 20) {
+                        if (overallState !== 'illegal') overallState = 'stressful';
+                        if (!warnings.some(w => w.includes('Slip/Skid'))) {
+                            warnings.push(`High Slip/Skid Angle (${Math.abs(slipAngle)}°) - Increased drag`);
+                        }
+                    }
+                    // Extreme slip at low speed risks accelerated stall
+                    if (Math.abs(slipAngle) > 20 && newSpeed < this.minSpeed * 1.2) {
+                        if (overallState !== 'illegal') overallState = 'stressful';
+                        if (!warnings.some(w => w.includes('Accelerated stall'))) {
+                            warnings.push(`⚠ Accelerated stall risk - slip + low speed`);
+                        }
+                    }
+
+                    // Terrain check
+                    const terrainHeight = terrain.getHeightAt(newX, newY);
+                    if (newAltitude < terrainHeight + 50) {
+                        overallState = 'illegal';
+                        warnings.push(`⚠ TERRAIN at ${stepTime.toFixed(1)}s ⚠`);
                     }
                 }
 
-                // Phase 4: Check for inverted flight effects
-                if (Math.abs(targetRoll - 180) < 20 || Math.abs(targetRoll + 180) < 20) {
-                    warnings.push('INVERTED - Negative Lift');
-                    if (altitudeChange > 0) {
-                        // Trying to climb while inverted
-                        state = 'illegal';
-                        warnings.push('Cannot Climb Inverted');
-                    }
+                // Final position check - how close did we get?
+                const finalState = path[path.length - 1];
+                const finalDist = Math.sqrt((finalState.x - targetX)**2 + (finalState.y - targetY)**2);
+                const finalAltDiff = Math.abs(finalState.altitude - targetAltitude);
+                const finalHeadingDiff = Math.abs(finalState.heading - targetHeading);
+
+                // Check altitude achievement
+                const requestedAltChange = targetAltitude - this.altitude;
+                const maxPossibleClimb = this.maxClimbRate * turnTime;
+                const maxPossibleDive = this.maxDiveRate * turnTime;
+
+                if (requestedAltChange > maxPossibleClimb) {
+                    if (overallState !== 'illegal') overallState = 'stressful';
+                    warnings.push(`Climb too steep - max ${Math.round(maxPossibleClimb)}m in ${turnTime}s`);
+                } else if (requestedAltChange < -maxPossibleDive) {
+                    if (overallState !== 'illegal') overallState = 'stressful';
+                    warnings.push(`Dive too steep - max ${Math.round(maxPossibleDive)}m in ${turnTime}s`);
+                } else if (finalAltDiff > 20) {
+                    // Couldn't reach target altitude even though it should be possible
+                    if (overallState !== 'illegal') overallState = 'stressful';
+                    warnings.push(`Altitude missed by ${Math.round(finalAltDiff)}m`);
                 }
 
-                // Speed checks
-                if (targetSpeed > this.maxSpeed * 1.2) {
-                    state = 'illegal';
-                    warnings.push('SPEED TOO HIGH');
-                } else if (targetSpeed > this.maxSpeed) {
-                    if (state !== 'illegal') state = 'stressful';
-                    warnings.push('Overspeed - Damage');
-                } else if (targetSpeed < this.minSpeed) {
-                    if (state !== 'illegal') state = 'stressful';
-                    warnings.push('STALL WARNING');
-                }
-
-                // Phase 4: Turn rate check with bank bonus
-                if (baseTurnRate > effectiveMaxTurnRate) {
-                    state = 'illegal';
-                    warnings.push('TURN TOO TIGHT');
-                }
-
-                // Climb rate check
-                if (altitudeChange > 0 && climbRate > this.maxClimbRate * TURN_DISTANCE / 100) {
-                    state = 'illegal';
-                    warnings.push('CLIMB RATE EXCEEDED');
-                } else if (altitudeChange < 0) {
-                    if (Math.abs(climbRate) > this.maxDiveRate * 1.2 * TURN_DISTANCE / 100) {
-                        state = 'illegal';
-                        warnings.push('DIVE RATE CRITICAL');
-                    } else if (Math.abs(climbRate) > this.maxDiveRate * TURN_DISTANCE / 100) {
-                        if (state !== 'illegal') state = 'stressful';
-                        warnings.push('Dive Rate High - Damage');
-                    }
-                }
-
-                // G-force check
-                if (gForce > this.maxGForce) {
-                    state = 'illegal';
-                    warnings.push('G-FORCE EXCEEDED');
-                }
-
-                // Phase 3: Roll rate check
-                const EXECUTION_TIME_SEC = 4.0; // 4 seconds
-                const rollTimeRequired = normalizedRoll / this.maxRollRate;
-                if (rollTimeRequired > EXECUTION_TIME_SEC) {
-                    state = 'illegal';
-                    warnings.push('ROLL RATE EXCEEDED');
-                }
-                const rollCompletionFactor = rollTimeRequired / EXECUTION_TIME_SEC;
-
-                // Terrain check
-                const terrainHeight = terrain.getHeightAt(targetX, targetY);
-                if (targetAltitude < terrainHeight + 50) {
-                    state = 'illegal';
-                    warnings.push('⚠ PULL UP ⚠');
+                if (finalDist > 100) {
+                    if (overallState !== 'illegal') overallState = 'stressful';
+                    warnings.push(`Won't reach target (${Math.round(finalDist)}m short)`);
                 }
 
                 return {
-                    state,
-                    warnings,
-                    targetSpeed: Math.round(targetSpeed),
-                    gForce: gForce.toFixed(1),
-                    climbRate: Math.round(climbRate),
-                    targetRoll: Math.round(targetRoll), // Phase 3: Add roll info
-                    rollCompletionPercent: Math.round(rollCompletionFactor * 100) // Phase 3: Show when roll completes
+                    path: path,
+                    state: overallState,
+                    warnings: warnings,
+                    targetSpeed: Math.round(finalState.speed),
+                    gForce: maxGForce.toFixed(1),
+                    climbRate: Math.round(Math.abs(finalState.climbRate)),
+                    targetAltitude: Math.round(targetAltitude),
+                    targetHeading: Math.round(targetHeading),
+                    finalX: finalState.x,
+                    finalY: finalState.y,
+                    finalAltitude: finalState.altitude,
+                    finalFlightHeading: finalState.heading // Actual flight heading achieved (not nose heading)
                 };
             }
 
-            lockOrders(targetX, targetY, targetAltitude, targetHeading, targetRoll = 0) {
+            calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading, slipAngle = 0) {
+                // Use the new realistic path calculation
+                const result = this.calculateRealisticPath(targetX, targetY, targetAltitude, targetHeading, slipAngle);
+
+                // Store the path for rendering and execution
+                this.flightPath = result.path;
+
+                return result;
+            }
+
+            lockOrders(targetX, targetY, targetAltitude, targetHeading, slipAngle = 0) {
                 // Save starting position for interpolation
                 this.startX = this.x;
                 this.startY = this.y;
                 this.startAltitude = this.altitude;
                 this.startHeading = this.heading;
                 this.startSpeed = this.speed;
-                this.startRoll = this.roll; // Phase 1: Add roll to interpolation
 
                 this.targetX = targetX;
                 this.targetY = targetY;
                 this.targetAltitude = targetAltitude;
                 this.targetHeading = targetHeading;
-                this.targetRoll = targetRoll; // Phase 3: Add target roll
+                this.slipAngle = slipAngle; // Save slip angle for execution
                 this.hasOrders = true;
 
-                // Calculate target speed
+                // Calculate target speed: distance / time
                 const dx = targetX - this.startX;
                 const dy = targetY - this.startY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
-                this.targetSpeed = (distance / TURN_DISTANCE) * this.speed;
+                this.targetSpeed = distance / turnTime;
             }
 
             unlockOrders() {
@@ -859,214 +1202,460 @@
 
             executeOrders(progress) {
                 // progress goes from 0 to 1
-                // Interpolate from start position to target position
-                this.x = this.startX + (this.targetX - this.startX) * progress;
-                this.y = this.startY + (this.targetY - this.startY) * progress;
-                this.altitude = this.startAltitude + (this.targetAltitude - this.startAltitude) * progress;
 
-                // Smoothly interpolate heading
-                let headingDiff = this.targetHeading - this.startHeading;
-                if (headingDiff > 180) headingDiff -= 360;
-                if (headingDiff < -180) headingDiff += 360;
-                this.heading = this.startHeading + headingDiff * progress;
+                // Handle roll mechanics during execution
+                if (this.rollType !== 'none') {
+                    // Roll happens smoothly over first 40% of maneuver
+                    const rollDuration = 0.4;
+                    if (progress <= rollDuration) {
+                        this.isRolling = true;
+                        this.rollProgress = progress / rollDuration;
 
-                if (this.heading < 0) this.heading += 360;
-                if (this.heading >= 360) this.heading -= 360;
+                        // Calculate if inverted based on roll type and progress
+                        if (this.rollType === 'half') {
+                            // Half roll: become inverted at 50% and stay inverted
+                            this.isInverted = this.rollProgress >= 0.5;
+                        } else if (this.rollType === 'full') {
+                            // Full roll: inverted from 25% to 75%, then right-side up
+                            this.isInverted = this.rollProgress >= 0.25 && this.rollProgress < 0.75;
+                        }
 
-                this.speed = this.startSpeed + (this.targetSpeed - this.startSpeed) * progress;
-
-                // Phase 3: Time-based roll interpolation
-                const rollChange = Math.abs(this.targetRoll - this.startRoll);
-                const normalizedRoll = rollChange > 180 ? 360 - rollChange : rollChange;
-
-                // Time-based roll completion
-                const EXECUTION_TIME_SEC = 4.0; // 4 seconds
-                const currentTimeSeconds = progress * EXECUTION_TIME_SEC; // 0 to 4.0 seconds
-
-                // How much can we roll in the current elapsed time?
-                const maxRollPossible = this.maxRollRate * currentTimeSeconds;
-
-                // Calculate roll progress (clamped to 1.0 when complete)
-                // Handle case where no roll is needed (avoid division by zero)
-                const rollProgress = normalizedRoll === 0 ? 1 : Math.min(1, maxRollPossible / normalizedRoll);
-
-                // Apply the roll
-                let rollDiff = this.targetRoll - this.startRoll;
-                if (Math.abs(rollDiff) > 180) {
-                    // Take shorter path
-                    rollDiff = rollDiff > 0 ? rollDiff - 360 : rollDiff + 360;
+                        // Add G-force spike during roll (2-3G)
+                        this.currentGForce = 1.0 + (Math.sin(this.rollProgress * Math.PI) * 2.0);
+                    } else {
+                        this.isRolling = false;
+                        this.rollProgress = 1.0;
+                        this.currentGForce = 1.0;
+                        // Maintain inverted state if half roll
+                        if (this.rollType === 'half') {
+                            this.isInverted = true;
+                        } else if (this.rollType === 'full') {
+                            this.isInverted = false;
+                        }
+                    }
+                } else {
+                    this.isRolling = false;
+                    this.rollProgress = 0;
+                    this.isInverted = false;
+                    this.currentGForce = 1.0;
                 }
-                this.roll = this.startRoll + rollDiff * rollProgress;
 
-                // Normalize to -180 to +180
-                if (this.roll < -180) this.roll += 360;
-                if (this.roll > 180) this.roll -= 360;
+                // Follow the precalculated realistic flight path
+                if (this.flightPath && this.flightPath.length > 1) {
+                    // Find the point in the path corresponding to current progress
+                    const pathIndex = Math.floor(progress * (this.flightPath.length - 1));
+                    const nextIndex = Math.min(pathIndex + 1, this.flightPath.length - 1);
+
+                    // Interpolate between path points for smooth animation
+                    const localProgress = (progress * (this.flightPath.length - 1)) - pathIndex;
+
+                    const current = this.flightPath[pathIndex];
+                    const next = this.flightPath[nextIndex];
+
+                    this.x = current.x + (next.x - current.x) * localProgress;
+                    this.y = current.y + (next.y - current.y) * localProgress;
+                    this.altitude = current.altitude + (next.altitude - current.altitude) * localProgress;
+
+                    // Flight heading from path (direction of movement)
+                    const flightHeading = current.heading + (next.heading - current.heading) * localProgress;
+
+                    // Nose heading = flight heading + slip angle
+                    this.heading = (flightHeading + this.slipAngle + 360) % 360;
+                    this.speed = current.speed + (next.speed - current.speed) * localProgress;
+
+                    // Check for stall condition
+                    if (this.speed < this.minSpeed) {
+                        this.inStall = true;
+                    }
+
+                    // Track G-forces from maneuvers (combine path G-force with roll G-force)
+                    const pathGForce = current.gForce || 1.0;
+                    this.currentGForce = Math.max(this.currentGForce, pathGForce);
+                    this.peakGForce = Math.max(this.peakGForce, this.currentGForce);
+
+                    // Apply damage for stressful maneuvers
+                    if (this.currentGForce > this.maxGForce * 0.85) {
+                        this.damage += 0.1; // Gradual damage from high G
+                    }
+                } else {
+                    // Fallback to old linear interpolation if no path (shouldn't happen)
+                    this.x = this.startX + (this.targetX - this.startX) * progress;
+                    this.y = this.startY + (this.targetY - this.startY) * progress;
+                    this.altitude = this.startAltitude + (this.targetAltitude - this.startAltitude) * progress;
+
+                    let headingDiff = this.targetHeading - this.startHeading;
+                    if (headingDiff > 180) headingDiff -= 360;
+                    if (headingDiff < -180) headingDiff += 360;
+                    this.heading = this.startHeading + headingDiff * progress;
+
+                    if (this.heading < 0) this.heading += 360;
+                    if (this.heading >= 360) this.heading -= 360;
+
+                    this.speed = this.startSpeed + (this.targetSpeed - this.startSpeed) * progress;
+                }
             }
 
             finalizeExecution() {
-                this.x = this.targetX;
-                this.y = this.targetY;
-                this.altitude = this.targetAltitude;
-                this.heading = this.targetHeading;
-                this.speed = this.targetSpeed;
-                this.roll = this.targetRoll; // Phase 1: Add roll to finalize
+                // Use actual final position from flight path (not desired target)
+                // This prevents jumping when physics prevents reaching exact target
+                if (this.flightPath && this.flightPath.length > 0) {
+                    const finalState = this.flightPath[this.flightPath.length - 1];
+                    this.x = finalState.x;
+                    this.y = finalState.y;
+                    this.altitude = finalState.altitude;
+                    // Apply slip angle to final heading (nose vs flight direction)
+                    const flightHeading = finalState.heading;
+                    this.heading = (flightHeading + this.slipAngle + 360) % 360;
+                    this.speed = finalState.speed;
+                } else {
+                    // Fallback if no flight path (shouldn't happen)
+                    this.x = this.targetX;
+                    this.y = this.targetY;
+                    this.altitude = this.targetAltitude;
+                    this.heading = this.targetHeading;
+                    this.speed = this.targetSpeed;
+                }
+
+                // Calculate G-force penalty for next turn
+                // High G-forces reduce pilot skill for the next turn
+                if (this.peakGForce > 4.0) {
+                    // Penalty scales with G-force: 4G = 10% penalty, 7G = 40% penalty
+                    this.gForcePenalty = Math.min(0.5, (this.peakGForce - 4.0) * 0.1);
+                    console.log(`${this.name} experienced ${this.peakGForce.toFixed(1)}G - skill penalty: ${(this.gForcePenalty * 100).toFixed(0)}% next turn`);
+                } else {
+                    this.gForcePenalty = 0;
+                }
+
+                // Reset roll state and G-force tracking for next turn
+                this.rollType = 'none';
+                this.isRolling = false;
+                this.rollProgress = 0;
+                this.peakGForce = 1.0;
+                this.currentGForce = 1.0;
+                // Keep isInverted state if half roll was performed
+
                 this.hasOrders = false;
             }
 
             getStatsHTML() {
-                let rangeInfo = '';
+                const ammoColor = this.ammunition < 100 ? 'color: #ff4444;' : '';
+                const damageColor = this.damage > 50 ? 'color: #ff4444;' : this.damage > 25 ? 'color: #ffaa00;' : '';
+                const hitWarning = this.lastHitBy ? `<div style="color: #ff0000; animation: blink 0.5s infinite;">⚠ HIT BY ${this.lastHitBy.toUpperCase()}!</div>` : '';
 
-                // Calculate range to enemy if both aircraft exist
-                try {
-                    const enemy = this.isPlayer ? (typeof me109 !== 'undefined' ? me109 : null) : (typeof spitfire !== 'undefined' ? spitfire : null);
-                    if (enemy) {
-                        const dx = enemy.x - this.x;
-                        const dy = enemy.y - this.y;
-                        const rangeToEnemy = Math.round(Math.sqrt(dx * dx + dy * dy));
+                // Show G-force during execution
+                const gForceDisplay = this.currentGForce > 1.5 ? `<div class="stat-line" style="color: #ffaa00;">G-Force: ${this.currentGForce.toFixed(1)}G</div>` : '';
 
-                        let rangeStatus = '';
-                        if (rangeToEnemy <= EFFECTIVE_RANGE) {
-                            rangeStatus = '<span style="color: #00ff00">IN RANGE</span>';
-                        } else if (rangeToEnemy <= MAX_RANGE) {
-                            rangeStatus = '<span style="color: #ffff00">LONG RANGE</span>';
-                        } else {
-                            rangeStatus = '<span style="color: #ff4444">OUT OF RANGE</span>';
-                        }
-                        rangeInfo = `<div class="stat-line">Range: ${rangeToEnemy}m ${rangeStatus}</div>`;
-                    }
-                } catch (e) {
-                    console.error('Error calculating range:', e);
-                }
+                // Show G-force penalty from previous turn
+                const gPenaltyDisplay = this.gForcePenalty > 0 ?
+                    `<div class="stat-line" style="color: #ff8800;">⚠ G-Strain: -${Math.round(this.gForcePenalty * 100)}% skill</div>` : '';
+
+                // Show inverted status
+                const invertedDisplay = this.isInverted ?
+                    `<div class="stat-line" style="color: #ffaa00;">⤺ INVERTED</div>` : '';
+
+                // Show fire threshold
+                const fireThresholdPercent = Math.round(this.fireThreshold * 100);
+                const fireThresholdColor = this.fireThreshold < 0.20 ? '#ff4444' :
+                                          this.fireThreshold < 0.30 ? '#ffaa00' : '#88ff88';
 
                 return `
                     <div class="stat-line">Alt: ${Math.round(this.altitude)}m</div>
                     <div class="stat-line">Speed: ${Math.round(this.speed)} m/s</div>
+                    <div class="stat-line">Throttle: ${Math.round(this.throttle * 100)}%</div>
                     <div class="stat-line">Hdg: ${Math.round(this.heading)}°</div>
-                    <div class="stat-line">Roll: ${Math.round(this.roll)}°</div>
-                    ${rangeInfo}
-                    <div class="stat-line">Ammo: ${this.ammunition}</div>
-                    <div class="stat-line">Damage: ${Math.round(this.damage)}%</div>
-                    <div class="stat-line">Fire Threshold: ${Math.round(this.fireThreshold * 100)}%</div>
+                    <div class="stat-line" style="${ammoColor}">Ammo: ${this.ammunition} ${this.isFiring ? '🔥' : ''}</div>
+                    <div class="stat-line" style="${damageColor}">Damage: ${Math.round(this.damage)}%</div>
+                    <div class="stat-line" style="color: ${fireThresholdColor}">Fire Min: ${fireThresholdPercent}%</div>
+                    ${gForceDisplay}
+                    ${gPenaltyDisplay}
+                    ${invertedDisplay}
+                    ${hitWarning}
                 `;
             }
         }
 
         // Initialize game
         const terrain = new Terrain();
-        const spitfire = new Aircraft('Spitfire', 'Spitfire', 300, 400, 500, 90, true);
-        const me109 = new Aircraft('Me-109', 'Me-109', 800, 400, 500, 270, false);
+        const spitfire = new Aircraft('Spitfire', 'Spitfire', 400, 500, 500, 90, true);
+        const me109 = new Aircraft('Me-109', 'Me-109', 1400, 500, 500, 270, false);
         const aircraft = [spitfire, me109];
 
-        // AI for Me-109 - generates ghost position without locking
-        function generateAIGhost() {
-            // Simple AI: try to get behind the Spitfire
-            // IMPORTANT: Uses current position only, not player's target
+        // AI for Me-109 - Tactical Dogfight AI
+        function generateAIOrders() {
+            if (me109.hasOrders) return;
+            if (me109.isDestroyed) return; // Dead AI can't give orders
+            if (spitfire.isDestroyed) return; // No target to attack
+
+            // ===== SITUATIONAL AWARENESS =====
+
+            // Calculate relative positions
             const dx = spitfire.x - me109.x;
             const dy = spitfire.y - me109.y;
-            const angleToTarget = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const angleToEnemy = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
 
-            // Move towards a position behind the Spitfire
-            const behindX = spitfire.x - Math.cos(spitfire.heading * Math.PI / 180) * 150;
-            const behindY = spitfire.y - Math.sin(spitfire.heading * Math.PI / 180) * 150;
+            // Calculate angle difference from my heading to enemy
+            let myAngleToEnemy = angleToEnemy - me109.heading;
+            if (myAngleToEnemy > 180) myAngleToEnemy -= 360;
+            if (myAngleToEnemy < -180) myAngleToEnemy += 360;
 
-            // Constrain to canvas
-            let targetX = Math.max(50, Math.min(CANVAS_WIDTH - 50, behindX));
-            let targetY = Math.max(50, Math.min(CANVAS_HEIGHT - 50, behindY));
+            // Calculate angle from enemy's heading to me (am I behind them?)
+            const angleFromEnemyToMe = (Math.atan2(-dy, -dx) * 180 / Math.PI + 360) % 360;
+            let enemyAngleToMe = angleFromEnemyToMe - spitfire.heading;
+            if (enemyAngleToMe > 180) enemyAngleToMe -= 360;
+            if (enemyAngleToMe < -180) enemyAngleToMe += 360;
 
-            // Adjust altitude based on terrain and tactical position
-            const terrainHeight = terrain.getHeightAt(targetX, targetY);
-            let targetAltitude = Math.max(terrainHeight + 100, spitfire.altitude - 100);
-            targetAltitude = Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, targetAltitude));
+            // Energy states (altitude = potential energy, speed = kinetic energy)
+            const myEnergy = me109.altitude + (me109.speed * 0.5); // Simple energy metric
+            const enemyEnergy = spitfire.altitude + (spitfire.speed * 0.5);
+            const energyAdvantage = myEnergy - enemyEnergy;
 
-            // Face towards Spitfire
-            let targetHeading = angleToTarget;
-            let targetRoll = 0;
+            // Positional assessment
+            const isBehindEnemy = Math.abs(enemyAngleToMe) > 120; // Enemy not facing me
+            const enemyBehindMe = Math.abs(myAngleToEnemy) > 120; // I'm not facing enemy
+            const inFiringPosition = isBehindEnemy && distance < 300 && Math.abs(myAngleToEnemy) < 30;
+            const underAttack = enemyBehindMe && distance < 400;
 
-            // Validate and use fallback if invalid
-            const validation = me109.calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading, targetRoll);
-            if (validation.state === 'illegal') {
-                // Fallback: simple forward movement
-                const fallbackX = me109.x + Math.cos(me109.heading * Math.PI / 180) * 80;
-                const fallbackY = me109.y + Math.sin(me109.heading * Math.PI / 180) * 80;
-                targetX = Math.max(50, Math.min(CANVAS_WIDTH - 50, fallbackX));
-                targetY = Math.max(50, Math.min(CANVAS_HEIGHT - 50, fallbackY));
-                targetAltitude = me109.altitude;
-                targetHeading = me109.heading;
+            // ===== DECISION MAKING =====
+
+            let targetX, targetY, targetAltitude, targetHeading;
+            let aiThrottle = me109.throttle;
+            let useSlip = 0;
+
+            // STATE 1: DEFENSIVE - Enemy is behind me, evade!
+            if (underAttack) {
+                console.log("AI: DEFENSIVE - Evading!");
+
+                // Break turn - hard turn perpendicular to enemy
+                const breakDirection = myAngleToEnemy > 0 ? 90 : -90;
+                const breakHeading = (me109.heading + breakDirection + 360) % 360;
+
+                // Turn hard and dive for speed (or climb if low)
+                const diveOrClimb = me109.altitude > 300 ? -100 : 50;
+                targetAltitude = Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, me109.altitude + diveOrClimb));
+
+                // Move in break direction
+                const breakDistance = 250;
+                targetX = me109.x + Math.cos((breakHeading - 90) * Math.PI / 180) * breakDistance;
+                targetY = me109.y + Math.sin((breakHeading - 90) * Math.PI / 180) * breakDistance;
+                targetHeading = breakHeading;
+
+                // Full throttle for evasion
+                aiThrottle = 1.0;
+
+            // STATE 2: OFFENSIVE - I'm in good position, press the attack!
+            } else if (isBehindEnemy && Math.abs(myAngleToEnemy) < 60) {
+                console.log("AI: OFFENSIVE - Attacking!");
+
+                // Lead the target - predict where they'll be
+                const leadDistance = distance * 0.3;
+                const predictedX = spitfire.x + Math.cos((spitfire.heading - 90) * Math.PI / 180) * leadDistance;
+                const predictedY = spitfire.y + Math.sin((spitfire.heading - 90) * Math.PI / 180) * leadDistance;
+
+                targetX = predictedX;
+                targetY = predictedY;
+
+                // Match enemy altitude (slight advantage)
+                targetAltitude = Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, spitfire.altitude + 50));
+
+                // Face the predicted position
+                const dxPred = predictedX - me109.x;
+                const dyPred = predictedY - me109.y;
+                targetHeading = (Math.atan2(dyPred, dxPred) * 180 / Math.PI + 90 + 360) % 360;
+
+                // Use slip for gun solution if very close
+                if (distance < 200 && inFiringPosition) {
+                    useSlip = Math.random() > 0.5 ? 10 : -10; // Random slip for deflection shot
+                }
+
+                // Moderate throttle to maintain position
+                aiThrottle = 0.8;
+
+            // STATE 3: ENERGY ADVANTAGE - Use altitude for boom and zoom
+            } else if (energyAdvantage > 200 && me109.altitude > spitfire.altitude + 150) {
+                console.log("AI: ENERGY ADVANTAGE - Boom and Zoom!");
+
+                // Dive towards enemy for speed advantage
+                targetX = spitfire.x;
+                targetY = spitfire.y;
+                targetAltitude = Math.max(ALTITUDE_MIN, spitfire.altitude + 100); // Dive to near their altitude
+
+                // Point nose at enemy
+                targetHeading = angleToEnemy;
+
+                // Full throttle for the dive
+                aiThrottle = 1.0;
+
+            // STATE 4: ENERGY RECOVERY - Low energy, gain altitude
+            } else if (me109.speed < me109.minSpeed * 1.3 || (energyAdvantage < -200 && me109.altitude < 800)) {
+                console.log("AI: ENERGY RECOVERY - Gaining altitude!");
+
+                // Climb away from enemy to gain energy
+                const escapeHeading = (angleToEnemy + 180 + 360) % 360; // Opposite direction
+                targetHeading = escapeHeading;
+
+                targetX = me109.x + Math.cos((escapeHeading - 90) * Math.PI / 180) * 200;
+                targetY = me109.y + Math.sin((escapeHeading - 90) * Math.PI / 180) * 200;
+
+                // Climb for energy
+                targetAltitude = Math.min(ALTITUDE_MAX, me109.altitude + 100);
+
+                // Full throttle for climb
+                aiThrottle = 1.0;
+
+            // STATE 5: NEUTRAL - Maneuver for position
+            } else {
+                console.log("AI: NEUTRAL - Maneuvering for position");
+
+                // Try to get to enemy's 6 o'clock (behind them)
+                const behindDistance = 200;
+                const behindX = spitfire.x - Math.cos((spitfire.heading - 90) * Math.PI / 180) * behindDistance;
+                const behindY = spitfire.y - Math.sin((spitfire.heading - 90) * Math.PI / 180) * behindDistance;
+
+                targetX = behindX;
+                targetY = behindY;
+
+                // Slight altitude advantage
+                targetAltitude = Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, spitfire.altitude + 100));
+
+                // Face towards the behind position
+                const dxBehind = behindX - me109.x;
+                const dyBehind = behindY - me109.y;
+                targetHeading = (Math.atan2(dyBehind, dxBehind) * 180 / Math.PI + 90 + 360) % 360;
+
+                // Moderate throttle
+                aiThrottle = 0.8;
             }
 
-            // Return ghost data without locking
-            return {
-                aircraft: new Aircraft(me109.name, me109.type, targetX, targetY,
-                    targetAltitude, targetHeading, me109.isPlayer),
-                targetX: targetX,
-                targetY: targetY,
-                targetAltitude: targetAltitude,
-                targetHeading: targetHeading,
-                targetRoll: targetRoll
-            };
-        }
+            // ===== APPLY THROTTLE SETTING =====
+            me109.throttle = Math.max(0.0, Math.min(1.0, aiThrottle));
 
-        // Lock AI orders from ghost
-        function lockAIOrders() {
-            if (aiGhostAircraft && !me109.hasOrders) {
+            // ===== VALIDATE AND EXECUTE =====
+
+            // Constrain to canvas
+            targetX = Math.max(50, Math.min(CANVAS_WIDTH - 50, targetX));
+            targetY = Math.max(50, Math.min(CANVAS_HEIGHT - 50, targetY));
+
+            // Validate maneuver
+            const validation = me109.calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading, useSlip);
+
+            if (validation.state !== 'illegal') {
+                // Use actual final position from physics calculation
                 me109.lockOrders(
-                    aiGhostAircraft.targetX,
-                    aiGhostAircraft.targetY,
-                    aiGhostAircraft.targetAltitude,
-                    aiGhostAircraft.targetHeading,
-                    aiGhostAircraft.targetRoll
+                    validation.finalX,
+                    validation.finalY,
+                    validation.finalAltitude,
+                    validation.finalFlightHeading,
+                    useSlip
+                );
+            } else {
+                // Fallback: simple forward movement with current heading
+                const fallbackDistance = 150;
+                const fallbackX = me109.x + Math.cos((me109.heading - 90) * Math.PI / 180) * fallbackDistance;
+                const fallbackY = me109.y + Math.sin((me109.heading - 90) * Math.PI / 180) * fallbackDistance;
+
+                const fallbackValidation = me109.calculateManeuverValidation(
+                    Math.max(50, Math.min(CANVAS_WIDTH - 50, fallbackX)),
+                    Math.max(50, Math.min(CANVAS_HEIGHT - 50, fallbackY)),
+                    Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, me109.altitude)),
+                    me109.heading,
+                    0
+                );
+
+                me109.lockOrders(
+                    fallbackValidation.finalX,
+                    fallbackValidation.finalY,
+                    fallbackValidation.finalAltitude,
+                    fallbackValidation.finalFlightHeading,
+                    0
                 );
             }
         }
 
         // Combat system
         function processCombat() {
+            // Reset firing states and clear old hit warnings
+            for (let plane of aircraft) {
+                plane.isFiring = false;
+                if (plane.firingCooldown > 0) plane.firingCooldown--;
+
+                // Clear hit warning after 2 seconds
+                if (plane.lastHitBy && (Date.now() - plane.lastHitTime) > 2000) {
+                    plane.lastHitBy = null;
+                }
+            }
+
             // Check if aircraft can fire at each other
             for (let shooter of aircraft) {
+                if (shooter.isDestroyed) continue; // Dead aircraft can't shoot
                 if (shooter.ammunition <= 0) continue;
+                if (shooter.firingCooldown > 0) continue;
 
                 for (let target of aircraft) {
                     if (shooter === target) continue;
+                    if (target.isDestroyed) continue; // Don't shoot at wreckage
 
-                    // Calculate if target is in firing arc (roughly 30 degrees in front)
+                    // Calculate if target is in firing arc
                     const dx = target.x - shooter.x;
                     const dy = target.y - shooter.y;
-                    const angleToTarget = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
-                    let angleDiff = Math.abs(angleToTarget - shooter.heading);
-                    if (angleDiff > 180) angleDiff = 360 - angleDiff;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
 
-                    if (angleDiff < 30) {
-                        // Target is in arc
-                        const distance = Math.sqrt(dx * dx + dy * dy);
-                        const altitudeDiff = Math.abs(target.altitude - shooter.altitude);
+                    // Get shooter's FLIGHT heading (not nose heading which includes slip)
+                    // During execution, the aircraft is flying in the direction of the path, not where nose points
+                    let shooterFlightHeading = shooter.heading;
 
-                        // Check if target is within maximum range
-                        if (distance > MAX_RANGE) {
+                    // If aircraft is using slip/skid, subtract it to get flight direction
+                    if (shooter.slipAngle !== 0) {
+                        shooterFlightHeading = (shooter.heading - shooter.slipAngle + 360) % 360;
+                    }
+
+                    const angleToTarget = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
+                    let angleDiff = angleToTarget - shooterFlightHeading;
+                    if (angleDiff > 180) angleDiff -= 360;
+                    if (angleDiff < -180) angleDiff += 360;
+                    angleDiff = Math.abs(angleDiff);
+
+                    // Firing cone: 20 degrees for realistic gunnery
+                    if (angleDiff < 20 && distance < 400) {
+                        // Check line of sight - clouds can block vision!
+                        const losBlocked = !terrain.isLineOfSightClear(
+                            shooter.x, shooter.y, shooter.altitude,
+                            target.x, target.y, target.altitude
+                        );
+
+                        if (losBlocked) {
+                            // Can't see target through clouds
                             shooter.timeOnTarget = 0;
                             continue;
                         }
 
+                        // Target is in arc, range, and visible
+                        const altitudeDiff = Math.abs(target.altitude - shooter.altitude);
+
                         // Calculate hit chance
-                        let hitChance = shooter.gunnerySkill * 0.5;
+                        let effectiveGunnerySkill = shooter.gunnerySkill * (1 - shooter.gForcePenalty);
+                        let hitChance = effectiveGunnerySkill * 0.6;
+                        hitChance *= Math.max(0.1, 1 - distance / 400); // Distance factor (max 400m)
+                        hitChance *= Math.max(0.3, 1 - altitudeDiff / 500); // Altitude factor
+                        hitChance *= Math.min(1, 0.2 + shooter.timeOnTarget / 8); // Time on target bonus
 
-                        // Distance factor - drops off sharply after effective range
-                        if (distance <= EFFECTIVE_RANGE) {
-                            hitChance *= Math.max(0.3, 1 - distance / EFFECTIVE_RANGE);
-                        } else {
-                            // Beyond effective range, hit chance drops rapidly
-                            const excessRange = distance - EFFECTIVE_RANGE;
-                            const maxExcess = MAX_RANGE - EFFECTIVE_RANGE;
-                            hitChance *= 0.3 * (1 - excessRange / maxExcess);
+                        // Apply roll penalties
+                        if (shooter.isRolling) {
+                            // Very hard to aim while rolling (50% penalty)
+                            hitChance *= 0.5;
                         }
-
-                        hitChance *= Math.max(0.5, 1 - altitudeDiff / 1000); // Altitude factor
-                        hitChance *= Math.min(1, 0.3 + shooter.timeOnTarget / 10); // Time on target bonus
+                        if (target.isRolling) {
+                            // Target harder to hit while rolling (30% penalty)
+                            hitChance *= 0.7;
+                        }
 
                         shooter.timeOnTarget += 0.1;
 
-                        // Fire if chance exceeds threshold
-                        if (hitChance >= shooter.fireThreshold) {
-                            shooter.ammunition -= 5;
+                        // Fire if chance exceeds threshold and angle is good
+                        if (hitChance >= shooter.fireThreshold && angleDiff < 15) {
+                            shooter.isFiring = true;
+                            shooter.ammunition -= shooter.ammoPerBurst; // Use weapon-specific ammo
+                            shooter.firingCooldown = shooter.rateOfFire; // Use weapon-specific ROF
 
                             // Create muzzle flash
                             muzzleFlashes.push({
@@ -1076,14 +1665,14 @@
                                 startTime: Date.now()
                             });
 
-                            // Create tracer bullets
+                            // Create animated tracer bullets
                             const bulletCount = 3;
                             for (let i = 0; i < bulletCount; i++) {
                                 const spread = (Math.random() - 0.5) * 10; // degrees
                                 tracerBullets.push({
                                     x: shooter.x,
                                     y: shooter.y,
-                                    angle: shooter.heading + spread,
+                                    angle: shooterFlightHeading + spread,
                                     speed: 800, // m/s
                                     lifetime: 1.0, // seconds
                                     startTime: Date.now(),
@@ -1092,28 +1681,69 @@
                                 });
                             }
 
-                            // Check if hit
-                            const isHit = Math.random() < hitChance;
-                            if (isHit) {
-                                target.damage += 2 + Math.random() * 3;
+                            console.log(`${shooter.name} FIRING at ${target.name}! Distance: ${Math.round(distance)}m, Angle: ${angleDiff.toFixed(1)}°, Hit chance: ${(hitChance * 100).toFixed(1)}%`);
 
-                                // Create hit marker
+                            // Play weapon sound
+                            if (shooter.type === 'Spitfire') {
+                                soundSpitfireMG.currentTime = 0;
+                                soundSpitfireMG.play().catch(e => console.log('Audio play failed:', e));
+                            } else {
+                                soundMe109Cannon.currentTime = 0;
+                                soundMe109Cannon.play().catch(e => console.log('Audio play failed:', e));
+                            }
+
+                            // Check if hit
+                            if (Math.random() < hitChance) {
+                                const damageAmount = shooter.damagePerHit; // Use weapon-specific damage
+                                target.damage += damageAmount;
+                                target.lastHitBy = shooter.name;
+                                target.lastHitTime = Date.now();
+                                console.log(`  HIT! ${target.name} took ${damageAmount.toFixed(1)} damage (total: ${target.damage.toFixed(1)})`);
+
+                                // Add visual hit effect based on weapon type
+                                const hitType = shooter.type === 'Spitfire' ? 'mg' : 'cannon';
+                                target.hitEffects.push({
+                                    x: target.x + (Math.random() - 0.5) * 30,
+                                    y: target.y + (Math.random() - 0.5) * 30,
+                                    type: hitType,
+                                    time: Date.now(),
+                                    duration: hitType === 'cannon' ? 300 : 150 // Cannon effects last longer
+                                });
+
+                                // Create hit marker for visual feedback
                                 hitMarkers.push({
                                     x: target.x,
                                     y: target.y,
                                     lifetime: 0.3,
                                     startTime: Date.now()
                                 });
+
+                                // Play sound effect (when implemented)
+                                // if (hitType === 'cannon') {
+                                //     soundExplosion.currentTime = 0;
+                                //     soundExplosion.play();
+                                // } else {
+                                //     soundHitMetal.currentTime = 0;
+                                //     soundHitMetal.play();
+                                // }
+
+                                // Check for destruction
+                                if (target.damage >= 100 && !target.isDestroyed) {
+                                    target.isDestroyed = true;
+                                    console.log(`💥 ${target.name} DESTROYED by ${shooter.name}!`);
+                                }
+                            } else {
+                                console.log(`  MISS!`);
                             }
                         }
                     } else {
-                        shooter.timeOnTarget = 0;
+                        shooter.timeOnTarget = Math.max(0, shooter.timeOnTarget - 0.05);
                     }
                 }
             }
         }
 
-        // Update and render combat effects
+        // Update combat effects (tracers, flashes, markers)
         function updateCombatEffects() {
             const now = Date.now();
 
@@ -1124,8 +1754,8 @@
 
                 // Move bullet
                 const distance = bullet.speed * elapsed;
-                bullet.x = bullet.startX + Math.cos(bullet.angle * Math.PI / 180) * distance;
-                bullet.y = bullet.startY + Math.sin(bullet.angle * Math.PI / 180) * distance;
+                bullet.x = bullet.startX + Math.cos((bullet.angle - 90) * Math.PI / 180) * distance;
+                bullet.y = bullet.startY + Math.sin((bullet.angle - 90) * Math.PI / 180) * distance;
 
                 return true;
             });
@@ -1156,8 +1786,8 @@
 
                 ctx.beginPath();
                 const tailLength = 20;
-                const tailX = bullet.x - Math.cos(bullet.angle * Math.PI / 180) * tailLength;
-                const tailY = bullet.y - Math.sin(bullet.angle * Math.PI / 180) * tailLength;
+                const tailX = bullet.x - Math.cos((bullet.angle - 90) * Math.PI / 180) * tailLength;
+                const tailY = bullet.y - Math.sin((bullet.angle - 90) * Math.PI / 180) * tailLength;
                 ctx.moveTo(tailX, tailY);
                 ctx.lineTo(bullet.x, bullet.y);
                 ctx.stroke();
@@ -1216,14 +1846,19 @@
                 ctx.arc(plane.x, plane.y, MAX_RANGE, 0, Math.PI * 2);
                 ctx.stroke();
 
-                // Draw firing arc cone (30 degrees)
+                // Draw firing arc cone (20 degrees)
+                let shooterFlightHeading = plane.heading;
+                if (plane.slipAngle !== 0) {
+                    shooterFlightHeading = (plane.heading - plane.slipAngle + 360) % 360;
+                }
+
                 ctx.strokeStyle = plane.isPlayer ? 'rgba(0, 153, 255, 0.3)' : 'rgba(255, 68, 68, 0.3)';
                 ctx.fillStyle = plane.isPlayer ? 'rgba(0, 153, 255, 0.1)' : 'rgba(255, 68, 68, 0.1)';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(plane.x, plane.y);
-                const startAngle = (plane.heading - 15) * Math.PI / 180;
-                const endAngle = (plane.heading + 15) * Math.PI / 180;
+                const startAngle = (shooterFlightHeading - 100) * Math.PI / 180;
+                const endAngle = (shooterFlightHeading - 80) * Math.PI / 180;
                 ctx.arc(plane.x, plane.y, EFFECTIVE_RANGE, startAngle, endAngle);
                 ctx.lineTo(plane.x, plane.y);
                 ctx.fill();
@@ -1235,21 +1870,63 @@
 
         // Rendering
         function render() {
-            // Reset context state
-            ctx.globalAlpha = 1.0;
-            ctx.globalCompositeOperation = 'source-over';
-
-            // Clear canvas
-            ctx.fillStyle = '#16213e';
+            ctx.fillStyle = '#3d5235';
             ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // Apply zoom and pan transform
+            ctx.save();
+            ctx.translate(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+            ctx.translate(panX, panY); // Apply pan offset
+            ctx.scale(zoomLevel, zoomLevel);
+            ctx.translate(-CANVAS_WIDTH / 2, -CANVAS_HEIGHT / 2);
 
             // Render terrain
             terrain.render();
 
+            // Render flight paths (dotted lines) for locked orders
+            for (let plane of aircraft) {
+                // Don't draw the path if this aircraft is currently being edited (has a ghost)
+                if (plane === selectedAircraft && ghostAircraft) continue;
+
+                if (plane.flightPath && plane.flightPath.length > 1 && plane.hasOrders) {
+                    ctx.strokeStyle = plane.isPlayer ? '#00aaff' : '#ff6666';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]); // Dotted line
+
+                    ctx.beginPath();
+                    ctx.moveTo(plane.flightPath[0].x, plane.flightPath[0].y);
+                    for (let i = 1; i < plane.flightPath.length; i++) {
+                        ctx.lineTo(plane.flightPath[i].x, plane.flightPath[i].y);
+                    }
+                    ctx.stroke();
+                    ctx.setLineDash([]); // Reset to solid line
+                }
+            }
+
+            // Render ghost aircraft flight path
+            if (ghostAircraft && ghostAircraft.aircraft.flightPath && ghostAircraft.aircraft.flightPath.length > 1) {
+                // Color based on validation state
+                let pathColor = '#00ff00'; // valid = green
+                if (ghostAircraft.state === 'stressful') pathColor = '#ffaa00'; // yellow
+                if (ghostAircraft.state === 'illegal') pathColor = '#ff0000'; // red
+
+                ctx.strokeStyle = pathColor;
+                ctx.lineWidth = 3;
+                ctx.setLineDash([8, 4]); // Dotted line
+
+                ctx.beginPath();
+                ctx.moveTo(ghostAircraft.aircraft.flightPath[0].x, ghostAircraft.aircraft.flightPath[0].y);
+                for (let i = 1; i < ghostAircraft.aircraft.flightPath.length; i++) {
+                    ctx.lineTo(ghostAircraft.aircraft.flightPath[i].x, ghostAircraft.aircraft.flightPath[i].y);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]); // Reset to solid line
+            }
+
             // Render range indicators (during execution)
             renderRangeIndicators();
 
-            // Render combat effects (behind aircraft)
+            // Render combat effects (tracers, muzzle flashes, hit markers)
             renderCombatEffects();
 
             // Render aircraft
@@ -1257,19 +1934,152 @@
                 plane.renderSVG();
             }
 
-            // Render player ghost if in order mode
+            // Render hit effects
+            const now = Date.now();
+            for (let plane of aircraft) {
+                // Clean up old hit effects
+                plane.hitEffects = plane.hitEffects.filter(effect => now - effect.time < effect.duration);
+
+                // Render active hit effects
+                for (let effect of plane.hitEffects) {
+                    const age = now - effect.time;
+                    const progress = age / effect.duration;
+                    const alpha = 1 - progress; // Fade out over time
+
+                    if (effect.type === 'cannon') {
+                        // Autocannon hit - explosion effect
+                        const size = 15 + (1 - progress) * 10; // Expands then fades
+
+                        // Orange explosion core
+                        ctx.fillStyle = `rgba(255, 150, 0, ${alpha * 0.8})`;
+                        ctx.beginPath();
+                        ctx.arc(effect.x, effect.y, size * 0.6, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Yellow outer glow
+                        ctx.fillStyle = `rgba(255, 220, 100, ${alpha * 0.5})`;
+                        ctx.beginPath();
+                        ctx.arc(effect.x, effect.y, size, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Spark particles
+                        for (let i = 0; i < 4; i++) {
+                            const angle = (i / 4) * Math.PI * 2 + progress * Math.PI;
+                            const dist = size * 1.5 * progress;
+                            const sparkX = effect.x + Math.cos(angle) * dist;
+                            const sparkY = effect.y + Math.sin(angle) * dist;
+
+                            ctx.fillStyle = `rgba(255, 200, 50, ${alpha * 0.7})`;
+                            ctx.beginPath();
+                            ctx.arc(sparkX, sparkY, 3, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    } else {
+                        // Machine gun hit - bullet strike effect
+                        const size = 8 + (1 - progress) * 5;
+
+                        // White/yellow impact flash
+                        ctx.fillStyle = `rgba(255, 255, 200, ${alpha})`;
+                        ctx.beginPath();
+                        ctx.arc(effect.x, effect.y, size * 0.5, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Metal spark
+                        ctx.fillStyle = `rgba(200, 200, 255, ${alpha * 0.7})`;
+                        ctx.beginPath();
+                        ctx.arc(effect.x, effect.y, size, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Small debris particles
+                        for (let i = 0; i < 2; i++) {
+                            const angle = Math.random() * Math.PI * 2;
+                            const dist = size * progress * 2;
+                            const debrisX = effect.x + Math.cos(angle) * dist;
+                            const debrisY = effect.y + Math.sin(angle) * dist;
+
+                            ctx.fillStyle = `rgba(100, 100, 100, ${alpha * 0.5})`;
+                            ctx.beginPath();
+                            ctx.arc(debrisX, debrisY, 2, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                }
+            }
+
+            // Render gun fire effects (tracers and muzzle flash)
+            for (let plane of aircraft) {
+                if (plane.isFiring) {
+                    // Muzzle flash
+                    ctx.save();
+                    ctx.translate(plane.x, plane.y);
+
+                    // Get flight heading (not nose heading)
+                    let flightHeading = plane.heading;
+                    if (plane.slipAngle !== 0) {
+                        flightHeading = (plane.heading - plane.slipAngle + 360) % 360;
+                    }
+
+                    ctx.rotate((flightHeading) * Math.PI / 180);
+
+                    // Flash effect
+                    ctx.fillStyle = 'rgba(255, 200, 0, 0.8)';
+                    ctx.beginPath();
+                    ctx.arc(0, -35, 10, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Tracer bullets - draw several short lines ahead
+                    ctx.strokeStyle = 'rgba(255, 255, 100, 0.7)';
+                    ctx.lineWidth = 2;
+                    for (let i = 0; i < 5; i++) {
+                        const tracerStart = -40 - (i * 30);
+                        const tracerEnd = tracerStart - 15;
+                        ctx.beginPath();
+                        ctx.moveTo(0, tracerStart);
+                        ctx.lineTo(0, tracerEnd);
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+                }
+            }
+
+            // Render ghost if in order mode
             if (ghostAircraft) {
                 ghostAircraft.aircraft.renderSVG(true, ghostAircraft.state);
             }
 
-            // Render AI ghost if in order mode
-            if (aiGhostAircraft) {
-                aiGhostAircraft.aircraft.renderSVG(true, 'valid');
-            }
+            ctx.restore();
 
-            // Reset context state after rendering
-            ctx.globalAlpha = 1.0;
-            ctx.globalCompositeOperation = 'source-over';
+            // Draw scale bar (in screen space, not affected by zoom/pan)
+            const scaleBarLength = 100; // Represents 100 meters
+            const scaleBarX = 20;
+            const scaleBarY = CANVAS_HEIGHT - 40;
+
+            ctx.strokeStyle = '#ffffff';
+            ctx.fillStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.font = '14px Courier New';
+
+            // Draw scale bar line
+            ctx.beginPath();
+            ctx.moveTo(scaleBarX, scaleBarY);
+            ctx.lineTo(scaleBarX + scaleBarLength, scaleBarY);
+            ctx.stroke();
+
+            // Draw end caps
+            ctx.beginPath();
+            ctx.moveTo(scaleBarX, scaleBarY - 5);
+            ctx.lineTo(scaleBarX, scaleBarY + 5);
+            ctx.moveTo(scaleBarX + scaleBarLength, scaleBarY - 5);
+            ctx.lineTo(scaleBarX + scaleBarLength, scaleBarY + 5);
+            ctx.stroke();
+
+            // Draw label
+            ctx.fillText('100m', scaleBarX + scaleBarLength / 2 - 20, scaleBarY - 10);
+
+            // Draw zoom level indicator
+            ctx.fillStyle = '#aaaaaa';
+            ctx.font = '12px Courier New';
+            ctx.fillText(`Zoom: ${zoomLevel.toFixed(1)}x`, scaleBarX, scaleBarY + 20);
         }
 
         function updateUI() {
@@ -1289,58 +2099,170 @@
         let mouseY = 0;
         let ghostRotation = 0;
         let ghostAltitudeOffset = 0;
-        let ghostRoll = 0; // Phase 3: Add roll control
+        let ghostSlipAngle = 0; // Slip/skid angle in degrees (nose pointing different direction than movement)
+        let zoomLevel = 1.0; // Zoom level for canvas (1.0 = no zoom)
+        let panX = 0; // Pan offset X
+        let panY = 0; // Pan offset Y
+        let isPanning = false; // Middle mouse button panning active
+        let lastPanX = 0; // Last pan mouse position
+        let lastPanY = 0;
+
+        // Helper function to transform screen coordinates to canvas coordinates (accounting for zoom and pan)
+        function screenToCanvas(screenX, screenY) {
+            // Screen coords relative to canvas element
+            // Need to reverse the zoom and pan transformation:
+            // 1. Translate to origin (center of canvas)
+            // 2. Account for pan offset
+            // 3. Divide by zoom (inverse of scale)
+            // 4. Translate back
+            const centerX = CANVAS_WIDTH / 2;
+            const centerY = CANVAS_HEIGHT / 2;
+
+            const canvasX = centerX + ((screenX - centerX) - panX) / zoomLevel;
+            const canvasY = centerY + ((screenY - centerY) - panY) / zoomLevel;
+
+            return { x: canvasX, y: canvasY };
+        }
+
+        // Helper function to update ghost aircraft position and validation
+        function updateGhost() {
+            if (!selectedAircraft || !ghostAircraft) return;
+
+            // Target position (where mouse is pointing)
+            const targetX = mouseX;
+            const targetY = mouseY;
+            const targetHeading = (selectedAircraft.heading + ghostRotation + 360) % 360;
+            const targetAltitude = Math.max(ALTITUDE_MIN,
+                Math.min(ALTITUDE_MAX, selectedAircraft.altitude + ghostAltitudeOffset));
+
+            // Calculate realistic path from current position to target (with slip/skid angle)
+            const validation = selectedAircraft.calculateManeuverValidation(
+                targetX,
+                targetY,
+                targetAltitude,
+                targetHeading,
+                ghostSlipAngle
+            );
+
+            ghostAircraft.state = validation.state;
+            ghostAircraft.validation = validation;
+
+            // Copy the calculated flight path to the ghost aircraft for rendering
+            ghostAircraft.aircraft.flightPath = selectedAircraft.flightPath;
+
+            // Position ghost at the END of the calculated path (where aircraft will actually end up)
+            if (selectedAircraft.flightPath && selectedAircraft.flightPath.length > 0) {
+                const finalState = selectedAircraft.flightPath[selectedAircraft.flightPath.length - 1];
+                ghostAircraft.aircraft.x = finalState.x;
+                ghostAircraft.aircraft.y = finalState.y;
+                ghostAircraft.aircraft.altitude = finalState.altitude;
+                // Apply slip/skid angle to final heading (nose points different direction than movement)
+                ghostAircraft.aircraft.heading = (finalState.heading + ghostSlipAngle + 360) % 360;
+            } else {
+                // Fallback if no path calculated
+                ghostAircraft.aircraft.x = targetX;
+                ghostAircraft.aircraft.y = targetY;
+                ghostAircraft.aircraft.altitude = targetAltitude;
+                ghostAircraft.aircraft.heading = (targetHeading + ghostSlipAngle + 360) % 360;
+            }
+        }
+
+        // Helper function to update ghost panel
+        function updateGhostPanel() {
+            if (!ghostAircraft || !ghostAircraft.validation) return;
+
+            const panel = document.getElementById('ghostPanel');
+            panel.style.display = 'block';
+            panel.style.left = (lastScreenX + 50) + 'px';
+            panel.style.top = (lastScreenY - 50) + 'px';
+
+            const validation = ghostAircraft.validation;
+            const throttlePercent = Math.round(selectedAircraft.throttle * 100);
+            const altChange = Math.round(validation.targetAltitude - selectedAircraft.altitude);
+            const altChangeSymbol = altChange > 0 ? '↑' : altChange < 0 ? '↓' : '→';
+            const rollDisplay = selectedAircraft.rollType === 'none' ? 'None' :
+                               selectedAircraft.rollType === 'half' ? 'Half Roll (Inverted)' :
+                               'Full Roll';
+            const rollColor = selectedAircraft.rollType !== 'none' ? '#ffaa00' : '#ffffff';
+            const fireThresholdPercent = Math.round(selectedAircraft.fireThreshold * 100);
+            const fireThresholdColor = selectedAircraft.fireThreshold < 0.20 ? '#ff4444' :
+                                      selectedAircraft.fireThreshold < 0.30 ? '#ffaa00' : '#00ff00';
+            let panelHTML = `
+                <div>Throttle: ${throttlePercent}%</div>
+                <div>Heading: ${validation.targetHeading}°</div>
+                <div>Slip: ${ghostSlipAngle}° ${ghostSlipAngle > 0 ? '→' : ghostSlipAngle < 0 ? '←' : ''}</div>
+                <div>Altitude: ${validation.targetAltitude}m (${altChange >= 0 ? '+' : ''}${altChange}m ${altChangeSymbol})</div>
+                <div>Speed: ${validation.targetSpeed} m/s</div>
+                <div>G-Force: ${validation.gForce}G</div>
+                <div style="color: ${rollColor}">Roll: ${rollDisplay}</div>
+                <div style="color: ${fireThresholdColor}">Fire Threshold: ${fireThresholdPercent}%</div>
+            `;
+
+            if (validation.warnings.length > 0) {
+                panelHTML += '<div style="color: #ff4444; margin-top: 5px;">';
+                for (let warning of validation.warnings) {
+                    panelHTML += `<div>${warning}</div>`;
+                }
+                panelHTML += '</div>';
+            }
+
+            panel.innerHTML = panelHTML;
+        }
+
+        let lastScreenX = 0;
+        let lastScreenY = 0;
 
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
-            mouseX = e.clientX - rect.left;
-            mouseY = e.clientY - rect.top;
+            lastScreenX = e.clientX - rect.left;
+            lastScreenY = e.clientY - rect.top;
+
+            // Handle middle mouse button panning
+            if (isPanning) {
+                const deltaX = lastScreenX - lastPanX;
+                const deltaY = lastScreenY - lastPanY;
+                panX += deltaX;
+                panY += deltaY;
+                lastPanX = lastScreenX;
+                lastPanY = lastScreenY;
+            }
+
+            // Transform to canvas coordinates
+            const canvasCoords = screenToCanvas(lastScreenX, lastScreenY);
+            mouseX = canvasCoords.x;
+            mouseY = canvasCoords.y;
 
             if (selectedAircraft && ghostAircraft) {
-                // Update ghost position
-                ghostAircraft.aircraft.x = mouseX;
-                ghostAircraft.aircraft.y = mouseY;
-                ghostAircraft.aircraft.heading = (selectedAircraft.heading + ghostRotation + 360) % 360;
-                ghostAircraft.aircraft.altitude = Math.max(ALTITUDE_MIN,
-                    Math.min(ALTITUDE_MAX, selectedAircraft.altitude + ghostAltitudeOffset));
+                updateGhost();
+                updateGhostPanel();
+            }
+        });
 
-                // Phase 3: Update ghost roll
-                ghostAircraft.aircraft.targetRoll = ghostRoll;
+        // Middle mouse button down - start panning
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 1) { // Middle mouse button
+                e.preventDefault();
+                isPanning = true;
+                const rect = canvas.getBoundingClientRect();
+                lastPanX = e.clientX - rect.left;
+                lastPanY = e.clientY - rect.top;
+                canvas.style.cursor = 'grabbing';
+            }
+        });
 
-                // Validate maneuver
-                const validation = selectedAircraft.calculateManeuverValidation(
-                    ghostAircraft.aircraft.x,
-                    ghostAircraft.aircraft.y,
-                    ghostAircraft.aircraft.altitude,
-                    ghostAircraft.aircraft.heading,
-                    ghostAircraft.aircraft.targetRoll // Phase 3: Pass target roll
-                );
+        // Mouse up - stop panning
+        canvas.addEventListener('mouseup', (e) => {
+            if (e.button === 1) { // Middle mouse button
+                isPanning = false;
+                canvas.style.cursor = 'default';
+            }
+        });
 
-                ghostAircraft.state = validation.state;
-                ghostAircraft.validation = validation;
-
-                // Update ghost panel
-                const panel = document.getElementById('ghostPanel');
-                panel.style.display = 'block';
-                panel.style.left = (mouseX + 50) + 'px';
-                panel.style.top = (mouseY - 50) + 'px';
-
-                let panelHTML = `
-                    <div>Target Speed: ${validation.targetSpeed} m/s</div>
-                    <div>G-Force: ${validation.gForce}G</div>
-                    <div>Roll Angle: ${validation.targetRoll}°</div>
-                    <div>Roll Complete: ${validation.rollCompletionPercent}%</div>
-                `;
-
-                if (validation.warnings.length > 0) {
-                    panelHTML += '<div style="color: #ff4444; margin-top: 5px;">';
-                    for (let warning of validation.warnings) {
-                        panelHTML += `<div>${warning}</div>`;
-                    }
-                    panelHTML += '</div>';
-                }
-
-                panel.innerHTML = panelHTML;
+        // Mouse leave - stop panning if active
+        canvas.addEventListener('mouseleave', () => {
+            if (isPanning) {
+                isPanning = false;
+                canvas.style.cursor = 'default';
             }
         });
 
@@ -1348,49 +2270,64 @@
             if (gameState !== 'ORDER') return;
 
             const rect = canvas.getBoundingClientRect();
-            const clickX = e.clientX - rect.left;
-            const clickY = e.clientY - rect.top;
+            const screenX = e.clientX - rect.left;
+            const screenY = e.clientY - rect.top;
+
+            // Transform to canvas coordinates
+            const canvasCoords = screenToCanvas(screenX, screenY);
+            const clickX = canvasCoords.x;
+            const clickY = canvasCoords.y;
+
+            console.log('Click at:', clickX, clickY, 'Ghost active:', !!ghostAircraft, 'State:', ghostAircraft?.state);
 
             // Check if clicking on an aircraft
             for (let plane of aircraft) {
                 if (plane.isClicked(clickX, clickY)) {
+                    console.log('Clicked on aircraft:', plane.name);
                     if (!plane.isPlayer) continue; // Only player can control their aircraft
+                    if (plane.isDestroyed) continue; // Can't control destroyed aircraft
 
                     if (selectedAircraft === plane) {
-                        // Lock in orders for BOTH player and AI simultaneously
-                        if (ghostAircraft && ghostAircraft.state !== 'illegal') {
+                        console.log('Same aircraft - attempting to lock');
+                        // Lock in orders (using final flight heading from validation, not nose heading)
+                        if (ghostAircraft && ghostAircraft.state !== 'illegal' && ghostAircraft.validation) {
+                            console.log('Locking orders!');
+                            const val = ghostAircraft.validation;
                             plane.lockOrders(
-                                ghostAircraft.aircraft.x,
-                                ghostAircraft.aircraft.y,
-                                ghostAircraft.aircraft.altitude,
-                                ghostAircraft.aircraft.heading,
-                                ghostAircraft.aircraft.targetRoll
+                                val.finalX,
+                                val.finalY,
+                                val.finalAltitude,
+                                val.finalFlightHeading,
+                                ghostSlipAngle // Save slip angle for nose direction during execution
                             );
-
-                            // Lock AI orders simultaneously
-                            lockAIOrders();
-
-                            // Clear all ghosts
-                            selectedAircraft = null;
-                            ghostAircraft = null;
-                            aiGhostAircraft = null;
+                            selectedAircraft = null; // Deselect but keep ghost visible
                             ghostRotation = 0;
                             ghostAltitudeOffset = 0;
-                            ghostRoll = 0;
+                            ghostSlipAngle = 0;
                             document.getElementById('ghostPanel').style.display = 'none';
+
+                            // Generate AI orders
+                            generateAIOrders();
+                        } else {
+                            console.log('Ghost illegal, not locking');
                         }
                     } else if (plane.hasOrders) {
-                        // Unlock orders
+                        console.log('Unlocking orders');
+                        // Unlock orders - but recreate ghost at unlocked position
                         plane.unlockOrders();
-                        selectedAircraft = null;
-                        ghostAircraft = null;
-                        aiGhostAircraft = null;
+                        selectedAircraft = plane;
+                        ghostAircraft = {
+                            aircraft: new Aircraft(plane.name, plane.type, plane.targetX, plane.targetY,
+                                plane.targetAltitude, plane.targetHeading, plane.isPlayer),
+                            state: 'valid'
+                        };
                         ghostRotation = 0;
                         ghostAltitudeOffset = 0;
-                        ghostRoll = 0;
-                        document.getElementById('ghostPanel').style.display = 'none';
+                        ghostSlipAngle = 0;
+                        updateGhost();
                     } else {
-                        // Select aircraft and generate both ghosts
+                        console.log('Selecting aircraft');
+                        // Select aircraft
                         selectedAircraft = plane;
                         ghostAircraft = {
                             aircraft: new Aircraft(plane.name, plane.type, plane.x, plane.y,
@@ -1399,13 +2336,39 @@
                         };
                         ghostRotation = 0;
                         ghostAltitudeOffset = 0;
-                        ghostRoll = 0;
-
-                        // Generate AI ghost immediately (uses current positions only)
-                        aiGhostAircraft = generateAIGhost();
+                        ghostSlipAngle = 0;
+                        updateGhost(); // Update ghost immediately
                     }
                     return;
                 }
+            }
+
+            console.log('Click did not hit aircraft - attempting to lock from anywhere');
+            // If we didn't click on any aircraft, but we have a ghost selected, lock in orders
+            if (selectedAircraft && ghostAircraft && ghostAircraft.state !== 'illegal' && ghostAircraft.validation) {
+                console.log('Locking orders from empty click!');
+                const val = ghostAircraft.validation;
+                selectedAircraft.lockOrders(
+                    val.finalX,
+                    val.finalY,
+                    val.finalAltitude,
+                    val.finalFlightHeading,
+                    ghostSlipAngle // Save slip angle for nose direction during execution
+                );
+                selectedAircraft = null; // Deselect but keep ghost visible
+                ghostRotation = 0;
+                ghostAltitudeOffset = 0;
+                ghostSlipAngle = 0;
+                document.getElementById('ghostPanel').style.display = 'none';
+
+                // Generate AI orders
+                generateAIOrders();
+            } else {
+                console.log('Cannot lock:', {
+                    selectedAircraft: !!selectedAircraft,
+                    ghostAircraft: !!ghostAircraft,
+                    state: ghostAircraft?.state
+                });
             }
         });
 
@@ -1413,38 +2376,87 @@
         window.addEventListener('keydown', (e) => {
             if (!selectedAircraft || !ghostAircraft) return;
 
+            // Prevent key repeat from causing multiple rapid changes
+            if (e.repeat) return;
+
             switch(e.key.toLowerCase()) {
                 case 'w':
-                    ghostAltitudeOffset += 50;
+                    // Increase throttle
+                    selectedAircraft.throttle = Math.min(1.0, selectedAircraft.throttle + 0.1);
+                    updateGhost();
+                    updateGhostPanel();
                     break;
                 case 's':
+                    // Reduce throttle
+                    selectedAircraft.throttle = Math.max(0.0, selectedAircraft.throttle - 0.1);
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'q':
+                    // Decrease altitude (dive)
                     ghostAltitudeOffset -= 50;
+                    // Limit to max dive rate over current turn time
+                    const maxDive = -selectedAircraft.maxDiveRate * turnTime;
+                    ghostAltitudeOffset = Math.max(maxDive, ghostAltitudeOffset);
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'e':
+                    // Increase altitude (climb)
+                    ghostAltitudeOffset += 50;
+                    // Limit to max climb rate over current turn time
+                    const maxClimb = selectedAircraft.maxClimbRate * turnTime;
+                    ghostAltitudeOffset = Math.min(maxClimb, ghostAltitudeOffset);
+                    updateGhost();
+                    updateGhostPanel();
                     break;
                 case 'a':
-                    selectedAircraft.fireThreshold = Math.max(0.1, selectedAircraft.fireThreshold - 0.05);
+                    // Slip/skid left (nose points left of direction of travel)
+                    ghostSlipAngle = Math.max(-30, ghostSlipAngle - 5);
+                    updateGhost();
+                    updateGhostPanel();
                     break;
                 case 'd':
-                    selectedAircraft.fireThreshold = Math.min(0.9, selectedAircraft.fireThreshold + 0.05);
+                    // Slip/skid right (nose points right of direction of travel)
+                    ghostSlipAngle = Math.min(30, ghostSlipAngle + 5);
+                    updateGhost();
+                    updateGhostPanel();
                     break;
-                case 'q': // Phase 3: Roll left
-                    ghostRoll -= 15;
-                    if (ghostRoll < -180) ghostRoll += 360;
+                case 'r':
+                    // Cycle roll type: none -> half -> full -> none
+                    if (selectedAircraft.rollType === 'none') {
+                        selectedAircraft.rollType = 'half';
+                    } else if (selectedAircraft.rollType === 'half') {
+                        selectedAircraft.rollType = 'full';
+                    } else {
+                        selectedAircraft.rollType = 'none';
+                    }
+                    updateGhost();
+                    updateGhostPanel();
                     break;
-                case 'e': // Phase 3: Roll right
-                    ghostRoll += 15;
-                    if (ghostRoll > 180) ghostRoll -= 360;
+                case 'z':
+                    // Decrease fire threshold (fire more aggressively, less accurate)
+                    selectedAircraft.fireThreshold = Math.max(0.05, selectedAircraft.fireThreshold - 0.05);
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'x':
+                    // Increase fire threshold (fire more conservatively, wait for better shots)
+                    selectedAircraft.fireThreshold = Math.min(0.80, selectedAircraft.fireThreshold + 0.05);
+                    updateGhost();
+                    updateGhostPanel();
                     break;
             }
         });
 
         canvas.addEventListener('wheel', (e) => {
-            if (!selectedAircraft || !ghostAircraft) return;
             e.preventDefault();
 
+            // Always zoom in/out with mouse wheel
             if (e.deltaY < 0) {
-                ghostRotation += 10;
+                zoomLevel = Math.min(3.0, zoomLevel * 1.1); // Max 3x zoom
             } else {
-                ghostRotation -= 10;
+                zoomLevel = Math.max(0.5, zoomLevel / 1.1); // Min 0.5x zoom
             }
         });
 
@@ -1453,6 +2465,12 @@
             gameState = 'EXECUTION';
             executionStartTime = Date.now();
             executionRecording = [];
+
+            // Clear ghost and selection when execution starts
+            ghostAircraft = null;
+            selectedAircraft = null;
+            document.getElementById('ghostPanel').style.display = 'none';
+
             updateUI();
         });
 
@@ -1461,7 +2479,10 @@
             gameState = 'EXECUTION';
             executionStartTime = Date.now();
             document.getElementById('replayButton').style.display = 'none';
-            document.getElementById('nextPhaseButton').style.display = 'none';
+            document.getElementById('nextPhase2s').style.display = 'none';
+            document.getElementById('nextPhase4s').style.display = 'none';
+            document.getElementById('nextPhase6s').style.display = 'none';
+            document.getElementById('nextPhase8s').style.display = 'none';
 
             // Reset aircraft to start of turn positions
             for (let plane of aircraft) {
@@ -1474,23 +2495,81 @@
             }
         });
 
-        document.getElementById('nextPhaseButton').addEventListener('click', () => {
+        // Helper function for next phase transition with variable duration
+        function startNextPhase(duration) {
+            // Set the turn duration for next phase
+            turnTime = duration;
+            executionTime = duration * 1000; // Convert to milliseconds
+
             gameState = 'ORDER';
             currentTurn++;
+
+            // Handle stall recovery/loss of control for next turn
+            for (let plane of aircraft) {
+                if (plane.inStall) {
+                    // Aircraft stalled - lose control this turn (AI takes over recovery)
+                    console.log(`${plane.name} is recovering from stall!`);
+
+                    // Auto-generate recovery maneuver: nose down, gain speed
+                    const recoveryX = plane.x + Math.cos((plane.heading - 90) * Math.PI / 180) * 200;
+                    const recoveryY = plane.y + Math.sin((plane.heading - 90) * Math.PI / 180) * 200;
+                    const recoveryAltitude = Math.max(100, plane.altitude - 100); // Lose 100m altitude
+                    const recoveryHeading = plane.heading; // Maintain heading during recovery
+
+                    const recoveryValidation = plane.calculateManeuverValidation(recoveryX, recoveryY, recoveryAltitude, recoveryHeading);
+                    plane.lockOrders(
+                        recoveryValidation.finalX,
+                        recoveryValidation.finalY,
+                        recoveryValidation.finalAltitude,
+                        recoveryValidation.finalFlightHeading,
+                        0
+                    );
+                    plane.inStall = false; // Clear stall for next turn
+                    plane.damage += 5; // Damage from stall
+                }
+            }
+
+            // Hide all phase buttons
             document.getElementById('replayButton').style.display = 'none';
-            document.getElementById('nextPhaseButton').style.display = 'none';
-
-            // Clear any lingering ghosts
-            aiGhostAircraft = null;
-
+            document.getElementById('nextPhase2s').style.display = 'none';
+            document.getElementById('nextPhase4s').style.display = 'none';
+            document.getElementById('nextPhase6s').style.display = 'none';
+            document.getElementById('nextPhase8s').style.display = 'none';
             updateUI();
-        });
+        }
+
+        // Event listeners for next phase buttons (2s, 4s, 6s, 8s)
+        document.getElementById('nextPhase2s').addEventListener('click', () => startNextPhase(2));
+        document.getElementById('nextPhase4s').addEventListener('click', () => startNextPhase(4));
+        document.getElementById('nextPhase6s').addEventListener('click', () => startNextPhase(6));
+        document.getElementById('nextPhase8s').addEventListener('click', () => startNextPhase(8));
 
         // Main game loop
         function gameLoop() {
+            // Manage engine sounds based on game state and aircraft status
+            if (gameState === 'EXECUTION') {
+                if (!spitfire.isDestroyed && soundSpitfireEngine.paused) {
+                    soundSpitfireEngine.play().catch(e => console.log('Engine audio failed:', e));
+                }
+                if (!me109.isDestroyed && soundMe109Engine.paused) {
+                    soundMe109Engine.play().catch(e => console.log('Engine audio failed:', e));
+                }
+            } else {
+                if (!soundSpitfireEngine.paused) soundSpitfireEngine.pause();
+                if (!soundMe109Engine.paused) soundMe109Engine.pause();
+            }
+
+            // Stop engine sounds for destroyed aircraft
+            if (spitfire.isDestroyed && !soundSpitfireEngine.paused) {
+                soundSpitfireEngine.pause();
+            }
+            if (me109.isDestroyed && !soundMe109Engine.paused) {
+                soundMe109Engine.pause();
+            }
+
             if (gameState === 'EXECUTION') {
                 const elapsed = Date.now() - executionStartTime;
-                const progress = Math.min(1, elapsed / EXECUTION_TIME);
+                const progress = Math.min(1, elapsed / executionTime);
 
                 // Move aircraft
                 for (let plane of aircraft) {
@@ -1502,19 +2581,59 @@
                 // Process combat
                 processCombat();
 
-                if (progress >= 1) {
+                // Update combat effects every frame
+                updateCombatEffects();
+
+                // Check for game over
+                const playerDestroyed = spitfire.isDestroyed;
+                const enemyDestroyed = me109.isDestroyed;
+
+                if (playerDestroyed || enemyDestroyed) {
+                    gameState = 'GAMEOVER';
+                }
+
+                if (progress >= 1 && gameState !== 'GAMEOVER') {
                     // Finalize execution
                     for (let plane of aircraft) {
                         plane.finalizeExecution();
                     }
                     gameState = 'REVIEW';
                     document.getElementById('replayButton').style.display = 'block';
-                    document.getElementById('nextPhaseButton').style.display = 'block';
+                    document.getElementById('nextPhase2s').style.display = 'block';
+                    document.getElementById('nextPhase4s').style.display = 'block';
+                    document.getElementById('nextPhase6s').style.display = 'block';
+                    document.getElementById('nextPhase8s').style.display = 'block';
                 }
             }
 
-            // Update combat effects (tracers, flashes, etc.) every frame
-            updateCombatEffects();
+            // Game over screen
+            if (gameState === 'GAMEOVER') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 48px Courier New';
+                ctx.textAlign = 'center';
+
+                if (spitfire.isDestroyed) {
+                    ctx.fillStyle = '#ff4444';
+                    ctx.fillText('DEFEAT', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40);
+                    ctx.font = '24px Courier New';
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText(`Your Spitfire was destroyed by ${spitfire.lastHitBy}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
+                } else if (me109.isDestroyed) {
+                    ctx.fillStyle = '#00ff00';
+                    ctx.fillText('VICTORY!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40);
+                    ctx.font = '24px Courier New';
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText('Enemy Me-109 destroyed!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
+                }
+
+                ctx.font = '18px Courier New';
+                ctx.fillStyle = '#aaaaaa';
+                ctx.fillText('Refresh page to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80);
+                ctx.textAlign = 'left';
+            }
 
             render();
             updateUI();
@@ -1522,11 +2641,6 @@
         }
 
         // Start game
-        console.log('Game initializing...');
-        console.log('Canvas:', canvas.width, 'x', canvas.height);
-        console.log('Terrain mountains:', terrain.mountains.length);
-        console.log('Spitfire position:', spitfire.x, spitfire.y);
-        console.log('Me-109 position:', me109.x, me109.y);
         gameLoop();
     </script>
 </body>
