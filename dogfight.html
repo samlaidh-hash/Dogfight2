@@ -396,6 +396,16 @@
 
         <div id="ghostPanel" class="ghost-panel"></div>
 
+        <div id="realisticModeToggle" style="position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.7); padding: 10px; border-radius: 5px;">
+            <label style="cursor: pointer; font-size: 14px;">
+                <input type="checkbox" id="realisticModeCheckbox" style="margin-right: 8px; cursor: pointer;">
+                Realistic AI Display
+            </label>
+            <div style="font-size: 11px; color: #aaa; margin-top: 5px; max-width: 200px;">
+                Shows AI prediction based on last turn instead of actual planned move
+            </div>
+        </div>
+
         <button id="executeButton">EXECUTE ORDERS</button>
         <button id="replayButton">REPLAY</button>
         <button id="nextPhase2s" class="nextPhaseButton">NEXT PHASE (2s)</button>
@@ -463,6 +473,11 @@
         let executionRecording = [];
         let tracerBullets = []; // Active tracer rounds with lifetime
         let muzzleFlashes = []; // Active muzzle flashes
+
+        // Realistic AI prediction mode
+        let realisticMode = false;
+        let aiPredictedGhost = null; // Predicted AI position based on last turn
+        let aiLastManeuver = null; // Store AI's last maneuver for prediction
         let hitMarkers = []; // Hit effect markers
 
         // Time and lighting state
@@ -1055,6 +1070,11 @@
                         ctx.globalAlpha = 0.7;
                         ctx.fillStyle = '#ffff00';
                         ctx.strokeStyle = '#ffff00';
+                    } else if (ghostState === 'predicted') {
+                        // Predicted AI position (realistic mode)
+                        ctx.globalAlpha = 0.6;
+                        ctx.fillStyle = '#ff9933'; // Orange
+                        ctx.strokeStyle = '#ff9933';
                     } else {
                         ctx.globalAlpha = 0.5;
                         ctx.fillStyle = '#00ff00';
@@ -2229,6 +2249,21 @@
                     validation.finalFlightHeading,
                     useSlip
                 );
+
+                // Store this maneuver for realistic mode prediction next turn
+                aiLastManeuver = {
+                    startX: me109.x,
+                    startY: me109.y,
+                    startAltitude: me109.altitude,
+                    startHeading: me109.heading,
+                    startSpeed: me109.speed,
+                    targetX: validation.finalX,
+                    targetY: validation.finalY,
+                    targetHeading: validation.finalFlightHeading,
+                    targetAltitude: validation.finalAltitude,
+                    throttle: aiThrottle,
+                    slipAngle: useSlip
+                };
             } else {
                 // Fallback: simple forward movement with current heading
                 const fallbackDistance = 150;
@@ -2250,6 +2285,85 @@
                     fallbackValidation.finalFlightHeading,
                     0
                 );
+
+                // Store fallback maneuver for realistic mode prediction next turn
+                aiLastManeuver = {
+                    startX: me109.x,
+                    startY: me109.y,
+                    startAltitude: me109.altitude,
+                    startHeading: me109.heading,
+                    startSpeed: me109.speed,
+                    targetX: fallbackValidation.finalX,
+                    targetY: fallbackValidation.finalY,
+                    targetHeading: fallbackValidation.finalFlightHeading,
+                    targetAltitude: fallbackValidation.finalAltitude,
+                    throttle: aiThrottle,
+                    slipAngle: 0
+                };
+            }
+        }
+
+        // Predict AI position based on last turn's maneuver (for realistic mode)
+        function updateAIPrediction() {
+            // Only create prediction if:
+            // 1. Realistic mode is enabled
+            // 2. We're in ORDER phase
+            // 3. Player hasn't locked orders yet (AI hasn't made new decision)
+            // 4. We have a previous maneuver to extrapolate from
+            if (!realisticMode || gameState !== 'ORDER' || me109.hasOrders || !aiLastManeuver || currentTurn === 1) {
+                aiPredictedGhost = null;
+                return;
+            }
+
+            // Calculate the deltas from last maneuver
+            const headingChange = (aiLastManeuver.targetHeading - aiLastManeuver.startHeading + 360) % 360;
+            const altitudeChange = aiLastManeuver.targetAltitude - aiLastManeuver.startAltitude;
+
+            // Apply same maneuver to current position
+            const predictedHeading = (me109.heading + headingChange) % 360;
+            const predictedAltitude = Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, me109.altitude + altitudeChange));
+
+            // Predict movement direction - same relative heading change
+            const moveDistance = Math.sqrt(
+                Math.pow(aiLastManeuver.targetX - aiLastManeuver.startX || 0, 2) +
+                Math.pow(aiLastManeuver.targetY - aiLastManeuver.startY || 0, 2)
+            ) || 200; // Default distance if first turn
+
+            // Calculate target position based on predicted heading
+            const predictedX = me109.x + Math.cos((predictedHeading - 90) * Math.PI / 180) * moveDistance;
+            const predictedY = me109.y + Math.sin((predictedHeading - 90) * Math.PI / 180) * moveDistance;
+
+            // Validate the predicted maneuver (use same physics as real AI)
+            const validation = me109.calculateManeuverValidation(
+                predictedX,
+                predictedY,
+                predictedAltitude,
+                predictedHeading,
+                aiLastManeuver.slipAngle || 0
+            );
+
+            // Create a ghost aircraft to show the prediction
+            aiPredictedGhost = {
+                aircraft: {
+                    x: validation.finalX,
+                    y: validation.finalY,
+                    altitude: validation.finalAltitude,
+                    heading: (validation.finalFlightHeading + (aiLastManeuver.slipAngle || 0) + 360) % 360,
+                    isPlayer: false,
+                    isRolling: false,
+                    isInverted: false,
+                    isDestroyed: false,
+                    hasOrders: false,
+                    flightPath: me109.flightPath, // Reuse flight path calculation
+                    renderSVG: me109.renderSVG.bind(me109) // Bind to actual aircraft for rendering
+                },
+                state: 'predicted', // Special state for predicted ghost
+                validation: validation
+            };
+
+            // Copy the flight path from validation for rendering
+            if (validation.path && validation.path.length > 0) {
+                aiPredictedGhost.aircraft.flightPath = validation.path;
             }
         }
 
@@ -2765,6 +2879,24 @@
                 ctx.setLineDash([]); // Reset to solid line
             }
 
+            // Render predicted AI ghost flight path (realistic mode)
+            if (aiPredictedGhost && aiPredictedGhost.aircraft.flightPath && aiPredictedGhost.aircraft.flightPath.length > 1) {
+                // Orange/amber color to indicate prediction (not actual orders)
+                ctx.strokeStyle = '#ff9933';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([8, 4]); // Dotted line
+                ctx.globalAlpha = 0.7; // Slightly transparent to emphasize it's a prediction
+
+                ctx.beginPath();
+                ctx.moveTo(aiPredictedGhost.aircraft.flightPath[0].x, aiPredictedGhost.aircraft.flightPath[0].y);
+                for (let i = 1; i < aiPredictedGhost.aircraft.flightPath.length; i++) {
+                    ctx.lineTo(aiPredictedGhost.aircraft.flightPath[i].x, aiPredictedGhost.aircraft.flightPath[i].y);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]); // Reset to solid line
+                ctx.globalAlpha = 1.0; // Reset alpha
+            }
+
             // Render range indicators (during execution)
             renderRangeIndicators();
 
@@ -2928,6 +3060,29 @@
             // Render ghost if in order mode
             if (ghostAircraft) {
                 ghostAircraft.aircraft.renderSVG(true, ghostAircraft.state);
+            }
+
+            // Render predicted AI ghost (realistic mode)
+            if (aiPredictedGhost) {
+                // Temporarily modify me109's position to render the predicted ghost
+                const savedX = me109.x;
+                const savedY = me109.y;
+                const savedAltitude = me109.altitude;
+                const savedHeading = me109.heading;
+
+                me109.x = aiPredictedGhost.aircraft.x;
+                me109.y = aiPredictedGhost.aircraft.y;
+                me109.altitude = aiPredictedGhost.aircraft.altitude;
+                me109.heading = aiPredictedGhost.aircraft.heading;
+
+                // Render with orange tint to indicate prediction
+                me109.renderSVG(true, 'predicted');
+
+                // Restore original position
+                me109.x = savedX;
+                me109.y = savedY;
+                me109.altitude = savedAltitude;
+                me109.heading = savedHeading;
             }
 
             ctx.restore();
@@ -3197,6 +3352,9 @@
                             ghostSlipAngle = 0;
                             document.getElementById('ghostPanel').style.display = 'none';
 
+                            // Clear predicted AI ghost since AI is now making its real decision
+                            aiPredictedGhost = null;
+
                             // Generate AI orders
                             generateAIOrders();
                         } else {
@@ -3251,6 +3409,9 @@
                 ghostAltitudeOffset = 0;
                 ghostSlipAngle = 0;
                 document.getElementById('ghostPanel').style.display = 'none';
+
+                // Clear predicted AI ghost since AI is now making its real decision
+                aiPredictedGhost = null;
 
                 // Generate AI orders
                 generateAIOrders();
@@ -3396,6 +3557,7 @@
             // Clear ghost and selection when execution starts
             ghostAircraft = null;
             selectedAircraft = null;
+            aiPredictedGhost = null; // Clear predicted AI ghost
             document.getElementById('ghostPanel').style.display = 'none';
 
             updateUI();
@@ -3476,6 +3638,16 @@
         document.getElementById('nextPhase6s').addEventListener('click', () => startNextPhase(6));
         document.getElementById('nextPhase8s').addEventListener('click', () => startNextPhase(8));
 
+        // Realistic mode toggle
+        document.getElementById('realisticModeCheckbox').addEventListener('change', (e) => {
+            realisticMode = e.target.checked;
+            console.log('Realistic AI Display:', realisticMode ? 'ON' : 'OFF');
+            // Clear any existing prediction when toggling
+            if (!realisticMode) {
+                aiPredictedGhost = null;
+            }
+        });
+
         // Main game loop
         function gameLoop() {
             // Wait for game to be initialized from splash screen
@@ -3542,6 +3714,11 @@
                     document.getElementById('nextPhase6s').style.display = 'block';
                     document.getElementById('nextPhase8s').style.display = 'block';
                 }
+            }
+
+            // Update AI prediction for realistic mode (during ORDER phase)
+            if (gameState === 'ORDER') {
+                updateAIPrediction();
             }
 
             // Game over screen
