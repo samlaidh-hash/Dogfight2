@@ -365,7 +365,7 @@
         <canvas id="gameCanvas" width="1800" height="1000"></canvas>
 
         <div id="ui">
-            <h1>DOGFIGHT 2 <span id="gameVersion" style="font-size: 0.5em; color: #888;">v1.7.0</span></h1>
+            <h1>DOGFIGHT 2 <span id="gameVersion" style="font-size: 0.5em; color: #888;">v1.8.0</span></h1>
             <div id="phaseDisplay" class="stat-line">Phase: <span id="currentPhase">ORDER</span></div>
             <div id="turnDisplay" class="stat-line">Turn: <span id="currentTurn">1</span></div>
             <div id="timeDisplay" class="stat-line">Time: <span id="currentTime">12:00</span> (<span id="timeOfDay">Day</span>)</div>
@@ -432,7 +432,7 @@
         soundMe109Cannon.volume = 0.7;
 
         // Game version
-        const GAME_VERSION = "v1.7.0";
+        const GAME_VERSION = "v1.8.0";
 
         // Game constants
         const CANVAS_WIDTH = 1800;
@@ -970,6 +970,15 @@
                 this.hitEffects = []; // Array of {x, y, type: 'mg'|'cannon', time, duration}
                 this.smokeParticles = []; // Smoke trail particles when damaged
 
+                // Critical hit system
+                this.criticalHitsDealt = 0; // Total critical hits dealt
+                this.criticalHitsTaken = 0; // Total critical hits received
+                this.systemDamage = {
+                    engine: 0,    // 0-1, reduces speed and climb rate
+                    controls: 0,  // 0-1, reduces turn rate
+                    weapons: 0    // 0-1, reduces accuracy
+                };
+
                 // Flight path calculation
                 this.flightPath = null; // Will store calculated realistic path
                 this.inStall = false; // Track if aircraft is stalled
@@ -1216,10 +1225,28 @@
                 return distance < 40 * this.getScaleForAltitude();
             }
 
+            // Get effective performance values with system damage applied
+            getEffectiveMaxSpeed() {
+                return this.maxSpeed * (1 - this.systemDamage.engine * 0.4); // Engine damage reduces max speed by up to 40%
+            }
+
+            getEffectiveMaxClimbRate() {
+                return this.maxClimbRate * (1 - this.systemDamage.engine * 0.5); // Engine damage reduces climb by up to 50%
+            }
+
+            getEffectiveMaxTurnRate() {
+                return this.maxTurnRate * (1 - this.systemDamage.controls * 0.3); // Control damage reduces turn rate by up to 30%
+            }
+
+            getEffectiveGunnerySkill() {
+                return this.gunnerySkill * (1 - this.systemDamage.weapons * 0.4); // Weapon damage reduces accuracy by up to 40%
+            }
+
             // Calculate speed from throttle setting
             getSpeedFromThrottle() {
                 // Linear interpolation between min and max speed based on throttle
-                return this.minSpeed + (this.maxSpeed - this.minSpeed) * this.throttle;
+                const effectiveMaxSpeed = this.getEffectiveMaxSpeed();
+                return this.minSpeed + (effectiveMaxSpeed - this.minSpeed) * this.throttle;
             }
 
             // Calculate realistic flight path using physics simulation
@@ -1301,10 +1328,11 @@
                     const timeRemaining = turnTime - stepTime;
                     const desiredClimbRate = timeRemaining > 0 ? altitudeRemaining / timeRemaining : 0;
 
-                    // Limit climb/dive rate
+                    // Limit climb/dive rate (apply system damage effects)
+                    const effectiveMaxClimbRate = this.getEffectiveMaxClimbRate();
                     let actualClimbRate = desiredClimbRate;
-                    if (actualClimbRate > this.maxClimbRate) {
-                        actualClimbRate = this.maxClimbRate;
+                    if (actualClimbRate > effectiveMaxClimbRate) {
+                        actualClimbRate = effectiveMaxClimbRate;
                     } else if (actualClimbRate < -this.maxDiveRate) {
                         actualClimbRate = -this.maxDiveRate;
                     }
@@ -1347,7 +1375,7 @@
                     // Combined maneuver energy sharing
                     // Turning while climbing/diving reduces efficiency
                     if (Math.abs(altitudeChange) > 0 && Math.abs(actualTurn) > 0) {
-                        const maneuverIntensity = (Math.abs(actualTurn) / maxTurnThisStep) * (Math.abs(actualClimbRate) / this.maxClimbRate);
+                        const maneuverIntensity = (Math.abs(actualTurn) / maxTurnThisStep) * (Math.abs(actualClimbRate) / effectiveMaxClimbRate);
                         newSpeed *= (1 - maneuverIntensity * 0.1); // Up to 10% speed loss for combined maneuvers
                     }
 
@@ -1699,6 +1727,20 @@
                 const fireThresholdColor = this.fireThreshold < 0.20 ? '#ff4444' :
                                           this.fireThreshold < 0.30 ? '#ffaa00' : '#88ff88';
 
+                // Show critical hits
+                const critDisplay = this.criticalHitsDealt > 0 ?
+                    `<div class="stat-line" style="color: #ff8800;">💥 Crits: ${this.criticalHitsDealt}</div>` : '';
+                const critTakenDisplay = this.criticalHitsTaken > 0 ?
+                    `<div class="stat-line" style="color: #ff4444;">💥 Hit by: ${this.criticalHitsTaken}</div>` : '';
+
+                // Show system damage
+                const engineDamageDisplay = this.systemDamage.engine > 0 ?
+                    `<div class="stat-line" style="color: #ff4444;">🔧 Engine: ${Math.round(this.systemDamage.engine * 100)}%</div>` : '';
+                const controlDamageDisplay = this.systemDamage.controls > 0 ?
+                    `<div class="stat-line" style="color: #ff4444;">⚙ Controls: ${Math.round(this.systemDamage.controls * 100)}%</div>` : '';
+                const weaponDamageDisplay = this.systemDamage.weapons > 0 ?
+                    `<div class="stat-line" style="color: #ff4444;">🎯 Weapons: ${Math.round(this.systemDamage.weapons * 100)}%</div>` : '';
+
                 return `
                     <div class="stat-line">Alt: ${Math.round(this.altitude)}m</div>
                     <div class="stat-line">Speed: ${Math.round(this.speed)} m/s</div>
@@ -1707,6 +1749,11 @@
                     <div class="stat-line" style="${ammoColor}">Ammo: ${this.ammunition} ${this.isFiring ? '🔥' : ''}</div>
                     <div class="stat-line" style="${damageColor}">Damage: ${Math.round(this.damage)}%</div>
                     <div class="stat-line" style="color: ${fireThresholdColor}">Fire Min: ${fireThresholdPercent}%</div>
+                    ${critDisplay}
+                    ${critTakenDisplay}
+                    ${engineDamageDisplay}
+                    ${controlDamageDisplay}
+                    ${weaponDamageDisplay}
                     ${gForceDisplay}
                     ${gPenaltyDisplay}
                     ${invertedDisplay}
@@ -1914,6 +1961,73 @@
             }
         }
 
+        // Critical hit calculation
+        function calculateCriticalHitChance(shooter, target, distance, angleDiff) {
+            let critChance = 0.10; // Base 10% chance
+
+            // Optimal range bonus (200-400 pixels = point blank range)
+            if (distance >= 200 && distance <= 400) {
+                critChance += 0.05;
+            }
+
+            // Perfect angle bonus (6 o'clock position, dead on target)
+            if (angleDiff <= 5) {
+                critChance += 0.10;
+            } else if (angleDiff <= 10) {
+                critChance += 0.05;
+            }
+
+            // High gunnery skill bonus
+            if (shooter.gunnerySkill > 0.6) {
+                critChance += (shooter.gunnerySkill - 0.6) * 0.25; // +5% per 0.2 skill above 0.6
+            }
+
+            // Target under stress (high G-forces)
+            if (target.currentGForce > 4.0) {
+                critChance += 0.05;
+            }
+
+            // Time on target bonus (sustained fire)
+            if (shooter.timeOnTarget > 1) {
+                critChance += Math.min(0.10, shooter.timeOnTarget * 0.01); // Up to +10%
+            }
+
+            // Weapon type bonus (cannon more likely to crit)
+            if (shooter.type === 'Me-109') {
+                critChance += 0.05; // Cannon bonus
+            }
+
+            return Math.min(critChance, 0.5); // Cap at 50%
+        }
+
+        // Apply critical hit effects
+        function applyCriticalHit(shooter, target, baseDamage) {
+            // Critical hit deals 2x damage
+            const critDamage = baseDamage * 2;
+            target.damage += critDamage;
+
+            // Update statistics
+            shooter.criticalHitsDealt++;
+            target.criticalHitsTaken++;
+
+            // 50% chance to cause system damage
+            if (Math.random() < 0.5) {
+                const systemRoll = Math.random();
+                if (systemRoll < 0.4) {
+                    // Engine damage (40% chance)
+                    target.systemDamage.engine = Math.min(1.0, target.systemDamage.engine + 0.15 + Math.random() * 0.15);
+                } else if (systemRoll < 0.7) {
+                    // Controls damage (30% chance)
+                    target.systemDamage.controls = Math.min(1.0, target.systemDamage.controls + 0.10 + Math.random() * 0.10);
+                } else {
+                    // Weapons damage (30% chance)
+                    target.systemDamage.weapons = Math.min(1.0, target.systemDamage.weapons + 0.15 + Math.random() * 0.15);
+                }
+            }
+
+            return critDamage;
+        }
+
         // Combat system
         function processCombat() {
             // Reset firing states and clear old hit warnings
@@ -1975,7 +2089,7 @@
                         const altitudeDiff = Math.abs(target.altitude - shooter.altitude);
 
                         // Calculate hit chance
-                        let effectiveGunnerySkill = shooter.gunnerySkill * (1 - shooter.gForcePenalty);
+                        let effectiveGunnerySkill = shooter.getEffectiveGunnerySkill() * (1 - shooter.gForcePenalty);
                         let hitChance = effectiveGunnerySkill * 0.6;
                         hitChance *= Math.max(0.1, 1 - distance / EFFECTIVE_RANGE); // Distance factor
                         hitChance *= Math.max(0.3, 1 - altitudeDiff / 500); // Altitude factor
@@ -2036,28 +2150,46 @@
 
                             // Check if hit
                             if (Math.random() < hitChance) {
-                                const damageAmount = shooter.damagePerHit; // Use weapon-specific damage
-                                target.damage += damageAmount;
+                                const baseDamage = shooter.damagePerHit; // Use weapon-specific damage
                                 target.lastHitBy = shooter.name;
                                 target.lastHitTime = Date.now();
-                                console.log(`  HIT! ${target.name} took ${damageAmount.toFixed(1)} damage (total: ${target.damage.toFixed(1)})`);
 
-                                // Add visual hit effect based on weapon type
-                                const hitType = shooter.type === 'Spitfire' ? 'mg' : 'cannon';
+                                // Check for critical hit
+                                const critChance = calculateCriticalHitChance(shooter, target, distance, angleDiff);
+                                const isCritical = Math.random() < critChance;
+
+                                let damageAmount;
+                                let hitType = shooter.type === 'Spitfire' ? 'mg' : 'cannon';
+
+                                if (isCritical) {
+                                    // Critical hit!
+                                    damageAmount = applyCriticalHit(shooter, target, baseDamage);
+                                    hitType = 'critical'; // Special critical hit type
+                                    console.log(`  💥 CRITICAL HIT! ${target.name} took ${damageAmount.toFixed(1)} damage (total: ${target.damage.toFixed(1)})`);
+                                } else {
+                                    // Normal hit
+                                    damageAmount = baseDamage;
+                                    target.damage += damageAmount;
+                                    console.log(`  HIT! ${target.name} took ${damageAmount.toFixed(1)} damage (total: ${target.damage.toFixed(1)})`);
+                                }
+
+                                // Add visual hit effect based on hit type
                                 target.hitEffects.push({
                                     x: target.x + (Math.random() - 0.5) * 30,
                                     y: target.y + (Math.random() - 0.5) * 30,
                                     type: hitType,
                                     time: Date.now(),
-                                    duration: hitType === 'cannon' ? 300 : 150 // Cannon effects last longer
+                                    duration: isCritical ? 500 : (hitType === 'cannon' ? 300 : 150),
+                                    isCritical: isCritical
                                 });
 
                                 // Create hit marker for visual feedback
                                 hitMarkers.push({
                                     x: target.x,
                                     y: target.y,
-                                    lifetime: 0.3,
-                                    startTime: Date.now()
+                                    lifetime: isCritical ? 0.5 : 0.3,
+                                    startTime: Date.now(),
+                                    isCritical: isCritical
                                 });
 
                                 // Play sound effect (when implemented)
@@ -2172,16 +2304,44 @@
             for (let marker of hitMarkers) {
                 const elapsed = (now - marker.startTime) / 1000;
                 const alpha = 1 - elapsed / marker.lifetime;
-                const size = 10 + elapsed * 20;
-                ctx.globalAlpha = alpha;
-                ctx.strokeStyle = '#ff0000';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.moveTo(marker.x - size, marker.y);
-                ctx.lineTo(marker.x + size, marker.y);
-                ctx.moveTo(marker.x, marker.y - size);
-                ctx.lineTo(marker.x, marker.y + size);
-                ctx.stroke();
+
+                if (marker.isCritical) {
+                    // Critical hit - larger, orange/yellow effect with explosion
+                    const size = 15 + elapsed * 40;
+                    ctx.globalAlpha = alpha;
+
+                    // Outer ring (orange)
+                    ctx.strokeStyle = '#ff8800';
+                    ctx.lineWidth = 5;
+                    ctx.beginPath();
+                    ctx.arc(marker.x, marker.y, size, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    // Inner burst lines (yellow)
+                    ctx.strokeStyle = '#ffff00';
+                    ctx.lineWidth = 4;
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (i / 8) * Math.PI * 2;
+                        const innerSize = size * 0.5;
+                        const outerSize = size * 1.2;
+                        ctx.beginPath();
+                        ctx.moveTo(marker.x + Math.cos(angle) * innerSize, marker.y + Math.sin(angle) * innerSize);
+                        ctx.lineTo(marker.x + Math.cos(angle) * outerSize, marker.y + Math.sin(angle) * outerSize);
+                        ctx.stroke();
+                    }
+                } else {
+                    // Normal hit - red crosshair
+                    const size = 10 + elapsed * 20;
+                    ctx.globalAlpha = alpha;
+                    ctx.strokeStyle = '#ff0000';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(marker.x - size, marker.y);
+                    ctx.lineTo(marker.x + size, marker.y);
+                    ctx.moveTo(marker.x, marker.y - size);
+                    ctx.lineTo(marker.x, marker.y + size);
+                    ctx.stroke();
+                }
             }
             ctx.globalAlpha = 1.0;
         }
@@ -2336,7 +2496,48 @@
                     const progress = age / effect.duration;
                     const alpha = 1 - progress; // Fade out over time
 
-                    if (effect.type === 'cannon') {
+                    if (effect.type === 'critical') {
+                        // CRITICAL HIT - massive explosion effect
+                        const size = 25 + (1 - progress) * 20; // Larger explosion
+
+                        // Bright red core
+                        ctx.fillStyle = `rgba(255, 50, 0, ${alpha * 0.9})`;
+                        ctx.beginPath();
+                        ctx.arc(effect.x, effect.y, size * 0.4, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Orange mid layer
+                        ctx.fillStyle = `rgba(255, 150, 0, ${alpha * 0.7})`;
+                        ctx.beginPath();
+                        ctx.arc(effect.x, effect.y, size * 0.7, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Yellow outer explosion
+                        ctx.fillStyle = `rgba(255, 220, 50, ${alpha * 0.5})`;
+                        ctx.beginPath();
+                        ctx.arc(effect.x, effect.y, size, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Explosive spark burst (8 directions)
+                        for (let i = 0; i < 8; i++) {
+                            const angle = (i / 8) * Math.PI * 2 + progress * Math.PI * 0.5;
+                            const dist = size * 1.8 * progress;
+                            const sparkX = effect.x + Math.cos(angle) * dist;
+                            const sparkY = effect.y + Math.sin(angle) * dist;
+
+                            ctx.fillStyle = `rgba(255, 255, 100, ${alpha * 0.9})`;
+                            ctx.beginPath();
+                            ctx.arc(sparkX, sparkY, 4, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+
+                        // Shockwave ring
+                        ctx.strokeStyle = `rgba(255, 200, 0, ${alpha * 0.6})`;
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.arc(effect.x, effect.y, size * 1.2 * progress, 0, Math.PI * 2);
+                        ctx.stroke();
+                    } else if (effect.type === 'cannon') {
                         // Autocannon hit - explosion effect
                         const size = 15 + (1 - progress) * 10; // Expands then fades
 
