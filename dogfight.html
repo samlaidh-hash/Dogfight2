@@ -161,6 +161,7 @@
             <h1>DOGFIGHT 2</h1>
             <div id="phaseDisplay" class="stat-line">Phase: <span id="currentPhase">ORDER</span></div>
             <div id="turnDisplay" class="stat-line">Turn: <span id="currentTurn">1</span></div>
+            <div id="timeDisplay" class="stat-line">Time: <span id="currentTime">12:00</span> (<span id="timeOfDay">Day</span>)</div>
 
             <h2>Spitfire (You)</h2>
             <div id="spitfireStats"></div>
@@ -234,6 +235,11 @@
         const EFFECTIVE_RANGE = 525; // pixels (~525 meters effective gun range - scaled for 1800x1000)
         const MAX_RANGE = 750; // pixels (absolute maximum, very low hit chance)
 
+        // Time and lighting constants
+        const GAME_START_HOUR = 12.0; // Start at noon
+        const HOURS_PER_TURN = 0.5; // Each turn = 30 minutes
+        const LATITUDE = 51.5; // London area (degrees north)
+
         // Game state
         let gameState = 'ORDER'; // ORDER, EXECUTION, REVIEW
         let currentTurn = 1;
@@ -244,6 +250,13 @@
         let tracerBullets = []; // Active tracer rounds with lifetime
         let muzzleFlashes = []; // Active muzzle flashes
         let hitMarkers = []; // Hit effect markers
+
+        // Time and lighting state
+        let gameHour = GAME_START_HOUR;
+        let sunAltitude = 0; // degrees above horizon (0-90)
+        let sunAzimuth = 0; // degrees from north (0-360)
+        let sunIntensity = 1.0; // 0.0 (night) to 1.0 (noon)
+        let timeOfDay = 'day'; // 'night', 'dawn', 'day', 'dusk'
 
         // Canvas setup
         const canvas = document.getElementById('gameCanvas');
@@ -272,6 +285,109 @@
 
         aircraftImages.spitfire.src = 'spitfire.svg';
         aircraftImages.bf109.src = 'bf109.svg';
+
+        // Sun position and lighting calculations
+        function updateSunPosition() {
+            // Normalize hour to 0-24 range
+            gameHour = gameHour % 24;
+
+            // Calculate sun altitude (simplified formula)
+            // Sun reaches max altitude at noon (12:00), min at midnight
+            const hourAngle = (gameHour - 12) * 15; // 15 degrees per hour
+            const declination = 0; // Simplified - assume equinox
+            const latRad = LATITUDE * Math.PI / 180;
+            const hourAngleRad = hourAngle * Math.PI / 180;
+
+            // Calculate sun altitude
+            const sinAlt = Math.sin(latRad) * Math.sin(0) +
+                          Math.cos(latRad) * Math.cos(0) * Math.cos(hourAngleRad);
+            sunAltitude = Math.asin(sinAlt) * 180 / Math.PI;
+
+            // Calculate sun azimuth (simplified - south at noon)
+            sunAzimuth = 180 + hourAngle;
+            if (sunAzimuth < 0) sunAzimuth += 360;
+            if (sunAzimuth >= 360) sunAzimuth -= 360;
+
+            // Calculate sun intensity (0.0 to 1.0)
+            if (sunAltitude < -12) {
+                // Night - sun well below horizon
+                sunIntensity = 0.0;
+                timeOfDay = 'night';
+            } else if (sunAltitude < 0) {
+                // Twilight - sun just below horizon
+                sunIntensity = (sunAltitude + 12) / 12 * 0.3;
+                timeOfDay = gameHour < 12 ? 'dawn' : 'dusk';
+            } else if (sunAltitude < 6) {
+                // Dawn/Dusk - sun just above horizon
+                sunIntensity = 0.3 + (sunAltitude / 6) * 0.4;
+                timeOfDay = gameHour < 12 ? 'dawn' : 'dusk';
+            } else {
+                // Day - sun well above horizon
+                sunIntensity = 0.7 + (Math.min(sunAltitude, 60) / 60) * 0.3;
+                timeOfDay = 'day';
+            }
+        }
+
+        function getSkyColor() {
+            // Return sky gradient colors based on time of day
+            if (timeOfDay === 'night') {
+                return {
+                    top: '#000814',
+                    bottom: '#001a4d'
+                };
+            } else if (timeOfDay === 'dawn') {
+                // Morning colors - orange to blue
+                const t = sunIntensity / 0.7; // Normalize to 0-1
+                return {
+                    top: blendColors('#001a4d', '#87ceeb', t),
+                    bottom: blendColors('#ff6b35', '#ffd700', t)
+                };
+            } else if (timeOfDay === 'dusk') {
+                // Evening colors - blue to orange to dark
+                const t = (sunIntensity - 0.3) / 0.4; // Normalize to 0-1
+                return {
+                    top: blendColors('#87ceeb', '#ff6b35', 1 - t),
+                    bottom: blendColors('#87ceeb', '#ff4500', 1 - t)
+                };
+            } else {
+                // Day - clear blue sky
+                return {
+                    top: '#87ceeb',
+                    bottom: '#b0d8f0'
+                };
+            }
+        }
+
+        function blendColors(color1, color2, t) {
+            // Blend two hex colors by factor t (0-1)
+            const c1 = parseInt(color1.slice(1), 16);
+            const c2 = parseInt(color2.slice(1), 16);
+
+            const r1 = (c1 >> 16) & 255;
+            const g1 = (c1 >> 8) & 255;
+            const b1 = c1 & 255;
+
+            const r2 = (c2 >> 16) & 255;
+            const g2 = (c2 >> 8) & 255;
+            const b2 = c2 & 255;
+
+            const r = Math.round(r1 + (r2 - r1) * t);
+            const g = Math.round(g1 + (g2 - g1) * t);
+            const b = Math.round(b1 + (b2 - b1) * t);
+
+            return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+
+        function getSunScreenPosition() {
+            // Convert sun azimuth and altitude to screen coordinates
+            // Sun moves across the sky from east to west
+            const sunX = CANVAS_WIDTH * (sunAzimuth / 360);
+            const sunY = CANVAS_HEIGHT * 0.3 * (1 - Math.max(0, sunAltitude) / 90);
+            return { x: sunX, y: sunY };
+        }
+
+        // Initialize sun position
+        updateSunPosition();
 
         // Terrain generation
         class Terrain {
@@ -470,17 +586,20 @@
                         mountain.x, mountain.y, mountain.radius * 1.5
                     );
 
+                    // Apply sun lighting factor
+                    const lightIntensity = Math.max(0.3, sunIntensity); // Min 30% visibility at night
+
                     // Snow-capped peaks for high mountains
                     if (mountain.height > 700) {
-                        gradient.addColorStop(0, `rgba(200, 200, 210, ${intensity * 0.8})`); // Snowy peak
-                        gradient.addColorStop(0.3, `rgba(120, 110, 100, ${intensity * 0.7})`); // Rocky middle
-                        gradient.addColorStop(0.7, `rgba(80, 70, 60, ${intensity * 0.5})`); // Dark base
+                        gradient.addColorStop(0, `rgba(${200*lightIntensity}, ${200*lightIntensity}, ${210*lightIntensity}, ${intensity * 0.8})`); // Snowy peak
+                        gradient.addColorStop(0.3, `rgba(${120*lightIntensity}, ${110*lightIntensity}, ${100*lightIntensity}, ${intensity * 0.7})`); // Rocky middle
+                        gradient.addColorStop(0.7, `rgba(${80*lightIntensity}, ${70*lightIntensity}, ${60*lightIntensity}, ${intensity * 0.5})`); // Dark base
                     } else {
-                        gradient.addColorStop(0, `rgba(100, 95, 80, ${intensity * 0.7})`); // Peak
-                        gradient.addColorStop(0.5, `rgba(70, 65, 55, ${intensity * 0.6})`); // Middle
-                        gradient.addColorStop(0.8, `rgba(50, 45, 40, ${intensity * 0.4})`); // Base
+                        gradient.addColorStop(0, `rgba(${100*lightIntensity}, ${95*lightIntensity}, ${80*lightIntensity}, ${intensity * 0.7})`); // Peak
+                        gradient.addColorStop(0.5, `rgba(${70*lightIntensity}, ${65*lightIntensity}, ${55*lightIntensity}, ${intensity * 0.6})`); // Middle
+                        gradient.addColorStop(0.8, `rgba(${50*lightIntensity}, ${45*lightIntensity}, ${40*lightIntensity}, ${intensity * 0.4})`); // Base
                     }
-                    gradient.addColorStop(1, 'rgba(30, 30, 25, 0)');
+                    gradient.addColorStop(1, `rgba(${30*lightIntensity}, ${30*lightIntensity}, ${25*lightIntensity}, 0)`);
 
                     ctx.fillStyle = gradient;
                     ctx.fillRect(mountain.x - mountain.radius * 2, mountain.y - mountain.radius * 2,
@@ -517,15 +636,27 @@
 
                 // Render clouds as fluffy organic shapes (viewed from above)
                 for (let cloud of this.clouds) {
+                    // Cloud color changes based on time of day
+                    let cloudR = 255, cloudG = 255, cloudB = 255;
+                    if (timeOfDay === 'dawn' || timeOfDay === 'dusk') {
+                        // Orange/pink tinted clouds at dawn/dusk
+                        cloudR = 255;
+                        cloudG = Math.floor(180 + sunIntensity * 75);
+                        cloudB = Math.floor(150 + sunIntensity * 105);
+                    } else if (timeOfDay === 'night') {
+                        // Dark gray clouds at night
+                        cloudR = cloudG = cloudB = Math.floor(80 * Math.max(0.3, sunIntensity));
+                    }
+
                     // Draw each lobe of the cloud
                     for (let lobe of cloud.lobes) {
                         const gradient = ctx.createRadialGradient(
                             lobe.x, lobe.y, 0,
                             lobe.x, lobe.y, lobe.radius
                         );
-                        gradient.addColorStop(0, `rgba(255, 255, 255, ${cloud.opacity * 0.9})`);
-                        gradient.addColorStop(0.5, `rgba(240, 245, 250, ${cloud.opacity * 0.6})`);
-                        gradient.addColorStop(1, 'rgba(220, 230, 245, 0)');
+                        gradient.addColorStop(0, `rgba(${cloudR}, ${cloudG}, ${cloudB}, ${cloud.opacity * 0.9})`);
+                        gradient.addColorStop(0.5, `rgba(${cloudR * 0.94}, ${cloudG * 0.96}, ${cloudB * 0.98}, ${cloud.opacity * 0.6})`);
+                        gradient.addColorStop(1, `rgba(${cloudR * 0.86}, ${cloudG * 0.9}, ${cloudB * 0.96}, 0)`);
 
                         ctx.fillStyle = gradient;
                         ctx.beginPath();
@@ -538,9 +669,9 @@
                         cloud.x, cloud.y, 0,
                         cloud.x, cloud.y, cloud.radius * 0.5
                     );
-                    centerGradient.addColorStop(0, `rgba(255, 255, 255, ${cloud.opacity})`);
-                    centerGradient.addColorStop(0.7, `rgba(245, 248, 252, ${cloud.opacity * 0.5})`);
-                    centerGradient.addColorStop(1, 'rgba(230, 235, 245, 0)');
+                    centerGradient.addColorStop(0, `rgba(${cloudR}, ${cloudG}, ${cloudB}, ${cloud.opacity})`);
+                    centerGradient.addColorStop(0.7, `rgba(${cloudR * 0.96}, ${cloudG * 0.97}, ${cloudB * 0.99}, ${cloud.opacity * 0.5})`);
+                    centerGradient.addColorStop(1, `rgba(${cloudR * 0.9}, ${cloudG * 0.92}, ${cloudB * 0.96}, 0)`);
 
                     ctx.fillStyle = centerGradient;
                     ctx.beginPath();
@@ -1616,7 +1747,7 @@
                     angleDiff = Math.abs(angleDiff);
 
                     // Firing cone: 20 degrees for realistic gunnery
-                    if (angleDiff < 20 && distance < 400) {
+                    if (angleDiff < 20 && distance < EFFECTIVE_RANGE) {
                         // Check line of sight - clouds can block vision!
                         const losBlocked = !terrain.isLineOfSightClear(
                             shooter.x, shooter.y, shooter.altitude,
@@ -1635,7 +1766,7 @@
                         // Calculate hit chance
                         let effectiveGunnerySkill = shooter.gunnerySkill * (1 - shooter.gForcePenalty);
                         let hitChance = effectiveGunnerySkill * 0.6;
-                        hitChance *= Math.max(0.1, 1 - distance / 400); // Distance factor (max 400m)
+                        hitChance *= Math.max(0.1, 1 - distance / EFFECTIVE_RANGE); // Distance factor
                         hitChance *= Math.max(0.3, 1 - altitudeDiff / 500); // Altitude factor
                         hitChance *= Math.min(1, 0.2 + shooter.timeOnTarget / 8); // Time on target bonus
 
@@ -1776,13 +1907,21 @@
         function renderCombatEffects() {
             const now = Date.now();
 
-            // Render tracer bullets
+            // Render tracer bullets (more visible at night)
+            const tracerBrightness = timeOfDay === 'night' ? 1.5 : 1.0;
+            const tracerWidth = timeOfDay === 'night' ? 3 : 2;
             ctx.strokeStyle = '#ffff00';
-            ctx.lineWidth = 2;
+            ctx.lineWidth = tracerWidth;
             for (let bullet of tracerBullets) {
                 const elapsed = (now - bullet.startTime) / 1000;
-                const alpha = 1 - elapsed / bullet.lifetime;
+                const alpha = Math.min(1, (1 - elapsed / bullet.lifetime) * tracerBrightness);
                 ctx.globalAlpha = alpha;
+
+                // Add glow effect at night
+                if (timeOfDay === 'night' || timeOfDay === 'dusk') {
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#ffff00';
+                }
 
                 ctx.beginPath();
                 const tailLength = 20;
@@ -1791,18 +1930,30 @@
                 ctx.moveTo(tailX, tailY);
                 ctx.lineTo(bullet.x, bullet.y);
                 ctx.stroke();
+
+                ctx.shadowBlur = 0;
             }
             ctx.globalAlpha = 1.0;
 
-            // Render muzzle flashes
+            // Render muzzle flashes (more visible at night)
+            const flashSize = timeOfDay === 'night' ? 12 : 8;
             for (let flash of muzzleFlashes) {
                 const elapsed = (now - flash.startTime) / 1000;
-                const alpha = 1 - elapsed / flash.lifetime;
+                const alpha = Math.min(1, (1 - elapsed / flash.lifetime) * tracerBrightness);
                 ctx.globalAlpha = alpha;
+
+                // Add glow effect at night
+                if (timeOfDay === 'night' || timeOfDay === 'dusk') {
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = '#ffaa00';
+                }
+
                 ctx.fillStyle = '#ffaa00';
                 ctx.beginPath();
-                ctx.arc(flash.x, flash.y, 8, 0, Math.PI * 2);
+                ctx.arc(flash.x, flash.y, flashSize, 0, Math.PI * 2);
                 ctx.fill();
+
+                ctx.shadowBlur = 0;
             }
             ctx.globalAlpha = 1.0;
 
@@ -1870,8 +2021,36 @@
 
         // Rendering
         function render() {
-            ctx.fillStyle = '#3d5235';
+            // Draw dynamic sky gradient based on time of day
+            const skyColors = getSkyColor();
+            const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+            gradient.addColorStop(0, skyColors.top);
+            gradient.addColorStop(1, skyColors.bottom);
+            ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // Draw sun if visible
+            if (sunAltitude > -6) {
+                const sunPos = getSunScreenPosition();
+                const sunSize = 40;
+                const sunColor = timeOfDay === 'day' ? '#ffff00' :
+                                timeOfDay === 'dawn' ? '#ffaa00' :
+                                timeOfDay === 'dusk' ? '#ff6600' : '#ffffff';
+
+                // Sun glow
+                const sunGlow = ctx.createRadialGradient(sunPos.x, sunPos.y, 0, sunPos.x, sunPos.y, sunSize * 3);
+                sunGlow.addColorStop(0, sunColor + '40');
+                sunGlow.addColorStop(0.3, sunColor + '20');
+                sunGlow.addColorStop(1, sunColor + '00');
+                ctx.fillStyle = sunGlow;
+                ctx.fillRect(sunPos.x - sunSize * 3, sunPos.y - sunSize * 3, sunSize * 6, sunSize * 6);
+
+                // Sun disk
+                ctx.beginPath();
+                ctx.arc(sunPos.x, sunPos.y, sunSize, 0, Math.PI * 2);
+                ctx.fillStyle = sunColor;
+                ctx.fill();
+            }
 
             // Apply zoom and pan transform
             ctx.save();
@@ -2085,6 +2264,14 @@
         function updateUI() {
             document.getElementById('currentPhase').textContent = gameState;
             document.getElementById('currentTurn').textContent = currentTurn;
+
+            // Update time display
+            const hours = Math.floor(gameHour % 24);
+            const minutes = Math.floor((gameHour % 1) * 60);
+            const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            document.getElementById('currentTime').textContent = timeString;
+            document.getElementById('timeOfDay').textContent = timeOfDay.charAt(0).toUpperCase() + timeOfDay.slice(1);
+
             document.getElementById('spitfireStats').innerHTML = spitfire.getStatsHTML();
             document.getElementById('me109Stats').innerHTML = me109.getStatsHTML();
 
@@ -2503,6 +2690,10 @@
 
             gameState = 'ORDER';
             currentTurn++;
+
+            // Advance game time
+            gameHour += HOURS_PER_TURN;
+            updateSunPosition();
 
             // Handle stall recovery/loss of control for next turn
             for (let plane of aircraft) {
