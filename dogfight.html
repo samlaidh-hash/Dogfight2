@@ -60,6 +60,106 @@
             font-family: 'Courier New', monospace;
         }
 
+        #restartButton, #pauseButton, #settingsButton {
+            position: absolute;
+            top: 10px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            background: #0f3460;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
+
+        #restartButton { right: 180px; }
+        #pauseButton { right: 100px; }
+        #settingsButton { right: 10px; }
+
+        #restartButton:hover, #pauseButton:hover, #settingsButton:hover {
+            background: #1a4d7a;
+        }
+
+        #settingsPanel, #missionBriefing, #aircraftSelector {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 30px;
+            border-radius: 10px;
+            border: 2px solid #0f3460;
+            display: none;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .panel-title {
+            font-size: 24px;
+            color: #e94560;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .setting-row {
+            margin: 15px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .setting-label {
+            font-size: 14px;
+            color: #eee;
+        }
+
+        select, input[type="range"] {
+            background: #2a3a2a;
+            color: #eee;
+            border: 1px solid #0f3460;
+            padding: 5px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .minimap {
+            position: absolute;
+            bottom: 100px;
+            right: 10px;
+            width: 200px;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #0f3460;
+            border-radius: 5px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #0f3460;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
+
+        .btn:hover {
+            background: #1a4d7a;
+        }
+
+        .btn-primary {
+            background: #e94560;
+        }
+
+        .btn-primary:hover {
+            background: #c23555;
+        }
+
         #executeButton:hover {
             background: #c23555;
         }
@@ -190,6 +290,68 @@
         <button id="nextPhase4s" class="nextPhaseButton">NEXT PHASE (4s)</button>
         <button id="nextPhase6s" class="nextPhaseButton">NEXT PHASE (6s)</button>
         <button id="nextPhase8s" class="nextPhaseButton">NEXT PHASE (8s)</button>
+
+        <button id="restartButton">RESTART</button>
+        <button id="pauseButton">PAUSE</button>
+        <button id="settingsButton">SETTINGS</button>
+
+        <canvas id="minimap" class="minimap" width="200" height="200"></canvas>
+
+        <!-- Settings Panel -->
+        <div id="settingsPanel">
+            <div class="panel-title">SETTINGS</div>
+            <div class="setting-row">
+                <span class="setting-label">Game Mode:</span>
+                <select id="gameModeSelect">
+                    <option value="arcade">Arcade</option>
+                    <option value="realistic">Realistic</option>
+                    <option value="simulation">Simulation</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">Sound Volume:</span>
+                <input type="range" id="volumeSlider" min="0" max="100" value="70">
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">Difficulty:</span>
+                <select id="difficultySelect">
+                    <option value="easy">Easy</option>
+                    <option value="normal" selected>Normal</option>
+                    <option value="hard">Hard</option>
+                    <option value="ace">Ace</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">Weather:</span>
+                <select id="weatherSelect">
+                    <option value="clear" selected>Clear</option>
+                    <option value="wind">Windy</option>
+                    <option value="rain">Rain</option>
+                    <option value="storm">Storm</option>
+                </select>
+            </div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="closeSettings()">CLOSE</button>
+            </div>
+        </div>
+
+        <!-- Mission Briefing Panel -->
+        <div id="missionBriefing">
+            <div class="panel-title">MISSION BRIEFING</div>
+            <div id="briefingContent"></div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="startMission()">START MISSION</button>
+            </div>
+        </div>
+
+        <!-- Aircraft Selector -->
+        <div id="aircraftSelector">
+            <div class="panel-title">SELECT YOUR AIRCRAFT</div>
+            <div id="aircraftList"></div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="confirmAircraftSelection()">CONFIRM</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -233,16 +395,333 @@
         const MOUNTAIN_HEIGHT = 1000; // meters
 
         // Game state
-        let gameState = 'ORDER'; // ORDER, EXECUTION, REVIEW
+        let gameState = 'ORDER'; // ORDER, EXECUTION, REVIEW, GAMEOVER, PAUSED
         let currentTurn = 1;
         let selectedAircraft = null;
         let ghostAircraft = null;
         let executionStartTime = 0;
         let executionRecording = [];
+        let isPaused = false;
+        let pausedTime = 0;
+
+        // Game settings
+        let gameSettings = {
+            gameMode: 'arcade', // arcade, realistic, simulation
+            difficulty: 'normal', // easy, normal, hard, ace
+            weather: 'clear', // clear, wind, rain, storm
+            volume: 0.7,
+            enableFuel: false,
+            enableComponentDamage: true,
+            enableWeatherEffects: true
+        };
+
+        // Campaign state
+        let campaignState = {
+            currentMission: 0,
+            missionsCompleted: 0,
+            totalKills: 0,
+            pilotExperience: 0,
+            pilotFatigue: 0,
+            availableAircraft: ['Spitfire', 'Me-109'],
+            damagedAircraft: {},
+            score: 0
+        };
+
+        // Mission system
+        let currentMission = null;
+        const missions = [
+            {
+                id: 1,
+                name: "First Blood",
+                type: "dogfight",
+                description: "Engage and destroy a single enemy fighter.",
+                objectives: ["Destroy enemy aircraft"],
+                playerAircraft: "Spitfire",
+                enemyAircraft: ["Me-109"],
+                weather: "clear",
+                timeOfDay: "noon"
+            },
+            {
+                id: 2,
+                name: "Escort Duty",
+                type: "escort",
+                description: "Protect friendly bombers from enemy fighters.",
+                objectives: ["Protect bombers", "Destroy enemy fighters"],
+                playerAircraft: "Spitfire",
+                enemyAircraft: ["Me-109", "Me-109"],
+                weather: "wind",
+                timeOfDay: "morning"
+            },
+            {
+                id: 3,
+                name: "Ground Attack",
+                type: "ground_attack",
+                description: "Strafe enemy ground positions.",
+                objectives: ["Destroy 3 ground targets", "Survive AA fire"],
+                playerAircraft: "P-47",
+                enemyAircraft: [],
+                groundTargets: 3,
+                weather: "clear",
+                timeOfDay: "afternoon"
+            }
+        ];
+
+        // Aircraft database with historically accurate specifications
+        const aircraftDatabase = {
+            'Spitfire': {
+                name: 'Supermarine Spitfire Mk V',
+                nation: 'British',
+                role: 'Fighter',
+                maxSpeed: 170, // m/s (~605 km/h)
+                minSpeed: 30,
+                maxTurnRate: 72, // degrees per turn
+                maxClimbRate: 15,
+                maxDiveRate: 30,
+                maxGForce: 7,
+                maxAcceleration: 15,
+                maxBraking: 20,
+                weapons: { type: 'mg', count: 8, ammo: 2660, burstSize: 8, damage: [2, 5], rof: 1 },
+                fuelCapacity: 386, // liters
+                fuelConsumption: 0.5, // liters per second at cruise
+                color: '#0099ff'
+            },
+            'Me-109': {
+                name: 'Messerschmitt Bf 109 G-6',
+                nation: 'German',
+                role: 'Fighter',
+                maxSpeed: 175,
+                minSpeed: 30,
+                maxTurnRate: 64,
+                maxClimbRate: 17,
+                maxDiveRate: 35,
+                maxGForce: 6.5,
+                maxAcceleration: 17,
+                maxBraking: 18,
+                weapons: { type: 'cannon', count: 3, ammo: 450, burstSize: 5, damage: [5, 12], rof: 3 },
+                fuelCapacity: 400,
+                fuelConsumption: 0.55,
+                color: '#ff4444'
+            },
+            'P-51': {
+                name: 'North American P-51D Mustang',
+                nation: 'American',
+                role: 'Fighter/Escort',
+                maxSpeed: 180, // m/s (~650 km/h)
+                minSpeed: 28,
+                maxTurnRate: 68,
+                maxClimbRate: 16,
+                maxDiveRate: 40,
+                maxGForce: 7.5,
+                maxAcceleration: 16,
+                maxBraking: 19,
+                weapons: { type: 'hmg', count: 6, ammo: 1880, burstSize: 6, damage: [3, 6], rof: 2 },
+                fuelCapacity: 730, // Excellent range
+                fuelConsumption: 0.45,
+                color: '#00aaff'
+            },
+            'P-47': {
+                name: 'Republic P-47D Thunderbolt',
+                nation: 'American',
+                role: 'Fighter-Bomber',
+                maxSpeed: 173,
+                minSpeed: 32,
+                maxTurnRate: 58, // Heavy, less maneuverable
+                maxClimbRate: 14,
+                maxDiveRate: 45, // Excellent dive performance
+                maxGForce: 7,
+                maxAcceleration: 14,
+                maxBraking: 16,
+                weapons: { type: 'hmg', count: 8, ammo: 3400, burstSize: 8, damage: [3, 6], rof: 1 },
+                fuelCapacity: 1155, // Very long range
+                fuelConsumption: 0.6,
+                canCarryBombs: true,
+                canCarryRockets: true,
+                color: '#0077cc'
+            },
+            'Hurricane': {
+                name: 'Hawker Hurricane Mk II',
+                nation: 'British',
+                role: 'Fighter',
+                maxSpeed: 165,
+                minSpeed: 31,
+                maxTurnRate: 70,
+                maxClimbRate: 13,
+                maxDiveRate: 28,
+                maxGForce: 6.5,
+                maxAcceleration: 14,
+                maxBraking: 18,
+                weapons: { type: 'cannon', count: 4, ammo: 364, burstSize: 4, damage: [4, 9], rof: 2 },
+                fuelCapacity: 386,
+                fuelConsumption: 0.5,
+                color: '#0088dd'
+            },
+            'P-40': {
+                name: 'Curtiss P-40 Warhawk',
+                nation: 'American',
+                role: 'Fighter',
+                maxSpeed: 168,
+                minSpeed: 30,
+                maxTurnRate: 66,
+                maxClimbRate: 12, // Poor climb rate
+                maxDiveRate: 38, // Good dive
+                maxGForce: 7,
+                maxAcceleration: 14,
+                maxBraking: 17,
+                weapons: { type: 'hmg', count: 6, ammo: 1740, burstSize: 6, damage: [3, 6], rof: 2 },
+                fuelCapacity: 568,
+                fuelConsumption: 0.52,
+                color: '#00aa88'
+            },
+            'Fw-190': {
+                name: 'Focke-Wulf Fw 190 A-8',
+                nation: 'German',
+                role: 'Fighter',
+                maxSpeed: 178,
+                minSpeed: 32,
+                maxTurnRate: 62,
+                maxClimbRate: 18, // Excellent climb
+                maxDiveRate: 42, // Excellent dive
+                maxGForce: 7.5,
+                maxAcceleration: 18,
+                maxBraking: 17,
+                weapons: { type: 'cannon', count: 4, ammo: 500, burstSize: 4, damage: [6, 13], rof: 2 },
+                fuelCapacity: 525,
+                fuelConsumption: 0.58,
+                color: '#ff3333'
+            },
+            'Me-262': {
+                name: 'Messerschmitt Me 262 Schwalbe',
+                nation: 'German',
+                role: 'Jet Fighter',
+                maxSpeed: 240, // m/s (~870 km/h) - MUCH faster!
+                minSpeed: 50, // Jets have higher stall speeds
+                maxTurnRate: 48, // Poor turn rate
+                maxClimbRate: 20,
+                maxDiveRate: 50,
+                maxGForce: 6,
+                maxAcceleration: 25, // Excellent acceleration
+                maxBraking: 12, // Poor deceleration
+                weapons: { type: 'cannon', count: 4, ammo: 360, burstSize: 4, damage: [8, 16], rof: 3 },
+                fuelCapacity: 2570, // High fuel consumption
+                fuelConsumption: 2.5, // Jets burn fuel fast!
+                isJet: true,
+                color: '#cc0000'
+            },
+            'Zero': {
+                name: 'Mitsubishi A6M Zero',
+                nation: 'Japanese',
+                role: 'Fighter',
+                maxSpeed: 166,
+                minSpeed: 26, // Excellent slow-speed handling
+                maxTurnRate: 80, // BEST turn rate!
+                maxClimbRate: 14,
+                maxDiveRate: 25, // Weak structure, poor dive
+                maxGForce: 6, // Fragile airframe
+                maxAcceleration: 13,
+                maxBraking: 16,
+                weapons: { type: 'cannon', count: 2, ammo: 220, burstSize: 2, damage: [5, 11], rof: 3 },
+                fuelCapacity: 518,
+                fuelConsumption: 0.35, // Very fuel efficient
+                lowDurability: true, // Takes extra damage
+                color: '#ff6666'
+            }
+        };
+
+        // Weather effects
+        let weatherState = {
+            windSpeed: 0,
+            windDirection: 0,
+            rainfall: 0,
+            visibility: 1.0
+        };
+
+        // Ground targets (Enhancement #6)
+        class GroundTarget {
+            constructor(x, y, type = 'truck') {
+                this.x = x;
+                this.y = y;
+                this.type = type; // truck, aa_gun, fuel_depot, bridge
+                this.health = 100;
+                this.isDestroyed = false;
+                this.size = type === 'bridge' ? 60 : type === 'fuel_depot' ? 40 : 20;
+            }
+
+            render() {
+                if (this.isDestroyed) {
+                    // Render destroyed target
+                    ctx.fillStyle = 'rgba(50, 50, 50, 0.6)';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size * 0.8, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Smoke
+                    for (let i = 0; i < 3; i++) {
+                        ctx.fillStyle = `rgba(40, 40, 40, ${0.4 - i * 0.1})`;
+                        ctx.beginPath();
+                        ctx.arc(this.x + (Math.random() - 0.5) * 10, this.y - 10 - i * 8, 6 + i * 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                } else {
+                    // Render active target based on type
+                    if (this.type === 'truck') {
+                        ctx.fillStyle = '#886644';
+                        ctx.fillRect(this.x - 10, this.y - 6, 20, 12);
+                        ctx.fillRect(this.x - 6, this.y - 10, 8, 8);
+                    } else if (this.type === 'aa_gun') {
+                        ctx.fillStyle = '#555555';
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, 12, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = '#333333';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.moveTo(this.x, this.y);
+                        ctx.lineTo(this.x, this.y - 15);
+                        ctx.stroke();
+                    } else if (this.type === 'fuel_depot') {
+                        ctx.fillStyle = '#aa8844';
+                        for (let i = 0; i < 3; i++) {
+                            ctx.beginPath();
+                            ctx.arc(this.x - 20 + i * 20, this.y, 15, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    } else if (this.type === 'bridge') {
+                        ctx.fillStyle = '#998877';
+                        ctx.fillRect(this.x - 30, this.y - 8, 60, 16);
+                        ctx.fillStyle = '#667755';
+                        for (let i = 0; i < 4; i++) {
+                            ctx.fillRect(this.x - 25 + i * 17, this.y - 12, 8, 24);
+                        }
+                    }
+
+                    // Health bar
+                    if (this.health < 100) {
+                        ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+                        ctx.fillRect(this.x - 15, this.y - this.size - 10, 30 * (this.health / 100), 4);
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                        ctx.strokeRect(this.x - 15, this.y - this.size - 10, 30, 4);
+                    }
+                }
+            }
+
+            takeDamage(amount) {
+                if (this.isDestroyed) return false;
+                this.health -= amount;
+                if (this.health <= 0) {
+                    this.isDestroyed = true;
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        let groundTargets = [];
 
         // Canvas setup
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const minimapCanvas = document.getElementById('minimap');
+        const minimapCtx = minimapCanvas.getContext('2d');
 
         // Terrain generation
         class Terrain {
@@ -547,72 +1026,90 @@
                 this.startHeading = heading;
                 this.startSpeed = 140; // Start at cruise speed
 
-                // Performance characteristics (historically accurate)
-                if (type === 'Spitfire') {
-                    this.maxSpeed = 170; // m/s (~600 km/h at altitude)
-                    this.minSpeed = 30; // m/s (~108 km/h stall speed)
-                    this.maxTurnRate = 72; // degrees per turn (18°/sec × 4 sec)
-                    this.maxClimbRate = 15; // m/s
-                    this.maxDiveRate = 30; // m/s
-                    this.maxGForce = 7;
-                    this.maxAcceleration = 15; // m/s²
-                    this.maxBraking = 20; // m/s²
-                } else { // Me-109
-                    this.maxSpeed = 175; // m/s (~630 km/h, slightly faster than Spitfire)
-                    this.minSpeed = 30; // m/s (~108 km/h stall speed)
-                    this.maxTurnRate = 64; // degrees per turn (16°/sec × 4 sec, slightly worse than Spitfire)
-                    this.maxClimbRate = 17; // m/s (slightly better climb)
-                    this.maxDiveRate = 35; // m/s
-                    this.maxGForce = 6.5;
-                    this.maxAcceleration = 17; // m/s²
-                    this.maxBraking = 18; // m/s²
-                }
+                // Load aircraft specifications from database
+                const specs = aircraftDatabase[type] || aircraftDatabase['Spitfire'];
+                this.fullName = specs.name;
+                this.nation = specs.nation;
+                this.role = specs.role;
+                this.maxSpeed = specs.maxSpeed;
+                this.minSpeed = specs.minSpeed;
+                this.maxTurnRate = specs.maxTurnRate;
+                this.maxClimbRate = specs.maxClimbRate;
+                this.maxDiveRate = specs.maxDiveRate;
+                this.maxGForce = specs.maxGForce;
+                this.maxAcceleration = specs.maxAcceleration;
+                this.maxBraking = specs.maxBraking;
+                this.aircraftColor = specs.color;
+                this.isJet = specs.isJet || false;
+                this.lowDurability = specs.lowDurability || false;
 
-                // Combat stats - historically accurate weapons
-                if (type === 'Spitfire') {
-                    // 8× .303 Browning machine guns
-                    this.ammunition = 2660; // Total rounds (8 guns × 350 rounds each ÷ 8 rounds per burst)
-                    this.ammoPerBurst = 8; // 1 round from each gun
-                    this.damage = 0;
-                    this.damagePerHit = 2 + Math.random() * 3; // Lower damage per hit (lighter caliber)
-                    this.fireThreshold = 0.25; // Lower threshold (easier to fire - more ammo)
-                    this.rateOfFire = 1; // Can fire every frame (very high ROF)
-                } else { // Me-109
-                    // 2× 13mm MG 131 + 1× 20mm MG 151/20 cannon
-                    this.ammunition = 450; // Limited cannon ammo (300 rounds ÷ 5 rounds per burst + machine gun)
-                    this.ammoPerBurst = 5; // Mixed armament burst
-                    this.damage = 0;
-                    this.damagePerHit = 5 + Math.random() * 7; // Higher damage (cannon hits hard!)
-                    this.fireThreshold = 0.35; // Higher threshold (conserve limited cannon ammo)
-                    this.rateOfFire = 3; // Slower rate of fire (cannon)
-                }
+                // Weapons from database
+                const weapons = specs.weapons;
+                this.weaponType = weapons.type;
+                this.ammunition = weapons.ammo;
+                this.maxAmmunition = weapons.ammo;
+                this.ammoPerBurst = weapons.burstSize;
+                this.damagePerHit = weapons.damage[0] + Math.random() * (weapons.damage[1] - weapons.damage[0]);
+                this.rateOfFire = weapons.rof;
+                this.fireThreshold = weapons.type === 'cannon' ? 0.35 : 0.25;
+
+                // Fuel system
+                this.fuel = specs.fuelCapacity;
+                this.maxFuel = specs.fuelCapacity;
+                this.fuelConsumption = specs.fuelConsumption;
+
+                // Bombs and rockets (if applicable)
+                this.canCarryBombs = specs.canCarryBombs || false;
+                this.canCarryRockets = specs.canCarryRockets || false;
+                this.bombs = this.canCarryBombs ? 2 : 0;
+                this.rockets = this.canCarryRockets ? 8 : 0;
+
+                // Component damage system (Enhancement #4)
+                this.damage = 0;
+                this.componentDamage = {
+                    engine: 0,
+                    wings: 0,
+                    tail: 0,
+                    cockpit: 0,
+                    fuelTank: 0,
+                    leftWing: 0,
+                    rightWing: 0
+                };
+                this.fuelLeak = false;
+                this.asymmetricDamage = { left: 0, right: 0 }; // Wing damage affecting turn
 
                 this.timeOnTarget = 0;
                 this.pilotSkill = 0.5 + Math.random() * 0.3; // 50-80%
                 this.gunnerySkill = 0.5 + Math.random() * 0.3;
-                this.isFiring = false; // Visual state for gun firing
-                this.firingCooldown = 0; // Frames until can fire again
-                this.lastHitBy = null; // Track who hit us
-                this.lastHitTime = 0; // Timestamp of last hit
-                this.isDestroyed = false; // Aircraft destroyed state
+                this.pilotWounded = false;
+                this.isFiring = false;
+                this.firingCooldown = 0;
+                this.lastHitBy = null;
+                this.lastHitTime = 0;
+                this.isDestroyed = false;
+                this.canBailout = true;
+                this.pilotBailedOut = false;
 
                 // Visual hit effects
-                this.hitEffects = []; // Array of {x, y, type: 'mg'|'cannon', time, duration}
-                this.smokeParticles = []; // Smoke trail particles when damaged
+                this.hitEffects = [];
+                this.smokeParticles = [];
 
                 // Flight path calculation
-                this.flightPath = null; // Will store calculated realistic path
-                this.inStall = false; // Track if aircraft is stalled
-                this.slipAngle = 0; // Slip/skid angle (nose direction vs flight direction)
+                this.flightPath = null;
+                this.inStall = false;
+                this.slipAngle = 0;
 
                 // Roll mechanics
-                this.rollType = 'none'; // 'none', 'half', 'full'
-                this.isInverted = false; // True if upside down
-                this.isRolling = false; // True during execution of roll
-                this.rollProgress = 0; // 0 to 1 during roll execution
-                this.currentGForce = 1.0; // Current G-force (1.0 = normal)
-                this.peakGForce = 1.0; // Peak G-force this turn
-                this.gForcePenalty = 0; // Skill penalty from previous turn's G-forces (0-1)
+                this.rollType = 'none';
+                this.isInverted = false;
+                this.isRolling = false;
+                this.rollProgress = 0;
+                this.currentGForce = 1.0;
+                this.peakGForce = 1.0;
+                this.gForcePenalty = 0;
+
+                // Gun convergence (Enhancement #8)
+                this.gunConvergence = 300; // meters - distance where guns converge
             }
 
             getScaleForAltitude() {
@@ -1275,8 +1772,29 @@
 
             getStatsHTML() {
                 const ammoColor = this.ammunition < 100 ? 'color: #ff4444;' : '';
+                const ammoPercent = Math.round((this.ammunition / this.maxAmmunition) * 100);
                 const damageColor = this.damage > 50 ? 'color: #ff4444;' : this.damage > 25 ? 'color: #ffaa00;' : '';
                 const hitWarning = this.lastHitBy ? `<div style="color: #ff0000; animation: blink 0.5s infinite;">⚠ HIT BY ${this.lastHitBy.toUpperCase()}!</div>` : '';
+
+                // Enhancement #12: Fuel display
+                const fuelPercent = Math.round((this.fuel / this.maxFuel) * 100);
+                const fuelColor = fuelPercent < 20 ? 'color: #ff4444;' : fuelPercent < 40 ? 'color: #ffaa00;' : '';
+                const fuelDisplay = gameSettings.enableFuel ?
+                    `<div class="stat-line" style="${fuelColor}">Fuel: ${fuelPercent}%</div>` : '';
+                const fuelLeakWarning = this.fuelLeak ?
+                    `<div class="stat-line" style="color: #ff4444;">⚠ FUEL LEAK!</div>` : '';
+
+                // Enhancement #4: Component damage display
+                let componentInfo = '';
+                if (gameSettings.enableComponentDamage && (this.componentDamage.engine > 10 || this.componentDamage.wings > 10 || this.componentDamage.cockpit > 10)) {
+                    componentInfo = '<div class="stat-line" style="font-size: 11px; color: #ffaa00;">';
+                    if (this.componentDamage.engine > 10) componentInfo += `Engine: ${Math.round(this.componentDamage.engine)}% `;
+                    if (this.componentDamage.leftWing > 10 || this.componentDamage.rightWing > 10) {
+                        componentInfo += `Wings: L${Math.round(this.componentDamage.leftWing)}%/R${Math.round(this.componentDamage.rightWing)}% `;
+                    }
+                    if (this.componentDamage.cockpit > 10) componentInfo += `Cockpit: ${Math.round(this.componentDamage.cockpit)}% `;
+                    componentInfo += '</div>';
+                }
 
                 // Show G-force during execution
                 const gForceDisplay = this.currentGForce > 1.5 ? `<div class="stat-line" style="color: #ffaa00;">G-Force: ${this.currentGForce.toFixed(1)}G</div>` : '';
@@ -1289,22 +1807,40 @@
                 const invertedDisplay = this.isInverted ?
                     `<div class="stat-line" style="color: #ffaa00;">⤺ INVERTED</div>` : '';
 
+                // Show pilot wounded
+                const pilotWoundedDisplay = this.pilotWounded ?
+                    `<div class="stat-line" style="color: #ff4444;">⚠ PILOT WOUNDED</div>` : '';
+
                 // Show fire threshold
                 const fireThresholdPercent = Math.round(this.fireThreshold * 100);
                 const fireThresholdColor = this.fireThreshold < 0.20 ? '#ff4444' :
                                           this.fireThreshold < 0.30 ? '#ffaa00' : '#88ff88';
 
+                // Enhancement #8: Weapon info
+                const weaponName = this.weaponType === 'mg' ? 'MGs' :
+                                  this.weaponType === 'hmg' ? 'HMGs' : 'Cannon';
+
+                // Enhancement #8: Bombs/Rockets (if available)
+                const ordinanceDisplay = (this.bombs > 0 || this.rockets > 0) ?
+                    `<div class="stat-line" style="color: #88ff88;">Bombs: ${this.bombs} | Rockets: ${this.rockets}</div>` : '';
+
                 return `
+                    <div class="stat-line" style="font-size: 11px; color: #aaa;">${this.fullName}</div>
                     <div class="stat-line">Alt: ${Math.round(this.altitude)}m</div>
                     <div class="stat-line">Speed: ${Math.round(this.speed)} m/s</div>
                     <div class="stat-line">Throttle: ${Math.round(this.throttle * 100)}%</div>
                     <div class="stat-line">Hdg: ${Math.round(this.heading)}°</div>
-                    <div class="stat-line" style="${ammoColor}">Ammo: ${this.ammunition} ${this.isFiring ? '🔥' : ''}</div>
+                    ${fuelDisplay}
+                    ${fuelLeakWarning}
+                    <div class="stat-line" style="${ammoColor}">${weaponName}: ${ammoPercent}% ${this.isFiring ? '🔥' : ''}</div>
                     <div class="stat-line" style="${damageColor}">Damage: ${Math.round(this.damage)}%</div>
+                    ${componentInfo}
                     <div class="stat-line" style="color: ${fireThresholdColor}">Fire Min: ${fireThresholdPercent}%</div>
+                    ${ordinanceDisplay}
                     ${gForceDisplay}
                     ${gPenaltyDisplay}
                     ${invertedDisplay}
+                    ${pilotWoundedDisplay}
                     ${hitWarning}
                 `;
             }
@@ -1606,8 +2142,28 @@
 
                             // Check if hit
                             if (Math.random() < hitChance) {
-                                const damageAmount = shooter.damagePerHit; // Use weapon-specific damage
-                                target.damage += damageAmount;
+                                let damageAmount = shooter.damagePerHit; // Use weapon-specific damage
+
+                                // Enhancement #8: Gun convergence accuracy bonus
+                                const convergenceDist = Math.abs(distance - shooter.gunConvergence);
+                                if (convergenceDist < 50) {
+                                    damageAmount *= 1.3; // Bonus damage at convergence range
+                                } else if (convergenceDist < 100) {
+                                    damageAmount *= 1.1;
+                                }
+
+                                // Low durability aircraft (like Zero) take extra damage
+                                if (target.lowDurability) {
+                                    damageAmount *= 1.4;
+                                }
+
+                                // Apply weather penalties
+                                if (weatherState.rainfall > 0) {
+                                    damageAmount *= (1 - weatherState.rainfall * 0.3);
+                                }
+
+                                // Enhancement #4: Apply component damage
+                                applyComponentDamage(target, damageAmount);
                                 target.lastHitBy = shooter.name;
                                 target.lastHitTime = Date.now();
                                 console.log(`  HIT! ${target.name} took ${damageAmount.toFixed(1)} damage (total: ${target.damage.toFixed(1)})`);
@@ -1815,12 +2371,23 @@
                 }
             }
 
+            // Render ground targets (Enhancement #6)
+            for (let target of groundTargets) {
+                target.render();
+            }
+
             // Render ghost if in order mode
             if (ghostAircraft) {
                 ghostAircraft.aircraft.renderSVG(true, ghostAircraft.state);
             }
 
             ctx.restore();
+
+            // Render weather effects (Enhancement #7) - after zoom/pan restore
+            renderWeather();
+
+            // Render minimap (Enhancement #12)
+            renderMinimap();
 
             // Draw scale bar (in screen space, not affected by zoom/pan)
             const scaleBarLength = 100; // Represents 100 meters
@@ -2401,14 +2968,287 @@
 
                 ctx.font = '18px Courier New';
                 ctx.fillStyle = '#aaaaaa';
-                ctx.fillText('Refresh page to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80);
+                ctx.fillText('Press RESTART to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80);
                 ctx.textAlign = 'left';
             }
 
             render();
             updateUI();
-            requestAnimationFrame(gameLoop);
+            if (!isPaused) {
+                requestAnimationFrame(gameLoop);
+            }
         }
+
+        // Enhancement #11: Game Flow Functions
+        function restartGame() {
+            // Reset all game state
+            gameState = 'ORDER';
+            currentTurn = 1;
+            isPaused = false;
+            selectedAircraft = null;
+            ghostAircraft = null;
+            executionRecording = [];
+            groundTargets = [];
+
+            // Reinitialize aircraft
+            spitfire = new Aircraft('Player', 'Spitfire', 400, 500, 500, 90, true);
+            me109 = new Aircraft('Enemy', 'Me-109', 1400, 500, 500, 270, false);
+            aircraft = [spitfire, me109];
+
+            // Reset terrain
+            terrain = new Terrain();
+
+            // Apply weather
+            applyWeather(gameSettings.weather);
+
+            // Update UI
+            updateUI();
+        }
+
+        function togglePause() {
+            if (gameState === 'EXECUTION') {
+                if (!isPaused) {
+                    isPaused = true;
+                    pausedTime = Date.now() - executionStartTime;
+                    document.getElementById('pauseButton').textContent = 'RESUME';
+                } else {
+                    isPaused = false;
+                    executionStartTime = Date.now() - pausedTime;
+                    document.getElementById('pauseButton').textContent = 'PAUSE';
+                    requestAnimationFrame(gameLoop);
+                }
+            }
+        }
+
+        function openSettings() {
+            document.getElementById('settingsPanel').style.display = 'block';
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsPanel').style.display = 'none';
+
+            // Apply settings
+            gameSettings.gameMode = document.getElementById('gameModeSelect').value;
+            gameSettings.difficulty = document.getElementById('difficultySelect').value;
+            gameSettings.weather = document.getElementById('weatherSelect').value;
+            gameSettings.volume = document.getElementById('volumeSlider').value / 100;
+
+            // Update sound volumes
+            soundSpitfireEngine.volume = gameSettings.volume * 0.3;
+            soundMe109Engine.volume = gameSettings.volume * 0.3;
+            soundSpitfireMG.volume = gameSettings.volume * 0.6;
+            soundMe109Cannon.volume = gameSettings.volume * 0.7;
+
+            // Apply game mode settings
+            if (gameSettings.gameMode === 'realistic' || gameSettings.gameMode === 'simulation') {
+                gameSettings.enableFuel = true;
+                gameSettings.enableComponentDamage = true;
+            } else {
+                gameSettings.enableFuel = false;
+                gameSettings.enableComponentDamage = gameSettings.gameMode !== 'arcade';
+            }
+
+            // Apply weather
+            applyWeather(gameSettings.weather);
+        }
+
+        // Enhancement #7: Weather System
+        function applyWeather(weather) {
+            switch (weather) {
+                case 'clear':
+                    weatherState.windSpeed = 0;
+                    weatherState.rainfall = 0;
+                    weatherState.visibility = 1.0;
+                    break;
+                case 'wind':
+                    weatherState.windSpeed = 10 + Math.random() * 15; // 10-25 m/s
+                    weatherState.windDirection = Math.random() * 360;
+                    weatherState.rainfall = 0;
+                    weatherState.visibility = 1.0;
+                    break;
+                case 'rain':
+                    weatherState.windSpeed = 5 + Math.random() * 10;
+                    weatherState.windDirection = Math.random() * 360;
+                    weatherState.rainfall = 0.5;
+                    weatherState.visibility = 0.7;
+                    break;
+                case 'storm':
+                    weatherState.windSpeed = 20 + Math.random() * 20; // 20-40 m/s
+                    weatherState.windDirection = Math.random() * 360;
+                    weatherState.rainfall = 1.0;
+                    weatherState.visibility = 0.4;
+                    break;
+            }
+        }
+
+        function renderWeather() {
+            if (weatherState.rainfall > 0) {
+                ctx.save();
+                ctx.globalAlpha = weatherState.rainfall * 0.3;
+                ctx.strokeStyle = '#aaccff';
+                ctx.lineWidth = 1;
+
+                for (let i = 0; i < 100 * weatherState.rainfall; i++) {
+                    const x = Math.random() * CANVAS_WIDTH;
+                    const y = Math.random() * CANVAS_HEIGHT;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x - 2, y + 15);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+        }
+
+        // Enhancement #12: Minimap
+        function renderMinimap() {
+            const mmWidth = 200;
+            const mmHeight = 200;
+            const scaleX = mmWidth / CANVAS_WIDTH;
+            const scaleY = mmHeight / CANVAS_HEIGHT;
+
+            // Clear minimap
+            minimapCtx.fillStyle = 'rgba(20, 30, 20, 0.9)';
+            minimapCtx.fillRect(0, 0, mmWidth, mmHeight);
+
+            // Draw terrain (simplified)
+            minimapCtx.fillStyle = 'rgba(100, 80, 60, 0.5)';
+            for (let mountain of terrain.mountains) {
+                minimapCtx.beginPath();
+                minimapCtx.arc(mountain.x * scaleX, mountain.y * scaleY, 5, 0, Math.PI * 2);
+                minimapCtx.fill();
+            }
+
+            // Draw clouds
+            minimapCtx.fillStyle = 'rgba(200, 200, 200, 0.3)';
+            for (let cloud of terrain.clouds) {
+                minimapCtx.beginPath();
+                minimapCtx.arc(cloud.x * scaleX, cloud.y * scaleY, 8, 0, Math.PI * 2);
+                minimapCtx.fill();
+            }
+
+            // Draw ground targets
+            minimapCtx.fillStyle = 'rgba(200, 150, 100, 0.8)';
+            for (let target of groundTargets) {
+                if (!target.isDestroyed) {
+                    minimapCtx.fillRect(target.x * scaleX - 2, target.y * scaleY - 2, 4, 4);
+                }
+            }
+
+            // Draw aircraft
+            for (let plane of aircraft) {
+                if (!plane.isDestroyed) {
+                    minimapCtx.fillStyle = plane.isPlayer ? '#00ffff' : '#ff0000';
+                    minimapCtx.beginPath();
+                    minimapCtx.arc(plane.x * scaleX, plane.y * scaleY, 3, 0, Math.PI * 2);
+                    minimapCtx.fill();
+
+                    // Direction indicator
+                    const headingRad = (plane.heading - 90) * Math.PI / 180;
+                    minimapCtx.strokeStyle = minimapCtx.fillStyle;
+                    minimapCtx.lineWidth = 2;
+                    minimapCtx.beginPath();
+                    minimapCtx.moveTo(plane.x * scaleX, plane.y * scaleY);
+                    minimapCtx.lineTo(
+                        plane.x * scaleX + Math.cos(headingRad) * 8,
+                        plane.y * scaleY + Math.sin(headingRad) * 8
+                    );
+                    minimapCtx.stroke();
+                }
+            }
+
+            // Border
+            minimapCtx.strokeStyle = '#0f3460';
+            minimapCtx.lineWidth = 2;
+            minimapCtx.strokeRect(0, 0, mmWidth, mmHeight);
+        }
+
+        // Enhancement #5: Bailout Mechanics
+        function attemptBailout(aircraft) {
+            if (!aircraft.canBailout || aircraft.isDestroyed || aircraft.pilotBailedOut) {
+                return false;
+            }
+
+            // Can only bailout if damage > 60% or fuel critical
+            if (aircraft.damage > 60 || (gameSettings.enableFuel && aircraft.fuel < 10)) {
+                aircraft.pilotBailedOut = true;
+                aircraft.canBailout = false;
+
+                // Create bailout visual effect
+                const parachuteX = aircraft.x;
+                const parachuteY = aircraft.y;
+                const parachuteAlt = aircraft.altitude;
+
+                // In friendly territory = rescued, in enemy territory = captured
+                const isFriendlyTerritory = aircraft.isPlayer ? aircraft.x < CANVAS_WIDTH / 2 : aircraft.x > CANVAS_WIDTH / 2;
+
+                setTimeout(() => {
+                    alert(`${aircraft.name} pilot bailed out! ${isFriendlyTerritory ? 'Pilot rescued!' : 'Pilot captured.'}`);
+                }, 1000);
+
+                return true;
+            }
+            return false;
+        }
+
+        // Enhancement #4: Apply Component Damage
+        function applyComponentDamage(aircraft, damage) {
+            if (!gameSettings.enableComponentDamage) {
+                aircraft.damage += damage;
+                return;
+            }
+
+            // Randomly hit different components
+            const component = ['engine', 'wings', 'tail', 'cockpit', 'fuelTank', 'leftWing', 'rightWing'][Math.floor(Math.random() * 7)];
+            aircraft.componentDamage[component] += damage;
+
+            // Engine damage reduces max speed and acceleration
+            if (component === 'engine') {
+                aircraft.maxSpeed *= 0.95;
+                aircraft.maxAcceleration *= 0.9;
+            }
+
+            // Wing damage affects turn rate
+            if (component === 'leftWing') {
+                aircraft.asymmetricDamage.left += damage;
+                aircraft.maxTurnRate *= 0.95;
+            } else if (component === 'rightWing') {
+                aircraft.asymmetricDamage.right += damage;
+                aircraft.maxTurnRate *= 0.95;
+            }
+
+            // Tail damage affects stability
+            if (component === 'tail') {
+                aircraft.maxClimbRate *= 0.9;
+            }
+
+            // Cockpit damage can wound pilot
+            if (component === 'cockpit' && Math.random() < 0.3) {
+                aircraft.pilotWounded = true;
+                aircraft.pilotSkill *= 0.7;
+                aircraft.gunnerySkill *= 0.7;
+            }
+
+            // Fuel tank damage creates leak
+            if (component === 'fuelTank') {
+                aircraft.fuelLeak = true;
+            }
+
+            // Update overall damage
+            aircraft.damage = Math.max(
+                aircraft.componentDamage.engine,
+                aircraft.componentDamage.wings,
+                aircraft.componentDamage.tail,
+                aircraft.componentDamage.cockpit,
+                aircraft.componentDamage.fuelTank,
+                aircraft.componentDamage.leftWing + aircraft.componentDamage.rightWing
+            );
+        }
+
+        // Event listeners
+        document.getElementById('restartButton').addEventListener('click', restartGame);
+        document.getElementById('pauseButton').addEventListener('click', togglePause);
+        document.getElementById('settingsButton').addEventListener('click', openSettings);
 
         // Start game
         gameLoop();
