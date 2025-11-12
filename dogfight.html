@@ -348,10 +348,8 @@
                 // Get the appropriate image
                 const img = this.type === 'Spitfire' ? aircraftImages.spitfire : aircraftImages.bf109;
 
-                // Don't render if image not loaded
-                if (!img.complete) {
-                    return;
-                }
+                // Check if image loaded, if not use fallback geometry
+                const useImage = img.complete && img.naturalWidth > 0;
 
                 ctx.save();
                 ctx.translate(this.x, this.y);
@@ -368,38 +366,77 @@
                 const wingScale = 0.2 + 0.8 * rollFactor; // Never fully disappear (min 20%)
                 ctx.scale(wingScale, 1); // Squash horizontally, keep vertical
 
-                // Apply tinting for ghost states
+                // Set color based on state
                 if (isGhost) {
                     if (ghostState === 'illegal') {
                         ctx.globalAlpha = 0.6;
-                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.fillStyle = '#ff0000';
+                        ctx.strokeStyle = '#ff0000';
                     } else if (ghostState === 'stressful') {
                         ctx.globalAlpha = 0.6;
-                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.fillStyle = '#ffff00';
+                        ctx.strokeStyle = '#ffff00';
                     } else {
                         ctx.globalAlpha = 0.5;
+                        ctx.fillStyle = '#00ff00';
+                        ctx.strokeStyle = '#00ff00';
                     }
                 } else {
                     ctx.globalAlpha = 1.0;
+                    if (this.isPlayer) {
+                        ctx.fillStyle = '#0099ff';
+                        ctx.strokeStyle = '#0099ff';
+                    } else {
+                        ctx.fillStyle = '#ff4444';
+                        ctx.strokeStyle = '#ff4444';
+                    }
                 }
 
-                // Draw the aircraft image centered
-                const imgWidth = 80; // Standard display width
-                const imgHeight = 80; // Standard display height
-                ctx.drawImage(img, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
+                if (useImage) {
+                    // Draw the aircraft image centered
+                    const imgWidth = 80;
+                    const imgHeight = 80;
 
-                // Apply color overlay for ghosts
-                if (isGhost) {
-                    ctx.globalCompositeOperation = 'source-atop';
-                    if (ghostState === 'illegal') {
-                        ctx.fillStyle = '#ff0000';
-                    } else if (ghostState === 'stressful') {
-                        ctx.fillStyle = '#ffff00';
-                    } else {
-                        ctx.fillStyle = '#00ff00';
+                    if (isGhost) {
+                        ctx.globalCompositeOperation = 'source-over';
                     }
-                    ctx.fillRect(-imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
-                    ctx.globalCompositeOperation = 'source-over';
+
+                    ctx.drawImage(img, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
+
+                    // Apply color overlay for ghosts
+                    if (isGhost) {
+                        ctx.globalCompositeOperation = 'source-atop';
+                        ctx.fillRect(-imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
+                        ctx.globalCompositeOperation = 'source-over';
+                    }
+                } else {
+                    // Fallback: draw simple geometric shape
+                    ctx.lineWidth = 2;
+
+                    // Fuselage
+                    ctx.beginPath();
+                    ctx.moveTo(0, -30);
+                    ctx.lineTo(-5, 10);
+                    ctx.lineTo(5, 10);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Wings
+                    ctx.beginPath();
+                    ctx.moveTo(-25, 0);
+                    ctx.lineTo(-5, 0);
+                    ctx.moveTo(5, 0);
+                    ctx.lineTo(25, 0);
+                    ctx.stroke();
+
+                    // Tail
+                    ctx.beginPath();
+                    ctx.moveTo(-8, 10);
+                    ctx.lineTo(-8, 15);
+                    ctx.moveTo(8, 10);
+                    ctx.lineTo(8, 15);
+                    ctx.stroke();
                 }
 
                 ctx.globalAlpha = 1.0;
