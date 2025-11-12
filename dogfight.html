@@ -160,6 +160,25 @@
             background: #c23555;
         }
 
+        #energyDiagram {
+            position: absolute;
+            bottom: 320px;
+            right: 10px;
+            width: 200px;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #0f3460;
+            border-radius: 5px;
+        }
+
+        .replay-controls {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+        }
+
         #executeButton:hover {
             background: #c23555;
         }
@@ -296,6 +315,16 @@
         <button id="settingsButton">SETTINGS</button>
 
         <canvas id="minimap" class="minimap" width="200" height="200"></canvas>
+        <canvas id="energyDiagram" width="200" height="200"></canvas>
+
+        <!-- Replay Controls (Enhancement #10) -->
+        <div id="replayControls" class="replay-controls">
+            <button class="btn" onclick="replaySeek(-10)">⏪ -10s</button>
+            <button class="btn" onclick="toggleReplayPause()" id="replayPauseBtn">⏸ Pause</button>
+            <button class="btn" onclick="replaySeek(10)">⏩ +10s</button>
+            <button class="btn" onclick="toggleFreeCam()">📷 Free Cam</button>
+            <button class="btn" onclick="exitReplay()">Exit Replay</button>
+        </div>
 
         <!-- Settings Panel -->
         <div id="settingsPanel">
@@ -2389,6 +2418,9 @@
             // Render minimap (Enhancement #12)
             renderMinimap();
 
+            // Render energy diagram (Enhancement #9)
+            renderEnergyDiagram();
+
             // Draw scale bar (in screen space, not affected by zoom/pan)
             const scaleBarLength = 100; // Represents 100 meters
             const scaleBarX = 20;
@@ -3243,6 +3275,249 @@
                 aircraft.componentDamage.fuelTank,
                 aircraft.componentDamage.leftWing + aircraft.componentDamage.rightWing
             );
+        }
+
+        // Enhancement #9: Energy Management UI
+        function renderEnergyDiagram() {
+            const canvas = document.getElementById('energyDiagram');
+            const ctx = canvas.getContext('2d');
+            const width = 200;
+            const height = 200;
+
+            // Clear
+            ctx.fillStyle = 'rgba(20, 30, 20, 0.9)';
+            ctx.fillRect(0, 0, width, height);
+
+            // Title
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px Courier New';
+            ctx.fillText('Energy State', 10, 20);
+
+            if (aircraft.length < 2) return;
+
+            // Calculate energy states (specific energy = altitude + v²/2g)
+            const g = 9.81;
+            const playerEnergy = spitfire.altitude + (spitfire.speed * spitfire.speed) / (2 * g);
+            const enemyEnergy = me109.altitude + (me109.speed * me109.speed) / (2 * g);
+
+            const maxEnergy = Math.max(playerEnergy, enemyEnergy, 1500);
+            const playerBarHeight = (playerEnergy / maxEnergy) * 120;
+            const enemyBarHeight = (enemyEnergy / maxEnergy) * 120;
+
+            // Player energy bar
+            ctx.fillStyle = '#0099ff';
+            ctx.fillRect(30, 170 - playerBarHeight, 60, playerBarHeight);
+            ctx.strokeStyle = '#ffffff';
+            ctx.strokeRect(30, 50, 60, 120);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '10px Courier New';
+            ctx.fillText('You', 45, 185);
+
+            // Enemy energy bar
+            ctx.fillStyle = '#ff4444';
+            ctx.fillRect(110, 170 - enemyBarHeight, 60, enemyBarHeight);
+            ctx.strokeRect(110, 50, 60, 120);
+            ctx.fillText('Enemy', 120, 185);
+
+            // Energy advantage indicator
+            const advantage = playerEnergy - enemyEnergy;
+            ctx.fillStyle = advantage > 0 ? '#00ff00' : '#ff4444';
+            ctx.font = 'bold 14px Courier New';
+            const advantageText = advantage > 0 ? `+${Math.round(advantage)}m` : `${Math.round(advantage)}m`;
+            ctx.fillText(advantageText, 70, 40);
+
+            // Engagement envelope (optimal attack zone)
+            ctx.strokeStyle = '#ffaa00';
+            ctx.setLineDash([3, 3]);
+            ctx.strokeRect(30, 90, 140, 40);
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#ffaa00';
+            ctx.font = '9px Courier New';
+            ctx.fillText('Optimal Zone', 55, 115);
+
+            // Border
+            ctx.strokeStyle = '#0f3460';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(0, 0, width, height);
+        }
+
+        // Enhancement #10: Replay & Analysis System
+        let replayMode = false;
+        let replayData = [];
+        let replayTime = 0;
+        let replayPaused = false;
+        let freeCamMode = false;
+        let freeCamX = 0;
+        let freeCamY = 0;
+
+        function toggleReplayPause() {
+            replayPaused = !replayPaused;
+            document.getElementById('replayPauseBtn').textContent = replayPaused ? '▶ Play' : '⏸ Pause';
+        }
+
+        function replaySeek(seconds) {
+            replayTime = Math.max(0, Math.min(replayData.length - 1, replayTime + seconds * 10));
+        }
+
+        function toggleFreeCam() {
+            freeCamMode = !freeCamMode;
+            if (!freeCamMode) {
+                panX = 0;
+                panY = 0;
+                zoomLevel = 1.0;
+            }
+        }
+
+        function exitReplay() {
+            replayMode = false;
+            document.getElementById('replayControls').style.display = 'none';
+            freeCamMode = false;
+            panX = 0;
+            panY = 0;
+            zoomLevel = 1.0;
+        }
+
+        function startReplayMode() {
+            replayMode = true;
+            replayTime = 0;
+            replayPaused = false;
+            freeCamMode = false;
+            document.getElementById('replayControls').style.display = 'block';
+
+            // Capture current execution as replay data
+            replayData = JSON.parse(JSON.stringify(executionRecording));
+        }
+
+        function updateReplay() {
+            if (!replayMode || replayPaused) return;
+
+            if (replayTime < replayData.length - 1) {
+                replayTime++;
+                const frame = replayData[Math.floor(replayTime)];
+
+                // Apply frame data to aircraft
+                if (frame) {
+                    for (let i = 0; i < aircraft.length; i++) {
+                        if (frame.aircraft && frame.aircraft[i]) {
+                            Object.assign(aircraft[i], frame.aircraft[i]);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Enhancement #1: Campaign/Mission System
+        function loadMission(missionId) {
+            currentMission = missions.find(m => m.id === missionId) || missions[0];
+            campaignState.currentMission = missionId;
+
+            // Show mission briefing
+            showMissionBriefing();
+        }
+
+        function showMissionBriefing() {
+            const briefing = document.getElementById('briefingContent');
+            briefing.innerHTML = `
+                <h3 style="color: #e94560;">Mission ${currentMission.id}: ${currentMission.name}</h3>
+                <p style="margin: 10px 0; color: #ccc;">${currentMission.description}</p>
+                <h4 style="color: #0f9d58; margin-top: 15px;">Objectives:</h4>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                    ${currentMission.objectives.map(obj => `<li>${obj}</li>`).join('')}
+                </ul>
+                <div style="margin-top: 15px; color: #aaa;">
+                    <div>Aircraft: ${currentMission.playerAircraft}</div>
+                    <div>Weather: ${currentMission.weather}</div>
+                    <div>Time of Day: ${currentMission.timeOfDay}</div>
+                </div>
+            `;
+            document.getElementById('missionBriefing').style.display = 'block';
+        }
+
+        function startMission() {
+            document.getElementById('missionBriefing').style.display = 'none';
+
+            // Initialize mission
+            gameState = 'ORDER';
+            currentTurn = 1;
+            groundTargets = [];
+
+            // Set weather
+            applyWeather(currentMission.weather);
+
+            // Create player aircraft
+            spitfire = new Aircraft('Player', currentMission.playerAircraft, 400, 500, 500, 90, true);
+            aircraft = [spitfire];
+
+            // Create enemy aircraft
+            for (let i = 0; i < currentMission.enemyAircraft.length; i++) {
+                const enemyType = currentMission.enemyAircraft[i];
+                const enemy = new Aircraft(`Enemy ${i+1}`, enemyType, 1400 + i * 100, 500 + i * 50, 500, 270, false);
+                aircraft.push(enemy);
+            }
+
+            // Create ground targets if needed
+            if (currentMission.groundTargets) {
+                for (let i = 0; i < currentMission.groundTargets; i++) {
+                    const types = ['truck', 'aa_gun', 'fuel_depot'];
+                    const type = types[Math.floor(Math.random() * types.length)];
+                    const x = 600 + Math.random() * 600;
+                    const y = 300 + Math.random() * 400;
+                    groundTargets.push(new GroundTarget(x, y, type));
+                }
+            }
+
+            // Re-assign references (for backward compatibility)
+            if (aircraft[1]) {
+                me109 = aircraft[1];
+            }
+        }
+
+        function checkMissionObjectives() {
+            if (!currentMission) return;
+
+            let objectivesComplete = 0;
+            const totalObjectives = currentMission.objectives.length;
+
+            // Check objectives based on mission type
+            if (currentMission.type === 'dogfight') {
+                // Destroy all enemies
+                const enemiesDestroyed = aircraft.filter(a => !a.isPlayer && a.isDestroyed).length;
+                if (enemiesDestroyed === currentMission.enemyAircraft.length) {
+                    objectivesComplete++;
+                }
+            } else if (currentMission.type === 'ground_attack') {
+                // Destroy ground targets
+                const targetsDestroyed = groundTargets.filter(t => t.isDestroyed).length;
+                if (targetsDestroyed >= currentMission.groundTargets) {
+                    objectivesComplete++;
+                }
+                // Survive
+                if (!spitfire.isDestroyed) {
+                    objectivesComplete++;
+                }
+            }
+
+            // Mission complete?
+            if (objectivesComplete === totalObjectives) {
+                completeMission();
+            }
+        }
+
+        function completeMission() {
+            campaignState.missionsCompleted++;
+            campaignState.pilotExperience += 100;
+            campaignState.score += 1000;
+
+            setTimeout(() => {
+                alert(`Mission Complete!\n\nScore: +1000\nExperience: +100\n\nTotal Score: ${campaignState.score}`);
+
+                // Load next mission or show campaign complete
+                if (currentMission.id < missions.length) {
+                    loadMission(currentMission.id + 1);
+                } else {
+                    alert('Campaign Complete! You are victorious!');
+                }
+            }, 1000);
         }
 
         // Event listeners
