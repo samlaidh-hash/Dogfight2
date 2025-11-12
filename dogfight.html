@@ -2603,7 +2603,7 @@
 
                             // Handle mixed armament vs single weapon
                             if (shooter.hasMixedArmament) {
-                                // Fire each weapon group independently
+                                // Fire each weapon group independently with appropriate tactics
                                 let totalDamage = 0;
                                 let anyHit = false;
                                 let weaponsFired = [];
@@ -2614,6 +2614,34 @@
                                         weaponGroup.firingCooldown--;
                                         continue;
                                     }
+
+                                    // Tactical firing logic: Different weapons have different optimal ranges
+                                    let shouldFireThisWeapon = false;
+
+                                    if (weaponGroup.type === 'mg') {
+                                        // MGs: Good at all ranges, use for ranging/suppression
+                                        shouldFireThisWeapon = true; // Fire whenever in arc
+                                    } else if (weaponGroup.type === 'hmg') {
+                                        // HMGs: Effective at medium range, fairly common ammo
+                                        shouldFireThisWeapon = distance < 350 || hitChance > 0.4;
+                                    } else if (weaponGroup.type === 'cannon') {
+                                        // Cannons: Save for close range where they're most effective
+                                        // Calculate ammo percentage remaining
+                                        const ammoPercent = weaponGroup.ammunition / weaponGroup.maxAmmunition;
+
+                                        if (ammoPercent < 0.2) {
+                                            // Critical ammo! Only fire at very close range with high hit chance
+                                            shouldFireThisWeapon = distance < 150 && hitChance > 0.5;
+                                        } else if (ammoPercent < 0.5) {
+                                            // Low ammo, be conservative
+                                            shouldFireThisWeapon = distance < 200 && hitChance > 0.4;
+                                        } else {
+                                            // Plenty of ammo, fire at close-medium range
+                                            shouldFireThisWeapon = distance < 250;
+                                        }
+                                    }
+
+                                    if (!shouldFireThisWeapon) continue;
 
                                     // Fire this weapon group
                                     weaponGroup.ammunition -= weaponGroup.ammoPerBurst;
