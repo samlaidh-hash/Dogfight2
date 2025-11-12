@@ -159,6 +159,7 @@
                 <div>• Move mouse to position</div>
                 <div>• Mouse wheel: rotate</div>
                 <div>• W/S: altitude up/down</div>
+                <div>• Q/E: roll left/right</div>
                 <div>• A/D: fire threshold</div>
                 <div>• Click again to lock</div>
             </div>
@@ -186,6 +187,7 @@
         let currentTurn = 1;
         let selectedAircraft = null;
         let ghostAircraft = null;
+        let aiGhostAircraft = null; // AI's planned move
         let executionStartTime = 0;
         let executionRecording = [];
 
@@ -643,11 +645,10 @@
         const me109 = new Aircraft('Me-109', 'Me-109', 800, 400, 500, 270, false);
         const aircraft = [spitfire, me109];
 
-        // AI for Me-109
-        function generateAIOrders() {
-            if (me109.hasOrders) return;
-
+        // AI for Me-109 - generates ghost position without locking
+        function generateAIGhost() {
             // Simple AI: try to get behind the Spitfire
+            // IMPORTANT: Uses current position only, not player's target
             const dx = spitfire.x - me109.x;
             const dy = spitfire.y - me109.y;
             const angleToTarget = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
@@ -657,8 +658,8 @@
             const behindY = spitfire.y - Math.sin(spitfire.heading * Math.PI / 180) * 150;
 
             // Constrain to canvas
-            const targetX = Math.max(50, Math.min(CANVAS_WIDTH - 50, behindX));
-            const targetY = Math.max(50, Math.min(CANVAS_HEIGHT - 50, behindY));
+            let targetX = Math.max(50, Math.min(CANVAS_WIDTH - 50, behindX));
+            let targetY = Math.max(50, Math.min(CANVAS_HEIGHT - 50, behindY));
 
             // Adjust altitude based on terrain and tactical position
             const terrainHeight = terrain.getHeightAt(targetX, targetY);
@@ -666,21 +667,42 @@
             targetAltitude = Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, targetAltitude));
 
             // Face towards Spitfire
-            const targetHeading = angleToTarget;
+            let targetHeading = angleToTarget;
+            let targetRoll = 0;
 
-            // Validate and lock if valid
-            const validation = me109.calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading);
-            if (validation.state !== 'illegal') {
-                me109.lockOrders(targetX, targetY, targetAltitude, targetHeading);
-            } else {
+            // Validate and use fallback if invalid
+            const validation = me109.calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading, targetRoll);
+            if (validation.state === 'illegal') {
                 // Fallback: simple forward movement
                 const fallbackX = me109.x + Math.cos(me109.heading * Math.PI / 180) * 80;
                 const fallbackY = me109.y + Math.sin(me109.heading * Math.PI / 180) * 80;
+                targetX = Math.max(50, Math.min(CANVAS_WIDTH - 50, fallbackX));
+                targetY = Math.max(50, Math.min(CANVAS_HEIGHT - 50, fallbackY));
+                targetAltitude = me109.altitude;
+                targetHeading = me109.heading;
+            }
+
+            // Return ghost data without locking
+            return {
+                aircraft: new Aircraft(me109.name, me109.type, targetX, targetY,
+                    targetAltitude, targetHeading, me109.isPlayer),
+                targetX: targetX,
+                targetY: targetY,
+                targetAltitude: targetAltitude,
+                targetHeading: targetHeading,
+                targetRoll: targetRoll
+            };
+        }
+
+        // Lock AI orders from ghost
+        function lockAIOrders() {
+            if (aiGhostAircraft && !me109.hasOrders) {
                 me109.lockOrders(
-                    Math.max(50, Math.min(CANVAS_WIDTH - 50, fallbackX)),
-                    Math.max(50, Math.min(CANVAS_HEIGHT - 50, fallbackY)),
-                    me109.altitude,
-                    me109.heading
+                    aiGhostAircraft.targetX,
+                    aiGhostAircraft.targetY,
+                    aiGhostAircraft.targetAltitude,
+                    aiGhostAircraft.targetHeading,
+                    aiGhostAircraft.targetRoll
                 );
             }
         }
@@ -743,9 +765,14 @@
                 aircraft.renderSVG();
             }
 
-            // Render ghost if in order mode
+            // Render player ghost if in order mode
             if (ghostAircraft) {
                 ghostAircraft.aircraft.renderSVG(true, ghostAircraft.state);
+            }
+
+            // Render AI ghost if in order mode
+            if (aiGhostAircraft) {
+                aiGhostAircraft.aircraft.renderSVG(true, 'valid');
             }
         }
 
@@ -834,36 +861,40 @@
                     if (!aircraft.isPlayer) continue; // Only player can control their aircraft
 
                     if (selectedAircraft === aircraft) {
-                        // Lock in orders
+                        // Lock in orders for BOTH player and AI simultaneously
                         if (ghostAircraft && ghostAircraft.state !== 'illegal') {
                             aircraft.lockOrders(
                                 ghostAircraft.aircraft.x,
                                 ghostAircraft.aircraft.y,
                                 ghostAircraft.aircraft.altitude,
                                 ghostAircraft.aircraft.heading,
-                                ghostAircraft.aircraft.targetRoll // Phase 3: Pass target roll
+                                ghostAircraft.aircraft.targetRoll
                             );
+
+                            // Lock AI orders simultaneously
+                            lockAIOrders();
+
+                            // Clear all ghosts
                             selectedAircraft = null;
                             ghostAircraft = null;
+                            aiGhostAircraft = null;
                             ghostRotation = 0;
                             ghostAltitudeOffset = 0;
-                            ghostRoll = 0; // Phase 3: Reset roll
+                            ghostRoll = 0;
                             document.getElementById('ghostPanel').style.display = 'none';
-
-                            // Generate AI orders
-                            generateAIOrders();
                         }
                     } else if (aircraft.hasOrders) {
                         // Unlock orders
                         aircraft.unlockOrders();
                         selectedAircraft = null;
                         ghostAircraft = null;
+                        aiGhostAircraft = null;
                         ghostRotation = 0;
                         ghostAltitudeOffset = 0;
-                        ghostRoll = 0; // Phase 3: Reset roll
+                        ghostRoll = 0;
                         document.getElementById('ghostPanel').style.display = 'none';
                     } else {
-                        // Select aircraft
+                        // Select aircraft and generate both ghosts
                         selectedAircraft = aircraft;
                         ghostAircraft = {
                             aircraft: new Aircraft(aircraft.name, aircraft.type, aircraft.x, aircraft.y,
@@ -872,7 +903,10 @@
                         };
                         ghostRotation = 0;
                         ghostAltitudeOffset = 0;
-                        ghostRoll = 0; // Phase 3: Reset roll
+                        ghostRoll = 0;
+
+                        // Generate AI ghost immediately (uses current positions only)
+                        aiGhostAircraft = generateAIGhost();
                     }
                     return;
                 }
@@ -949,6 +983,10 @@
             currentTurn++;
             document.getElementById('replayButton').style.display = 'none';
             document.getElementById('nextPhaseButton').style.display = 'none';
+
+            // Clear any lingering ghosts
+            aiGhostAircraft = null;
+
             updateUI();
         });
 
