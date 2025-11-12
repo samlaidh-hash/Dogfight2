@@ -198,6 +198,30 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
+        // Load aircraft SVG images
+        const aircraftImages = {
+            spitfire: new Image(),
+            bf109: new Image()
+        };
+        let imagesLoaded = 0;
+        const totalImages = 2;
+
+        aircraftImages.spitfire.onload = () => {
+            imagesLoaded++;
+            if (imagesLoaded === totalImages) {
+                console.log('All aircraft images loaded');
+            }
+        };
+        aircraftImages.bf109.onload = () => {
+            imagesLoaded++;
+            if (imagesLoaded === totalImages) {
+                console.log('All aircraft images loaded');
+            }
+        };
+
+        aircraftImages.spitfire.src = 'spitfire.svg';
+        aircraftImages.bf109.src = 'bf109.svg';
+
         // Terrain generation
         class Terrain {
             constructor() {
@@ -319,6 +343,14 @@
             }
 
             renderSVG(isGhost = false, ghostState = 'valid') {
+                // Get the appropriate image
+                const img = this.type === 'Spitfire' ? aircraftImages.spitfire : aircraftImages.bf109;
+
+                // Don't render if image not loaded
+                if (!img.complete) {
+                    return;
+                }
+
                 ctx.save();
                 ctx.translate(this.x, this.y);
                 ctx.rotate((this.heading * Math.PI) / 180);
@@ -334,65 +366,48 @@
                 const wingScale = 0.2 + 0.8 * rollFactor; // Never fully disappear (min 20%)
                 ctx.scale(wingScale, 1); // Squash horizontally, keep vertical
 
-                // Set color based on state
+                // Apply tinting for ghost states
                 if (isGhost) {
                     if (ghostState === 'illegal') {
-                        ctx.globalAlpha = 0.7;
-                        ctx.fillStyle = '#ff0000';
-                        ctx.strokeStyle = '#ff0000';
+                        ctx.globalAlpha = 0.6;
+                        ctx.globalCompositeOperation = 'source-over';
                     } else if (ghostState === 'stressful') {
-                        ctx.globalAlpha = 0.7;
-                        ctx.fillStyle = '#ffff00';
-                        ctx.strokeStyle = '#ffff00';
+                        ctx.globalAlpha = 0.6;
+                        ctx.globalCompositeOperation = 'source-over';
                     } else {
                         ctx.globalAlpha = 0.5;
-                        ctx.fillStyle = '#00ff00';
-                        ctx.strokeStyle = '#00ff00';
                     }
                 } else {
-                    if (this.isPlayer) {
-                        ctx.fillStyle = '#0099ff';
-                        ctx.strokeStyle = '#0099ff';
-                    } else {
-                        ctx.fillStyle = '#ff4444';
-                        ctx.strokeStyle = '#ff4444';
-                    }
+                    ctx.globalAlpha = 1.0;
                 }
 
-                ctx.lineWidth = 2;
+                // Draw the aircraft image centered
+                const imgWidth = 80; // Standard display width
+                const imgHeight = 80; // Standard display height
+                ctx.drawImage(img, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
 
-                // Draw aircraft shape (simplified top-down view)
-                ctx.beginPath();
-                // Fuselage
-                ctx.moveTo(0, -30);
-                ctx.lineTo(-5, 10);
-                ctx.lineTo(5, 10);
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
+                // Apply color overlay for ghosts
+                if (isGhost) {
+                    ctx.globalCompositeOperation = 'source-atop';
+                    if (ghostState === 'illegal') {
+                        ctx.fillStyle = '#ff0000';
+                    } else if (ghostState === 'stressful') {
+                        ctx.fillStyle = '#ffff00';
+                    } else {
+                        ctx.fillStyle = '#00ff00';
+                    }
+                    ctx.fillRect(-imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
+                    ctx.globalCompositeOperation = 'source-over';
+                }
 
-                // Wings
-                ctx.beginPath();
-                ctx.moveTo(-25, 0);
-                ctx.lineTo(-5, 0);
-                ctx.moveTo(5, 0);
-                ctx.lineTo(25, 0);
-                ctx.stroke();
-
-                // Tail
-                ctx.beginPath();
-                ctx.moveTo(-8, 10);
-                ctx.lineTo(-8, 15);
-                ctx.moveTo(8, 10);
-                ctx.lineTo(8, 15);
-                ctx.stroke();
+                ctx.globalAlpha = 1.0;
 
                 // Draw orders indicator
                 if (!isGhost && this.hasOrders) {
                     ctx.strokeStyle = '#00ff00';
                     ctx.lineWidth = 2;
                     ctx.beginPath();
-                    ctx.arc(0, 0, 35, 0, Math.PI * 2);
+                    ctx.arc(0, 0, 50, 0, Math.PI * 2);
                     ctx.stroke();
                 }
 
