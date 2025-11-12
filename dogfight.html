@@ -688,19 +688,28 @@
             }
 
             getStatsHTML() {
-                // Calculate range to enemy
-                const enemy = this.isPlayer ? me109 : spitfire;
-                const dx = enemy.x - this.x;
-                const dy = enemy.y - this.y;
-                const rangeToEnemy = Math.round(Math.sqrt(dx * dx + dy * dy));
+                let rangeInfo = '';
 
-                let rangeStatus = '';
-                if (rangeToEnemy <= EFFECTIVE_RANGE) {
-                    rangeStatus = '<span style="color: #00ff00">IN RANGE</span>';
-                } else if (rangeToEnemy <= MAX_RANGE) {
-                    rangeStatus = '<span style="color: #ffff00">LONG RANGE</span>';
-                } else {
-                    rangeStatus = '<span style="color: #ff4444">OUT OF RANGE</span>';
+                // Calculate range to enemy if both aircraft exist
+                try {
+                    const enemy = this.isPlayer ? (typeof me109 !== 'undefined' ? me109 : null) : (typeof spitfire !== 'undefined' ? spitfire : null);
+                    if (enemy) {
+                        const dx = enemy.x - this.x;
+                        const dy = enemy.y - this.y;
+                        const rangeToEnemy = Math.round(Math.sqrt(dx * dx + dy * dy));
+
+                        let rangeStatus = '';
+                        if (rangeToEnemy <= EFFECTIVE_RANGE) {
+                            rangeStatus = '<span style="color: #00ff00">IN RANGE</span>';
+                        } else if (rangeToEnemy <= MAX_RANGE) {
+                            rangeStatus = '<span style="color: #ffff00">LONG RANGE</span>';
+                        } else {
+                            rangeStatus = '<span style="color: #ff4444">OUT OF RANGE</span>';
+                        }
+                        rangeInfo = `<div class="stat-line">Range: ${rangeToEnemy}m ${rangeStatus}</div>`;
+                    }
+                } catch (e) {
+                    console.error('Error calculating range:', e);
                 }
 
                 return `
@@ -708,7 +717,7 @@
                     <div class="stat-line">Speed: ${Math.round(this.speed)} m/s</div>
                     <div class="stat-line">Hdg: ${Math.round(this.heading)}°</div>
                     <div class="stat-line">Roll: ${Math.round(this.roll)}°</div>
-                    <div class="stat-line">Range: ${rangeToEnemy}m ${rangeStatus}</div>
+                    ${rangeInfo}
                     <div class="stat-line">Ammo: ${this.ammunition}</div>
                     <div class="stat-line">Damage: ${Math.round(this.damage)}%</div>
                     <div class="stat-line">Fire Threshold: ${Math.round(this.fireThreshold * 100)}%</div>
@@ -964,33 +973,33 @@
             // Only show during execution phase
             if (gameState !== 'EXECUTION') return;
 
-            for (let aircraft of aircraft) {
+            for (let plane of aircraft) {
                 ctx.save();
 
                 // Effective range circle (green)
                 ctx.strokeStyle = 'rgba(0, 255, 0, 0.2)';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.arc(aircraft.x, aircraft.y, EFFECTIVE_RANGE, 0, Math.PI * 2);
+                ctx.arc(plane.x, plane.y, EFFECTIVE_RANGE, 0, Math.PI * 2);
                 ctx.stroke();
 
                 // Maximum range circle (red)
                 ctx.strokeStyle = 'rgba(255, 0, 0, 0.15)';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.arc(aircraft.x, aircraft.y, MAX_RANGE, 0, Math.PI * 2);
+                ctx.arc(plane.x, plane.y, MAX_RANGE, 0, Math.PI * 2);
                 ctx.stroke();
 
                 // Draw firing arc cone (30 degrees)
-                ctx.strokeStyle = aircraft.isPlayer ? 'rgba(0, 153, 255, 0.3)' : 'rgba(255, 68, 68, 0.3)';
-                ctx.fillStyle = aircraft.isPlayer ? 'rgba(0, 153, 255, 0.1)' : 'rgba(255, 68, 68, 0.1)';
+                ctx.strokeStyle = plane.isPlayer ? 'rgba(0, 153, 255, 0.3)' : 'rgba(255, 68, 68, 0.3)';
+                ctx.fillStyle = plane.isPlayer ? 'rgba(0, 153, 255, 0.1)' : 'rgba(255, 68, 68, 0.1)';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.moveTo(aircraft.x, aircraft.y);
-                const startAngle = (aircraft.heading - 15) * Math.PI / 180;
-                const endAngle = (aircraft.heading + 15) * Math.PI / 180;
-                ctx.arc(aircraft.x, aircraft.y, EFFECTIVE_RANGE, startAngle, endAngle);
-                ctx.lineTo(aircraft.x, aircraft.y);
+                ctx.moveTo(plane.x, plane.y);
+                const startAngle = (plane.heading - 15) * Math.PI / 180;
+                const endAngle = (plane.heading + 15) * Math.PI / 180;
+                ctx.arc(plane.x, plane.y, EFFECTIVE_RANGE, startAngle, endAngle);
+                ctx.lineTo(plane.x, plane.y);
                 ctx.fill();
                 ctx.stroke();
 
@@ -1018,8 +1027,8 @@
             renderCombatEffects();
 
             // Render aircraft
-            for (let aircraft of aircraft) {
-                aircraft.renderSVG();
+            for (let plane of aircraft) {
+                plane.renderSVG();
             }
 
             // Render player ghost if in order mode
@@ -1117,14 +1126,14 @@
             const clickY = e.clientY - rect.top;
 
             // Check if clicking on an aircraft
-            for (let aircraft of aircraft) {
-                if (aircraft.isClicked(clickX, clickY)) {
-                    if (!aircraft.isPlayer) continue; // Only player can control their aircraft
+            for (let plane of aircraft) {
+                if (plane.isClicked(clickX, clickY)) {
+                    if (!plane.isPlayer) continue; // Only player can control their aircraft
 
-                    if (selectedAircraft === aircraft) {
+                    if (selectedAircraft === plane) {
                         // Lock in orders for BOTH player and AI simultaneously
                         if (ghostAircraft && ghostAircraft.state !== 'illegal') {
-                            aircraft.lockOrders(
+                            plane.lockOrders(
                                 ghostAircraft.aircraft.x,
                                 ghostAircraft.aircraft.y,
                                 ghostAircraft.aircraft.altitude,
@@ -1144,9 +1153,9 @@
                             ghostRoll = 0;
                             document.getElementById('ghostPanel').style.display = 'none';
                         }
-                    } else if (aircraft.hasOrders) {
+                    } else if (plane.hasOrders) {
                         // Unlock orders
-                        aircraft.unlockOrders();
+                        plane.unlockOrders();
                         selectedAircraft = null;
                         ghostAircraft = null;
                         aiGhostAircraft = null;
@@ -1156,10 +1165,10 @@
                         document.getElementById('ghostPanel').style.display = 'none';
                     } else {
                         // Select aircraft and generate both ghosts
-                        selectedAircraft = aircraft;
+                        selectedAircraft = plane;
                         ghostAircraft = {
-                            aircraft: new Aircraft(aircraft.name, aircraft.type, aircraft.x, aircraft.y,
-                                aircraft.altitude, aircraft.heading, aircraft.isPlayer),
+                            aircraft: new Aircraft(plane.name, plane.type, plane.x, plane.y,
+                                plane.altitude, plane.heading, plane.isPlayer),
                             state: 'valid'
                         };
                         ghostRotation = 0;
@@ -1229,13 +1238,13 @@
             document.getElementById('nextPhaseButton').style.display = 'none';
 
             // Reset aircraft to start of turn positions
-            for (let aircraft of aircraft) {
-                aircraft.x = aircraft.startX;
-                aircraft.y = aircraft.startY;
-                aircraft.altitude = aircraft.startAltitude;
-                aircraft.heading = aircraft.startHeading;
-                aircraft.speed = aircraft.startSpeed;
-                aircraft.hasOrders = true;
+            for (let plane of aircraft) {
+                plane.x = plane.startX;
+                plane.y = plane.startY;
+                plane.altitude = plane.startAltitude;
+                plane.heading = plane.startHeading;
+                plane.speed = plane.startSpeed;
+                plane.hasOrders = true;
             }
         });
 
@@ -1258,9 +1267,9 @@
                 const progress = Math.min(1, elapsed / EXECUTION_TIME);
 
                 // Move aircraft
-                for (let aircraft of aircraft) {
-                    if (aircraft.hasOrders) {
-                        aircraft.executeOrders(progress);
+                for (let plane of aircraft) {
+                    if (plane.hasOrders) {
+                        plane.executeOrders(progress);
                     }
                 }
 
@@ -1269,8 +1278,8 @@
 
                 if (progress >= 1) {
                     // Finalize execution
-                    for (let aircraft of aircraft) {
-                        aircraft.finalizeExecution();
+                    for (let plane of aircraft) {
+                        plane.finalizeExecution();
                     }
                     gameState = 'REVIEW';
                     document.getElementById('replayButton').style.display = 'block';
