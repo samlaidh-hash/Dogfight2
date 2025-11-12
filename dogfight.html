@@ -430,6 +430,7 @@
 
         // Sound effects
         const soundSpitfireMG = new Audio('sounds/LMG.mp3');
+        const soundHMG = new Audio('sounds/HMG.mp3');
         const soundMe109Cannon = new Audio('sounds/AC.mp3');
         const soundSpitfireEngine = new Audio('sounds/SPITFIRE.mp3');
         const soundMe109Engine = new Audio('sounds/BF109.mp3');
@@ -653,7 +654,29 @@
                 maxGForce: 6.5,
                 maxAcceleration: 17,
                 maxBraking: 18,
-                weapons: { type: 'cannon', count: 3, ammo: 450, burstSize: 5, damage: [5, 12], rof: 3 },
+                // Mixed armament: 2× 13mm MG 131 + 1× 20mm MG 151/20 cannon
+                weapons: [
+                    {
+                        type: 'hmg',
+                        name: '13mm MG 131',
+                        count: 2,
+                        ammo: 600, // 300 rounds per gun
+                        burstSize: 4, // 2 rounds per gun
+                        damage: [3, 6],
+                        rof: 2, // Faster than cannon
+                        sound: 'hmg'
+                    },
+                    {
+                        type: 'cannon',
+                        name: '20mm MG 151/20',
+                        count: 1,
+                        ammo: 200, // Limited cannon ammo
+                        burstSize: 2,
+                        damage: [8, 15], // High damage
+                        rof: 4, // Slower rate of fire
+                        sound: 'cannon'
+                    }
+                ],
                 fuelCapacity: 400,
                 fuelConsumption: 0.55,
                 color: '#ff4444'
@@ -1342,15 +1365,42 @@
                 this.isJet = specs.isJet || false;
                 this.lowDurability = specs.lowDurability || false;
 
-                // Weapons from database
-                const weapons = specs.weapons;
-                this.weaponType = weapons.type;
-                this.ammunition = weapons.ammo;
-                this.maxAmmunition = weapons.ammo;
-                this.ammoPerBurst = weapons.burstSize;
-                this.damagePerHit = weapons.damage[0] + Math.random() * (weapons.damage[1] - weapons.damage[0]);
-                this.rateOfFire = weapons.rof;
-                this.fireThreshold = weapons.type === 'cannon' ? 0.35 : 0.25;
+                // Weapons from database - support both single weapon and mixed armament
+                const weaponsData = specs.weapons;
+                this.hasMixedArmament = Array.isArray(weaponsData);
+
+                if (this.hasMixedArmament) {
+                    // Mixed armament (like Me-109)
+                    this.weaponGroups = weaponsData.map(w => ({
+                        type: w.type,
+                        name: w.name,
+                        count: w.count,
+                        ammunition: w.ammo,
+                        maxAmmunition: w.ammo,
+                        ammoPerBurst: w.burstSize,
+                        damageMin: w.damage[0],
+                        damageMax: w.damage[1],
+                        rateOfFire: w.rof,
+                        firingCooldown: 0,
+                        sound: w.sound
+                    }));
+
+                    // Set primary weapon type and total ammo for UI
+                    this.weaponType = 'mixed';
+                    this.ammunition = weaponsData.reduce((sum, w) => sum + w.ammo, 0);
+                    this.maxAmmunition = this.ammunition;
+                    this.fireThreshold = 0.30; // Mixed armament threshold
+                } else {
+                    // Single weapon type (legacy support)
+                    this.weaponType = weaponsData.type;
+                    this.ammunition = weaponsData.ammo;
+                    this.maxAmmunition = weaponsData.ammo;
+                    this.ammoPerBurst = weaponsData.burstSize;
+                    this.damagePerHit = weaponsData.damage[0] + Math.random() * (weaponsData.damage[1] - weaponsData.damage[0]);
+                    this.rateOfFire = weaponsData.rof;
+                    this.fireThreshold = weaponsData.type === 'cannon' ? 0.35 : 0.25;
+                    this.weaponGroups = null;
+                }
 
                 // Fuel system
                 this.fuel = specs.fuelCapacity;
@@ -2462,25 +2512,119 @@
                         // Fire if chance exceeds threshold and angle is good
                         if (hitChance >= shooter.fireThreshold && angleDiff < 15) {
                             shooter.isFiring = true;
-                            shooter.ammunition -= shooter.ammoPerBurst; // Use weapon-specific ammo
-                            shooter.firingCooldown = shooter.rateOfFire; // Use weapon-specific ROF
 
-                            console.log(`${shooter.name} FIRING at ${target.name}! Distance: ${Math.round(distance)}m, Angle: ${angleDiff.toFixed(1)}°, Hit chance: ${(hitChance * 100).toFixed(1)}%`);
+                            // Handle mixed armament vs single weapon
+                            if (shooter.hasMixedArmament) {
+                                // Fire each weapon group independently
+                                let totalDamage = 0;
+                                let anyHit = false;
+                                let weaponsFired = [];
 
-                            // Play weapon sound
-                            if (shooter.type === 'Spitfire') {
-                                soundSpitfireMG.currentTime = 0;
-                                soundSpitfireMG.play().catch(e => console.log('Audio play failed:', e));
+                                for (let weaponGroup of shooter.weaponGroups) {
+                                    if (weaponGroup.ammunition <= 0) continue;
+                                    if (weaponGroup.firingCooldown > 0) {
+                                        weaponGroup.firingCooldown--;
+                                        continue;
+                                    }
+
+                                    // Fire this weapon group
+                                    weaponGroup.ammunition -= weaponGroup.ammoPerBurst;
+                                    weaponGroup.firingCooldown = weaponGroup.rateOfFire;
+                                    shooter.ammunition -= weaponGroup.ammoPerBurst; // Update total ammo
+                                    weaponsFired.push(weaponGroup.name);
+
+                                    // Play appropriate sound
+                                    if (weaponGroup.sound === 'mg') {
+                                        soundSpitfireMG.currentTime = 0;
+                                        soundSpitfireMG.play().catch(e => console.log('Audio play failed:', e));
+                                    } else if (weaponGroup.sound === 'hmg') {
+                                        soundHMG.currentTime = 0;
+                                        soundHMG.play().catch(e => console.log('Audio play failed:', e));
+                                    } else if (weaponGroup.sound === 'cannon') {
+                                        soundMe109Cannon.currentTime = 0;
+                                        soundMe109Cannon.play().catch(e => console.log('Audio play failed:', e));
+                                    }
+
+                                    // Check if this weapon group hits
+                                    if (Math.random() < hitChance) {
+                                        let weaponDamage = weaponGroup.damageMin + Math.random() * (weaponGroup.damageMax - weaponGroup.damageMin);
+
+                                        // Enhancement #8: Gun convergence accuracy bonus
+                                        const convergenceDist = Math.abs(distance - shooter.gunConvergence);
+                                        if (convergenceDist < 50) {
+                                            weaponDamage *= 1.3;
+                                        } else if (convergenceDist < 100) {
+                                            weaponDamage *= 1.1;
+                                        }
+
+                                        totalDamage += weaponDamage;
+                                        anyHit = true;
+                                    }
+                                }
+
+                                if (weaponsFired.length > 0) {
+                                    console.log(`${shooter.name} FIRING ${weaponsFired.join(' + ')} at ${target.name}! Distance: ${Math.round(distance)}m`);
+                                }
+
+                                if (anyHit) {
+                                    // Apply combined damage from all weapon groups that hit
+                                    let damageAmount = totalDamage;
+
+                                    // Low durability aircraft take extra damage
+                                    if (target.lowDurability) {
+                                        damageAmount *= 1.4;
+                                    }
+
+                                    // Apply weather penalties
+                                    if (weatherState.rainfall > 0) {
+                                        damageAmount *= (1 - weatherState.rainfall * 0.3);
+                                    }
+
+                                    // Enhancement #4: Apply component damage
+                                    applyComponentDamage(target, damageAmount);
+                                    target.lastHitBy = shooter.name;
+                                    target.lastHitTime = Date.now();
+                                    console.log(`  HIT! Total damage: ${damageAmount.toFixed(1)} (${target.damage.toFixed(1)} total)`);
+
+                                    // Add visual hit effects
+                                    const hitType = totalDamage > 10 ? 'cannon' : 'mg';
+                                    target.hitEffects.push({
+                                        x: target.x,
+                                        y: target.y,
+                                        type: hitType,
+                                        time: Date.now(),
+                                        duration: hitType === 'cannon' ? 500 : 300
+                                    });
+
+                                    // Check for destruction
+                                    if (target.damage >= 100 && !target.isDestroyed) {
+                                        target.isDestroyed = true;
+                                        console.log(`💥 ${target.name} DESTROYED by ${shooter.name}!`);
+                                    }
+                                } else if (weaponsFired.length > 0) {
+                                    console.log(`  MISS!`);
+                                }
                             } else {
-                                soundMe109Cannon.currentTime = 0;
-                                soundMe109Cannon.play().catch(e => console.log('Audio play failed:', e));
-                            }
+                                // Single weapon type (legacy code)
+                                shooter.ammunition -= shooter.ammoPerBurst;
+                                shooter.firingCooldown = shooter.rateOfFire;
 
-                            // Check if hit
-                            if (Math.random() < hitChance) {
-                                let damageAmount = shooter.damagePerHit; // Use weapon-specific damage
+                                console.log(`${shooter.name} FIRING at ${target.name}! Distance: ${Math.round(distance)}m, Angle: ${angleDiff.toFixed(1)}°, Hit chance: ${(hitChance * 100).toFixed(1)}%`);
 
-                                // Enhancement #8: Gun convergence accuracy bonus
+                                // Play weapon sound
+                                if (shooter.type === 'Spitfire') {
+                                    soundSpitfireMG.currentTime = 0;
+                                    soundSpitfireMG.play().catch(e => console.log('Audio play failed:', e));
+                                } else {
+                                    soundMe109Cannon.currentTime = 0;
+                                    soundMe109Cannon.play().catch(e => console.log('Audio play failed:', e));
+                                }
+
+                                // Check if hit
+                                if (Math.random() < hitChance) {
+                                    let damageAmount = shooter.damagePerHit;
+
+                                    // Enhancement #8: Gun convergence accuracy bonus
                                 const convergenceDist = Math.abs(distance - shooter.gunConvergence);
                                 if (convergenceDist < 50) {
                                     damageAmount *= 1.3; // Bonus damage at convergence range
