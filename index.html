@@ -3883,6 +3883,13 @@
             executionRecording = [];
             groundTargets = [];
 
+            // Reset hot-seat multiplayer state
+            hotSeatMode = false;
+            currentPlayer = 1;
+            player1Aircraft = [];
+            player2Aircraft = [];
+            awaitingPlayerSwitch = false;
+
             // Reinitialize aircraft
             spitfire = new Aircraft('Player', 'Spitfire', 400, 500, 500, 90, true);
             me109 = new Aircraft('Enemy', 'Me-109', 1400, 500, 500, 270, false);
@@ -3930,6 +3937,7 @@
             soundSpitfireEngine.volume = gameSettings.volume * 0.3;
             soundMe109Engine.volume = gameSettings.volume * 0.3;
             soundSpitfireMG.volume = gameSettings.volume * 0.6;
+            soundHMG.volume = gameSettings.volume * 0.65;
             soundMe109Cannon.volume = gameSettings.volume * 0.7;
 
             // Apply game mode settings
