@@ -626,7 +626,7 @@
         // Aircraft database with historically accurate specifications
         const aircraftDatabase = {
             'Spitfire': {
-                name: 'Supermarine Spitfire Mk V',
+                name: 'Supermarine Spitfire Mk Vb',
                 nation: 'British',
                 role: 'Fighter',
                 maxSpeed: 170, // m/s (~605 km/h)
@@ -637,7 +637,29 @@
                 maxGForce: 7,
                 maxAcceleration: 15,
                 maxBraking: 20,
-                weapons: { type: 'mg', count: 8, ammo: 2660, burstSize: 8, damage: [2, 5], rof: 1 },
+                // Mixed armament: 4× .303 Browning MGs + 2× 20mm Hispano cannons
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '.303 Browning',
+                        count: 4,
+                        ammo: 1400, // 350 rounds per gun
+                        burstSize: 4,
+                        damage: [2, 4],
+                        rof: 1,
+                        sound: 'mg'
+                    },
+                    {
+                        type: 'cannon',
+                        name: '20mm Hispano Mk II',
+                        count: 2,
+                        ammo: 120, // 60 rounds per gun
+                        burstSize: 2,
+                        damage: [6, 12],
+                        rof: 3,
+                        sound: 'cannon'
+                    }
+                ],
                 fuelCapacity: 386, // liters
                 fuelConsumption: 0.5, // liters per second at cruise
                 color: '#0099ff'
@@ -718,7 +740,7 @@
                 color: '#0077cc'
             },
             'Hurricane': {
-                name: 'Hawker Hurricane Mk II',
+                name: 'Hawker Hurricane Mk IIB',
                 nation: 'British',
                 role: 'Fighter',
                 maxSpeed: 165,
@@ -729,7 +751,29 @@
                 maxGForce: 6.5,
                 maxAcceleration: 14,
                 maxBraking: 18,
-                weapons: { type: 'cannon', count: 4, ammo: 364, burstSize: 4, damage: [4, 9], rof: 2 },
+                // Mixed armament: 4× .303 Browning MGs + 2× 20mm Hispano cannons
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '.303 Browning',
+                        count: 4,
+                        ammo: 1336, // 334 rounds per gun
+                        burstSize: 4,
+                        damage: [2, 4],
+                        rof: 1,
+                        sound: 'mg'
+                    },
+                    {
+                        type: 'cannon',
+                        name: '20mm Hispano Mk II',
+                        count: 2,
+                        ammo: 120, // 60 rounds per gun
+                        burstSize: 2,
+                        damage: [6, 12],
+                        rof: 3,
+                        sound: 'cannon'
+                    }
+                ],
                 fuelCapacity: 386,
                 fuelConsumption: 0.5,
                 color: '#0088dd'
@@ -763,7 +807,29 @@
                 maxGForce: 7.5,
                 maxAcceleration: 18,
                 maxBraking: 17,
-                weapons: { type: 'cannon', count: 4, ammo: 500, burstSize: 4, damage: [6, 13], rof: 2 },
+                // Mixed armament: 2× 13mm MG 131 + 2× 20mm MG 151/20
+                weapons: [
+                    {
+                        type: 'hmg',
+                        name: '13mm MG 131',
+                        count: 2,
+                        ammo: 950, // 475 rounds per gun
+                        burstSize: 4, // 2 rounds per gun
+                        damage: [3, 6],
+                        rof: 2,
+                        sound: 'hmg'
+                    },
+                    {
+                        type: 'cannon',
+                        name: '20mm MG 151/20',
+                        count: 2,
+                        ammo: 500, // 250 rounds per gun
+                        burstSize: 4, // 2 rounds per gun
+                        damage: [7, 14],
+                        rof: 3,
+                        sound: 'cannon'
+                    }
+                ],
                 fuelCapacity: 525,
                 fuelConsumption: 0.58,
                 color: '#ff3333'
@@ -787,7 +853,7 @@
                 color: '#cc0000'
             },
             'Zero': {
-                name: 'Mitsubishi A6M Zero',
+                name: 'Mitsubishi A6M5 Zero',
                 nation: 'Japanese',
                 role: 'Fighter',
                 maxSpeed: 166,
@@ -798,7 +864,29 @@
                 maxGForce: 6, // Fragile airframe
                 maxAcceleration: 13,
                 maxBraking: 16,
-                weapons: { type: 'cannon', count: 2, ammo: 220, burstSize: 2, damage: [5, 11], rof: 3 },
+                // Mixed armament: 2× 7.7mm Type 97 MGs + 2× 20mm Type 99 cannons
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.7mm Type 97',
+                        count: 2,
+                        ammo: 1400, // 700 rounds per gun
+                        burstSize: 4, // 2 rounds per gun
+                        damage: [2, 3],
+                        rof: 1,
+                        sound: 'mg'
+                    },
+                    {
+                        type: 'cannon',
+                        name: '20mm Type 99',
+                        count: 2,
+                        ammo: 200, // 100 rounds per gun - limited!
+                        burstSize: 2,
+                        damage: [5, 11],
+                        rof: 3,
+                        sound: 'cannon'
+                    }
+                ],
                 fuelCapacity: 518,
                 fuelConsumption: 0.35, // Very fuel efficient
                 lowDurability: true, // Takes extra damage
