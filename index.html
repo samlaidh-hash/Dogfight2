@@ -560,6 +560,7 @@
         soundMe109Cannon.volume = 0.7;
 
         // Game constants
+        const GAME_VERSION = 'v2.0.0'; // After 16 enhancements
         const CANVAS_WIDTH = 1800;
         const CANVAS_HEIGHT = 1000;
         let executionTime = 4000; // milliseconds - can be changed by player (2s, 4s, 6s, 8s)
@@ -3823,6 +3824,11 @@
             ctx.fillStyle = '#aaaaaa';
             ctx.font = '12px Courier New';
             ctx.fillText(`Zoom: ${zoomLevel.toFixed(1)}x`, scaleBarX, scaleBarY + 20);
+
+            // Draw version number in bottom right corner
+            ctx.textAlign = 'right';
+            ctx.fillText(GAME_VERSION, CANVAS_WIDTH - 20, CANVAS_HEIGHT - 20);
+            ctx.textAlign = 'left'; // Reset to default
         }
 
         function updateUI() {
