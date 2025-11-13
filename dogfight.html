@@ -171,6 +171,60 @@
             border-radius: 5px;
         }
 
+        #splashScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a1f3f 0%, #1a3a5a 50%, #0a1f3f 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .splash-title {
+            font-size: 72px;
+            color: #e94560;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.8);
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .splash-subtitle {
+            font-size: 24px;
+            color: #aaa;
+            margin-bottom: 50px;
+        }
+
+        .game-mode-btn {
+            width: 300px;
+            padding: 20px;
+            margin: 15px;
+            background: rgba(15, 52, 96, 0.8);
+            color: white;
+            border: 2px solid #0f3460;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+
+        .game-mode-btn:hover {
+            background: rgba(233, 69, 96, 0.8);
+            border-color: #e94560;
+            transform: scale(1.05);
+        }
+
+        .mode-description {
+            font-size: 12px;
+            color: #ccc;
+            margin-top: 8px;
+        }
+
         .replay-controls {
             position: absolute;
             bottom: 80px;
@@ -273,7 +327,25 @@
     </style>
 </head>
 <body>
-    <div id="gameContainer">
+    <!-- Splash Screen -->
+    <div id="splashScreen">
+        <div class="splash-title">DOGFIGHT 2</div>
+        <div class="splash-subtitle">WW2 Aerial Combat Simulator</div>
+        <button class="game-mode-btn" onclick="startQuickBattle()">
+            <div>⚡ QUICK BATTLE</div>
+            <div class="mode-description">Spitfire vs Me-109 - Classic dogfight</div>
+        </button>
+        <button class="game-mode-btn" onclick="startCampaign()">
+            <div>🎖️ CAMPAIGN MODE</div>
+            <div class="mode-description">10 sequential missions with progression</div>
+        </button>
+        <button class="game-mode-btn" onclick="showAircraftSelector()">
+            <div>🛩️ CUSTOM BATTLE</div>
+            <div class="mode-description">Choose your aircraft and enemy</div>
+        </button>
+    </div>
+
+    <div id="gameContainer" style="display: none;">
         <canvas id="gameCanvas" width="1800" height="1000"></canvas>
 
         <div id="ui">
@@ -407,12 +479,40 @@
             </div>
         </div>
 
-        <!-- Aircraft Selector -->
+        <!-- Aircraft Selector Panel -->
         <div id="aircraftSelector">
-            <div class="panel-title">SELECT YOUR AIRCRAFT</div>
-            <div id="aircraftList"></div>
+            <div class="panel-title">AIRCRAFT SELECTION</div>
+            <div class="setting-row">
+                <span class="setting-label">Your Aircraft:</span>
+                <select id="playerAircraftSelect">
+                    <option value="Spitfire">Supermarine Spitfire</option>
+                    <option value="Me-109">Messerschmitt Bf 109</option>
+                    <option value="P-51">P-51D Mustang</option>
+                    <option value="P-47">P-47D Thunderbolt</option>
+                    <option value="Hurricane">Hawker Hurricane</option>
+                    <option value="P-40">P-40 Warhawk</option>
+                    <option value="Fw-190">Focke-Wulf Fw 190</option>
+                    <option value="Me-262">Me 262 Jet</option>
+                    <option value="Zero">A6M Zero</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">Enemy Aircraft:</span>
+                <select id="enemyAircraftSelect">
+                    <option value="Me-109" selected>Messerschmitt Bf 109</option>
+                    <option value="Spitfire">Supermarine Spitfire</option>
+                    <option value="P-51">P-51D Mustang</option>
+                    <option value="P-47">P-47D Thunderbolt</option>
+                    <option value="Hurricane">Hawker Hurricane</option>
+                    <option value="P-40">P-40 Warhawk</option>
+                    <option value="Fw-190">Focke-Wulf Fw 190</option>
+                    <option value="Me-262">Me 262 Jet</option>
+                    <option value="Zero">A6M Zero</option>
+                </select>
+            </div>
             <div style="text-align: center; margin-top: 20px;">
-                <button class="btn btn-primary" onclick="confirmAircraftSelection()">CONFIRM</button>
+                <button class="btn btn-primary" onclick="startCustomBattle()">START BATTLE</button>
+                <button class="btn" onclick="hideSplashScreen(); document.getElementById('aircraftSelector').style.display='none';">BACK</button>
             </div>
         </div>
 
@@ -2905,9 +3005,9 @@
 
         // Initialize game
         const terrain = new Terrain();
-        const spitfire = new Aircraft('Spitfire', 'Spitfire', 400, 500, 500, 90, true);
-        const me109 = new Aircraft('Me-109', 'Me-109', 1400, 500, 500, 270, false);
-        const aircraft = [spitfire, me109];
+        let spitfire = null;
+        let me109 = null;
+        let aircraft = [];
 
         // AI for Me-109 - Tactical Dogfight AI
         function generateAIOrders(aiAircraft = null) {
@@ -5143,6 +5243,11 @@
             if (aircraft[1]) {
                 me109 = aircraft[1];
             }
+
+            // Start game loop if not already running
+            if (gameState === 'ORDER') {
+                gameLoop();
+            }
         }
 
         function checkMissionObjectives() {
@@ -5193,13 +5298,72 @@
             }, 1000);
         }
 
+        // Splash Screen Functions
+        function hideSplashScreen() {
+            document.getElementById('splashScreen').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
+        }
+
+        function startQuickBattle() {
+            hideSplashScreen();
+
+            // Reset game state
+            gameState = 'ORDER';
+            currentTurn = 1;
+            groundTargets = [];
+            executionRecording = [];
+
+            // Create default aircraft
+            spitfire = new Aircraft('Spitfire', 'Spitfire', 400, 500, 500, 90, true);
+            me109 = new Aircraft('Me-109', 'Me-109', 1400, 500, 500, 270, false);
+            aircraft = [spitfire, me109];
+
+            // Start game loop
+            gameLoop();
+        }
+
+        function startCampaign() {
+            hideSplashScreen();
+
+            // Load first mission
+            loadMission(1);
+        }
+
+        function showAircraftSelector() {
+            document.getElementById('splashScreen').style.display = 'none';
+            document.getElementById('aircraftSelector').style.display = 'block';
+        }
+
+        function startCustomBattle() {
+            document.getElementById('aircraftSelector').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
+
+            // Get selected aircraft
+            const playerType = document.getElementById('playerAircraftSelect').value;
+            const enemyType = document.getElementById('enemyAircraftSelect').value;
+
+            // Reset game state
+            gameState = 'ORDER';
+            currentTurn = 1;
+            groundTargets = [];
+            executionRecording = [];
+
+            // Create selected aircraft
+            spitfire = new Aircraft('Player', playerType, 400, 500, 500, 90, true);
+            me109 = new Aircraft('Enemy', enemyType, 1400, 500, 500, 270, false);
+            aircraft = [spitfire, me109];
+
+            // Start game loop
+            gameLoop();
+        }
+
         // Event listeners
         document.getElementById('restartButton').addEventListener('click', restartGame);
         document.getElementById('pauseButton').addEventListener('click', togglePause);
         document.getElementById('settingsButton').addEventListener('click', openSettings);
 
-        // Start game
-        gameLoop();
+        // Game will start when user selects mode from splash screen
+        // gameLoop() called from startQuickBattle() or startCustomBattle()
     </script>
 </body>
 </html>
