@@ -225,6 +225,16 @@
             margin-top: 8px;
         }
 
+        .splash-version {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 14px;
+            color: #888;
+            font-family: 'Courier New', monospace;
+        }
+
+
         .replay-controls {
             position: absolute;
             bottom: 80px;
@@ -343,6 +353,7 @@
             <div>🛩️ CUSTOM BATTLE</div>
             <div class="mode-description">Choose your aircraft and enemy</div>
         </button>
+        <div class="splash-version">v2.0.0</div>
     </div>
 
     <div id="gameContainer" style="display: none;">
@@ -1793,25 +1804,54 @@
                     const imgWidth = 80;
                     const imgHeight = 80;
 
-                    // Ensure transparency is preserved
+                    // Create offscreen canvas to process the image
+                    const offscreenCanvas = document.createElement('canvas');
+                    offscreenCanvas.width = imgWidth;
+                    offscreenCanvas.height = imgHeight;
+                    const offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
+
+                    // Draw image to offscreen canvas
+                    offscreenCtx.drawImage(img, 0, 0, imgWidth, imgHeight);
+
+                    // Get image data and make ONLY pure white pixels transparent
+                    const imageData = offscreenCtx.getImageData(0, 0, imgWidth, imgHeight);
+                    const data = imageData.data;
+
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        const a = data[i + 3];
+
+                        // Only remove pure white pixels (255, 255, 255) to preserve aircraft details
+                        if (r === 255 && g === 255 && b === 255 && a === 255) {
+                            data[i + 3] = 0; // Set alpha to 0
+                        }
+                    }
+
+                    offscreenCtx.putImageData(imageData, 0, 0);
+
+                    // Now draw the processed image to main canvas
                     ctx.save();
                     ctx.globalCompositeOperation = 'source-over';
 
                     if (isGhost) {
                         // For ghosts, draw semi-transparent image with color tint
-                        ctx.globalAlpha *= 0.6; // Ghost transparency
-                        ctx.drawImage(img, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
+                        ctx.globalAlpha *= 0.6;
+                        ctx.drawImage(offscreenCanvas, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
 
                         // Apply color tint for ghost state
                         ctx.globalCompositeOperation = 'source-atop';
+                        ctx.fillStyle = this.isPlayer ? 'rgba(0, 170, 255, 0.4)' : 'rgba(255, 100, 100, 0.4)';
                         ctx.fillRect(-imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
                     } else {
-                        // Normal drawing - SVG transparency will be preserved
-                        ctx.drawImage(img, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
+                        // Normal drawing
+                        ctx.drawImage(offscreenCanvas, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
 
                         // Only apply color tint if using destroyed state
                         if (this.isDestroyed) {
                             ctx.globalCompositeOperation = 'source-atop';
+                            ctx.fillStyle = 'rgba(255, 100, 0, 0.5)';
                             ctx.fillRect(-imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
                         }
                     }
@@ -3298,7 +3338,7 @@
                         let hitChance = effectiveGunnerySkill * 0.6;
                         hitChance *= Math.max(0.1, 1 - distance / 400); // Distance factor (max 400m)
                         hitChance *= Math.max(0.3, 1 - altitudeDiff / 500); // Altitude factor
-                        hitChance *= Math.min(1, 0.6 + shooter.timeOnTarget / 10); // Time on target bonus (less punishing)
+                        hitChance *= Math.min(1, 0.2 + shooter.timeOnTarget / 8); // Time on target bonus
 
                         // Apply roll penalties
                         if (shooter.isRolling) {
@@ -3531,8 +3571,9 @@
                                     target.isDestroyed = true;
                                     console.log(`💥 ${target.name} DESTROYED by ${shooter.name}!`);
                                 }
-                            } else {
-                                console.log(`  MISS!`);
+                                } else {
+                                    console.log(`  MISS!`);
+                                }
                             }
                         }
                     } else {
@@ -3802,6 +3843,10 @@
             const scaleBarX = 20;
             const scaleBarY = CANVAS_HEIGHT - 40;
 
+            // Draw semi-transparent background for scale bar
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(scaleBarX - 5, scaleBarY - 30, scaleBarLength + 10, 50);
+
             ctx.strokeStyle = '#ffffff';
             ctx.fillStyle = '#ffffff';
             ctx.lineWidth = 3;
@@ -3825,12 +3870,16 @@
             ctx.fillText('100m', scaleBarX + scaleBarLength / 2 - 20, scaleBarY - 10);
 
             // Draw zoom level indicator
-            ctx.fillStyle = '#aaaaaa';
+            ctx.fillStyle = '#ffffff';
             ctx.font = '12px Courier New';
             ctx.fillText(`Zoom: ${zoomLevel.toFixed(1)}x`, scaleBarX, scaleBarY + 20);
 
-            // Draw version number in bottom right corner
+            // Draw version number in bottom right corner with background
             ctx.textAlign = 'right';
+            const versionWidth = ctx.measureText(GAME_VERSION).width;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(CANVAS_WIDTH - versionWidth - 25, CANVAS_HEIGHT - 35, versionWidth + 10, 20);
+            ctx.fillStyle = '#ffffff';
             ctx.fillText(GAME_VERSION, CANVAS_WIDTH - 20, CANVAS_HEIGHT - 20);
             ctx.textAlign = 'left'; // Reset to default
 
