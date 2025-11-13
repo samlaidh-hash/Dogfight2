@@ -3647,6 +3647,14 @@
                 }
                 ctx.stroke();
                 ctx.setLineDash([]); // Reset to solid line
+
+                // Debug: Log occasionally to verify rendering
+                if (Math.random() < 0.01) { // Log ~1% of frames
+                    console.log('[RENDER] Ghost path rendered:', ghostAircraft.aircraft.flightPath.length, 'points, color:', pathColor);
+                }
+            } else if (ghostAircraft && gameState === 'ORDER') {
+                console.warn('[RENDER] Ghost exists but path missing or too short!',
+                            'Path:', ghostAircraft.aircraft.flightPath?.length);
             }
 
             // Render aircraft
@@ -3958,7 +3966,10 @@
 
         // Helper function to update ghost aircraft position and validation
         function updateGhost() {
-            if (!selectedAircraft || !ghostAircraft) return;
+            if (!selectedAircraft || !ghostAircraft) {
+                console.warn('[UPDATE GHOST] Skipped - selectedAircraft:', !!selectedAircraft, 'ghostAircraft:', !!ghostAircraft);
+                return;
+            }
 
             // Target position (where mouse is pointing)
             const targetX = mouseX;
@@ -3976,11 +3987,19 @@
                 ghostSlipAngle
             );
 
+            console.log('[UPDATE GHOST] Target:', Math.round(targetX), Math.round(targetY),
+                       'Path length:', selectedAircraft.flightPath?.length, 'State:', validation.state);
+
             ghostAircraft.state = validation.state;
             ghostAircraft.validation = validation;
 
             // Copy the calculated flight path to the ghost aircraft for rendering
             ghostAircraft.aircraft.flightPath = selectedAircraft.flightPath;
+
+            // Verify the path was copied
+            if (!ghostAircraft.aircraft.flightPath || ghostAircraft.aircraft.flightPath.length < 2) {
+                console.error('[UPDATE GHOST] Flight path missing or too short!', ghostAircraft.aircraft.flightPath?.length);
+            }
 
             // Position ghost at the END of the calculated path (where aircraft will actually end up)
             if (selectedAircraft.flightPath && selectedAircraft.flightPath.length > 0) {
@@ -4062,10 +4081,17 @@
 
             // Transform to canvas coordinates
             const canvasCoords = screenToCanvas(lastScreenX, lastScreenY);
+            const oldMouseX = mouseX;
+            const oldMouseY = mouseY;
             mouseX = canvasCoords.x;
             mouseY = canvasCoords.y;
 
-            if (selectedAircraft && ghostAircraft) {
+            // Debug: Log mouse movement during ORDER phase with selected aircraft
+            if (gameState === 'ORDER' && selectedAircraft && ghostAircraft && (Math.abs(mouseX - oldMouseX) > 1 || Math.abs(mouseY - oldMouseY) > 1)) {
+                console.log('[MOUSEMOVE] Canvas coords:', Math.round(mouseX), Math.round(mouseY), 'Selected:', selectedAircraft.name);
+            }
+
+            if (selectedAircraft && ghostAircraft && gameState === 'ORDER') {
                 updateGhost();
                 updateGhostPanel();
             }
