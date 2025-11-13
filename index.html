@@ -234,6 +234,7 @@
             font-family: 'Courier New', monospace;
         }
 
+
         .replay-controls {
             position: absolute;
             bottom: 80px;
@@ -3834,7 +3835,10 @@
             renderEnergyDiagram();
 
             // Draw scale bar (in screen space, not affected by zoom/pan)
-            ctx.save(); // Save state
+            ctx.save(); // Save state before drawing UI elements
+            ctx.globalAlpha = 1.0; // Ensure full opacity
+            ctx.globalCompositeOperation = 'source-over'; // Ensure normal blending
+
             const scaleBarLength = 100; // Represents 100 meters
             const scaleBarX = 20;
             const scaleBarY = CANVAS_HEIGHT - 40;
@@ -3878,7 +3882,8 @@
             ctx.fillStyle = '#ffffff';
             ctx.fillText(GAME_VERSION, CANVAS_WIDTH - 20, CANVAS_HEIGHT - 20);
             ctx.textAlign = 'left'; // Reset to default
-            ctx.restore(); // Restore state
+
+            ctx.restore(); // Restore state after drawing UI elements
         }
 
         function updateUI() {
