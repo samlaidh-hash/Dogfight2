@@ -3298,7 +3298,7 @@
                         let hitChance = effectiveGunnerySkill * 0.6;
                         hitChance *= Math.max(0.1, 1 - distance / 400); // Distance factor (max 400m)
                         hitChance *= Math.max(0.3, 1 - altitudeDiff / 500); // Altitude factor
-                        hitChance *= Math.min(1, 0.2 + shooter.timeOnTarget / 8); // Time on target bonus
+                        hitChance *= Math.min(1, 0.6 + shooter.timeOnTarget / 10); // Time on target bonus (less punishing)
 
                         // Apply roll penalties
                         if (shooter.isRolling) {
