@@ -31,16 +31,61 @@
             border: 2px solid #4a5a3a;
             background: #3d5235;
             cursor: crosshair;
+            z-index: 1;
         }
 
-        #ui {
+        /* Split UI panels with slide-out functionality */
+        .ui-panel {
             position: absolute;
-            top: 10px;
-            left: 10px;
+            left: 0;
             background: rgba(0, 0, 0, 0.7);
             padding: 15px;
-            border-radius: 5px;
+            border-radius: 0 5px 5px 0;
             min-width: 250px;
+            transition: transform 0.3s ease-in-out;
+            cursor: default;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .ui-panel > * {
+            pointer-events: auto;
+        }
+
+        .ui-panel.collapsed {
+            transform: translateX(-100%);
+        }
+
+        .ui-panel.collapsed .panel-tab {
+            transform: translateX(100%);
+        }
+
+        .panel-tab {
+            position: absolute;
+            right: -30px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 5px;
+            border-radius: 0 5px 5px 0;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            font-size: 12px;
+            cursor: pointer;
+            transition: transform 0.3s ease-in-out;
+            pointer-events: auto;
+        }
+
+        #aircraftPanel {
+            top: 10px;
+            max-height: 45vh;
+            overflow-y: auto;
+        }
+
+        #controlsPanel {
+            top: calc(45vh + 20px);
+            max-height: 45vh;
+            overflow-y: auto;
         }
 
         #executeButton {
@@ -58,6 +103,7 @@
             cursor: pointer;
             display: none;
             font-family: 'Courier New', monospace;
+            z-index: 200;
         }
 
         #restartButton, #pauseButton, #settingsButton {
@@ -72,6 +118,7 @@
             border-radius: 5px;
             cursor: pointer;
             font-family: 'Courier New', monospace;
+            z-index: 150;
         }
 
         #restartButton { right: 180px; }
@@ -135,6 +182,7 @@
             background: rgba(0, 0, 0, 0.8);
             border: 2px solid #0f3460;
             border-radius: 5px;
+            z-index: 50;
         }
 
         .btn {
@@ -169,9 +217,9 @@
             background: rgba(0, 0, 0, 0.8);
             border: 2px solid #0f3460;
             border-radius: 5px;
+            z-index: 50;
         }
 
-<<<<<<< Updated upstream
         #splashScreen {
             position: fixed;
             top: 0;
@@ -225,6 +273,16 @@
             color: #ccc;
             margin-top: 8px;
         }
+
+        .splash-version {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 14px;
+            color: #888;
+            font-family: 'Courier New', monospace;
+        }
+
 
         .replay-controls {
             position: absolute;
@@ -311,6 +369,7 @@
             font-size: 12px;
             pointer-events: none;
             display: none;
+            z-index: 75;
         }
 
         h1 {
@@ -328,7 +387,6 @@
     </style>
 </head>
 <body>
-<<<<<<< Updated upstream
     <!-- Splash Screen -->
     <div id="splashScreen">
         <div class="splash-title">DOGFIGHT 2</div>
@@ -345,42 +403,25 @@
             <div>🛩️ CUSTOM BATTLE</div>
             <div class="mode-description">Choose your aircraft and enemy</div>
         </button>
+        <div class="splash-version">v2.0.0</div>
     </div>
 
     <div id="gameContainer" style="display: none;">
-    <div id="gameContainer">
         <canvas id="gameCanvas" width="1800" height="1000"></canvas>
 
-        <div id="ui">
-            <h1>DOGFIGHT 2</h1>
+        <!-- Aircraft Info Panel (Top) -->
+        <div id="aircraftPanel" class="ui-panel">
+            <div class="panel-tab" onclick="togglePanel('aircraftPanel')">AIRCRAFT</div>
+            <h1 style="font-size: 18px;">DOGFIGHT 2</h1>
             <div id="phaseDisplay" class="stat-line">Phase: <span id="currentPhase">ORDER</span></div>
             <div id="turnDisplay" class="stat-line">Turn: <span id="currentTurn">1</span></div>
 
-            <h2>Spitfire (You)</h2>
+            <h2 style="font-size: 16px; margin-top: 10px;">Spitfire (You)</h2>
             <div id="spitfireStats"></div>
 
-            <h2>Me-109 (Enemy)</h2>
+            <h2 style="font-size: 16px; margin-top: 10px;">Me-109 (Enemy)</h2>
             <div id="me109Stats"></div>
 
-            <div style="margin-top: 15px; font-size: 11px; color: #888;">
-                <div>Controls:</div>
-                <div>• Click aircraft to order</div>
-                <div>• Move mouse to position</div>
-                <div>• Mouse wheel: zoom in/out</div>
-                <div>• W/S: throttle up/down</div>
-                <div>• Q/E: altitude down/up</div>
-                <div>• A/D: slip/skid left/right</div>
-                <div>• R: cycle roll (none/half/full)</div>
-                <div>• Z/X: fire threshold down/up</div>
-                <div>• Click again to lock</div>
-                <div style="margin-top: 10px; color: #88ff88;">Wingman Commands:</div>
-                <div>• 1: Attack my target</div>
-                <div>• 2: Cover me</div>
-                <div>• 3: Break and attack</div>
-                <div>• 4: Rejoin formation</div>
-                <div>• 5: Free hunt</div>
-                <div>• F: Cycle formation</div>
-            </div>
             <div id="squadronStatus" style="margin-top: 15px; font-size: 11px; color: #88ff88; display: none;">
                 <div style="font-weight: bold;">Squadron Status:</div>
                 <div id="formationDisplay"></div>
@@ -389,7 +430,45 @@
             </div>
         </div>
 
+        <!-- Controls Panel (Bottom) -->
+        <div id="controlsPanel" class="ui-panel">
+            <div class="panel-tab" onclick="togglePanel('controlsPanel')">CONTROLS</div>
+            <div style="font-size: 11px; color: #888;">
+                <div style="font-weight: bold; margin-bottom: 5px;">Flight Controls:</div>
+                <div>• Click aircraft to order</div>
+                <div>• Move mouse to position</div>
+                <div>• Mouse wheel: zoom in/out</div>
+                <div>• W/S: throttle up/down</div>
+                <div>• Q/E: altitude down/up</div>
+                <div>• A/D: slip/skid left/right</div>
+                <div>• R: cycle roll (none/half/full)</div>
+                <div>• I: Immelmann turn</div>
+                <div>• T: Split-S</div>
+                <div>• L: Loop</div>
+                <div>• H: Half-loop</div>
+                <div>• Z/X: fire threshold down/up</div>
+                <div>• Click again to lock</div>
+                <div style="margin-top: 10px; font-weight: bold; color: #88ff88;">Wingman Commands:</div>
+                <div>• 1: Attack my target</div>
+                <div>• 2: Cover me</div>
+                <div>• 3: Break and attack</div>
+                <div>• 4: Rejoin formation</div>
+                <div>• 5: Free hunt</div>
+                <div>• F: Cycle formation</div>
+            </div>
+        </div>
+
         <div id="ghostPanel" class="ghost-panel"></div>
+
+        <div id="realisticModeToggle" style="position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.7); padding: 10px; border-radius: 5px;">
+            <label style="cursor: pointer; font-size: 14px;">
+                <input type="checkbox" id="realisticModeCheckbox" style="margin-right: 8px; cursor: pointer;">
+                Realistic AI Display
+            </label>
+            <div style="font-size: 11px; color: #aaa; margin-top: 5px; max-width: 200px;">
+                Shows AI prediction based on last turn instead of actual planned move
+            </div>
+        </div>
 
         <button id="executeButton">EXECUTE ORDERS</button>
         <button id="replayButton">REPLAY</button>
@@ -468,7 +547,6 @@
             </div>
         </div>
 
-<<<<<<< Updated upstream
         <!-- Aircraft Selector Panel -->
         <div id="aircraftSelector">
             <div class="panel-title">AIRCRAFT SELECTION</div>
@@ -503,12 +581,6 @@
             <div style="text-align: center; margin-top: 20px;">
                 <button class="btn btn-primary" onclick="startCustomBattle()">START BATTLE</button>
                 <button class="btn" onclick="hideSplashScreen(); document.getElementById('aircraftSelector').style.display='none';">BACK</button>
-        <!-- Aircraft Selector -->
-        <div id="aircraftSelector">
-            <div class="panel-title">SELECT YOUR AIRCRAFT</div>
-            <div id="aircraftList"></div>
-            <div style="text-align: center; margin-top: 20px;">
-                <button class="btn btn-primary" onclick="confirmAircraftSelection()">CONFIRM</button>
             </div>
         </div>
 
@@ -556,6 +628,7 @@
         soundMe109Cannon.volume = 0.7;
 
         // Game constants
+        const GAME_VERSION = 'v2.0.0'; // After 16 enhancements
         const CANVAS_WIDTH = 1800;
         const CANVAS_HEIGHT = 1000;
         let executionTime = 4000; // milliseconds - can be changed by player (2s, 4s, 6s, 8s)
@@ -1245,7 +1318,6 @@
         const minimapCanvas = document.getElementById('minimap');
         const minimapCtx = minimapCanvas.getContext('2d');
 
-<<<<<<< Updated upstream
         // Load aircraft SVG images
         const aircraftImages = {
             spitfire: new Image(),
@@ -1314,13 +1386,8 @@
 
             generateMountains() {
                 // Generate realistic mountain ranges with fractal edges
-<<<<<<< Updated upstream
                 // 3x wider terrain for more expansive battlefield
                 const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
-                for (let i = 0; i < 8; i++) {
-                    const baseX = Math.random() * CANVAS_WIDTH;
-                    const baseY = Math.random() * CANVAS_HEIGHT;
-                    const baseHeight = 400 + Math.random() * 600;
 
                 // Create fewer but larger mountain ranges that can merge
                 for (let i = 0; i < 12; i++) {
@@ -1333,13 +1400,9 @@
                         // Generate initial rough polygon
                         const numPeaks = 4 + Math.floor(Math.random() * 3); // 4-6 initial vertices
                         const baseVertices = [];
-<<<<<<< Updated upstream
                         const centerX = baseX + (Math.random() - 0.5) * 250; // Wider spread for merging
                         const centerY = baseY + (Math.random() - 0.5) * 200;
                         const baseRadius = 60 + Math.random() * 80; // Larger base for more imposing peaks
-                        const centerX = baseX + (Math.random() - 0.5) * 150;
-                        const centerY = baseY + (Math.random() - 0.5) * 150;
-                        const baseRadius = 40 + Math.random() * 60;
 
                         for (let v = 0; v < numPeaks; v++) {
                             const angle = (v / numPeaks) * Math.PI * 2;
@@ -1696,7 +1759,6 @@
                 this.peakGForce = 1.0;
                 this.gForcePenalty = 0;
 
-<<<<<<< Updated upstream
                 // Advanced aerobatic maneuvers
                 this.maneuverType = 'none'; // none, immelmann, split-s, loop, half-loop
 
@@ -1714,8 +1776,6 @@
                     controls: 0,  // 0-1, reduces turn rate
                     weapons: 0    // 0-1, reduces accuracy and fire rate
                 };
-                // Gun convergence (Enhancement #8)
-                this.gunConvergence = 300; // meters - distance where guns converge
             }
 
             getScaleForAltitude() {
@@ -1792,7 +1852,6 @@
                     }
                 }
 
-<<<<<<< Updated upstream
                 // Get the appropriate SVG image
                 const img = this.type === 'Spitfire' ? aircraftImages.spitfire : aircraftImages.bf109;
                 const useImage = img && img.complete && img.naturalWidth > 0;
@@ -1802,25 +1861,54 @@
                     const imgWidth = 80;
                     const imgHeight = 80;
 
-                    // Ensure transparency is preserved
+                    // Create offscreen canvas to process the image
+                    const offscreenCanvas = document.createElement('canvas');
+                    offscreenCanvas.width = imgWidth;
+                    offscreenCanvas.height = imgHeight;
+                    const offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
+
+                    // Draw image to offscreen canvas
+                    offscreenCtx.drawImage(img, 0, 0, imgWidth, imgHeight);
+
+                    // Get image data and make ONLY pure white pixels transparent
+                    const imageData = offscreenCtx.getImageData(0, 0, imgWidth, imgHeight);
+                    const data = imageData.data;
+
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        const a = data[i + 3];
+
+                        // Only remove pure white pixels (255, 255, 255) to preserve aircraft details
+                        if (r === 255 && g === 255 && b === 255 && a === 255) {
+                            data[i + 3] = 0; // Set alpha to 0
+                        }
+                    }
+
+                    offscreenCtx.putImageData(imageData, 0, 0);
+
+                    // Now draw the processed image to main canvas
                     ctx.save();
                     ctx.globalCompositeOperation = 'source-over';
 
                     if (isGhost) {
                         // For ghosts, draw semi-transparent image with color tint
-                        ctx.globalAlpha *= 0.6; // Ghost transparency
-                        ctx.drawImage(img, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
+                        ctx.globalAlpha *= 0.6;
+                        ctx.drawImage(offscreenCanvas, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
 
                         // Apply color tint for ghost state
                         ctx.globalCompositeOperation = 'source-atop';
+                        ctx.fillStyle = this.isPlayer ? 'rgba(0, 170, 255, 0.4)' : 'rgba(255, 100, 100, 0.4)';
                         ctx.fillRect(-imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
                     } else {
-                        // Normal drawing - SVG transparency will be preserved
-                        ctx.drawImage(img, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
+                        // Normal drawing
+                        ctx.drawImage(offscreenCanvas, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
 
                         // Only apply color tint if using destroyed state
                         if (this.isDestroyed) {
                             ctx.globalCompositeOperation = 'source-atop';
+                            ctx.fillStyle = 'rgba(255, 100, 0, 0.5)';
                             ctx.fillRect(-imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
                         }
                     }
@@ -1871,131 +1959,11 @@
                         ctx.lineTo(22, 2);
                         ctx.lineTo(22, -2);
                         ctx.lineTo(5, -5);
-                ctx.lineWidth = 2;
-
-                // Draw aircraft-specific shape (distinctive top-down silhouettes)
-                switch(this.type) {
-                    case 'Spitfire':
-                        // Famous elliptical wings
-                        ctx.beginPath();
-                        ctx.moveTo(0, -30); // Nose
-                        ctx.lineTo(-4, 0); // Leading edge to wing root
-                        ctx.ellipse(-15, 0, 12, 6, 0, 0, Math.PI * 2); // Port elliptical wing
-                        ctx.moveTo(-4, 0);
-                        ctx.lineTo(-4, 10);
-                        ctx.lineTo(4, 10);
-                        ctx.lineTo(4, 0); // Fuselage
-                        ctx.ellipse(15, 0, 12, 6, 0, 0, Math.PI * 2); // Starboard elliptical wing
-                        ctx.moveTo(4, 0);
-                        ctx.lineTo(0, -30);
-                        ctx.closePath();
-                        ctx.fill();
-                        ctx.stroke();
-                        // Tail
-                        ctx.beginPath();
-                        ctx.moveTo(-6, 10);
-                        ctx.lineTo(-6, 14);
-                        ctx.lineTo(6, 14);
-                        ctx.lineTo(6, 10);
-                        ctx.stroke();
-                        break;
-
-                    case 'Me-109':
-                        // Angular German fighter
-                        ctx.beginPath();
-                        ctx.moveTo(0, -30); // Nose
-                        ctx.lineTo(-5, -5); // Angled to wing
-                        ctx.lineTo(-22, -2); // Wing leading edge
-                        ctx.lineTo(-22, 2); // Wing trailing edge
-                        ctx.lineTo(-5, 10); // Back to fuselage
-                        ctx.lineTo(-5, 15); // Tail
-                        ctx.lineTo(5, 15);
-                        ctx.lineTo(5, 10);
-                        ctx.lineTo(22, 2);
-                        ctx.lineTo(22, -2);
-                        ctx.lineTo(5, -5);
                         ctx.closePath();
                         ctx.fill();
                         ctx.stroke();
                         break;
 
-                    case 'P-51':
-                        // Laminar flow wings, square wingtips
-                        ctx.beginPath();
-                        ctx.moveTo(0, -32); // Long nose (radiator scoop)
-                        ctx.lineTo(-4, -8);
-                        ctx.lineTo(-24, -5); // Square wingtip
-                        ctx.lineTo(-24, 3);
-                        ctx.lineTo(-5, 8);
-                        ctx.lineTo(-5, 12); // Tail
-                        ctx.lineTo(5, 12);
-                        ctx.lineTo(5, 8);
-                        ctx.lineTo(24, 3);
-                        ctx.lineTo(24, -5);
-                        ctx.lineTo(4, -8);
-                        ctx.closePath();
-                        ctx.fill();
-                        ctx.stroke();
-                        break;
-
-                    case 'P-47':
-                        // Big bulky "Jug"
-                        ctx.beginPath();
-                        ctx.moveTo(0, -28); // Blunt nose
-                        ctx.lineTo(-7, -10); // Wide fuselage
-                        ctx.lineTo(-26, -8); // Wide wings
-                        ctx.lineTo(-26, 4);
-                        ctx.lineTo(-7, 6);
-                        ctx.lineTo(-7, 14); // Wide tail
-                        ctx.lineTo(7, 14);
-                        ctx.lineTo(7, 6);
-                        ctx.lineTo(26, 4);
-                        ctx.lineTo(26, -8);
-                        ctx.lineTo(7, -10);
-                        ctx.closePath();
-                        ctx.fill();
-                        ctx.stroke();
-                        break;
-
-                    case 'Hurricane':
-                        // Similar to Spitfire but less refined
-                        ctx.beginPath();
-                        ctx.moveTo(0, -28); // Shorter nose
-                        ctx.lineTo(-5, 0);
-                        ctx.lineTo(-23, 0); // Straighter wings
-                        ctx.lineTo(-20, 5);
-                        ctx.lineTo(-5, 8);
-                        ctx.lineTo(-5, 13);
-                        ctx.lineTo(5, 13);
-                        ctx.lineTo(5, 8);
-                        ctx.lineTo(20, 5);
-                        ctx.lineTo(23, 0);
-                        ctx.lineTo(5, 0);
-                        ctx.closePath();
-                        ctx.fill();
-                        ctx.stroke();
-                        break;
-
-                    case 'P-40':
-                        // Shark-mouth fuselage, swept-back look
-                        ctx.beginPath();
-                        ctx.moveTo(0, -30); // Shark nose
-                        ctx.lineTo(-6, -8); // Wider fuselage for shark mouth
-                        ctx.lineTo(-25, 0); // Slightly swept wings
-                        ctx.lineTo(-22, 6);
-                        ctx.lineTo(-6, 10);
-                        ctx.lineTo(-5, 14);
-                        ctx.lineTo(5, 14);
-                        ctx.lineTo(6, 10);
-                        ctx.lineTo(22, 6);
-                        ctx.lineTo(25, 0);
-                        ctx.lineTo(6, -8);
-                        ctx.closePath();
-                        ctx.fill();
-                        ctx.stroke();
-                        break;
-
-<<<<<<< Updated upstream
                     case 'P-51':
                         // Laminar flow wings, square wingtips
                         ctx.beginPath();
@@ -2148,7 +2116,6 @@
                         ctx.lineTo(25, 0);
                         ctx.stroke();
                         break;
-<<<<<<< Updated upstream
                     }
                 }
 
@@ -2546,7 +2513,6 @@
                 };
             }
 
-<<<<<<< Updated upstream
             // Calculate Immelmann Turn: half loop up + half roll to reverse direction while gaining altitude
             calculateImmelmannPath() {
                 const TIME_STEP = 0.1;
@@ -2802,7 +2768,6 @@
                     return this.calculateHalfLoopPath();
                 }
 
-            calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading, slipAngle = 0) {
                 // Use the new realistic path calculation
                 const result = this.calculateRealisticPath(targetX, targetY, targetAltitude, targetHeading, slipAngle);
 
@@ -3029,7 +2994,6 @@
                 // Enhancement #8: Weapon info
                 const weaponName = this.weaponType === 'mg' ? 'MGs' :
                                   this.weaponType === 'hmg' ? 'HMGs' : 'Cannon';
-<<<<<<< Updated upstream
 
                 // Enhancement #8: Bombs/Rockets (if available)
                 const ordinanceDisplay = (this.bombs > 0 || this.rockets > 0) ?
@@ -3041,9 +3005,13 @@
                 const critTakenDisplay = this.criticalHitsTaken > 0 ?
                     `<div class="stat-line" style="color: #ff4444;">💥 Hit by: ${this.criticalHitsTaken}</div>` : '';
 
-                // Enhancement #8: Bombs/Rockets (if available)
-                const ordinanceDisplay = (this.bombs > 0 || this.rockets > 0) ?
-                    `<div class="stat-line" style="color: #88ff88;">Bombs: ${this.bombs} | Rockets: ${this.rockets}</div>` : '';
+                // Show system damage
+                const engineDamageDisplay = this.systemDamage.engine > 0 ?
+                    `<div class="stat-line" style="color: #ff4444;">🔧 Engine: ${Math.round(this.systemDamage.engine * 100)}%</div>` : '';
+                const controlDamageDisplay = this.systemDamage.controls > 0 ?
+                    `<div class="stat-line" style="color: #ff4444;">⚙ Controls: ${Math.round(this.systemDamage.controls * 100)}%</div>` : '';
+                const weaponDamageDisplay = this.systemDamage.weapons > 0 ?
+                    `<div class="stat-line" style="color: #ff4444;">🎯 Weapons: ${Math.round(this.systemDamage.weapons * 100)}%</div>` : '';
 
                 return `
                     <div class="stat-line" style="font-size: 11px; color: #aaa;">${this.fullName}</div>
@@ -3058,7 +3026,6 @@
                     ${componentInfo}
                     <div class="stat-line" style="color: ${fireThresholdColor}">Fire Min: ${fireThresholdPercent}%</div>
                     ${ordinanceDisplay}
-<<<<<<< Updated upstream
                     ${critDisplay}
                     ${critTakenDisplay}
                     ${engineDamageDisplay}
@@ -3073,7 +3040,6 @@
             }
         }
 
-<<<<<<< Updated upstream
         // Critical hit calculation
         function calculateCriticalHitChance(shooter, target, distance, angleDiff) {
             let critChance = 0.10; // Base 10% chance
@@ -3146,11 +3112,6 @@
         let spitfire = null;
         let me109 = null;
         let aircraft = [];
-        // Initialize game
-        const terrain = new Terrain();
-        const spitfire = new Aircraft('Spitfire', 'Spitfire', 400, 500, 500, 90, true);
-        const me109 = new Aircraft('Me-109', 'Me-109', 1400, 500, 500, 270, false);
-        const aircraft = [spitfire, me109];
 
         // AI for Me-109 - Tactical Dogfight AI
         function generateAIOrders(aiAircraft = null) {
@@ -3491,7 +3452,6 @@
                                         // Cannons: Save for close range where they're most effective
                                         // Calculate ammo percentage remaining
                                         const ammoPercent = weaponGroup.ammunition / weaponGroup.maxAmmunition;
-<<<<<<< Updated upstream
 
                                         if (ammoPercent < 0.2) {
                                             // Critical ammo! Only fire at very close range with high hit chance
@@ -3638,136 +3598,6 @@
                                     shooter.criticalHitsDealt++;
                                 }
 
-
-                                        if (ammoPercent < 0.2) {
-                                            // Critical ammo! Only fire at very close range with high hit chance
-                                            shouldFireThisWeapon = distance < 150 && hitChance > 0.5;
-                                        } else if (ammoPercent < 0.5) {
-                                            // Low ammo, be conservative
-                                            shouldFireThisWeapon = distance < 200 && hitChance > 0.4;
-                                        } else {
-                                            // Plenty of ammo, fire at close-medium range
-                                            shouldFireThisWeapon = distance < 250;
-                                        }
-                                    }
-
-                                    if (!shouldFireThisWeapon) continue;
-
-                                    // Fire this weapon group
-                                    weaponGroup.ammunition -= weaponGroup.ammoPerBurst;
-                                    weaponGroup.firingCooldown = weaponGroup.rateOfFire;
-                                    shooter.ammunition -= weaponGroup.ammoPerBurst; // Update total ammo
-                                    weaponsFired.push(weaponGroup.name);
-
-                                    // Play appropriate sound
-                                    if (weaponGroup.sound === 'mg') {
-                                        soundSpitfireMG.currentTime = 0;
-                                        soundSpitfireMG.play().catch(e => console.log('Audio play failed:', e));
-                                    } else if (weaponGroup.sound === 'hmg') {
-                                        soundHMG.currentTime = 0;
-                                        soundHMG.play().catch(e => console.log('Audio play failed:', e));
-                                    } else if (weaponGroup.sound === 'cannon') {
-                                        soundMe109Cannon.currentTime = 0;
-                                        soundMe109Cannon.play().catch(e => console.log('Audio play failed:', e));
-                                    }
-
-                                    // Check if this weapon group hits
-                                    if (Math.random() < hitChance) {
-                                        let weaponDamage = weaponGroup.damageMin + Math.random() * (weaponGroup.damageMax - weaponGroup.damageMin);
-
-                                        // Enhancement #8: Gun convergence accuracy bonus
-                                        const convergenceDist = Math.abs(distance - shooter.gunConvergence);
-                                        if (convergenceDist < 50) {
-                                            weaponDamage *= 1.3;
-                                        } else if (convergenceDist < 100) {
-                                            weaponDamage *= 1.1;
-                                        }
-
-                                        totalDamage += weaponDamage;
-                                        anyHit = true;
-                                    }
-                                }
-
-                                if (weaponsFired.length > 0) {
-                                    console.log(`${shooter.name} FIRING ${weaponsFired.join(' + ')} at ${target.name}! Distance: ${Math.round(distance)}m`);
-                                }
-
-                                if (anyHit) {
-                                    // Apply combined damage from all weapon groups that hit
-                                    let damageAmount = totalDamage;
-
-                                    // Low durability aircraft take extra damage
-                                    if (target.lowDurability) {
-                                        damageAmount *= 1.4;
-                                    }
-
-                                    // Apply weather penalties
-                                    if (weatherState.rainfall > 0) {
-                                        damageAmount *= (1 - weatherState.rainfall * 0.3);
-                                    }
-
-                                    // Enhancement #4: Apply component damage
-                                    applyComponentDamage(target, damageAmount);
-                                    target.lastHitBy = shooter.name;
-                                    target.lastHitTime = Date.now();
-                                    console.log(`  HIT! Total damage: ${damageAmount.toFixed(1)} (${target.damage.toFixed(1)} total)`);
-
-                                    // Add visual hit effects
-                                    const hitType = totalDamage > 10 ? 'cannon' : 'mg';
-                                    target.hitEffects.push({
-                                        x: target.x,
-                                        y: target.y,
-                                        type: hitType,
-                                        time: Date.now(),
-                                        duration: hitType === 'cannon' ? 500 : 300
-                                    });
-
-                                    // Check for destruction
-                                    if (target.damage >= 100 && !target.isDestroyed) {
-                                        target.isDestroyed = true;
-                                        console.log(`💥 ${target.name} DESTROYED by ${shooter.name}!`);
-                                    }
-                                } else if (weaponsFired.length > 0) {
-                                    console.log(`  MISS!`);
-                                }
-                            } else {
-                                // Single weapon type (legacy code)
-                                shooter.ammunition -= shooter.ammoPerBurst;
-                                shooter.firingCooldown = shooter.rateOfFire;
-
-                                console.log(`${shooter.name} FIRING at ${target.name}! Distance: ${Math.round(distance)}m, Angle: ${angleDiff.toFixed(1)}°, Hit chance: ${(hitChance * 100).toFixed(1)}%`);
-
-                                // Play weapon sound
-                                if (shooter.type === 'Spitfire') {
-                                    soundSpitfireMG.currentTime = 0;
-                                    soundSpitfireMG.play().catch(e => console.log('Audio play failed:', e));
-                                } else {
-                                    soundMe109Cannon.currentTime = 0;
-                                    soundMe109Cannon.play().catch(e => console.log('Audio play failed:', e));
-                                }
-
-                                // Check if hit
-                                if (Math.random() < hitChance) {
-                                    let damageAmount = shooter.damagePerHit;
-
-                                    // Enhancement #8: Gun convergence accuracy bonus
-                                const convergenceDist = Math.abs(distance - shooter.gunConvergence);
-                                if (convergenceDist < 50) {
-                                    damageAmount *= 1.3; // Bonus damage at convergence range
-                                } else if (convergenceDist < 100) {
-                                    damageAmount *= 1.1;
-                                }
-
-                                // Low durability aircraft (like Zero) take extra damage
-                                if (target.lowDurability) {
-                                    damageAmount *= 1.4;
-                                }
-
-                                // Apply weather penalties
-                                if (weatherState.rainfall > 0) {
-                                    damageAmount *= (1 - weatherState.rainfall * 0.3);
-                                }
-
                                 // Enhancement #4: Apply component damage
                                 applyComponentDamage(target, damageAmount);
                                 target.lastHitBy = shooter.name;
@@ -3798,8 +3628,9 @@
                                     target.isDestroyed = true;
                                     console.log(`💥 ${target.name} DESTROYED by ${shooter.name}!`);
                                 }
-                            } else {
-                                console.log(`  MISS!`);
+                                } else {
+                                    console.log(`  MISS!`);
+                                }
                             }
                         }
                     } else {
@@ -3862,9 +3693,14 @@
                 if (ghostAircraft.state === 'stressful') pathColor = '#ffaa00'; // yellow
                 if (ghostAircraft.state === 'illegal') pathColor = '#ff0000'; // red
 
+                // Draw glow effect for better visibility
+                ctx.save();
+                ctx.shadowColor = pathColor;
+                ctx.shadowBlur = 10;
                 ctx.strokeStyle = pathColor;
-                ctx.lineWidth = 3;
-                ctx.setLineDash([8, 4]); // Dotted line
+                ctx.lineWidth = 5;
+                ctx.globalAlpha = 0.8;
+                ctx.setLineDash([10, 5]); // Dotted line
 
                 ctx.beginPath();
                 ctx.moveTo(ghostAircraft.aircraft.flightPath[0].x, ghostAircraft.aircraft.flightPath[0].y);
@@ -3872,12 +3708,124 @@
                     ctx.lineTo(ghostAircraft.aircraft.flightPath[i].x, ghostAircraft.aircraft.flightPath[i].y);
                 }
                 ctx.stroke();
-                ctx.setLineDash([]); // Reset to solid line
+
+                // Draw waypoint markers along the path for better visibility
+                ctx.fillStyle = pathColor;
+                ctx.setLineDash([]); // Reset to solid
+                for (let i = 0; i < ghostAircraft.aircraft.flightPath.length; i += 5) { // Every 5th point
+                    ctx.beginPath();
+                    ctx.arc(ghostAircraft.aircraft.flightPath[i].x, ghostAircraft.aircraft.flightPath[i].y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+
+                // Debug: Log occasionally to verify rendering
+                if (Math.random() < 0.01) { // Log ~1% of frames
+                    console.log('[RENDER] Ghost path rendered:', ghostAircraft.aircraft.flightPath.length, 'points, color:', pathColor);
+                }
+            } else if (ghostAircraft && gameState === 'ORDER') {
+                console.warn('[RENDER] Ghost exists but path missing or too short!',
+                            'Path:', ghostAircraft.aircraft.flightPath?.length);
             }
 
             // Render aircraft
             for (let plane of aircraft) {
                 plane.renderSVG();
+            }
+
+            // Render firing cones/reticles (show weapon range and arc)
+            if (gameState === 'ORDER' || gameState === 'EXECUTION') {
+                for (let plane of aircraft) {
+                    if (plane.isDestroyed) continue;
+
+                    // Find enemy targets
+                    const enemies = aircraft.filter(p => p.isPlayer !== plane.isPlayer && !p.isDestroyed);
+
+                    for (let enemy of enemies) {
+                        // Calculate if enemy is in firing arc
+                        const dx = enemy.x - plane.x;
+                        const dy = enemy.y - plane.y;
+                        const dz = enemy.altitude - plane.altitude;
+                        const distance2D = Math.sqrt(dx * dx + dy * dy);
+                        const distance3D = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                        // Angle to target
+                        let angleToTarget = Math.atan2(dx, -dy) * 180 / Math.PI;
+                        if (angleToTarget < 0) angleToTarget += 360;
+
+                        // Check if in firing arc (±15 degrees from nose)
+                        let angleDiff = Math.abs(angleToTarget - plane.heading);
+                        if (angleDiff > 180) angleDiff = 360 - angleDiff;
+
+                        const inArc = angleDiff <= 15;
+
+                        // Get max weapon range
+                        let maxRange = 0;
+                        for (let weaponGroup of plane.weaponGroups) {
+                            if (weaponGroup.ammunition > 0 && weaponGroup.range > maxRange) {
+                                maxRange = weaponGroup.range;
+                            }
+                        }
+
+                        if (maxRange === 0) continue; // No weapons with ammo
+
+                        const inRange = distance3D < maxRange;
+
+                        // Only draw if target is in arc or nearly in arc (for awareness)
+                        if (angleDiff <= 45) {
+                            ctx.save();
+                            ctx.translate(plane.x, plane.y);
+                            ctx.rotate((plane.heading) * Math.PI / 180);
+
+                            // Determine color based on status
+                            let coneColor, alpha;
+                            if (inArc && inRange) {
+                                // In arc and range - bright red/green
+                                coneColor = plane.isPlayer ? '0, 255, 0' : '255, 50, 50'; // Green for player, red for enemy
+                                alpha = 0.3;
+                            } else if (inArc) {
+                                // In arc but out of range - yellow
+                                coneColor = '255, 200, 0';
+                                alpha = 0.2;
+                            } else {
+                                // Out of arc - faint indicator
+                                coneColor = '100, 100, 100';
+                                alpha = 0.1;
+                            }
+
+                            // Draw firing cone (15 degree arc on each side)
+                            const arcAngle = 15 * Math.PI / 180;
+                            ctx.fillStyle = `rgba(${coneColor}, ${alpha})`;
+                            ctx.beginPath();
+                            ctx.moveTo(0, 0);
+                            ctx.arc(0, 0, maxRange, -Math.PI/2 - arcAngle, -Math.PI/2 + arcAngle);
+                            ctx.closePath();
+                            ctx.fill();
+
+                            // Draw range ring
+                            ctx.strokeStyle = `rgba(${coneColor}, ${alpha * 1.5})`;
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.arc(0, 0, maxRange, -Math.PI/2 - arcAngle, -Math.PI/2 + arcAngle);
+                            ctx.stroke();
+
+                            // Draw center line to target if in arc
+                            if (inArc) {
+                                ctx.strokeStyle = `rgba(${coneColor}, ${alpha * 2})`;
+                                ctx.lineWidth = 1;
+                                ctx.setLineDash([5, 5]);
+                                ctx.beginPath();
+                                ctx.moveTo(0, 0);
+                                ctx.lineTo(0, -Math.min(distance2D, maxRange));
+                                ctx.stroke();
+                                ctx.setLineDash([]);
+                            }
+
+                            ctx.restore();
+                        }
+                    }
+                }
             }
 
             // Render hit effects
@@ -4027,7 +3975,6 @@
                 ghostAircraft.aircraft.renderSVG(true, ghostAircraft.state);
             }
 
-<<<<<<< Updated upstream
             // Render predicted AI ghost (realistic mode)
             if (aiPredictedGhost) {
                 // Temporarily modify me109's position to render the predicted ghost
@@ -4061,23 +4008,35 @@
             // Render energy diagram (Enhancement #9)
             renderEnergyDiagram();
 
-            // Draw scale bar (in screen space, not affected by zoom/pan)
+            // Draw scale bar, version, and zoom in bottom right corner
+            ctx.save(); // Save state before drawing UI elements
+            ctx.globalAlpha = 1.0; // Ensure full opacity
+            ctx.globalCompositeOperation = 'source-over'; // Ensure normal blending
+
             const scaleBarLength = 100; // Represents 100 meters
-            const scaleBarX = 20;
-            const scaleBarY = CANVAS_HEIGHT - 40;
+            const infoBoxX = CANVAS_WIDTH - 240; // Position from right edge
+            const infoBoxY = CANVAS_HEIGHT - 80;
+
+            // Draw semi-transparent background for entire info box
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(infoBoxX - 10, infoBoxY - 10, 230, 70);
 
             ctx.strokeStyle = '#ffffff';
             ctx.fillStyle = '#ffffff';
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 2;
             ctx.font = '14px Courier New';
 
-            // Draw scale bar line
+            // Draw scale bar
+            const scaleBarX = infoBoxX;
+            const scaleBarY = infoBoxY + 20;
+
             ctx.beginPath();
             ctx.moveTo(scaleBarX, scaleBarY);
             ctx.lineTo(scaleBarX + scaleBarLength, scaleBarY);
             ctx.stroke();
 
             // Draw end caps
+            ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(scaleBarX, scaleBarY - 5);
             ctx.lineTo(scaleBarX, scaleBarY + 5);
@@ -4085,13 +4044,17 @@
             ctx.lineTo(scaleBarX + scaleBarLength, scaleBarY + 5);
             ctx.stroke();
 
-            // Draw label
-            ctx.fillText('100m', scaleBarX + scaleBarLength / 2 - 20, scaleBarY - 10);
-
-            // Draw zoom level indicator
-            ctx.fillStyle = '#aaaaaa';
+            // Draw scale label
             ctx.font = '12px Courier New';
-            ctx.fillText(`Zoom: ${zoomLevel.toFixed(1)}x`, scaleBarX, scaleBarY + 20);
+            ctx.fillText('Scale: 100m', scaleBarX, scaleBarY - 10);
+
+            // Draw zoom level
+            ctx.fillText(`Zoom: ${zoomLevel.toFixed(1)}x`, scaleBarX + 110, scaleBarY - 10);
+
+            // Draw version number
+            ctx.fillText(`Version: ${GAME_VERSION}`, scaleBarX, scaleBarY + 20);
+
+            ctx.restore(); // Restore state after drawing UI elements
         }
 
         function updateUI() {
@@ -4166,7 +4129,10 @@
 
         // Helper function to update ghost aircraft position and validation
         function updateGhost() {
-            if (!selectedAircraft || !ghostAircraft) return;
+            if (!selectedAircraft || !ghostAircraft) {
+                console.warn('[UPDATE GHOST] Skipped - selectedAircraft:', !!selectedAircraft, 'ghostAircraft:', !!ghostAircraft);
+                return;
+            }
 
             // Target position (where mouse is pointing)
             const targetX = mouseX;
@@ -4184,11 +4150,19 @@
                 ghostSlipAngle
             );
 
+            console.log('[UPDATE GHOST] Target:', Math.round(targetX), Math.round(targetY),
+                       'Path length:', selectedAircraft.flightPath?.length, 'State:', validation.state);
+
             ghostAircraft.state = validation.state;
             ghostAircraft.validation = validation;
 
             // Copy the calculated flight path to the ghost aircraft for rendering
             ghostAircraft.aircraft.flightPath = selectedAircraft.flightPath;
+
+            // Verify the path was copied
+            if (!ghostAircraft.aircraft.flightPath || ghostAircraft.aircraft.flightPath.length < 2) {
+                console.error('[UPDATE GHOST] Flight path missing or too short!', ghostAircraft.aircraft.flightPath?.length);
+            }
 
             // Position ghost at the END of the calculated path (where aircraft will actually end up)
             if (selectedAircraft.flightPath && selectedAircraft.flightPath.length > 0) {
@@ -4213,9 +4187,10 @@
 
             const panel = document.getElementById('ghostPanel');
             panel.style.display = 'block';
-            // Position panel further from mouse to avoid obscuring ghost aircraft
-            panel.style.left = (lastScreenX + 150) + 'px';
-            panel.style.top = (lastScreenY + 20) + 'px';
+            // Position panel with significant clearance to avoid obscuring ghost and path
+            // Place it to the right and below the mouse cursor
+            panel.style.left = (lastScreenX + 200) + 'px';
+            panel.style.top = (lastScreenY + 100) + 'px';
 
             const validation = ghostAircraft.validation;
             const throttlePercent = Math.round(selectedAircraft.throttle * 100);
@@ -4270,10 +4245,17 @@
 
             // Transform to canvas coordinates
             const canvasCoords = screenToCanvas(lastScreenX, lastScreenY);
+            const oldMouseX = mouseX;
+            const oldMouseY = mouseY;
             mouseX = canvasCoords.x;
             mouseY = canvasCoords.y;
 
-            if (selectedAircraft && ghostAircraft) {
+            // Debug: Log mouse movement during ORDER phase with selected aircraft
+            if (gameState === 'ORDER' && selectedAircraft && ghostAircraft && (Math.abs(mouseX - oldMouseX) > 1 || Math.abs(mouseY - oldMouseY) > 1)) {
+                console.log('[MOUSEMOVE] Canvas coords:', Math.round(mouseX), Math.round(mouseY), 'Selected:', selectedAircraft.name);
+            }
+
+            if (selectedAircraft && ghostAircraft && gameState === 'ORDER') {
                 updateGhost();
                 updateGhostPanel();
             }
@@ -4522,6 +4504,42 @@
                     updateGhost();
                     updateGhostPanel();
                     break;
+                case 'i':
+                    // Toggle Immelmann turn
+                    selectedAircraft.maneuverType = selectedAircraft.maneuverType === 'immelmann' ? 'none' : 'immelmann';
+                    if (selectedAircraft.maneuverType === 'immelmann') {
+                        selectedAircraft.rollType = 'none'; // Clear roll
+                    }
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 't':
+                    // Toggle Split-S
+                    selectedAircraft.maneuverType = selectedAircraft.maneuverType === 'split-s' ? 'none' : 'split-s';
+                    if (selectedAircraft.maneuverType === 'split-s') {
+                        selectedAircraft.rollType = 'none'; // Clear roll
+                    }
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'l':
+                    // Toggle Loop
+                    selectedAircraft.maneuverType = selectedAircraft.maneuverType === 'loop' ? 'none' : 'loop';
+                    if (selectedAircraft.maneuverType === 'loop') {
+                        selectedAircraft.rollType = 'none'; // Clear roll
+                    }
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'h':
+                    // Toggle Half-loop
+                    selectedAircraft.maneuverType = selectedAircraft.maneuverType === 'half-loop' ? 'none' : 'half-loop';
+                    if (selectedAircraft.maneuverType === 'half-loop') {
+                        selectedAircraft.rollType = 'none'; // Clear roll
+                    }
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
                 case 'z':
                     // Decrease fire threshold (fire more aggressively, less accurate)
                     selectedAircraft.fireThreshold = Math.max(0.05, selectedAircraft.fireThreshold - 0.05);
@@ -4632,7 +4650,6 @@
         document.getElementById('nextPhase6s').addEventListener('click', () => startNextPhase(6));
         document.getElementById('nextPhase8s').addEventListener('click', () => startNextPhase(8));
 
-<<<<<<< Updated upstream
         document.getElementById('realisticModeCheckbox').addEventListener('change', (e) => {
             realisticMode = e.target.checked;
             console.log('Realistic AI Display:', realisticMode ? 'ON' : 'OFF');
@@ -4641,6 +4658,12 @@
                 aiPredictedGhost = null;
             }
         });
+
+        // UI Panel toggle function
+        function togglePanel(panelId) {
+            const panel = document.getElementById(panelId);
+            panel.classList.toggle('collapsed');
+        }
 
         // Main game loop
         function gameLoop() {
@@ -4715,7 +4738,10 @@
                 }
             }
 
-            // Game over screen
+            render();
+            updateUI();
+
+            // Game over screen - drawn AFTER render() so it appears on top
             if (gameState === 'GAMEOVER') {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                 ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -4762,9 +4788,6 @@
                 ctx.fillText('Press RESTART to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80);
                 ctx.textAlign = 'left';
             }
-
-            render();
-            updateUI();
             if (!isPaused) {
                 requestAnimationFrame(gameLoop);
             }
@@ -4781,7 +4804,6 @@
             executionRecording = [];
             groundTargets = [];
 
-<<<<<<< Updated upstream
             // Reset hot-seat multiplayer state
             hotSeatMode = false;
             currentPlayer = 1;
@@ -4836,7 +4858,6 @@
             soundSpitfireEngine.volume = gameSettings.volume * 0.3;
             soundMe109Engine.volume = gameSettings.volume * 0.3;
             soundSpitfireMG.volume = gameSettings.volume * 0.6;
-<<<<<<< Updated upstream
             soundHMG.volume = gameSettings.volume * 0.65;
             soundMe109Cannon.volume = gameSettings.volume * 0.7;
 
@@ -5459,7 +5480,6 @@
             // Set weather
             applyWeather(currentMission.weather);
 
-<<<<<<< Updated upstream
             // Create player aircraft at safe altitude above terrain (1200m)
             spitfire = new Aircraft('Player', currentMission.playerAircraft, 400, 500, 1200, 90, true);
             aircraft = [spitfire];
@@ -5468,14 +5488,6 @@
             for (let i = 0; i < currentMission.enemyAircraft.length; i++) {
                 const enemyType = currentMission.enemyAircraft[i];
                 const enemy = new Aircraft(`Enemy ${i+1}`, enemyType, 1400 + i * 100, 500 + i * 50, 1200, 270, false);
-            // Create player aircraft
-            spitfire = new Aircraft('Player', currentMission.playerAircraft, 400, 500, 500, 90, true);
-            aircraft = [spitfire];
-
-            // Create enemy aircraft
-            for (let i = 0; i < currentMission.enemyAircraft.length; i++) {
-                const enemyType = currentMission.enemyAircraft[i];
-                const enemy = new Aircraft(`Enemy ${i+1}`, enemyType, 1400 + i * 100, 500 + i * 50, 500, 270, false);
                 aircraft.push(enemy);
             }
 
@@ -5494,7 +5506,6 @@
             if (aircraft[1]) {
                 me109 = aircraft[1];
             }
-<<<<<<< Updated upstream
 
             // Start game loop if not already running
             if (gameState === 'ORDER') {
@@ -5550,7 +5561,6 @@
             }, 1000);
         }
 
-<<<<<<< Updated upstream
         // Splash Screen Functions
         function hideSplashScreen() {
             document.getElementById('splashScreen').style.display = 'none';
@@ -5615,11 +5625,8 @@
         document.getElementById('pauseButton').addEventListener('click', togglePause);
         document.getElementById('settingsButton').addEventListener('click', openSettings);
 
-<<<<<<< Updated upstream
         // Game will start when user selects mode from splash screen
         // gameLoop() called from startQuickBattle() or startCustomBattle()
-        // Start game
-        gameLoop();
     </script>
 </body>
 </html>
