@@ -31,16 +31,61 @@
             border: 2px solid #4a5a3a;
             background: #3d5235;
             cursor: crosshair;
+            z-index: 1;
         }
 
-        #ui {
+        /* Split UI panels with slide-out functionality */
+        .ui-panel {
             position: absolute;
-            top: 10px;
-            left: 10px;
+            left: 0;
             background: rgba(0, 0, 0, 0.7);
             padding: 15px;
-            border-radius: 5px;
+            border-radius: 0 5px 5px 0;
             min-width: 250px;
+            transition: transform 0.3s ease-in-out;
+            cursor: default;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .ui-panel > * {
+            pointer-events: auto;
+        }
+
+        .ui-panel.collapsed {
+            transform: translateX(-100%);
+        }
+
+        .ui-panel.collapsed .panel-tab {
+            transform: translateX(100%);
+        }
+
+        .panel-tab {
+            position: absolute;
+            right: -30px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 5px;
+            border-radius: 0 5px 5px 0;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            font-size: 12px;
+            cursor: pointer;
+            transition: transform 0.3s ease-in-out;
+            pointer-events: auto;
+        }
+
+        #aircraftPanel {
+            top: 10px;
+            max-height: 45vh;
+            overflow-y: auto;
+        }
+
+        #controlsPanel {
+            top: calc(45vh + 20px);
+            max-height: 45vh;
+            overflow-y: auto;
         }
 
         #executeButton {
@@ -58,6 +103,7 @@
             cursor: pointer;
             display: none;
             font-family: 'Courier New', monospace;
+            z-index: 200;
         }
 
         #restartButton, #pauseButton, #settingsButton {
@@ -72,6 +118,7 @@
             border-radius: 5px;
             cursor: pointer;
             font-family: 'Courier New', monospace;
+            z-index: 150;
         }
 
         #restartButton { right: 180px; }
@@ -135,6 +182,7 @@
             background: rgba(0, 0, 0, 0.8);
             border: 2px solid #0f3460;
             border-radius: 5px;
+            z-index: 50;
         }
 
         .btn {
@@ -169,6 +217,7 @@
             background: rgba(0, 0, 0, 0.8);
             border: 2px solid #0f3460;
             border-radius: 5px;
+            z-index: 50;
         }
 
         #splashScreen {
@@ -224,6 +273,16 @@
             color: #ccc;
             margin-top: 8px;
         }
+
+        .splash-version {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 14px;
+            color: #888;
+            font-family: 'Courier New', monospace;
+        }
+
 
         .replay-controls {
             position: absolute;
@@ -310,6 +369,7 @@
             font-size: 12px;
             pointer-events: none;
             display: none;
+            z-index: 75;
         }
 
         h1 {
@@ -343,24 +403,38 @@
             <div>🛩️ CUSTOM BATTLE</div>
             <div class="mode-description">Choose your aircraft and enemy</div>
         </button>
+        <div class="splash-version">v2.0.0</div>
     </div>
 
     <div id="gameContainer" style="display: none;">
         <canvas id="gameCanvas" width="1800" height="1000"></canvas>
 
-        <div id="ui">
-            <h1>DOGFIGHT 2</h1>
+        <!-- Aircraft Info Panel (Top) -->
+        <div id="aircraftPanel" class="ui-panel">
+            <div class="panel-tab" onclick="togglePanel('aircraftPanel')">AIRCRAFT</div>
+            <h1 style="font-size: 18px;">DOGFIGHT 2</h1>
             <div id="phaseDisplay" class="stat-line">Phase: <span id="currentPhase">ORDER</span></div>
             <div id="turnDisplay" class="stat-line">Turn: <span id="currentTurn">1</span></div>
 
-            <h2>Spitfire (You)</h2>
+            <h2 style="font-size: 16px; margin-top: 10px;">Spitfire (You)</h2>
             <div id="spitfireStats"></div>
 
-            <h2>Me-109 (Enemy)</h2>
+            <h2 style="font-size: 16px; margin-top: 10px;">Me-109 (Enemy)</h2>
             <div id="me109Stats"></div>
 
-            <div style="margin-top: 15px; font-size: 11px; color: #888;">
-                <div>Controls:</div>
+            <div id="squadronStatus" style="margin-top: 15px; font-size: 11px; color: #88ff88; display: none;">
+                <div style="font-weight: bold;">Squadron Status:</div>
+                <div id="formationDisplay"></div>
+                <div id="wingmanCount"></div>
+                <div id="formationBonusDisplay"></div>
+            </div>
+        </div>
+
+        <!-- Controls Panel (Bottom) -->
+        <div id="controlsPanel" class="ui-panel">
+            <div class="panel-tab" onclick="togglePanel('controlsPanel')">CONTROLS</div>
+            <div style="font-size: 11px; color: #888;">
+                <div style="font-weight: bold; margin-bottom: 5px;">Flight Controls:</div>
                 <div>• Click aircraft to order</div>
                 <div>• Move mouse to position</div>
                 <div>• Mouse wheel: zoom in/out</div>
@@ -374,19 +448,13 @@
                 <div>• H: Half-loop</div>
                 <div>• Z/X: fire threshold down/up</div>
                 <div>• Click again to lock</div>
-                <div style="margin-top: 10px; color: #88ff88;">Wingman Commands:</div>
+                <div style="margin-top: 10px; font-weight: bold; color: #88ff88;">Wingman Commands:</div>
                 <div>• 1: Attack my target</div>
                 <div>• 2: Cover me</div>
                 <div>• 3: Break and attack</div>
                 <div>• 4: Rejoin formation</div>
                 <div>• 5: Free hunt</div>
                 <div>• F: Cycle formation</div>
-            </div>
-            <div id="squadronStatus" style="margin-top: 15px; font-size: 11px; color: #88ff88; display: none;">
-                <div style="font-weight: bold;">Squadron Status:</div>
-                <div id="formationDisplay"></div>
-                <div id="wingmanCount"></div>
-                <div id="formationBonusDisplay"></div>
             </div>
         </div>
 
@@ -560,6 +628,7 @@
         soundMe109Cannon.volume = 0.7;
 
         // Game constants
+        const GAME_VERSION = 'v2.0.0'; // After 16 enhancements
         const CANVAS_WIDTH = 1800;
         const CANVAS_HEIGHT = 1000;
         let executionTime = 4000; // milliseconds - can be changed by player (2s, 4s, 6s, 8s)
@@ -1792,25 +1861,54 @@
                     const imgWidth = 80;
                     const imgHeight = 80;
 
-                    // Ensure transparency is preserved
+                    // Create offscreen canvas to process the image
+                    const offscreenCanvas = document.createElement('canvas');
+                    offscreenCanvas.width = imgWidth;
+                    offscreenCanvas.height = imgHeight;
+                    const offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
+
+                    // Draw image to offscreen canvas
+                    offscreenCtx.drawImage(img, 0, 0, imgWidth, imgHeight);
+
+                    // Get image data and make ONLY pure white pixels transparent
+                    const imageData = offscreenCtx.getImageData(0, 0, imgWidth, imgHeight);
+                    const data = imageData.data;
+
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        const a = data[i + 3];
+
+                        // Only remove pure white pixels (255, 255, 255) to preserve aircraft details
+                        if (r === 255 && g === 255 && b === 255 && a === 255) {
+                            data[i + 3] = 0; // Set alpha to 0
+                        }
+                    }
+
+                    offscreenCtx.putImageData(imageData, 0, 0);
+
+                    // Now draw the processed image to main canvas
                     ctx.save();
                     ctx.globalCompositeOperation = 'source-over';
 
                     if (isGhost) {
                         // For ghosts, draw semi-transparent image with color tint
-                        ctx.globalAlpha *= 0.6; // Ghost transparency
-                        ctx.drawImage(img, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
+                        ctx.globalAlpha *= 0.6;
+                        ctx.drawImage(offscreenCanvas, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
 
                         // Apply color tint for ghost state
                         ctx.globalCompositeOperation = 'source-atop';
+                        ctx.fillStyle = this.isPlayer ? 'rgba(0, 170, 255, 0.4)' : 'rgba(255, 100, 100, 0.4)';
                         ctx.fillRect(-imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
                     } else {
-                        // Normal drawing - SVG transparency will be preserved
-                        ctx.drawImage(img, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
+                        // Normal drawing
+                        ctx.drawImage(offscreenCanvas, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
 
                         // Only apply color tint if using destroyed state
                         if (this.isDestroyed) {
                             ctx.globalCompositeOperation = 'source-atop';
+                            ctx.fillStyle = 'rgba(255, 100, 0, 0.5)';
                             ctx.fillRect(-imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
                         }
                     }
@@ -3530,8 +3628,9 @@
                                     target.isDestroyed = true;
                                     console.log(`💥 ${target.name} DESTROYED by ${shooter.name}!`);
                                 }
-                            } else {
-                                console.log(`  MISS!`);
+                                } else {
+                                    console.log(`  MISS!`);
+                                }
                             }
                         }
                     } else {
@@ -3594,9 +3693,14 @@
                 if (ghostAircraft.state === 'stressful') pathColor = '#ffaa00'; // yellow
                 if (ghostAircraft.state === 'illegal') pathColor = '#ff0000'; // red
 
+                // Draw glow effect for better visibility
+                ctx.save();
+                ctx.shadowColor = pathColor;
+                ctx.shadowBlur = 10;
                 ctx.strokeStyle = pathColor;
-                ctx.lineWidth = 3;
-                ctx.setLineDash([8, 4]); // Dotted line
+                ctx.lineWidth = 5;
+                ctx.globalAlpha = 0.8;
+                ctx.setLineDash([10, 5]); // Dotted line
 
                 ctx.beginPath();
                 ctx.moveTo(ghostAircraft.aircraft.flightPath[0].x, ghostAircraft.aircraft.flightPath[0].y);
@@ -3604,12 +3708,124 @@
                     ctx.lineTo(ghostAircraft.aircraft.flightPath[i].x, ghostAircraft.aircraft.flightPath[i].y);
                 }
                 ctx.stroke();
-                ctx.setLineDash([]); // Reset to solid line
+
+                // Draw waypoint markers along the path for better visibility
+                ctx.fillStyle = pathColor;
+                ctx.setLineDash([]); // Reset to solid
+                for (let i = 0; i < ghostAircraft.aircraft.flightPath.length; i += 5) { // Every 5th point
+                    ctx.beginPath();
+                    ctx.arc(ghostAircraft.aircraft.flightPath[i].x, ghostAircraft.aircraft.flightPath[i].y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+
+                // Debug: Log occasionally to verify rendering
+                if (Math.random() < 0.01) { // Log ~1% of frames
+                    console.log('[RENDER] Ghost path rendered:', ghostAircraft.aircraft.flightPath.length, 'points, color:', pathColor);
+                }
+            } else if (ghostAircraft && gameState === 'ORDER') {
+                console.warn('[RENDER] Ghost exists but path missing or too short!',
+                            'Path:', ghostAircraft.aircraft.flightPath?.length);
             }
 
             // Render aircraft
             for (let plane of aircraft) {
                 plane.renderSVG();
+            }
+
+            // Render firing cones/reticles (show weapon range and arc)
+            if (gameState === 'ORDER' || gameState === 'EXECUTION') {
+                for (let plane of aircraft) {
+                    if (plane.isDestroyed) continue;
+
+                    // Find enemy targets
+                    const enemies = aircraft.filter(p => p.isPlayer !== plane.isPlayer && !p.isDestroyed);
+
+                    for (let enemy of enemies) {
+                        // Calculate if enemy is in firing arc
+                        const dx = enemy.x - plane.x;
+                        const dy = enemy.y - plane.y;
+                        const dz = enemy.altitude - plane.altitude;
+                        const distance2D = Math.sqrt(dx * dx + dy * dy);
+                        const distance3D = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                        // Angle to target
+                        let angleToTarget = Math.atan2(dx, -dy) * 180 / Math.PI;
+                        if (angleToTarget < 0) angleToTarget += 360;
+
+                        // Check if in firing arc (±15 degrees from nose)
+                        let angleDiff = Math.abs(angleToTarget - plane.heading);
+                        if (angleDiff > 180) angleDiff = 360 - angleDiff;
+
+                        const inArc = angleDiff <= 15;
+
+                        // Get max weapon range
+                        let maxRange = 0;
+                        for (let weaponGroup of plane.weaponGroups) {
+                            if (weaponGroup.ammunition > 0 && weaponGroup.range > maxRange) {
+                                maxRange = weaponGroup.range;
+                            }
+                        }
+
+                        if (maxRange === 0) continue; // No weapons with ammo
+
+                        const inRange = distance3D < maxRange;
+
+                        // Only draw if target is in arc or nearly in arc (for awareness)
+                        if (angleDiff <= 45) {
+                            ctx.save();
+                            ctx.translate(plane.x, plane.y);
+                            ctx.rotate((plane.heading) * Math.PI / 180);
+
+                            // Determine color based on status
+                            let coneColor, alpha;
+                            if (inArc && inRange) {
+                                // In arc and range - bright red/green
+                                coneColor = plane.isPlayer ? '0, 255, 0' : '255, 50, 50'; // Green for player, red for enemy
+                                alpha = 0.3;
+                            } else if (inArc) {
+                                // In arc but out of range - yellow
+                                coneColor = '255, 200, 0';
+                                alpha = 0.2;
+                            } else {
+                                // Out of arc - faint indicator
+                                coneColor = '100, 100, 100';
+                                alpha = 0.1;
+                            }
+
+                            // Draw firing cone (15 degree arc on each side)
+                            const arcAngle = 15 * Math.PI / 180;
+                            ctx.fillStyle = `rgba(${coneColor}, ${alpha})`;
+                            ctx.beginPath();
+                            ctx.moveTo(0, 0);
+                            ctx.arc(0, 0, maxRange, -Math.PI/2 - arcAngle, -Math.PI/2 + arcAngle);
+                            ctx.closePath();
+                            ctx.fill();
+
+                            // Draw range ring
+                            ctx.strokeStyle = `rgba(${coneColor}, ${alpha * 1.5})`;
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.arc(0, 0, maxRange, -Math.PI/2 - arcAngle, -Math.PI/2 + arcAngle);
+                            ctx.stroke();
+
+                            // Draw center line to target if in arc
+                            if (inArc) {
+                                ctx.strokeStyle = `rgba(${coneColor}, ${alpha * 2})`;
+                                ctx.lineWidth = 1;
+                                ctx.setLineDash([5, 5]);
+                                ctx.beginPath();
+                                ctx.moveTo(0, 0);
+                                ctx.lineTo(0, -Math.min(distance2D, maxRange));
+                                ctx.stroke();
+                                ctx.setLineDash([]);
+                            }
+
+                            ctx.restore();
+                        }
+                    }
+                }
             }
 
             // Render hit effects
@@ -3792,23 +4008,35 @@
             // Render energy diagram (Enhancement #9)
             renderEnergyDiagram();
 
-            // Draw scale bar (in screen space, not affected by zoom/pan)
+            // Draw scale bar, version, and zoom in bottom right corner
+            ctx.save(); // Save state before drawing UI elements
+            ctx.globalAlpha = 1.0; // Ensure full opacity
+            ctx.globalCompositeOperation = 'source-over'; // Ensure normal blending
+
             const scaleBarLength = 100; // Represents 100 meters
-            const scaleBarX = 20;
-            const scaleBarY = CANVAS_HEIGHT - 40;
+            const infoBoxX = CANVAS_WIDTH - 240; // Position from right edge
+            const infoBoxY = CANVAS_HEIGHT - 80;
+
+            // Draw semi-transparent background for entire info box
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(infoBoxX - 10, infoBoxY - 10, 230, 70);
 
             ctx.strokeStyle = '#ffffff';
             ctx.fillStyle = '#ffffff';
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 2;
             ctx.font = '14px Courier New';
 
-            // Draw scale bar line
+            // Draw scale bar
+            const scaleBarX = infoBoxX;
+            const scaleBarY = infoBoxY + 20;
+
             ctx.beginPath();
             ctx.moveTo(scaleBarX, scaleBarY);
             ctx.lineTo(scaleBarX + scaleBarLength, scaleBarY);
             ctx.stroke();
 
             // Draw end caps
+            ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(scaleBarX, scaleBarY - 5);
             ctx.lineTo(scaleBarX, scaleBarY + 5);
@@ -3816,13 +4044,17 @@
             ctx.lineTo(scaleBarX + scaleBarLength, scaleBarY + 5);
             ctx.stroke();
 
-            // Draw label
-            ctx.fillText('100m', scaleBarX + scaleBarLength / 2 - 20, scaleBarY - 10);
-
-            // Draw zoom level indicator
-            ctx.fillStyle = '#aaaaaa';
+            // Draw scale label
             ctx.font = '12px Courier New';
-            ctx.fillText(`Zoom: ${zoomLevel.toFixed(1)}x`, scaleBarX, scaleBarY + 20);
+            ctx.fillText('Scale: 100m', scaleBarX, scaleBarY - 10);
+
+            // Draw zoom level
+            ctx.fillText(`Zoom: ${zoomLevel.toFixed(1)}x`, scaleBarX + 110, scaleBarY - 10);
+
+            // Draw version number
+            ctx.fillText(`Version: ${GAME_VERSION}`, scaleBarX, scaleBarY + 20);
+
+            ctx.restore(); // Restore state after drawing UI elements
         }
 
         function updateUI() {
@@ -3897,7 +4129,10 @@
 
         // Helper function to update ghost aircraft position and validation
         function updateGhost() {
-            if (!selectedAircraft || !ghostAircraft) return;
+            if (!selectedAircraft || !ghostAircraft) {
+                console.warn('[UPDATE GHOST] Skipped - selectedAircraft:', !!selectedAircraft, 'ghostAircraft:', !!ghostAircraft);
+                return;
+            }
 
             // Target position (where mouse is pointing)
             const targetX = mouseX;
@@ -3915,11 +4150,19 @@
                 ghostSlipAngle
             );
 
+            console.log('[UPDATE GHOST] Target:', Math.round(targetX), Math.round(targetY),
+                       'Path length:', selectedAircraft.flightPath?.length, 'State:', validation.state);
+
             ghostAircraft.state = validation.state;
             ghostAircraft.validation = validation;
 
             // Copy the calculated flight path to the ghost aircraft for rendering
             ghostAircraft.aircraft.flightPath = selectedAircraft.flightPath;
+
+            // Verify the path was copied
+            if (!ghostAircraft.aircraft.flightPath || ghostAircraft.aircraft.flightPath.length < 2) {
+                console.error('[UPDATE GHOST] Flight path missing or too short!', ghostAircraft.aircraft.flightPath?.length);
+            }
 
             // Position ghost at the END of the calculated path (where aircraft will actually end up)
             if (selectedAircraft.flightPath && selectedAircraft.flightPath.length > 0) {
@@ -3944,9 +4187,10 @@
 
             const panel = document.getElementById('ghostPanel');
             panel.style.display = 'block';
-            // Position panel further from mouse to avoid obscuring ghost aircraft
-            panel.style.left = (lastScreenX + 150) + 'px';
-            panel.style.top = (lastScreenY + 20) + 'px';
+            // Position panel with significant clearance to avoid obscuring ghost and path
+            // Place it to the right and below the mouse cursor
+            panel.style.left = (lastScreenX + 200) + 'px';
+            panel.style.top = (lastScreenY + 100) + 'px';
 
             const validation = ghostAircraft.validation;
             const throttlePercent = Math.round(selectedAircraft.throttle * 100);
@@ -4001,10 +4245,17 @@
 
             // Transform to canvas coordinates
             const canvasCoords = screenToCanvas(lastScreenX, lastScreenY);
+            const oldMouseX = mouseX;
+            const oldMouseY = mouseY;
             mouseX = canvasCoords.x;
             mouseY = canvasCoords.y;
 
-            if (selectedAircraft && ghostAircraft) {
+            // Debug: Log mouse movement during ORDER phase with selected aircraft
+            if (gameState === 'ORDER' && selectedAircraft && ghostAircraft && (Math.abs(mouseX - oldMouseX) > 1 || Math.abs(mouseY - oldMouseY) > 1)) {
+                console.log('[MOUSEMOVE] Canvas coords:', Math.round(mouseX), Math.round(mouseY), 'Selected:', selectedAircraft.name);
+            }
+
+            if (selectedAircraft && ghostAircraft && gameState === 'ORDER') {
                 updateGhost();
                 updateGhostPanel();
             }
@@ -4408,6 +4659,12 @@
             }
         });
 
+        // UI Panel toggle function
+        function togglePanel(panelId) {
+            const panel = document.getElementById(panelId);
+            panel.classList.toggle('collapsed');
+        }
+
         // Main game loop
         function gameLoop() {
             // Manage engine sounds based on game state and aircraft status
@@ -4481,7 +4738,10 @@
                 }
             }
 
-            // Game over screen
+            render();
+            updateUI();
+
+            // Game over screen - drawn AFTER render() so it appears on top
             if (gameState === 'GAMEOVER') {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                 ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -4528,9 +4788,6 @@
                 ctx.fillText('Press RESTART to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80);
                 ctx.textAlign = 'left';
             }
-
-            render();
-            updateUI();
             if (!isPaused) {
                 requestAnimationFrame(gameLoop);
             }
