@@ -1317,19 +1317,23 @@
 
             generateMountains() {
                 // Generate realistic mountain ranges with fractal edges
-                for (let i = 0; i < 8; i++) {
-                    const baseX = Math.random() * CANVAS_WIDTH;
+                // 3x wider terrain for more expansive battlefield
+                const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
+
+                // Create fewer but larger mountain ranges that can merge
+                for (let i = 0; i < 12; i++) {
+                    const baseX = Math.random() * TERRAIN_WIDTH - CANVAS_WIDTH;
                     const baseY = Math.random() * CANVAS_HEIGHT;
                     const baseHeight = 400 + Math.random() * 600;
 
-                    // Create a cluster of peaks for each mountain
-                    for (let j = 0; j < 3; j++) {
+                    // Create a cluster of peaks for each mountain range (more peaks per range)
+                    for (let j = 0; j < 4; j++) {
                         // Generate initial rough polygon
                         const numPeaks = 4 + Math.floor(Math.random() * 3); // 4-6 initial vertices
                         const baseVertices = [];
-                        const centerX = baseX + (Math.random() - 0.5) * 150;
-                        const centerY = baseY + (Math.random() - 0.5) * 150;
-                        const baseRadius = 40 + Math.random() * 60;
+                        const centerX = baseX + (Math.random() - 0.5) * 250; // Wider spread for merging
+                        const centerY = baseY + (Math.random() - 0.5) * 200;
+                        const baseRadius = 60 + Math.random() * 80; // Larger base for more imposing peaks
 
                         for (let v = 0; v < numPeaks; v++) {
                             const angle = (v / numPeaks) * Math.PI * 2;
@@ -1784,32 +1788,34 @@
                 const useImage = img && img.complete && img.naturalWidth > 0;
 
                 if (useImage) {
-                    // Draw the aircraft SVG image centered
+                    // Draw the aircraft SVG image centered with transparency
                     const imgWidth = 80;
                     const imgHeight = 80;
 
-                    // Set composite operation for transparency
+                    // Ensure transparency is preserved
+                    ctx.save();
+                    ctx.globalCompositeOperation = 'source-over';
+
                     if (isGhost) {
-                        // For ghosts, draw image then apply color overlay
-                        ctx.globalCompositeOperation = 'source-over';
+                        // For ghosts, draw semi-transparent image with color tint
+                        ctx.globalAlpha *= 0.6; // Ghost transparency
                         ctx.drawImage(img, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
 
                         // Apply color tint for ghost state
                         ctx.globalCompositeOperation = 'source-atop';
                         ctx.fillRect(-imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
-                        ctx.globalCompositeOperation = 'source-over';
                     } else {
-                        // Normal drawing with full transparency support
-                        ctx.globalCompositeOperation = 'source-over';
+                        // Normal drawing - SVG transparency will be preserved
                         ctx.drawImage(img, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
 
                         // Only apply color tint if using destroyed state
                         if (this.isDestroyed) {
                             ctx.globalCompositeOperation = 'source-atop';
                             ctx.fillRect(-imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
-                            ctx.globalCompositeOperation = 'source-over';
                         }
                     }
+
+                    ctx.restore();
                 } else {
                     // Fallback to geometric shapes if SVG not loaded
                     ctx.lineWidth = 2;
@@ -5217,14 +5223,14 @@
             // Set weather
             applyWeather(currentMission.weather);
 
-            // Create player aircraft
-            spitfire = new Aircraft('Player', currentMission.playerAircraft, 400, 500, 500, 90, true);
+            // Create player aircraft at safe altitude above terrain (1200m)
+            spitfire = new Aircraft('Player', currentMission.playerAircraft, 400, 500, 1200, 90, true);
             aircraft = [spitfire];
 
-            // Create enemy aircraft
+            // Create enemy aircraft at safe altitude above terrain (1200m)
             for (let i = 0; i < currentMission.enemyAircraft.length; i++) {
                 const enemyType = currentMission.enemyAircraft[i];
-                const enemy = new Aircraft(`Enemy ${i+1}`, enemyType, 1400 + i * 100, 500 + i * 50, 500, 270, false);
+                const enemy = new Aircraft(`Enemy ${i+1}`, enemyType, 1400 + i * 100, 500 + i * 50, 1200, 270, false);
                 aircraft.push(enemy);
             }
 
@@ -5313,9 +5319,9 @@
             groundTargets = [];
             executionRecording = [];
 
-            // Create default aircraft
-            spitfire = new Aircraft('Spitfire', 'Spitfire', 400, 500, 500, 90, true);
-            me109 = new Aircraft('Me-109', 'Me-109', 1400, 500, 500, 270, false);
+            // Create default aircraft at safe altitude above terrain (1200m)
+            spitfire = new Aircraft('Spitfire', 'Spitfire', 400, 500, 1200, 90, true);
+            me109 = new Aircraft('Me-109', 'Me-109', 1400, 500, 1200, 270, false);
             aircraft = [spitfire, me109];
 
             // Start game loop
@@ -5348,9 +5354,9 @@
             groundTargets = [];
             executionRecording = [];
 
-            // Create selected aircraft
-            spitfire = new Aircraft('Player', playerType, 400, 500, 500, 90, true);
-            me109 = new Aircraft('Enemy', enemyType, 1400, 500, 500, 270, false);
+            // Create selected aircraft at safe altitude above terrain (1200m)
+            spitfire = new Aircraft('Player', playerType, 400, 500, 1200, 90, true);
+            me109 = new Aircraft('Enemy', enemyType, 1400, 500, 1200, 270, false);
             aircraft = [spitfire, me109];
 
             // Start game loop
