@@ -226,8 +226,6 @@
             margin-top: 8px;
         }
 
-=======
->>>>>>> Stashed changes
         .replay-controls {
             position: absolute;
             bottom: 80px;
@@ -350,9 +348,7 @@
     </div>
 
     <div id="gameContainer" style="display: none;">
-=======
     <div id="gameContainer">
->>>>>>> Stashed changes
         <canvas id="gameCanvas" width="1800" height="1000"></canvas>
 
         <div id="ui">
@@ -507,14 +503,12 @@
             <div style="text-align: center; margin-top: 20px;">
                 <button class="btn btn-primary" onclick="startCustomBattle()">START BATTLE</button>
                 <button class="btn" onclick="hideSplashScreen(); document.getElementById('aircraftSelector').style.display='none';">BACK</button>
-=======
         <!-- Aircraft Selector -->
         <div id="aircraftSelector">
             <div class="panel-title">SELECT YOUR AIRCRAFT</div>
             <div id="aircraftList"></div>
             <div style="text-align: center; margin-top: 20px;">
                 <button class="btn btn-primary" onclick="confirmAircraftSelection()">CONFIRM</button>
->>>>>>> Stashed changes
             </div>
         </div>
 
@@ -1274,11 +1268,9 @@
         };
 
         // Try to load SVG files, will fallback to shapes if not found
-        aircraftImages.spitfire.src = 'spitfire.svg';
-        aircraftImages.bf109.src = 'bf109.svg';
+        aircraftImages.spitfire.src = 'images/spitfire.svg';
+        aircraftImages.bf109.src = 'images/bf109.svg';
 
-=======
->>>>>>> Stashed changes
         // Terrain generation
         class Terrain {
             constructor() {
@@ -1325,12 +1317,10 @@
 <<<<<<< Updated upstream
                 // 3x wider terrain for more expansive battlefield
                 const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
-=======
                 for (let i = 0; i < 8; i++) {
                     const baseX = Math.random() * CANVAS_WIDTH;
                     const baseY = Math.random() * CANVAS_HEIGHT;
                     const baseHeight = 400 + Math.random() * 600;
->>>>>>> Stashed changes
 
                 // Create fewer but larger mountain ranges that can merge
                 for (let i = 0; i < 12; i++) {
@@ -1347,11 +1337,9 @@
                         const centerX = baseX + (Math.random() - 0.5) * 250; // Wider spread for merging
                         const centerY = baseY + (Math.random() - 0.5) * 200;
                         const baseRadius = 60 + Math.random() * 80; // Larger base for more imposing peaks
-=======
                         const centerX = baseX + (Math.random() - 0.5) * 150;
                         const centerY = baseY + (Math.random() - 0.5) * 150;
                         const baseRadius = 40 + Math.random() * 60;
->>>>>>> Stashed changes
 
                         for (let v = 0; v < numPeaks; v++) {
                             const angle = (v / numPeaks) * Math.PI * 2;
@@ -1726,10 +1714,8 @@
                     controls: 0,  // 0-1, reduces turn rate
                     weapons: 0    // 0-1, reduces accuracy and fire rate
                 };
-=======
                 // Gun convergence (Enhancement #8)
                 this.gunConvergence = 300; // meters - distance where guns converge
->>>>>>> Stashed changes
             }
 
             getScaleForAltitude() {
@@ -1885,7 +1871,6 @@
                         ctx.lineTo(22, 2);
                         ctx.lineTo(22, -2);
                         ctx.lineTo(5, -5);
-=======
                 ctx.lineWidth = 2;
 
                 // Draw aircraft-specific shape (distinctive top-down silhouettes)
@@ -2005,7 +1990,6 @@
                         ctx.lineTo(22, 6);
                         ctx.lineTo(25, 0);
                         ctx.lineTo(6, -8);
->>>>>>> Stashed changes
                         ctx.closePath();
                         ctx.fill();
                         ctx.stroke();
@@ -2088,8 +2072,6 @@
                         ctx.stroke();
                         break;
 
-=======
->>>>>>> Stashed changes
                     case 'Fw-190':
                         // Wide "Butcher Bird" - radial engine
                         ctx.beginPath();
@@ -2168,8 +2150,6 @@
                         break;
 <<<<<<< Updated upstream
                     }
-=======
->>>>>>> Stashed changes
                 }
 
                 // Draw orders indicator
@@ -2822,9 +2802,7 @@
                     return this.calculateHalfLoopPath();
                 }
 
-=======
             calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading, slipAngle = 0) {
->>>>>>> Stashed changes
                 // Use the new realistic path calculation
                 const result = this.calculateRealisticPath(targetX, targetY, targetAltitude, targetHeading, slipAngle);
 
@@ -3062,8 +3040,6 @@
                     `<div class="stat-line" style="color: #ff8800;">💥 Crits: ${this.criticalHitsDealt}</div>` : '';
                 const critTakenDisplay = this.criticalHitsTaken > 0 ?
                     `<div class="stat-line" style="color: #ff4444;">💥 Hit by: ${this.criticalHitsTaken}</div>` : '';
-=======
->>>>>>> Stashed changes
 
                 // Enhancement #8: Bombs/Rockets (if available)
                 const ordinanceDisplay = (this.bombs > 0 || this.rockets > 0) ?
@@ -3088,8 +3064,6 @@
                     ${engineDamageDisplay}
                     ${controlDamageDisplay}
                     ${weaponDamageDisplay}
-=======
->>>>>>> Stashed changes
                     ${gForceDisplay}
                     ${gPenaltyDisplay}
                     ${invertedDisplay}
@@ -3172,13 +3146,11 @@
         let spitfire = null;
         let me109 = null;
         let aircraft = [];
-=======
         // Initialize game
         const terrain = new Terrain();
         const spitfire = new Aircraft('Spitfire', 'Spitfire', 400, 500, 500, 90, true);
         const me109 = new Aircraft('Me-109', 'Me-109', 1400, 500, 500, 270, false);
         const aircraft = [spitfire, me109];
->>>>>>> Stashed changes
 
         // AI for Me-109 - Tactical Dogfight AI
         function generateAIOrders(aiAircraft = null) {
@@ -3666,7 +3638,6 @@
                                     shooter.criticalHitsDealt++;
                                 }
 
-=======
 
                                         if (ammoPercent < 0.2) {
                                             // Critical ammo! Only fire at very close range with high hit chance
@@ -3797,7 +3768,6 @@
                                     damageAmount *= (1 - weatherState.rainfall * 0.3);
                                 }
 
->>>>>>> Stashed changes
                                 // Enhancement #4: Apply component damage
                                 applyComponentDamage(target, damageAmount);
                                 target.lastHitBy = shooter.name;
@@ -4080,8 +4050,6 @@
                 me109.heading = savedHeading;
             }
 
-=======
->>>>>>> Stashed changes
             ctx.restore();
 
             // Render weather effects (Enhancement #7) - after zoom/pan restore
@@ -4674,8 +4642,6 @@
             }
         });
 
-=======
->>>>>>> Stashed changes
         // Main game loop
         function gameLoop() {
             // Manage engine sounds based on game state and aircraft status
@@ -4823,8 +4789,6 @@
             player2Aircraft = [];
             awaitingPlayerSwitch = false;
 
-=======
->>>>>>> Stashed changes
             // Reinitialize aircraft
             spitfire = new Aircraft('Player', 'Spitfire', 400, 500, 500, 90, true);
             me109 = new Aircraft('Enemy', 'Me-109', 1400, 500, 500, 270, false);
@@ -4874,8 +4838,6 @@
             soundSpitfireMG.volume = gameSettings.volume * 0.6;
 <<<<<<< Updated upstream
             soundHMG.volume = gameSettings.volume * 0.65;
-=======
->>>>>>> Stashed changes
             soundMe109Cannon.volume = gameSettings.volume * 0.7;
 
             // Apply game mode settings
@@ -5506,7 +5468,6 @@
             for (let i = 0; i < currentMission.enemyAircraft.length; i++) {
                 const enemyType = currentMission.enemyAircraft[i];
                 const enemy = new Aircraft(`Enemy ${i+1}`, enemyType, 1400 + i * 100, 500 + i * 50, 1200, 270, false);
-=======
             // Create player aircraft
             spitfire = new Aircraft('Player', currentMission.playerAircraft, 400, 500, 500, 90, true);
             aircraft = [spitfire];
@@ -5515,7 +5476,6 @@
             for (let i = 0; i < currentMission.enemyAircraft.length; i++) {
                 const enemyType = currentMission.enemyAircraft[i];
                 const enemy = new Aircraft(`Enemy ${i+1}`, enemyType, 1400 + i * 100, 500 + i * 50, 500, 270, false);
->>>>>>> Stashed changes
                 aircraft.push(enemy);
             }
 
@@ -5540,8 +5500,6 @@
             if (gameState === 'ORDER') {
                 gameLoop();
             }
-=======
->>>>>>> Stashed changes
         }
 
         function checkMissionObjectives() {
@@ -5652,8 +5610,6 @@
             gameLoop();
         }
 
-=======
->>>>>>> Stashed changes
         // Event listeners
         document.getElementById('restartButton').addEventListener('click', restartGame);
         document.getElementById('pauseButton').addEventListener('click', togglePause);
@@ -5662,10 +5618,8 @@
 <<<<<<< Updated upstream
         // Game will start when user selects mode from splash screen
         // gameLoop() called from startQuickBattle() or startCustomBattle()
-=======
         // Start game
         gameLoop();
->>>>>>> Stashed changes
     </script>
 </body>
 </html>
