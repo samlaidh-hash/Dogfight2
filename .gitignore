@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# npm
+package-lock.json
+
+# Test artifacts
+*.png
+ui-test-screenshot.png
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
