@@ -31,6 +31,7 @@
             border: 2px solid #4a5a3a;
             background: #3d5235;
             cursor: crosshair;
+            z-index: 1;
         }
 
         /* Split UI panels with slide-out functionality */
@@ -42,7 +43,13 @@
             border-radius: 0 5px 5px 0;
             min-width: 250px;
             transition: transform 0.3s ease-in-out;
-            cursor: pointer;
+            cursor: default;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .ui-panel > * {
+            pointer-events: auto;
         }
 
         .ui-panel.collapsed {
@@ -66,6 +73,7 @@
             font-size: 12px;
             cursor: pointer;
             transition: transform 0.3s ease-in-out;
+            pointer-events: auto;
         }
 
         #aircraftPanel {
@@ -95,6 +103,7 @@
             cursor: pointer;
             display: none;
             font-family: 'Courier New', monospace;
+            z-index: 200;
         }
 
         #restartButton, #pauseButton, #settingsButton {
@@ -109,6 +118,7 @@
             border-radius: 5px;
             cursor: pointer;
             font-family: 'Courier New', monospace;
+            z-index: 150;
         }
 
         #restartButton { right: 180px; }
@@ -172,6 +182,7 @@
             background: rgba(0, 0, 0, 0.8);
             border: 2px solid #0f3460;
             border-radius: 5px;
+            z-index: 50;
         }
 
         .btn {
@@ -206,6 +217,7 @@
             background: rgba(0, 0, 0, 0.8);
             border: 2px solid #0f3460;
             border-radius: 5px;
+            z-index: 50;
         }
 
         #splashScreen {
@@ -357,6 +369,7 @@
             font-size: 12px;
             pointer-events: none;
             display: none;
+            z-index: 75;
         }
 
         h1 {
