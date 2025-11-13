@@ -2069,14 +2069,9 @@
                 for (let step = 0; step < NUM_STEPS; step++) {
                     const stepTime = (step + 1) * TIME_STEP;
 
-                    // Calculate desired heading towards target
-                    const dx = targetX - state.x;
-                    const dy = targetY - state.y;
-                    const distanceRemaining = Math.sqrt(dx * dx + dy * dy);
-                    const desiredHeading = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
-
-                    // Calculate heading difference (shortest angle)
-                    let headingDiff = desiredHeading - state.heading;
+                    // Calculate heading difference to reach target heading
+                    // Use the targetHeading parameter instead of calculating from position
+                    let headingDiff = targetHeading - state.heading;
                     if (headingDiff > 180) headingDiff -= 360;
                     if (headingDiff < -180) headingDiff += 360;
 
@@ -3431,7 +3426,6 @@
                                 }
                             } else {
                                 console.log(`  MISS!`);
-                            }
                             }
                         }
                     } else {
