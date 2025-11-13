@@ -171,6 +171,60 @@
             border-radius: 5px;
         }
 
+        #splashScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a1f3f 0%, #1a3a5a 50%, #0a1f3f 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .splash-title {
+            font-size: 72px;
+            color: #e94560;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.8);
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .splash-subtitle {
+            font-size: 24px;
+            color: #aaa;
+            margin-bottom: 50px;
+        }
+
+        .game-mode-btn {
+            width: 300px;
+            padding: 20px;
+            margin: 15px;
+            background: rgba(15, 52, 96, 0.8);
+            color: white;
+            border: 2px solid #0f3460;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+
+        .game-mode-btn:hover {
+            background: rgba(233, 69, 96, 0.8);
+            border-color: #e94560;
+            transform: scale(1.05);
+        }
+
+        .mode-description {
+            font-size: 12px;
+            color: #ccc;
+            margin-top: 8px;
+        }
+
         .replay-controls {
             position: absolute;
             bottom: 80px;
@@ -273,7 +327,25 @@
     </style>
 </head>
 <body>
-    <div id="gameContainer">
+    <!-- Splash Screen -->
+    <div id="splashScreen">
+        <div class="splash-title">DOGFIGHT 2</div>
+        <div class="splash-subtitle">WW2 Aerial Combat Simulator</div>
+        <button class="game-mode-btn" onclick="startQuickBattle()">
+            <div>⚡ QUICK BATTLE</div>
+            <div class="mode-description">Spitfire vs Me-109 - Classic dogfight</div>
+        </button>
+        <button class="game-mode-btn" onclick="startCampaign()">
+            <div>🎖️ CAMPAIGN MODE</div>
+            <div class="mode-description">10 sequential missions with progression</div>
+        </button>
+        <button class="game-mode-btn" onclick="showAircraftSelector()">
+            <div>🛩️ CUSTOM BATTLE</div>
+            <div class="mode-description">Choose your aircraft and enemy</div>
+        </button>
+    </div>
+
+    <div id="gameContainer" style="display: none;">
         <canvas id="gameCanvas" width="1800" height="1000"></canvas>
 
         <div id="ui">
@@ -296,6 +368,10 @@
                 <div>• Q/E: altitude down/up</div>
                 <div>• A/D: slip/skid left/right</div>
                 <div>• R: cycle roll (none/half/full)</div>
+                <div>• I: Immelmann turn</div>
+                <div>• T: Split-S</div>
+                <div>• L: Loop</div>
+                <div>• H: Half-loop</div>
                 <div>• Z/X: fire threshold down/up</div>
                 <div>• Click again to lock</div>
                 <div style="margin-top: 10px; color: #88ff88;">Wingman Commands:</div>
@@ -315,6 +391,16 @@
         </div>
 
         <div id="ghostPanel" class="ghost-panel"></div>
+
+        <div id="realisticModeToggle" style="position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.7); padding: 10px; border-radius: 5px;">
+            <label style="cursor: pointer; font-size: 14px;">
+                <input type="checkbox" id="realisticModeCheckbox" style="margin-right: 8px; cursor: pointer;">
+                Realistic AI Display
+            </label>
+            <div style="font-size: 11px; color: #aaa; margin-top: 5px; max-width: 200px;">
+                Shows AI prediction based on last turn instead of actual planned move
+            </div>
+        </div>
 
         <button id="executeButton">EXECUTE ORDERS</button>
         <button id="replayButton">REPLAY</button>
@@ -393,12 +479,40 @@
             </div>
         </div>
 
-        <!-- Aircraft Selector -->
+        <!-- Aircraft Selector Panel -->
         <div id="aircraftSelector">
-            <div class="panel-title">SELECT YOUR AIRCRAFT</div>
-            <div id="aircraftList"></div>
+            <div class="panel-title">AIRCRAFT SELECTION</div>
+            <div class="setting-row">
+                <span class="setting-label">Your Aircraft:</span>
+                <select id="playerAircraftSelect">
+                    <option value="Spitfire">Supermarine Spitfire</option>
+                    <option value="Me-109">Messerschmitt Bf 109</option>
+                    <option value="P-51">P-51D Mustang</option>
+                    <option value="P-47">P-47D Thunderbolt</option>
+                    <option value="Hurricane">Hawker Hurricane</option>
+                    <option value="P-40">P-40 Warhawk</option>
+                    <option value="Fw-190">Focke-Wulf Fw 190</option>
+                    <option value="Me-262">Me 262 Jet</option>
+                    <option value="Zero">A6M Zero</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">Enemy Aircraft:</span>
+                <select id="enemyAircraftSelect">
+                    <option value="Me-109" selected>Messerschmitt Bf 109</option>
+                    <option value="Spitfire">Supermarine Spitfire</option>
+                    <option value="P-51">P-51D Mustang</option>
+                    <option value="P-47">P-47D Thunderbolt</option>
+                    <option value="Hurricane">Hawker Hurricane</option>
+                    <option value="P-40">P-40 Warhawk</option>
+                    <option value="Fw-190">Focke-Wulf Fw 190</option>
+                    <option value="Me-262">Me 262 Jet</option>
+                    <option value="Zero">A6M Zero</option>
+                </select>
+            </div>
             <div style="text-align: center; margin-top: 20px;">
-                <button class="btn btn-primary" onclick="confirmAircraftSelection()">CONFIRM</button>
+                <button class="btn btn-primary" onclick="startCustomBattle()">START BATTLE</button>
+                <button class="btn" onclick="hideSplashScreen(); document.getElementById('aircraftSelector').style.display='none';">BACK</button>
             </div>
         </div>
 
@@ -459,6 +573,8 @@
         let currentTurn = 1;
         let selectedAircraft = null;
         let ghostAircraft = null;
+        let aiPredictedGhost = null; // Predicted AI position based on last turn
+        let realisticMode = false; // Toggle for realistic AI display
         let executionStartTime = 0;
         let executionRecording = [];
         let isPaused = false;
@@ -1133,6 +1249,31 @@
         const minimapCanvas = document.getElementById('minimap');
         const minimapCtx = minimapCanvas.getContext('2d');
 
+        // Load aircraft SVG images
+        const aircraftImages = {
+            spitfire: new Image(),
+            bf109: new Image()
+        };
+        let imagesLoaded = 0;
+        const totalImages = 2;
+
+        aircraftImages.spitfire.onload = () => {
+            imagesLoaded++;
+            if (imagesLoaded === totalImages) {
+                console.log('All aircraft images loaded');
+            }
+        };
+        aircraftImages.bf109.onload = () => {
+            imagesLoaded++;
+            if (imagesLoaded === totalImages) {
+                console.log('All aircraft images loaded');
+            }
+        };
+
+        // Try to load SVG files, will fallback to shapes if not found
+        aircraftImages.spitfire.src = 'spitfire.svg';
+        aircraftImages.bf109.src = 'bf109.svg';
+
         // Terrain generation
         class Terrain {
             constructor() {
@@ -1176,19 +1317,23 @@
 
             generateMountains() {
                 // Generate realistic mountain ranges with fractal edges
-                for (let i = 0; i < 8; i++) {
-                    const baseX = Math.random() * CANVAS_WIDTH;
+                // 3x wider terrain for more expansive battlefield
+                const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
+
+                // Create fewer but larger mountain ranges that can merge
+                for (let i = 0; i < 12; i++) {
+                    const baseX = Math.random() * TERRAIN_WIDTH - CANVAS_WIDTH;
                     const baseY = Math.random() * CANVAS_HEIGHT;
                     const baseHeight = 400 + Math.random() * 600;
 
-                    // Create a cluster of peaks for each mountain
-                    for (let j = 0; j < 3; j++) {
+                    // Create a cluster of peaks for each mountain range (more peaks per range)
+                    for (let j = 0; j < 4; j++) {
                         // Generate initial rough polygon
                         const numPeaks = 4 + Math.floor(Math.random() * 3); // 4-6 initial vertices
                         const baseVertices = [];
-                        const centerX = baseX + (Math.random() - 0.5) * 150;
-                        const centerY = baseY + (Math.random() - 0.5) * 150;
-                        const baseRadius = 40 + Math.random() * 60;
+                        const centerX = baseX + (Math.random() - 0.5) * 250; // Wider spread for merging
+                        const centerY = baseY + (Math.random() - 0.5) * 200;
+                        const baseRadius = 60 + Math.random() * 80; // Larger base for more imposing peaks
 
                         for (let v = 0; v < numPeaks; v++) {
                             const angle = (v / numPeaks) * Math.PI * 2;
@@ -1545,8 +1690,23 @@
                 this.peakGForce = 1.0;
                 this.gForcePenalty = 0;
 
+                // Advanced aerobatic maneuvers
+                this.maneuverType = 'none'; // none, immelmann, split-s, loop, half-loop
+
+                // Automatic banking visualization
+                this.currentTurnRate = 0; // Current turn rate in degrees/second for visual banking
+
                 // Gun convergence (Enhancement #8)
                 this.gunConvergence = 300; // meters - distance where guns converge
+
+                // Critical hit system
+                this.criticalHitsDealt = 0; // Total critical hits dealt
+                this.criticalHitsTaken = 0; // Total critical hits received
+                this.systemDamage = {
+                    engine: 0,    // 0-1, reduces speed and climb rate
+                    controls: 0,  // 0-1, reduces turn rate
+                    weapons: 0    // 0-1, reduces accuracy and fire rate
+                };
             }
 
             getScaleForAltitude() {
@@ -1577,6 +1737,14 @@
                 } else if (this.isInverted && !isGhost) {
                     // Maintain inverted appearance (180°)
                     rollAngle = 180;
+                } else if (!this.isRolling && !isGhost && Math.abs(this.currentTurnRate) > 2) {
+                    // Automatic visual banking during turns (not during roll maneuvers)
+                    // Bank angle proportional to turn rate: max 60° bank at max turn rate
+                    const maxBankAngle = 60; // degrees
+                    const normalizedTurnRate = Math.min(Math.abs(this.currentTurnRate) / (this.maxTurnRate / turnTime), 1.0);
+                    const bankAngle = normalizedTurnRate * maxBankAngle;
+                    // Convert bank angle to roll appearance (bank left/right shows as narrower)
+                    rollAngle = bankAngle;
                 }
 
                 // Convert roll angle to x-axis scale for top-down view
@@ -1615,11 +1783,46 @@
                     }
                 }
 
-                ctx.lineWidth = 2;
+                // Get the appropriate SVG image
+                const img = this.type === 'Spitfire' ? aircraftImages.spitfire : aircraftImages.bf109;
+                const useImage = img && img.complete && img.naturalWidth > 0;
 
-                // Draw aircraft-specific shape (distinctive top-down silhouettes)
-                switch(this.type) {
-                    case 'Spitfire':
+                if (useImage) {
+                    // Draw the aircraft SVG image centered with transparency
+                    const imgWidth = 80;
+                    const imgHeight = 80;
+
+                    // Ensure transparency is preserved
+                    ctx.save();
+                    ctx.globalCompositeOperation = 'source-over';
+
+                    if (isGhost) {
+                        // For ghosts, draw semi-transparent image with color tint
+                        ctx.globalAlpha *= 0.6; // Ghost transparency
+                        ctx.drawImage(img, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
+
+                        // Apply color tint for ghost state
+                        ctx.globalCompositeOperation = 'source-atop';
+                        ctx.fillRect(-imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
+                    } else {
+                        // Normal drawing - SVG transparency will be preserved
+                        ctx.drawImage(img, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
+
+                        // Only apply color tint if using destroyed state
+                        if (this.isDestroyed) {
+                            ctx.globalCompositeOperation = 'source-atop';
+                            ctx.fillRect(-imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
+                        }
+                    }
+
+                    ctx.restore();
+                } else {
+                    // Fallback to geometric shapes if SVG not loaded
+                    ctx.lineWidth = 2;
+
+                    // Draw aircraft-specific shape (distinctive top-down silhouettes)
+                    switch(this.type) {
+                        case 'Spitfire':
                         // Famous elliptical wings
                         ctx.beginPath();
                         ctx.moveTo(0, -30); // Nose
@@ -1815,6 +2018,7 @@
                         ctx.lineTo(25, 0);
                         ctx.stroke();
                         break;
+                    }
                 }
 
                 // Draw orders indicator
@@ -1971,14 +2175,9 @@
                 for (let step = 0; step < NUM_STEPS; step++) {
                     const stepTime = (step + 1) * TIME_STEP;
 
-                    // Calculate desired heading towards target
-                    const dx = targetX - state.x;
-                    const dy = targetY - state.y;
-                    const distanceRemaining = Math.sqrt(dx * dx + dy * dy);
-                    const desiredHeading = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
-
-                    // Calculate heading difference (shortest angle)
-                    let headingDiff = desiredHeading - state.heading;
+                    // Calculate heading difference to reach target heading
+                    // Use the targetHeading parameter instead of calculating from position
+                    let headingDiff = targetHeading - state.heading;
                     if (headingDiff > 180) headingDiff -= 360;
                     if (headingDiff < -180) headingDiff += 360;
 
@@ -1987,12 +2186,20 @@
                     // For now, use max sustainable G for turn rate calculation (reduced by slip/skid)
                     const maxSustainableG = slipEffectiveMaxG * 0.8; // Use 80% of effective max for sustained
                     const turnRadius = (state.speed * state.speed) / (g * Math.sqrt(maxSustainableG * maxSustainableG - 1));
-                    const maxTurnRatePerSec = (state.speed / turnRadius) * (180 / Math.PI); // Convert to degrees/sec
+                    let maxTurnRatePerSec = (state.speed / turnRadius) * (180 / Math.PI); // Convert to degrees/sec
+
+                    // Apply system damage penalties
+                    const controlPenalty = 1 - (this.systemDamage.controls * 0.5); // Up to 50% turn rate loss
+                    maxTurnRatePerSec = maxTurnRatePerSec * controlPenalty;
+
                     const maxTurnThisStep = maxTurnRatePerSec * TIME_STEP;
 
                     // Apply turn rate limit
                     const actualTurn = Math.max(-maxTurnThisStep, Math.min(maxTurnThisStep, headingDiff));
                     const newHeading = (state.heading + actualTurn + 360) % 360;
+
+                    // Store current turn rate for visual banking (degrees per second)
+                    this.currentTurnRate = actualTurn / TIME_STEP;
 
                     // Calculate actual G-force from this turn
                     const turnRateRadPerSec = (Math.abs(actualTurn) / TIME_STEP) * (Math.PI / 180);
@@ -2060,6 +2267,10 @@
                         const slipDragPerStep = (slipDragFactor - 1) * state.speed * TIME_STEP * 0.5; // Drag reduces speed
                         newSpeed -= slipDragPerStep;
                     }
+
+                    // Apply engine damage penalty
+                    const enginePenalty = 1 - (this.systemDamage.engine * 0.4); // Up to 40% speed loss
+                    newSpeed = newSpeed * enginePenalty;
 
                     // Clamp speed
                     newSpeed = Math.max(this.minSpeed, Math.min(this.maxSpeed * 1.2, newSpeed));
@@ -2204,7 +2415,261 @@
                 };
             }
 
+            // Calculate Immelmann Turn: half loop up + half roll to reverse direction while gaining altitude
+            calculateImmelmannPath() {
+                const TIME_STEP = 0.1;
+                const NUM_STEPS = Math.floor(turnTime / TIME_STEP);
+                const path = [];
+
+                // Immelmann requires minimum speed (120 m/s)
+                const startSpeed = Math.max(120, this.speed);
+                const loopRadius = (startSpeed * startSpeed) / (this.maxGForce * 9.81); // Physics: r = v²/g
+                const halfLoopTime = (Math.PI * loopRadius) / startSpeed; // Time for half loop
+
+                let currentHeading = this.heading;
+                let currentAltitude = this.altitude;
+                let currentX = this.x;
+                let currentY = this.y;
+                let currentSpeed = startSpeed;
+
+                for (let i = 0; i <= NUM_STEPS; i++) {
+                    const progress = i / NUM_STEPS;
+                    const time = progress * turnTime;
+
+                    if (time < halfLoopTime) {
+                        // First half: climb in a loop
+                        const loopProgress = time / halfLoopTime;
+                        const angle = loopProgress * Math.PI; // 0 to π (180°)
+
+                        // Calculate position on circular arc
+                        const arcX = Math.sin(angle) * loopRadius;
+                        const arcY = -(1 - Math.cos(angle)) * loopRadius; // Negative because climbing
+
+                        // Rotate arc based on initial heading
+                        const headingRad = (currentHeading - 90) * Math.PI / 180;
+                        currentX = this.x + (arcX * Math.cos(headingRad) - arcY * Math.sin(headingRad));
+                        currentY = this.y + (arcX * Math.sin(headingRad) + arcY * Math.cos(headingRad));
+                        currentAltitude = this.altitude + (1 - Math.cos(angle)) * loopRadius;
+
+                        // Aircraft heading follows the loop
+                        currentHeading = (this.heading + angle * 180 / Math.PI) % 360;
+
+                        // Speed bleeds off during climb
+                        currentSpeed = startSpeed * (1 - 0.3 * loopProgress);
+
+                        // High G-force during loop (4-6G)
+                        this.currentGForce = 1 + Math.sin(angle) * 5;
+                    } else {
+                        // Second half: roll to upright while continuing forward
+                        // At top of loop, heading is reversed, now roll to upright
+                        const rollProgress = (time - halfLoopTime) / (turnTime - halfLoopTime);
+
+                        // Continue forward at reduced speed
+                        const forwardDist = (time - halfLoopTime) * currentSpeed;
+                        const headingRad = (this.heading + 180) * Math.PI / 180;
+                        currentX = this.x + (Math.sin(angle) * loopRadius + forwardDist) * Math.cos(headingRad - Math.PI/2);
+                        currentY = this.y + (Math.sin(angle) * loopRadius + forwardDist) * Math.sin(headingRad - Math.PI/2);
+
+                        // Maintain altitude
+                        currentAltitude = this.altitude + loopRadius * 2;
+                        currentHeading = (this.heading + 180) % 360;
+
+                        // Recover from G-forces
+                        this.currentGForce = 1 + (1 - rollProgress) * 2;
+                    }
+
+                    path.push({
+                        x: currentX,
+                        y: currentY,
+                        altitude: currentAltitude,
+                        heading: currentHeading,
+                        speed: currentSpeed
+                    });
+                }
+
+                this.flightPath = path;
+                return { path, valid: startSpeed >= 120 };
+            }
+
+            // Calculate Split-S: half roll inverted + half loop down to reverse direction while losing altitude
+            calculateSplitSPath() {
+                const TIME_STEP = 0.1;
+                const NUM_STEPS = Math.floor(turnTime / TIME_STEP);
+                const path = [];
+
+                // Split-S requires sufficient altitude (500m minimum)
+                const startSpeed = this.speed;
+                const loopRadius = (startSpeed * startSpeed) / (this.maxGForce * 9.81);
+                const halfRollTime = turnTime * 0.3; // Roll takes 30% of maneuver
+                const halfLoopTime = (Math.PI * loopRadius) / startSpeed;
+
+                let currentHeading = this.heading;
+                let currentAltitude = this.altitude;
+                let currentX = this.x;
+                let currentY = this.y;
+                let currentSpeed = startSpeed;
+
+                for (let i = 0; i <= NUM_STEPS; i++) {
+                    const progress = i / NUM_STEPS;
+                    const time = progress * turnTime;
+
+                    if (time < halfRollTime) {
+                        // First: roll inverted
+                        const rollProgress = time / halfRollTime;
+                        // Continue mostly straight while rolling
+                        const forwardDist = time * currentSpeed;
+                        const headingRad = this.heading * Math.PI / 180;
+                        currentX = this.x + forwardDist * Math.cos(headingRad - Math.PI/2);
+                        currentY = this.y + forwardDist * Math.sin(headingRad - Math.PI/2);
+                        currentAltitude = this.altitude; // Slight loss
+                        currentHeading = this.heading;
+
+                        this.currentGForce = 1 + Math.sin(rollProgress * Math.PI) * 2;
+                    } else {
+                        // Second: dive in half loop
+                        const loopProgress = (time - halfRollTime) / halfLoopTime;
+                        const angle = loopProgress * Math.PI; // 0 to π
+
+                        // Calculate position on circular arc (diving)
+                        const arcX = Math.sin(angle) * loopRadius;
+                        const arcY = (1 - Math.cos(angle)) * loopRadius; // Positive because diving
+
+                        // Rotate arc based on heading
+                        const headingRad = (this.heading - 90) * Math.PI / 180;
+                        const rollDist = halfRollTime * startSpeed;
+                        const baseX = this.x + rollDist * Math.cos(this.heading * Math.PI / 180 - Math.PI/2);
+                        const baseY = this.y + rollDist * Math.sin(this.heading * Math.PI / 180 - Math.PI/2);
+
+                        currentX = baseX + (arcX * Math.cos(headingRad) - arcY * Math.sin(headingRad));
+                        currentY = baseY + (arcX * Math.sin(headingRad) + arcY * Math.cos(headingRad));
+                        currentAltitude = this.altitude - (1 - Math.cos(angle)) * loopRadius;
+
+                        // Heading reverses through the dive
+                        currentHeading = (this.heading + angle * 180 / Math.PI) % 360;
+
+                        // Speed increases in dive
+                        currentSpeed = startSpeed * (1 + 0.4 * loopProgress);
+
+                        // High G-force during dive pull-out
+                        this.currentGForce = 1 + Math.sin(angle) * 5;
+                    }
+
+                    path.push({
+                        x: currentX,
+                        y: currentY,
+                        altitude: Math.max(0, currentAltitude),
+                        heading: currentHeading,
+                        speed: currentSpeed
+                    });
+                }
+
+                this.flightPath = path;
+                return { path, valid: this.altitude >= 500 };
+            }
+
+            // Calculate Full Loop: complete vertical loop returning to original heading
+            calculateLoopPath() {
+                const TIME_STEP = 0.1;
+                const NUM_STEPS = Math.floor(turnTime / TIME_STEP);
+                const path = [];
+
+                // Loop requires high speed (140 m/s minimum) and altitude
+                const startSpeed = Math.max(140, this.speed);
+                const loopRadius = (startSpeed * startSpeed) / (this.maxGForce * 9.81);
+
+                for (let i = 0; i <= NUM_STEPS; i++) {
+                    const progress = i / NUM_STEPS;
+                    const angle = progress * 2 * Math.PI; // Full 360°
+
+                    // Calculate position on circular arc
+                    const arcX = Math.sin(angle) * loopRadius;
+                    const arcY = -(1 - Math.cos(angle)) * loopRadius;
+
+                    // Rotate arc based on initial heading
+                    const headingRad = (this.heading - 90) * Math.PI / 180;
+                    const currentX = this.x + (arcX * Math.cos(headingRad) - arcY * Math.sin(headingRad));
+                    const currentY = this.y + (arcX * Math.sin(headingRad) + arcY * Math.cos(headingRad));
+                    const currentAltitude = this.altitude + (1 - Math.cos(angle)) * loopRadius;
+
+                    // Speed varies: loses speed climbing, gains diving
+                    let currentSpeed = startSpeed;
+                    if (progress < 0.5) {
+                        currentSpeed = startSpeed * (1 - 0.4 * progress * 2);
+                    } else {
+                        currentSpeed = startSpeed * (0.6 + 0.4 * (progress - 0.5) * 2);
+                    }
+
+                    // G-force peaks at bottom and top
+                    this.currentGForce = 1 + Math.abs(Math.sin(angle)) * 5;
+
+                    path.push({
+                        x: currentX,
+                        y: currentY,
+                        altitude: Math.max(this.altitude, currentAltitude),
+                        heading: (this.heading + angle * 180 / Math.PI) % 360,
+                        speed: currentSpeed
+                    });
+                }
+
+                this.flightPath = path;
+                return { path, valid: startSpeed >= 140 && this.altitude >= loopRadius };
+            }
+
+            // Calculate Half Loop: half of vertical loop (ends inverted, heading reversed, altitude gained)
+            calculateHalfLoopPath() {
+                const TIME_STEP = 0.1;
+                const NUM_STEPS = Math.floor(turnTime / TIME_STEP);
+                const path = [];
+
+                // Half loop requires good speed (130 m/s minimum)
+                const startSpeed = Math.max(130, this.speed);
+                const loopRadius = (startSpeed * startSpeed) / (this.maxGForce * 9.81);
+
+                for (let i = 0; i <= NUM_STEPS; i++) {
+                    const progress = i / NUM_STEPS;
+                    const angle = progress * Math.PI; // Half loop: 0 to π
+
+                    // Calculate position on circular arc
+                    const arcX = Math.sin(angle) * loopRadius;
+                    const arcY = -(1 - Math.cos(angle)) * loopRadius;
+
+                    // Rotate arc based on initial heading
+                    const headingRad = (this.heading - 90) * Math.PI / 180;
+                    const currentX = this.x + (arcX * Math.cos(headingRad) - arcY * Math.sin(headingRad));
+                    const currentY = this.y + (arcX * Math.sin(headingRad) + arcY * Math.cos(headingRad));
+                    const currentAltitude = this.altitude + (1 - Math.cos(angle)) * loopRadius;
+
+                    // Speed bleeds off during climb
+                    const currentSpeed = startSpeed * (1 - 0.3 * progress);
+
+                    // G-force during climb
+                    this.currentGForce = 1 + Math.sin(angle) * 5;
+
+                    path.push({
+                        x: currentX,
+                        y: currentY,
+                        altitude: currentAltitude,
+                        heading: (this.heading + angle * 180 / Math.PI) % 360,
+                        speed: currentSpeed
+                    });
+                }
+
+                this.flightPath = path;
+                return { path, valid: startSpeed >= 130 };
+            }
+
             calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading, slipAngle = 0) {
+                // Check if we're doing a special maneuver
+                if (this.maneuverType === 'immelmann') {
+                    return this.calculateImmelmannPath();
+                } else if (this.maneuverType === 'split-s') {
+                    return this.calculateSplitSPath();
+                } else if (this.maneuverType === 'loop') {
+                    return this.calculateLoopPath();
+                } else if (this.maneuverType === 'half-loop') {
+                    return this.calculateHalfLoopPath();
+                }
+
                 // Use the new realistic path calculation
                 const result = this.calculateRealisticPath(targetX, targetY, targetAltitude, targetHeading, slipAngle);
 
@@ -2376,6 +2841,7 @@
                 this.rollProgress = 0;
                 this.peakGForce = 1.0;
                 this.currentGForce = 1.0;
+                this.currentTurnRate = 0; // Reset turn rate for next turn
                 // Keep isInverted state if half roll was performed
 
                 this.hasOrders = false;
@@ -2435,6 +2901,20 @@
                 const ordinanceDisplay = (this.bombs > 0 || this.rockets > 0) ?
                     `<div class="stat-line" style="color: #88ff88;">Bombs: ${this.bombs} | Rockets: ${this.rockets}</div>` : '';
 
+                // Show critical hits
+                const critDisplay = this.criticalHitsDealt > 0 ?
+                    `<div class="stat-line" style="color: #ff8800;">💥 Crits: ${this.criticalHitsDealt}</div>` : '';
+                const critTakenDisplay = this.criticalHitsTaken > 0 ?
+                    `<div class="stat-line" style="color: #ff4444;">💥 Hit by: ${this.criticalHitsTaken}</div>` : '';
+
+                // Show system damage
+                const engineDamageDisplay = this.systemDamage.engine > 0 ?
+                    `<div class="stat-line" style="color: #ff4444;">🔧 Engine: ${Math.round(this.systemDamage.engine * 100)}%</div>` : '';
+                const controlDamageDisplay = this.systemDamage.controls > 0 ?
+                    `<div class="stat-line" style="color: #ff4444;">⚙ Controls: ${Math.round(this.systemDamage.controls * 100)}%</div>` : '';
+                const weaponDamageDisplay = this.systemDamage.weapons > 0 ?
+                    `<div class="stat-line" style="color: #ff4444;">🎯 Weapons: ${Math.round(this.systemDamage.weapons * 100)}%</div>` : '';
+
                 return `
                     <div class="stat-line" style="font-size: 11px; color: #aaa;">${this.fullName}</div>
                     <div class="stat-line">Alt: ${Math.round(this.altitude)}m</div>
@@ -2448,6 +2928,11 @@
                     ${componentInfo}
                     <div class="stat-line" style="color: ${fireThresholdColor}">Fire Min: ${fireThresholdPercent}%</div>
                     ${ordinanceDisplay}
+                    ${critDisplay}
+                    ${critTakenDisplay}
+                    ${engineDamageDisplay}
+                    ${controlDamageDisplay}
+                    ${weaponDamageDisplay}
                     ${gForceDisplay}
                     ${gPenaltyDisplay}
                     ${invertedDisplay}
@@ -2457,11 +2942,78 @@
             }
         }
 
+        // Critical hit calculation
+        function calculateCriticalHitChance(shooter, target, distance, angleDiff) {
+            let critChance = 0.10; // Base 10% chance
+
+            // Optimal range bonus (200-400 pixels = point blank range)
+            if (distance < 400 && distance > 200) {
+                critChance += 0.15; // +15% at optimal range
+            }
+
+            // Deflection shot penalty (harder to hit critical components)
+            if (angleDiff > 10) {
+                critChance -= 0.05;
+            }
+
+            // Perfect angle bonus (dead-on shot)
+            if (angleDiff < 5 && distance < 300) {
+                critChance += 0.10; // +10% for perfect shot
+            }
+
+            // G-force penalty (harder to aim under stress)
+            if (shooter.currentGForce > 3.0) {
+                critChance -= (shooter.currentGForce - 3.0) * 0.05;
+            }
+
+            // Weapon system damage reduces crit chance
+            if (shooter.systemDamage.weapons > 0) {
+                critChance -= shooter.systemDamage.weapons * 0.15;
+            }
+
+            // Target's control damage increases vulnerability
+            if (target.systemDamage.controls > 0.3) {
+                critChance += 0.10; // +10% against damaged aircraft
+            }
+
+            return Math.max(0, Math.min(0.50, critChance)); // Cap between 0-50%
+        }
+
+        // Apply critical hit effects
+        function applyCriticalHit(target, weapon) {
+            target.criticalHitsTaken++;
+
+            // Randomly select which system gets damaged
+            const systems = ['engine', 'controls', 'weapons'];
+            const hitSystem = systems[Math.floor(Math.random() * systems.length)];
+
+            // Damage amount based on weapon type
+            let damageAmount = weapon === 'cannon' ? 0.25 : 0.15; // Cannon does more system damage
+
+            // Apply damage (cumulative but capped at 1.0)
+            target.systemDamage[hitSystem] = Math.min(1.0, target.systemDamage[hitSystem] + damageAmount);
+
+            console.log(`💥 CRITICAL HIT! ${target.name} ${hitSystem} damaged: ${Math.round(target.systemDamage[hitSystem] * 100)}%`);
+
+            // Apply extra hull damage for critical hit
+            const bonusDamage = weapon === 'cannon' ? 15 : 8;
+            target.damage += bonusDamage;
+
+            // Create visual feedback
+            target.hitEffects.push({
+                x: target.x,
+                y: target.y,
+                type: 'critical',
+                time: Date.now(),
+                duration: 1500 // Critical hits show longer
+            });
+        }
+
         // Initialize game
         const terrain = new Terrain();
-        const spitfire = new Aircraft('Spitfire', 'Spitfire', 400, 500, 500, 90, true);
-        const me109 = new Aircraft('Me-109', 'Me-109', 1400, 500, 500, 270, false);
-        const aircraft = [spitfire, me109];
+        let spitfire = null;
+        let me109 = null;
+        let aircraft = [];
 
         // AI for Me-109 - Tactical Dogfight AI
         function generateAIOrders(aiAircraft = null) {
@@ -2870,6 +3422,14 @@
                                         damageAmount *= (1 - weatherState.rainfall * 0.3);
                                     }
 
+                                    // Check for critical hit
+                                    const critChance = calculateCriticalHitChance(shooter, target, distance, angleDiff);
+                                    if (Math.random() < critChance) {
+                                        const weaponType = totalDamage > 10 ? 'cannon' : 'mg';
+                                        applyCriticalHit(target, weaponType);
+                                        shooter.criticalHitsDealt++;
+                                    }
+
                                     // Enhancement #4: Apply component damage
                                     applyComponentDamage(target, damageAmount);
                                     target.lastHitBy = shooter.name;
@@ -2932,6 +3492,14 @@
                                     damageAmount *= (1 - weatherState.rainfall * 0.3);
                                 }
 
+                                // Check for critical hit
+                                const critChance = calculateCriticalHitChance(shooter, target, distance, angleDiff);
+                                if (Math.random() < critChance) {
+                                    const weaponType = shooter.weaponType === 'cannon' ? 'cannon' : 'mg';
+                                    applyCriticalHit(target, weaponType);
+                                    shooter.criticalHitsDealt++;
+                                }
+
                                 // Enhancement #4: Apply component damage
                                 applyComponentDamage(target, damageAmount);
                                 target.lastHitBy = shooter.name;
@@ -2964,7 +3532,6 @@
                                 }
                             } else {
                                 console.log(`  MISS!`);
-                            }
                             }
                         }
                     } else {
@@ -3085,6 +3652,35 @@
                             ctx.arc(sparkX, sparkY, 3, 0, Math.PI * 2);
                             ctx.fill();
                         }
+                    } else if (effect.type === 'critical') {
+                        // Critical hit - larger explosion effect
+                        const size = 20 + (1 - progress) * 15; // Larger than normal hits
+
+                        // Draw larger explosion effect for critical hits
+                        ctx.fillStyle = `rgba(255, 68, 0, ${alpha * 0.9})`;
+                        ctx.strokeStyle = `rgba(255, 170, 0, ${alpha})`;
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.arc(effect.x, effect.y, size * 0.8, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+
+                        // Draw radiating lines
+                        for (let i = 0; i < 8; i++) {
+                            const angle = (i / 8) * Math.PI * 2;
+                            ctx.strokeStyle = `rgba(255, 170, 0, ${alpha * 0.8})`;
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.moveTo(effect.x, effect.y);
+                            ctx.lineTo(effect.x + Math.cos(angle) * size * 1.2, effect.y + Math.sin(angle) * size * 1.2);
+                            ctx.stroke();
+                        }
+
+                        // Outer glow
+                        ctx.fillStyle = `rgba(255, 200, 0, ${alpha * 0.4})`;
+                        ctx.beginPath();
+                        ctx.arc(effect.x, effect.y, size * 1.5, 0, Math.PI * 2);
+                        ctx.fill();
                     } else {
                         // Machine gun hit - bullet strike effect
                         const size = 8 + (1 - progress) * 5;
@@ -3161,6 +3757,28 @@
             // Render ghost if in order mode
             if (ghostAircraft) {
                 ghostAircraft.aircraft.renderSVG(true, ghostAircraft.state);
+            }
+
+            // Render predicted AI ghost (realistic mode)
+            if (aiPredictedGhost) {
+                // Temporarily modify me109's position to render the predicted ghost
+                const savedX = me109.x;
+                const savedY = me109.y;
+                const savedAltitude = me109.altitude;
+                const savedHeading = me109.heading;
+
+                me109.x = aiPredictedGhost.x;
+                me109.y = aiPredictedGhost.y;
+                me109.altitude = aiPredictedGhost.altitude;
+                me109.heading = aiPredictedGhost.heading;
+
+                me109.renderSVG(true, 'valid'); // Render as ghost
+
+                // Restore original position
+                me109.x = savedX;
+                me109.y = savedY;
+                me109.altitude = savedAltitude;
+                me109.heading = savedHeading;
             }
 
             ctx.restore();
@@ -3326,8 +3944,9 @@
 
             const panel = document.getElementById('ghostPanel');
             panel.style.display = 'block';
-            panel.style.left = (lastScreenX + 50) + 'px';
-            panel.style.top = (lastScreenY - 50) + 'px';
+            // Position panel further from mouse to avoid obscuring ghost aircraft
+            panel.style.left = (lastScreenX + 150) + 'px';
+            panel.style.top = (lastScreenY + 20) + 'px';
 
             const validation = ghostAircraft.validation;
             const throttlePercent = Math.round(selectedAircraft.throttle * 100);
@@ -3634,6 +4253,42 @@
                     updateGhost();
                     updateGhostPanel();
                     break;
+                case 'i':
+                    // Toggle Immelmann turn
+                    selectedAircraft.maneuverType = selectedAircraft.maneuverType === 'immelmann' ? 'none' : 'immelmann';
+                    if (selectedAircraft.maneuverType === 'immelmann') {
+                        selectedAircraft.rollType = 'none'; // Clear roll
+                    }
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 't':
+                    // Toggle Split-S
+                    selectedAircraft.maneuverType = selectedAircraft.maneuverType === 'split-s' ? 'none' : 'split-s';
+                    if (selectedAircraft.maneuverType === 'split-s') {
+                        selectedAircraft.rollType = 'none'; // Clear roll
+                    }
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'l':
+                    // Toggle Loop
+                    selectedAircraft.maneuverType = selectedAircraft.maneuverType === 'loop' ? 'none' : 'loop';
+                    if (selectedAircraft.maneuverType === 'loop') {
+                        selectedAircraft.rollType = 'none'; // Clear roll
+                    }
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'h':
+                    // Toggle Half-loop
+                    selectedAircraft.maneuverType = selectedAircraft.maneuverType === 'half-loop' ? 'none' : 'half-loop';
+                    if (selectedAircraft.maneuverType === 'half-loop') {
+                        selectedAircraft.rollType = 'none'; // Clear roll
+                    }
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
                 case 'z':
                     // Decrease fire threshold (fire more aggressively, less accurate)
                     selectedAircraft.fireThreshold = Math.max(0.05, selectedAircraft.fireThreshold - 0.05);
@@ -3743,6 +4398,15 @@
         document.getElementById('nextPhase4s').addEventListener('click', () => startNextPhase(4));
         document.getElementById('nextPhase6s').addEventListener('click', () => startNextPhase(6));
         document.getElementById('nextPhase8s').addEventListener('click', () => startNextPhase(8));
+
+        document.getElementById('realisticModeCheckbox').addEventListener('change', (e) => {
+            realisticMode = e.target.checked;
+            console.log('Realistic AI Display:', realisticMode ? 'ON' : 'OFF');
+            // Clear any existing prediction when toggling
+            if (!realisticMode) {
+                aiPredictedGhost = null;
+            }
+        });
 
         // Main game loop
         function gameLoop() {
@@ -4559,14 +5223,14 @@
             // Set weather
             applyWeather(currentMission.weather);
 
-            // Create player aircraft
-            spitfire = new Aircraft('Player', currentMission.playerAircraft, 400, 500, 500, 90, true);
+            // Create player aircraft at safe altitude above terrain (1200m)
+            spitfire = new Aircraft('Player', currentMission.playerAircraft, 400, 500, 1200, 90, true);
             aircraft = [spitfire];
 
-            // Create enemy aircraft
+            // Create enemy aircraft at safe altitude above terrain (1200m)
             for (let i = 0; i < currentMission.enemyAircraft.length; i++) {
                 const enemyType = currentMission.enemyAircraft[i];
-                const enemy = new Aircraft(`Enemy ${i+1}`, enemyType, 1400 + i * 100, 500 + i * 50, 500, 270, false);
+                const enemy = new Aircraft(`Enemy ${i+1}`, enemyType, 1400 + i * 100, 500 + i * 50, 1200, 270, false);
                 aircraft.push(enemy);
             }
 
@@ -4584,6 +5248,11 @@
             // Re-assign references (for backward compatibility)
             if (aircraft[1]) {
                 me109 = aircraft[1];
+            }
+
+            // Start game loop if not already running
+            if (gameState === 'ORDER') {
+                gameLoop();
             }
         }
 
@@ -4635,13 +5304,72 @@
             }, 1000);
         }
 
+        // Splash Screen Functions
+        function hideSplashScreen() {
+            document.getElementById('splashScreen').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
+        }
+
+        function startQuickBattle() {
+            hideSplashScreen();
+
+            // Reset game state
+            gameState = 'ORDER';
+            currentTurn = 1;
+            groundTargets = [];
+            executionRecording = [];
+
+            // Create default aircraft at safe altitude above terrain (1200m)
+            spitfire = new Aircraft('Spitfire', 'Spitfire', 400, 500, 1200, 90, true);
+            me109 = new Aircraft('Me-109', 'Me-109', 1400, 500, 1200, 270, false);
+            aircraft = [spitfire, me109];
+
+            // Start game loop
+            gameLoop();
+        }
+
+        function startCampaign() {
+            hideSplashScreen();
+
+            // Load first mission
+            loadMission(1);
+        }
+
+        function showAircraftSelector() {
+            document.getElementById('splashScreen').style.display = 'none';
+            document.getElementById('aircraftSelector').style.display = 'block';
+        }
+
+        function startCustomBattle() {
+            document.getElementById('aircraftSelector').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
+
+            // Get selected aircraft
+            const playerType = document.getElementById('playerAircraftSelect').value;
+            const enemyType = document.getElementById('enemyAircraftSelect').value;
+
+            // Reset game state
+            gameState = 'ORDER';
+            currentTurn = 1;
+            groundTargets = [];
+            executionRecording = [];
+
+            // Create selected aircraft at safe altitude above terrain (1200m)
+            spitfire = new Aircraft('Player', playerType, 400, 500, 1200, 90, true);
+            me109 = new Aircraft('Enemy', enemyType, 1400, 500, 1200, 270, false);
+            aircraft = [spitfire, me109];
+
+            // Start game loop
+            gameLoop();
+        }
+
         // Event listeners
         document.getElementById('restartButton').addEventListener('click', restartGame);
         document.getElementById('pauseButton').addEventListener('click', togglePause);
         document.getElementById('settingsButton').addEventListener('click', openSettings);
 
-        // Start game
-        gameLoop();
+        // Game will start when user selects mode from splash screen
+        // gameLoop() called from startQuickBattle() or startCustomBattle()
     </script>
 </body>
 </html>
