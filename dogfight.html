@@ -1149,6 +1149,31 @@
         const minimapCanvas = document.getElementById('minimap');
         const minimapCtx = minimapCanvas.getContext('2d');
 
+        // Load aircraft SVG images
+        const aircraftImages = {
+            spitfire: new Image(),
+            bf109: new Image()
+        };
+        let imagesLoaded = 0;
+        const totalImages = 2;
+
+        aircraftImages.spitfire.onload = () => {
+            imagesLoaded++;
+            if (imagesLoaded === totalImages) {
+                console.log('All aircraft images loaded');
+            }
+        };
+        aircraftImages.bf109.onload = () => {
+            imagesLoaded++;
+            if (imagesLoaded === totalImages) {
+                console.log('All aircraft images loaded');
+            }
+        };
+
+        // Try to load SVG files, will fallback to shapes if not found
+        aircraftImages.spitfire.src = 'spitfire.svg';
+        aircraftImages.bf109.src = 'bf109.svg';
+
         // Terrain generation
         class Terrain {
             constructor() {
@@ -1654,11 +1679,44 @@
                     }
                 }
 
-                ctx.lineWidth = 2;
+                // Get the appropriate SVG image
+                const img = this.type === 'Spitfire' ? aircraftImages.spitfire : aircraftImages.bf109;
+                const useImage = img && img.complete && img.naturalWidth > 0;
 
-                // Draw aircraft-specific shape (distinctive top-down silhouettes)
-                switch(this.type) {
-                    case 'Spitfire':
+                if (useImage) {
+                    // Draw the aircraft SVG image centered
+                    const imgWidth = 80;
+                    const imgHeight = 80;
+
+                    // Set composite operation for transparency
+                    if (isGhost) {
+                        // For ghosts, draw image then apply color overlay
+                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.drawImage(img, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
+
+                        // Apply color tint for ghost state
+                        ctx.globalCompositeOperation = 'source-atop';
+                        ctx.fillRect(-imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
+                        ctx.globalCompositeOperation = 'source-over';
+                    } else {
+                        // Normal drawing with full transparency support
+                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.drawImage(img, -imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
+
+                        // Only apply color tint if using destroyed state
+                        if (this.isDestroyed) {
+                            ctx.globalCompositeOperation = 'source-atop';
+                            ctx.fillRect(-imgWidth/2, -imgHeight/2, imgWidth, imgHeight);
+                            ctx.globalCompositeOperation = 'source-over';
+                        }
+                    }
+                } else {
+                    // Fallback to geometric shapes if SVG not loaded
+                    ctx.lineWidth = 2;
+
+                    // Draw aircraft-specific shape (distinctive top-down silhouettes)
+                    switch(this.type) {
+                        case 'Spitfire':
                         // Famous elliptical wings
                         ctx.beginPath();
                         ctx.moveTo(0, -30); // Nose
@@ -1854,6 +1912,7 @@
                         ctx.lineTo(25, 0);
                         ctx.stroke();
                         break;
+                    }
                 }
 
                 // Draw orders indicator
