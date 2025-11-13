@@ -3844,8 +3844,9 @@
 
             const panel = document.getElementById('ghostPanel');
             panel.style.display = 'block';
-            panel.style.left = (lastScreenX + 50) + 'px';
-            panel.style.top = (lastScreenY - 50) + 'px';
+            // Position panel further from mouse to avoid obscuring ghost aircraft
+            panel.style.left = (lastScreenX + 150) + 'px';
+            panel.style.top = (lastScreenY + 20) + 'px';
 
             const validation = ghostAircraft.validation;
             const throttlePercent = Math.round(selectedAircraft.throttle * 100);
