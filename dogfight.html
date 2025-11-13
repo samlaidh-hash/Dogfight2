@@ -3831,9 +3831,14 @@
             renderEnergyDiagram();
 
             // Draw scale bar (in screen space, not affected by zoom/pan)
+            ctx.save(); // Save state
             const scaleBarLength = 100; // Represents 100 meters
             const scaleBarX = 20;
             const scaleBarY = CANVAS_HEIGHT - 40;
+
+            // Draw semi-transparent background for scale bar
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(scaleBarX - 5, scaleBarY - 30, scaleBarLength + 10, 50);
 
             ctx.strokeStyle = '#ffffff';
             ctx.fillStyle = '#ffffff';
@@ -3858,14 +3863,19 @@
             ctx.fillText('100m', scaleBarX + scaleBarLength / 2 - 20, scaleBarY - 10);
 
             // Draw zoom level indicator
-            ctx.fillStyle = '#aaaaaa';
+            ctx.fillStyle = '#ffffff';
             ctx.font = '12px Courier New';
             ctx.fillText(`Zoom: ${zoomLevel.toFixed(1)}x`, scaleBarX, scaleBarY + 20);
 
-            // Draw version number in bottom right corner
+            // Draw version number in bottom right corner with background
             ctx.textAlign = 'right';
+            const versionWidth = ctx.measureText(GAME_VERSION).width;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(CANVAS_WIDTH - versionWidth - 25, CANVAS_HEIGHT - 35, versionWidth + 10, 20);
+            ctx.fillStyle = '#ffffff';
             ctx.fillText(GAME_VERSION, CANVAS_WIDTH - 20, CANVAS_HEIGHT - 20);
             ctx.textAlign = 'left'; // Reset to default
+            ctx.restore(); // Restore state
         }
 
         function updateUI() {
