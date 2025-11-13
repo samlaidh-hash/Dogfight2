@@ -41,6 +41,42 @@
             padding: 15px;
             border-radius: 5px;
             min-width: 250px;
+            max-height: calc(100vh - 20px);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            pointer-events: auto;
+            user-select: none;
+        }
+
+        #ui.collapsed {
+            min-width: 40px;
+            max-width: 40px;
+            padding: 10px 5px;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        #ui.collapsed .panel-content {
+            display: none;
+        }
+
+        #ui .panel-tab {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            font-size: 14px;
+            font-weight: bold;
+            color: #e94560;
+            text-align: center;
+            display: none;
+            pointer-events: none;
+        }
+
+        #ui.collapsed .panel-tab {
+            display: block;
+        }
+
+        #ui .panel-content {
+            pointer-events: none;
         }
 
         #executeButton {
@@ -322,6 +358,23 @@
             display: none;
         }
 
+        #bottomRightInfo {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #eee;
+            min-width: 150px;
+            pointer-events: none;
+        }
+
+        #bottomRightInfo .info-line {
+            margin: 3px 0;
+        }
+
         h1 {
             margin-bottom: 10px;
             font-size: 20px;
@@ -360,48 +413,57 @@
         <canvas id="gameCanvas" width="1800" height="1000"></canvas>
 
         <div id="ui">
-            <h1>DOGFIGHT 2</h1>
-            <div id="phaseDisplay" class="stat-line">Phase: <span id="currentPhase">ORDER</span></div>
-            <div id="turnDisplay" class="stat-line">Turn: <span id="currentTurn">1</span></div>
+            <div class="panel-tab">INFO</div>
+            <div class="panel-content">
+                <h1>DOGFIGHT 2</h1>
+                <div id="phaseDisplay" class="stat-line">Phase: <span id="currentPhase">ORDER</span></div>
+                <div id="turnDisplay" class="stat-line">Turn: <span id="currentTurn">1</span></div>
 
-            <h2>Spitfire (You)</h2>
-            <div id="spitfireStats"></div>
+                <h2>Spitfire (You)</h2>
+                <div id="spitfireStats"></div>
 
-            <h2>Me-109 (Enemy)</h2>
-            <div id="me109Stats"></div>
+                <h2>Me-109 (Enemy)</h2>
+                <div id="me109Stats"></div>
 
-            <div style="margin-top: 15px; font-size: 11px; color: #888;">
-                <div>Controls:</div>
-                <div>• Click aircraft to order</div>
-                <div>• Move mouse to position</div>
-                <div>• Mouse wheel: zoom in/out</div>
-                <div>• W/S: throttle up/down</div>
-                <div>• Q/E: altitude down/up</div>
-                <div>• A/D: slip/skid left/right</div>
-                <div>• R: cycle roll (none/half/full)</div>
-                <div>• I: Immelmann turn</div>
-                <div>• T: Split-S</div>
-                <div>• L: Loop</div>
-                <div>• H: Half-loop</div>
-                <div>• Z/X: fire threshold down/up</div>
-                <div>• Click again to lock</div>
-                <div style="margin-top: 10px; color: #88ff88;">Wingman Commands:</div>
-                <div>• 1: Attack my target</div>
-                <div>• 2: Cover me</div>
-                <div>• 3: Break and attack</div>
-                <div>• 4: Rejoin formation</div>
-                <div>• 5: Free hunt</div>
-                <div>• F: Cycle formation</div>
-            </div>
-            <div id="squadronStatus" style="margin-top: 15px; font-size: 11px; color: #88ff88; display: none;">
-                <div style="font-weight: bold;">Squadron Status:</div>
-                <div id="formationDisplay"></div>
-                <div id="wingmanCount"></div>
-                <div id="formationBonusDisplay"></div>
+                <div style="margin-top: 15px; font-size: 11px; color: #888;">
+                    <div>Controls:</div>
+                    <div>• Click aircraft to order</div>
+                    <div>• Move mouse to position</div>
+                    <div>• Mouse wheel: zoom in/out</div>
+                    <div>• W/S: throttle up/down</div>
+                    <div>• Q/E: altitude down/up</div>
+                    <div>• A/D: slip/skid left/right</div>
+                    <div>• R: cycle roll (none/half/full)</div>
+                    <div>• I: Immelmann turn</div>
+                    <div>• T: Split-S</div>
+                    <div>• L: Loop</div>
+                    <div>• H: Half-loop</div>
+                    <div>• Z/X: fire threshold down/up</div>
+                    <div>• Click again to lock</div>
+                    <div style="margin-top: 10px; color: #88ff88;">Wingman Commands:</div>
+                    <div>• 1: Attack my target</div>
+                    <div>• 2: Cover me</div>
+                    <div>• 3: Break and attack</div>
+                    <div>• 4: Rejoin formation</div>
+                    <div>• 5: Free hunt</div>
+                    <div>• F: Cycle formation</div>
+                </div>
+                <div id="squadronStatus" style="margin-top: 15px; font-size: 11px; color: #88ff88; display: none;">
+                    <div style="font-weight: bold;">Squadron Status:</div>
+                    <div id="formationDisplay"></div>
+                    <div id="wingmanCount"></div>
+                    <div id="formationBonusDisplay"></div>
+                </div>
             </div>
         </div>
 
         <div id="ghostPanel" class="ghost-panel"></div>
+
+        <div id="bottomRightInfo">
+            <div class="info-line"><strong>Scale:</strong> <span id="scaleValue">1:1</span></div>
+            <div class="info-line"><strong>Zoom:</strong> <span id="zoomValue">100%</span></div>
+            <div class="info-line"><strong>Version:</strong> v2.0.0</div>
+        </div>
 
         <div id="realisticModeToggle" style="position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.7); padding: 10px; border-radius: 5px;">
             <label style="cursor: pointer; font-size: 14px;">
@@ -1260,6 +1322,32 @@
         const ctx = canvas.getContext('2d');
         const minimapCanvas = document.getElementById('minimap');
         const minimapCtx = minimapCanvas.getContext('2d');
+
+        // UI Panel collapse/expand functionality
+        const uiPanel = document.getElementById('ui');
+        uiPanel.addEventListener('click', (e) => {
+            // Stop propagation so click doesn't go to canvas
+            e.stopPropagation();
+            // Toggle collapsed state
+            uiPanel.classList.toggle('collapsed');
+        });
+
+        // Forward mouse move events from UI panel to canvas for ghost aircraft updates
+        uiPanel.addEventListener('mousemove', (e) => {
+            // Get mouse position relative to canvas
+            const rect = canvas.getBoundingClientRect();
+            lastScreenX = e.clientX - rect.left;
+            lastScreenY = e.clientY - rect.top;
+
+            const canvasCoords = screenToCanvas(lastScreenX, lastScreenY);
+            mouseX = canvasCoords.x;
+            mouseY = canvasCoords.y;
+
+            if (selectedAircraft && ghostAircraft) {
+                updateGhost();
+                updateGhostPanel();
+            }
+        });
 
         // Load aircraft SVG images
         const aircraftImages = {
@@ -4374,6 +4462,9 @@
             } else {
                 zoomLevel = Math.max(0.5, zoomLevel / 1.1); // Min 0.5x zoom
             }
+
+            // Update zoom display in bottom right info panel
+            document.getElementById('zoomValue').textContent = Math.round(zoomLevel * 100) + '%';
         });
 
         // Execute button
