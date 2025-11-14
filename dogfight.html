@@ -961,6 +961,7 @@
                 ],
                 fuelCapacity: 386,
                 fuelConsumption: 0.5,
+                canCarryRockets: true, // Mk IID "Tank Buster" variant
                 color: '#0088dd'
             },
             'P-40': {
@@ -978,12 +979,13 @@
                 weapons: { type: 'hmg', count: 6, ammo: 1740, burstSize: 6, damage: [3, 6], rof: 2 },
                 fuelCapacity: 568,
                 fuelConsumption: 0.52,
+                canCarryBombs: true, // Limited ground attack capability
                 color: '#00aa88'
             },
             'Fw-190': {
                 name: 'Focke-Wulf Fw 190 A-8',
                 nation: 'German',
-                role: 'Fighter',
+                role: 'Fighter-Bomber',
                 maxSpeed: 178,
                 minSpeed: 32,
                 maxTurnRate: 62,
@@ -1017,6 +1019,8 @@
                 ],
                 fuelCapacity: 525,
                 fuelConsumption: 0.58,
+                canCarryBombs: true, // Jabo variants
+                canCarryRockets: true,
                 color: '#ff3333'
             },
             'Me-262': {
@@ -1076,6 +1080,193 @@
                 fuelConsumption: 0.35, // Very fuel efficient
                 lowDurability: true, // Takes extra damage
                 color: '#ff6666'
+            },
+            'Bf-110': {
+                name: 'Messerschmitt Bf 110 C-4',
+                nation: 'German',
+                role: 'Heavy Fighter/Ground Attack',
+                maxSpeed: 170, // m/s (~560 km/h)
+                minSpeed: 35, // Heavy, higher stall speed
+                maxTurnRate: 48, // Poor turn rate (heavy twin-engine)
+                maxClimbRate: 12,
+                maxDiveRate: 40,
+                maxGForce: 6,
+                maxAcceleration: 13,
+                maxBraking: 15,
+                // Heavy armament: 4× 7.92mm MG 17 + 2× 20mm MG FF/M cannons
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.92mm MG 17',
+                        count: 4,
+                        ammo: 4000, // 1000 rounds per gun
+                        burstSize: 6,
+                        damage: [2, 4],
+                        rof: 1,
+                        sound: 'mg'
+                    },
+                    {
+                        type: 'cannon',
+                        name: '20mm MG FF/M',
+                        count: 2,
+                        ammo: 360, // 180 rounds per gun
+                        burstSize: 4,
+                        damage: [7, 14],
+                        rof: 3,
+                        sound: 'cannon'
+                    }
+                ],
+                fuelCapacity: 1270, // Long range
+                fuelConsumption: 0.8, // Twin engines
+                canCarryBombs: true,
+                canCarryRockets: true,
+                color: '#dd3333'
+            },
+            'Ju-87': {
+                name: 'Junkers Ju 87 D-5 Stuka',
+                nation: 'German',
+                role: 'Dive Bomber',
+                maxSpeed: 135, // m/s (~410 km/h) - Slow!
+                minSpeed: 28,
+                maxTurnRate: 45, // Poor maneuverability
+                maxClimbRate: 9, // Poor climb
+                maxDiveRate: 60, // EXCELLENT dive (purpose-built dive bomber)
+                maxGForce: 5.5,
+                maxAcceleration: 10,
+                maxBraking: 14,
+                // Defensive armament: 2× 7.92mm MG 17
+                weapons: {
+                    type: 'mg',
+                    name: '7.92mm MG 17',
+                    count: 2,
+                    ammo: 2000,
+                    burstSize: 3,
+                    damage: [2, 4],
+                    rof: 1,
+                    sound: 'mg'
+                },
+                fuelCapacity: 800,
+                fuelConsumption: 0.6,
+                canCarryBombs: true, // Primary role: bombing
+                bombCapacity: 4, // Carries more bombs than fighters
+                canCarryRockets: true,
+                color: '#aa3333'
+            },
+            'Ju-88': {
+                name: 'Junkers Ju 88 A-4',
+                nation: 'German',
+                role: 'Medium Bomber',
+                maxSpeed: 150, // m/s (~470 km/h)
+                minSpeed: 32,
+                maxTurnRate: 42, // Poor turn (bomber)
+                maxClimbRate: 10,
+                maxDiveRate: 45,
+                maxGForce: 5,
+                maxAcceleration: 11,
+                maxBraking: 13,
+                // Defensive: 3× 7.92mm MG 81
+                weapons: {
+                    type: 'mg',
+                    name: '7.92mm MG 81',
+                    count: 3,
+                    ammo: 3000,
+                    burstSize: 4,
+                    damage: [2, 4],
+                    rof: 1,
+                    sound: 'mg'
+                },
+                fuelCapacity: 1680, // Very long range
+                fuelConsumption: 0.9, // Twin engines
+                canCarryBombs: true,
+                bombCapacity: 6, // Heavy bomber load
+                color: '#993333'
+            },
+            'He-111': {
+                name: 'Heinkel He 111 H-6',
+                nation: 'German',
+                role: 'Medium Bomber',
+                maxSpeed: 140, // m/s (~440 km/h)
+                minSpeed: 30,
+                maxTurnRate: 38, // Very poor turn
+                maxClimbRate: 8,
+                maxDiveRate: 35,
+                maxGForce: 4.5,
+                maxAcceleration: 10,
+                maxBraking: 12,
+                // Defensive: 5× 7.92mm MG 15/17
+                weapons: {
+                    type: 'mg',
+                    name: '7.92mm MG 15/17',
+                    count: 5,
+                    ammo: 5000,
+                    burstSize: 5,
+                    damage: [2, 4],
+                    rof: 1,
+                    sound: 'mg'
+                },
+                fuelCapacity: 2400, // Very long range bomber
+                fuelConsumption: 1.0, // Twin engines
+                canCarryBombs: true,
+                bombCapacity: 8, // Heavy bomber
+                color: '#883333'
+            },
+            'Typhoon': {
+                name: 'Hawker Typhoon Mk IB',
+                nation: 'British',
+                role: 'Fighter-Bomber/Ground Attack',
+                maxSpeed: 178, // m/s (~652 km/h)
+                minSpeed: 33,
+                maxTurnRate: 55, // Heavy, poor turn
+                maxClimbRate: 15,
+                maxDiveRate: 45, // Excellent dive
+                maxGForce: 7,
+                maxAcceleration: 17,
+                maxBraking: 16,
+                // Heavy armament: 4× 20mm Hispano Mk II cannons
+                weapons: {
+                    type: 'cannon',
+                    name: '20mm Hispano Mk II',
+                    count: 4,
+                    ammo: 560, // 140 rounds per gun
+                    burstSize: 6,
+                    damage: [7, 14],
+                    rof: 2,
+                    sound: 'cannon'
+                },
+                fuelCapacity: 750,
+                fuelConsumption: 0.65,
+                canCarryBombs: true,
+                canCarryRockets: true, // Famous for rocket attacks
+                color: '#0099dd'
+            },
+            'Tempest': {
+                name: 'Hawker Tempest Mk V',
+                nation: 'British',
+                role: 'Fighter-Bomber',
+                maxSpeed: 190, // m/s (~700 km/h) - Very fast!
+                minSpeed: 30,
+                maxTurnRate: 62,
+                maxClimbRate: 18, // Excellent climb
+                maxDiveRate: 48,
+                maxGForce: 7.5,
+                maxAcceleration: 19,
+                maxBraking: 18,
+                // Armament: 4× 20mm Hispano Mk V cannons
+                weapons: {
+                    type: 'cannon',
+                    name: '20mm Hispano Mk V',
+                    count: 4,
+                    ammo: 800, // 200 rounds per gun
+                    burstSize: 6,
+                    damage: [7, 14],
+                    rof: 2,
+                    sound: 'cannon'
+                },
+                fuelCapacity: 760,
+                fuelConsumption: 0.68,
+                canCarryBombs: true,
+                canCarryRockets: true,
+                color: '#00aaee'
             }
         };
 
@@ -1310,7 +1501,247 @@
             }
         }
 
+        // Bomb and Rocket projectile classes (Enhancement #8)
+        class Bomb {
+            constructor(x, y, altitude, velocity, heading) {
+                this.x = x;
+                this.y = y;
+                this.altitude = altitude;
+                this.velocityX = velocity * Math.sin(heading * Math.PI / 180);
+                this.velocityY = -velocity * Math.cos(heading * Math.PI / 180);
+                this.velocityZ = 0; // Vertical velocity
+                this.gravity = 9.8; // m/s²
+                this.isActive = true;
+                this.explosionRadius = 50; // meters
+                this.damage = 80; // Base damage
+                this.hasExploded = false;
+                this.explosionTime = 0;
+            }
+
+            update(dt) {
+                if (!this.isActive || this.hasExploded) return;
+
+                // Apply gravity
+                this.velocityZ += this.gravity * dt;
+
+                // Update position
+                this.x += this.velocityX * dt;
+                this.y += this.velocityY * dt;
+                this.altitude -= this.velocityZ * dt;
+
+                // Check ground impact
+                const terrainHeight = terrain.getHeightAt(this.x, this.y);
+                if (this.altitude <= terrainHeight) {
+                    this.altitude = terrainHeight;
+                    this.explode();
+                }
+            }
+
+            explode() {
+                if (this.hasExploded) return;
+                this.hasExploded = true;
+                this.explosionTime = Date.now();
+                this.isActive = false;
+
+                // Damage ground targets in radius
+                for (let target of groundTargets) {
+                    if (target.isDestroyed) continue;
+                    const dx = target.x - this.x;
+                    const dy = target.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < this.explosionRadius) {
+                        const damageFalloff = 1 - (distance / this.explosionRadius);
+                        const actualDamage = this.damage * damageFalloff;
+                        target.takeDamage(actualDamage);
+                        console.log(`Bomb hit ${target.type} for ${actualDamage.toFixed(1)} damage at ${distance.toFixed(1)}m`);
+                    }
+                }
+            }
+
+            render() {
+                if (this.hasExploded) {
+                    // Render explosion
+                    const elapsed = Date.now() - this.explosionTime;
+                    if (elapsed < 1000) {
+                        const progress = elapsed / 1000;
+                        const alpha = 1 - progress;
+                        const size = 20 + progress * 40;
+
+                        // Orange fireball
+                        ctx.fillStyle = `rgba(255, 150, 0, ${alpha * 0.8})`;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Yellow core
+                        ctx.fillStyle = `rgba(255, 255, 100, ${alpha})`;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, size * 0.5, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Smoke
+                        ctx.fillStyle = `rgba(40, 40, 40, ${alpha * 0.5})`;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, size * 1.2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                } else if (this.isActive) {
+                    // Render falling bomb
+                    ctx.fillStyle = '#444444';
+                    ctx.beginPath();
+                    ctx.ellipse(this.x, this.y, 3, 6, this.velocityY / this.velocityX, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        class Rocket {
+            constructor(x, y, altitude, heading, target = null) {
+                this.x = x;
+                this.y = y;
+                this.altitude = altitude;
+                this.heading = heading;
+                this.speed = 200; // m/s - very fast
+                this.velocityX = this.speed * Math.sin(heading * Math.PI / 180);
+                this.velocityY = -this.speed * Math.cos(heading * Math.PI / 180);
+                this.isActive = true;
+                this.damage = 40; // Direct hit damage
+                this.explosionRadius = 20; // Smaller than bombs
+                this.hasExploded = false;
+                this.explosionTime = 0;
+                this.maxRange = 1500; // meters
+                this.distanceTraveled = 0;
+                this.target = target; // Optional ground target to aim at
+
+                // Simple homing if target provided
+                if (this.target && !this.target.isDestroyed) {
+                    const dx = this.target.x - this.x;
+                    const dy = this.target.y - this.y;
+                    const angleToTarget = Math.atan2(dx, -dy) * 180 / Math.PI;
+                    this.heading = angleToTarget;
+                    this.velocityX = this.speed * Math.sin(this.heading * Math.PI / 180);
+                    this.velocityY = -this.speed * Math.cos(this.heading * Math.PI / 180);
+                }
+            }
+
+            update(dt) {
+                if (!this.isActive || this.hasExploded) return;
+
+                // Update position
+                const dx = this.velocityX * dt;
+                const dy = this.velocityY * dt;
+                this.x += dx;
+                this.y += dy;
+                this.distanceTraveled += Math.sqrt(dx * dx + dy * dy);
+
+                // Check max range
+                if (this.distanceTraveled > this.maxRange) {
+                    this.isActive = false;
+                    return;
+                }
+
+                // Check ground impact
+                const terrainHeight = terrain.getHeightAt(this.x, this.y);
+                if (this.altitude <= terrainHeight + 5) { // Explode slightly above ground
+                    this.explode();
+                    return;
+                }
+
+                // Check direct hit on ground targets
+                for (let target of groundTargets) {
+                    if (target.isDestroyed) continue;
+                    const dx = target.x - this.x;
+                    const dy = target.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < target.size) {
+                        this.explode();
+                        return;
+                    }
+                }
+            }
+
+            explode() {
+                if (this.hasExploded) return;
+                this.hasExploded = true;
+                this.explosionTime = Date.now();
+                this.isActive = false;
+
+                // Damage ground targets in radius
+                for (let target of groundTargets) {
+                    if (target.isDestroyed) continue;
+                    const dx = target.x - this.x;
+                    const dy = target.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < this.explosionRadius) {
+                        const damageFalloff = 1 - (distance / this.explosionRadius);
+                        const actualDamage = this.damage * (0.5 + 0.5 * damageFalloff); // 50-100% damage
+                        target.takeDamage(actualDamage);
+                        console.log(`Rocket hit ${target.type} for ${actualDamage.toFixed(1)} damage at ${distance.toFixed(1)}m`);
+                    }
+                }
+            }
+
+            render() {
+                if (this.hasExploded) {
+                    // Render explosion (smaller than bomb)
+                    const elapsed = Date.now() - this.explosionTime;
+                    if (elapsed < 600) {
+                        const progress = elapsed / 600;
+                        const alpha = 1 - progress;
+                        const size = 15 + progress * 25;
+
+                        // Orange explosion
+                        ctx.fillStyle = `rgba(255, 120, 0, ${alpha * 0.9})`;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Yellow flash
+                        if (progress < 0.3) {
+                            ctx.fillStyle = `rgba(255, 255, 150, ${alpha})`;
+                            ctx.beginPath();
+                            ctx.arc(this.x, this.y, size * 0.6, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                } else if (this.isActive) {
+                    // Render rocket
+                    const angle = this.heading * Math.PI / 180;
+
+                    // Rocket body
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.rotate(angle);
+                    ctx.fillStyle = '#666666';
+                    ctx.fillRect(-2, -6, 4, 12);
+
+                    // Rocket fins
+                    ctx.fillStyle = '#555555';
+                    ctx.beginPath();
+                    ctx.moveTo(-4, 6);
+                    ctx.lineTo(0, 4);
+                    ctx.lineTo(4, 6);
+                    ctx.fill();
+
+                    // Rocket exhaust
+                    ctx.fillStyle = '#ff8800';
+                    ctx.beginPath();
+                    ctx.moveTo(-2, 6);
+                    ctx.lineTo(0, 10);
+                    ctx.lineTo(2, 6);
+                    ctx.fill();
+
+                    ctx.restore();
+                }
+            }
+        }
+
         let groundTargets = [];
+        let bombs = []; // Active bombs
+        let rockets = []; // Active rockets
 
         // Canvas setup
         const canvas = document.getElementById('gameCanvas');
@@ -1712,8 +2143,8 @@
                 // Bombs and rockets (if applicable)
                 this.canCarryBombs = specs.canCarryBombs || false;
                 this.canCarryRockets = specs.canCarryRockets || false;
-                this.bombs = this.canCarryBombs ? 2 : 0;
-                this.rockets = this.canCarryRockets ? 8 : 0;
+                this.bombs = this.canCarryBombs ? (specs.bombCapacity || 2) : 0;
+                this.rockets = this.canCarryRockets ? (specs.rocketCapacity || 8) : 0;
 
                 // Component damage system (Enhancement #4)
                 this.damage = 0;
@@ -3015,6 +3446,34 @@
                 this.hasOrders = false;
             }
 
+            // Enhancement #8: Drop bomb
+            dropBomb() {
+                if (this.bombs <= 0) {
+                    console.log(`${this.name} has no bombs left!`);
+                    return false;
+                }
+
+                this.bombs--;
+                const bomb = new Bomb(this.x, this.y, this.altitude, this.speed, this.heading);
+                bombs.push(bomb);
+                console.log(`${this.name} dropped bomb! ${this.bombs} remaining. Alt: ${this.altitude.toFixed(0)}m, Speed: ${this.speed.toFixed(0)} m/s`);
+                return true;
+            }
+
+            // Enhancement #8: Launch rocket
+            launchRocket(target = null) {
+                if (this.rockets <= 0) {
+                    console.log(`${this.name} has no rockets left!`);
+                    return false;
+                }
+
+                this.rockets--;
+                const rocket = new Rocket(this.x, this.y, this.altitude, this.heading, target);
+                rockets.push(rocket);
+                console.log(`${this.name} launched rocket! ${this.rockets} remaining`);
+                return true;
+            }
+
             getStatsHTML() {
                 const ammoColor = this.ammunition < 100 ? 'color: #ff4444;' : '';
                 const ammoPercent = Math.round((this.ammunition / this.maxAmmunition) * 100);
@@ -4061,6 +4520,14 @@
                 target.render();
             }
 
+            // Render bombs and rockets (Enhancement #8)
+            for (let bomb of bombs) {
+                bomb.render();
+            }
+            for (let rocket of rockets) {
+                rocket.render();
+            }
+
             // Render ghost if in order mode
             if (ghostAircraft) {
                 ghostAircraft.aircraft.renderSVG(true, ghostAircraft.state);
@@ -4699,6 +5166,36 @@
                     updateGhost();
                     updateGhostPanel();
                     break;
+                case 'b':
+                    // Drop bomb
+                    if (selectedAircraft.bombs > 0) {
+                        selectedAircraft.dropBomb();
+                        console.log(`${selectedAircraft.name}: Bomb dropped! ${selectedAircraft.bombs} remaining`);
+                    } else {
+                        console.log(`${selectedAircraft.name}: No bombs available!`);
+                    }
+                    break;
+                case 'n':
+                    // Launch rocket (find nearest ground target for simple targeting)
+                    if (selectedAircraft.rockets > 0) {
+                        let nearestTarget = null;
+                        let minDist = 800; // Only target within 800m
+                        for (let target of groundTargets) {
+                            if (target.isDestroyed) continue;
+                            const dx = target.x - selectedAircraft.x;
+                            const dy = target.y - selectedAircraft.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist < minDist) {
+                                minDist = dist;
+                                nearestTarget = target;
+                            }
+                        }
+                        selectedAircraft.launchRocket(nearestTarget);
+                        console.log(`${selectedAircraft.name}: Rocket launched! ${selectedAircraft.rockets} remaining`);
+                    } else {
+                        console.log(`${selectedAircraft.name}: No rockets available!`);
+                    }
+                    break;
             }
         });
 
@@ -4843,6 +5340,26 @@
                 for (let plane of aircraft) {
                     if (plane.hasOrders) {
                         plane.executeOrders(progress);
+                    }
+                }
+
+                // Update bombs and rockets (Enhancement #8)
+                const dt = 1 / 60; // Assume 60 FPS for physics
+                for (let i = bombs.length - 1; i >= 0; i--) {
+                    bombs[i].update(dt);
+                    // Remove inactive bombs after explosion animation completes
+                    if (bombs[i].hasExploded && Date.now() - bombs[i].explosionTime > 1000) {
+                        bombs.splice(i, 1);
+                    }
+                }
+                for (let i = rockets.length - 1; i >= 0; i--) {
+                    rockets[i].update(dt);
+                    // Remove inactive rockets after explosion animation completes
+                    if (rockets[i].hasExploded && Date.now() - rockets[i].explosionTime > 600) {
+                        rockets.splice(i, 1);
+                    } else if (!rockets[i].isActive && !rockets[i].hasExploded) {
+                        // Remove rockets that went out of range
+                        rockets.splice(i, 1);
                     }
                 }
 
