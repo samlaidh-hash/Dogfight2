@@ -372,21 +372,6 @@
             z-index: 75;
         }
 
-        .altitude-display {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.85);
-            border: 2px solid #0f9d58;
-            border-radius: 5px;
-            padding: 8px 12px;
-            font-size: 14px;
-            color: #0f9d58;
-            pointer-events: none;
-            display: none;
-            z-index: 75;
-            font-weight: bold;
-            white-space: nowrap;
-        }
-
         h1 {
             margin-bottom: 10px;
             font-size: 20px;
@@ -474,7 +459,6 @@
         </div>
 
         <div id="ghostPanel" class="ghost-panel"></div>
-        <div id="altitudeDisplay" class="altitude-display"></div>
 
         <div id="realisticModeToggle" style="position: absolute; top: 10px; right: 270px; background: rgba(0, 0, 0, 0.7); padding: 10px; border-radius: 5px; z-index: 150;">
             <label style="cursor: pointer; font-size: 14px;">
@@ -2545,25 +2529,26 @@
                 let currentX = this.x;
                 let currentY = this.y;
                 let currentSpeed = startSpeed;
+                let loopForwardDist = 0;
 
                 for (let i = 0; i <= NUM_STEPS; i++) {
                     const progress = i / NUM_STEPS;
                     const time = progress * turnTime;
 
                     if (time < halfLoopTime) {
-                        // First half: climb in a loop
+                        // First half: climb in a vertical half-loop
                         const loopProgress = time / halfLoopTime;
                         const angle = loopProgress * Math.PI; // 0 to π (180°)
 
-                        // Calculate position on circular arc
-                        const arcX = Math.sin(angle) * loopRadius;
-                        const arcY = -(1 - Math.cos(angle)) * loopRadius; // Negative because climbing
+                        // For a vertical loop, aircraft moves FORWARD while climbing
+                        loopForwardDist = Math.sin(angle) * loopRadius;
+                        const altitudeGain = (1 - Math.cos(angle)) * loopRadius;
 
-                        // Rotate arc based on initial heading
-                        const headingRad = (currentHeading - 90) * Math.PI / 180;
-                        currentX = this.x + (arcX * Math.cos(headingRad) - arcY * Math.sin(headingRad));
-                        currentY = this.y + (arcX * Math.sin(headingRad) + arcY * Math.cos(headingRad));
-                        currentAltitude = this.altitude + (1 - Math.cos(angle)) * loopRadius;
+                        // Calculate position based on initial heading
+                        const headingRad = (this.heading - 90) * Math.PI / 180;
+                        currentX = this.x + loopForwardDist * Math.cos(headingRad);
+                        currentY = this.y + loopForwardDist * Math.sin(headingRad);
+                        currentAltitude = this.altitude + altitudeGain;
 
                         // Aircraft heading follows the loop
                         currentHeading = (this.heading + angle * 180 / Math.PI) % 360;
@@ -2575,16 +2560,18 @@
                         this.currentGForce = 1 + Math.sin(angle) * 5;
                     } else {
                         // Second half: roll to upright while continuing forward
-                        // At top of loop, heading is reversed, now roll to upright
+                        // At top of loop, heading is reversed (180° from start), now roll to upright
                         const rollProgress = (time - halfLoopTime) / (turnTime - halfLoopTime);
 
-                        // Continue forward at reduced speed
-                        const forwardDist = (time - halfLoopTime) * currentSpeed;
-                        const headingRad = (this.heading + 180) * Math.PI / 180;
-                        currentX = this.x + (Math.sin(angle) * loopRadius + forwardDist) * Math.cos(headingRad - Math.PI/2);
-                        currentY = this.y + (Math.sin(angle) * loopRadius + forwardDist) * Math.sin(headingRad - Math.PI/2);
+                        // Continue forward at reduced speed (in the new direction - reversed heading)
+                        const additionalDist = (time - halfLoopTime) * currentSpeed;
+                        const reversedHeadingRad = ((this.heading + 180) - 90) * Math.PI / 180;
+                        currentX = this.x + loopForwardDist * Math.cos((this.heading - 90) * Math.PI / 180) +
+                                   additionalDist * Math.cos(reversedHeadingRad);
+                        currentY = this.y + loopForwardDist * Math.sin((this.heading - 90) * Math.PI / 180) +
+                                   additionalDist * Math.sin(reversedHeadingRad);
 
-                        // Maintain altitude
+                        // Maintain altitude at top of loop
                         currentAltitude = this.altitude + loopRadius * 2;
                         currentHeading = (this.heading + 180) % 360;
 
@@ -2636,41 +2623,43 @@
                 let currentX = this.x;
                 let currentY = this.y;
                 let currentSpeed = startSpeed;
+                let rollDist = 0;
 
                 for (let i = 0; i <= NUM_STEPS; i++) {
                     const progress = i / NUM_STEPS;
                     const time = progress * turnTime;
 
                     if (time < halfRollTime) {
-                        // First: roll inverted
+                        // First: roll inverted while continuing forward
                         const rollProgress = time / halfRollTime;
-                        // Continue mostly straight while rolling
-                        const forwardDist = time * currentSpeed;
-                        const headingRad = this.heading * Math.PI / 180;
-                        currentX = this.x + forwardDist * Math.cos(headingRad - Math.PI/2);
-                        currentY = this.y + forwardDist * Math.sin(headingRad - Math.PI/2);
-                        currentAltitude = this.altitude; // Slight loss
+                        rollDist = time * currentSpeed;
+
+                        // Continue straight ahead while rolling
+                        const headingRad = (this.heading - 90) * Math.PI / 180;
+                        currentX = this.x + rollDist * Math.cos(headingRad);
+                        currentY = this.y + rollDist * Math.sin(headingRad);
+                        currentAltitude = this.altitude;
                         currentHeading = this.heading;
 
                         this.currentGForce = 1 + Math.sin(rollProgress * Math.PI) * 2;
                     } else {
-                        // Second: dive in half loop
+                        // Second: dive in vertical half-loop
                         const loopProgress = (time - halfRollTime) / halfLoopTime;
                         const angle = loopProgress * Math.PI; // 0 to π
 
-                        // Calculate position on circular arc (diving)
-                        const arcX = Math.sin(angle) * loopRadius;
-                        const arcY = (1 - Math.cos(angle)) * loopRadius; // Positive because diving
+                        // For a vertical dive loop, aircraft moves FORWARD while diving
+                        const loopForwardDist = Math.sin(angle) * loopRadius;
+                        const altitudeLoss = (1 - Math.cos(angle)) * loopRadius;
 
-                        // Rotate arc based on heading
-                        const headingRad = (this.heading - 90) * Math.PI / 180;
-                        const rollDist = halfRollTime * startSpeed;
-                        const baseX = this.x + rollDist * Math.cos(this.heading * Math.PI / 180 - Math.PI/2);
-                        const baseY = this.y + rollDist * Math.sin(this.heading * Math.PI / 180 - Math.PI/2);
+                        // Calculate position: roll distance + loop forward distance (in reversed direction)
+                        const initialHeadingRad = (this.heading - 90) * Math.PI / 180;
+                        const reversedHeadingRad = ((this.heading + 180) - 90) * Math.PI / 180;
 
-                        currentX = baseX + (arcX * Math.cos(headingRad) - arcY * Math.sin(headingRad));
-                        currentY = baseY + (arcX * Math.sin(headingRad) + arcY * Math.cos(headingRad));
-                        currentAltitude = this.altitude - (1 - Math.cos(angle)) * loopRadius;
+                        currentX = this.x + rollDist * Math.cos(initialHeadingRad) +
+                                   loopForwardDist * Math.cos(reversedHeadingRad);
+                        currentY = this.y + rollDist * Math.sin(initialHeadingRad) +
+                                   loopForwardDist * Math.sin(reversedHeadingRad);
+                        currentAltitude = this.altitude - altitudeLoss;
 
                         // Heading reverses through the dive
                         currentHeading = (this.heading + angle * 180 / Math.PI) % 360;
@@ -2723,15 +2712,16 @@
                     const progress = i / NUM_STEPS;
                     const angle = progress * 2 * Math.PI; // Full 360°
 
-                    // Calculate position on circular arc
-                    const arcX = Math.sin(angle) * loopRadius;
-                    const arcY = -(1 - Math.cos(angle)) * loopRadius;
-
-                    // Rotate arc based on initial heading
-                    const headingRad = (this.heading - 90) * Math.PI / 180;
-                    const currentX = this.x + (arcX * Math.cos(headingRad) - arcY * Math.sin(headingRad));
-                    const currentY = this.y + (arcX * Math.sin(headingRad) + arcY * Math.cos(headingRad));
+                    // For a vertical loop, aircraft moves FORWARD while gaining/losing altitude
+                    // Forward distance along heading direction
+                    const forwardDist = Math.sin(angle) * loopRadius;
+                    // Altitude change (goes up, then back down)
                     const currentAltitude = this.altitude + (1 - Math.cos(angle)) * loopRadius;
+
+                    // Calculate position based on heading
+                    const headingRad = (this.heading - 90) * Math.PI / 180;
+                    const currentX = this.x + forwardDist * Math.cos(headingRad);
+                    const currentY = this.y + forwardDist * Math.sin(headingRad);
 
                     // Speed varies: loses speed climbing, gains diving
                     let currentSpeed = startSpeed;
@@ -2786,15 +2776,16 @@
                     const progress = i / NUM_STEPS;
                     const angle = progress * Math.PI; // Half loop: 0 to π
 
-                    // Calculate position on circular arc
-                    const arcX = Math.sin(angle) * loopRadius;
-                    const arcY = -(1 - Math.cos(angle)) * loopRadius;
-
-                    // Rotate arc based on initial heading
-                    const headingRad = (this.heading - 90) * Math.PI / 180;
-                    const currentX = this.x + (arcX * Math.cos(headingRad) - arcY * Math.sin(headingRad));
-                    const currentY = this.y + (arcX * Math.sin(headingRad) + arcY * Math.cos(headingRad));
+                    // For a vertical half-loop, aircraft moves FORWARD while climbing
+                    // Forward distance along heading direction
+                    const forwardDist = Math.sin(angle) * loopRadius;
+                    // Altitude change (climbs up)
                     const currentAltitude = this.altitude + (1 - Math.cos(angle)) * loopRadius;
+
+                    // Calculate position based on heading
+                    const headingRad = (this.heading - 90) * Math.PI / 180;
+                    const currentX = this.x + forwardDist * Math.cos(headingRad);
+                    const currentY = this.y + forwardDist * Math.sin(headingRad);
 
                     // Speed bleeds off during climb
                     const currentSpeed = startSpeed * (1 - 0.3 * progress);
@@ -3187,7 +3178,7 @@
         }
 
         // Initialize game
-        const terrain = new Terrain();
+        let terrain = new Terrain();
         let spitfire = null;
         let me109 = null;
         let aircraft = [];
@@ -4108,7 +4099,7 @@
             // Render energy diagram (Enhancement #9)
             renderEnergyDiagram();
 
-            // Draw scale bar, version, and zoom in bottom right corner
+            // Draw scale bar, version, zoom, and terrain altitude in bottom right corner
             ctx.save(); // Save state before drawing UI elements
             ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform to identity matrix
             ctx.globalAlpha = 1.0; // Ensure full opacity
@@ -4116,11 +4107,11 @@
 
             const scaleBarLength = 100; // Represents 100 meters
             const infoBoxX = canvas.width - 240; // Position from right edge
-            const infoBoxY = canvas.height - 80;
+            const infoBoxY = canvas.height - 100;
 
             // Draw semi-transparent background for entire info box
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.fillRect(infoBoxX - 10, infoBoxY - 10, 230, 70);
+            ctx.fillRect(infoBoxX - 10, infoBoxY - 10, 230, 90);
 
             ctx.strokeStyle = '#ffffff';
             ctx.fillStyle = '#ffffff';
@@ -4154,6 +4145,10 @@
 
             // Draw version number
             ctx.fillText(`Version: ${GAME_VERSION}`, scaleBarX, scaleBarY + 20);
+
+            // Draw terrain altitude at mouse cursor
+            const terrainHeight = terrain.getHeightAt(mouseX, mouseY);
+            ctx.fillText(`Terrain: ${Math.round(terrainHeight)}m`, scaleBarX, scaleBarY + 40);
 
             ctx.restore(); // Restore state after drawing UI elements
         }
@@ -4339,28 +4334,6 @@
             panel.innerHTML = panelHTML;
         }
 
-        // Helper function to update altitude display
-        function updateAltitudeDisplay() {
-            if (!terrain) return;
-
-            const panel = document.getElementById('altitudeDisplay');
-            const terrainHeight = terrain.getHeightAt(mouseX, mouseY);
-
-            panel.style.display = 'block';
-            // Position slightly offset from cursor to avoid obscuring it
-            panel.style.left = (lastScreenX + 15) + 'px';
-            panel.style.top = (lastScreenY - 35) + 'px';
-
-            // Color coding based on altitude
-            let altColor = '#0f9d58';  // Green for low terrain
-            if (terrainHeight > 800) altColor = '#ffaa00';  // Orange for moderate terrain
-            if (terrainHeight > 1200) altColor = '#ff4444'; // Red for high terrain
-
-            panel.style.borderColor = altColor;
-            panel.style.color = altColor;
-            panel.innerHTML = `Terrain: ${Math.round(terrainHeight)}m`;
-        }
-
         let lastScreenX = 0;
         let lastScreenY = 0;
 
@@ -4385,9 +4358,6 @@
             const oldMouseY = mouseY;
             mouseX = canvasCoords.x;
             mouseY = canvasCoords.y;
-
-            // Update altitude display to show terrain height at cursor
-            updateAltitudeDisplay();
 
             // Debug: Log mouse movement during ORDER phase with selected aircraft (reduced frequency)
             if (gameState === 'ORDER' && selectedAircraft && ghostAircraft && (Math.abs(mouseX - oldMouseX) > 5 || Math.abs(mouseY - oldMouseY) > 5)) {
@@ -4429,11 +4399,6 @@
             if (isPanning) {
                 isPanning = false;
                 canvas.style.cursor = 'default';
-            }
-            // Hide altitude display when mouse leaves canvas
-            const altitudePanel = document.getElementById('altitudeDisplay');
-            if (altitudePanel) {
-                altitudePanel.style.display = 'none';
             }
         });
 
