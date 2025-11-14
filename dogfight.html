@@ -460,7 +460,7 @@
 
         <div id="ghostPanel" class="ghost-panel"></div>
 
-        <div id="realisticModeToggle" style="position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.7); padding: 10px; border-radius: 5px;">
+        <div id="realisticModeToggle" style="position: absolute; top: 10px; right: 270px; background: rgba(0, 0, 0, 0.7); padding: 10px; border-radius: 5px; z-index: 150;">
             <label style="cursor: pointer; font-size: 14px;">
                 <input type="checkbox" id="realisticModeCheckbox" style="margin-right: 8px; cursor: pointer;">
                 Realistic AI Display
@@ -655,9 +655,6 @@
         let player1Aircraft = [];
         let player2Aircraft = [];
         let awaitingPlayerSwitch = false;
-
-        // Manual gun firing control
-        let manualFireHeld = false;
 
         // Game settings
         let gameSettings = {
@@ -3481,28 +3478,8 @@
 
                         shooter.timeOnTarget += 0.1;
 
-                        // Determine if this aircraft should fire
-                        // Manual fire override: If spacebar is held and this is player's aircraft, fire!
-                        let shouldFire = false;
-
-                        if (manualFireHeld && gameState === 'EXECUTION') {
-                            // Check if shooter is player-controlled
-                            const isPlayerAircraft = hotSeatMode ?
-                                (currentPlayer === 1 && player1Aircraft.includes(shooter)) ||
-                                (currentPlayer === 2 && player2Aircraft.includes(shooter)) :
-                                (shooter === spitfire);
-
-                            if (isPlayerAircraft && angleDiff < 20) {
-                                shouldFire = true;
-                            }
-                        }
-
-                        // AI fire: Fire if chance exceeds threshold and angle is good
-                        if (!shouldFire && hitChance >= shooter.fireThreshold && angleDiff < 15) {
-                            shouldFire = true;
-                        }
-
-                        if (shouldFire) {
+                        // Fire if chance exceeds threshold and angle is good
+                        if (hitChance >= shooter.fireThreshold && angleDiff < 15) {
                             shooter.isFiring = true;
 
                             // Handle mixed armament vs single weapon
@@ -4633,17 +4610,6 @@
                     updateGhost();
                     updateGhostPanel();
                     break;
-                case ' ':
-                    // Spacebar - manual gun firing
-                    manualFireHeld = true;
-                    break;
-            }
-        });
-
-        // Keyboard release handler for manual gun firing
-        window.addEventListener('keyup', (e) => {
-            if (e.key === ' ') {
-                manualFireHeld = false;
             }
         });
 
