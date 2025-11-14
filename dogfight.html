@@ -3761,6 +3761,18 @@
                 if (ghostAircraft.state === 'stressful') pathColor = '#ffaa00'; // yellow
                 if (ghostAircraft.state === 'illegal') pathColor = '#ff0000'; // red
 
+                // Debug: Log path details occasionally (1% of frames)
+                if (Math.random() < 0.01) {
+                    const path = ghostAircraft.aircraft.flightPath;
+                    console.log('[PATH RENDER]', {
+                        color: pathColor,
+                        length: path.length,
+                        start: `(${Math.round(path[0].x)}, ${Math.round(path[0].y)})`,
+                        end: `(${Math.round(path[path.length-1].x)}, ${Math.round(path[path.length-1].y)})`,
+                        mousePos: `(${Math.round(mouseX)}, ${Math.round(mouseY)})`
+                    });
+                }
+
                 // Draw glow effect for better visibility
                 ctx.save();
                 ctx.shadowColor = pathColor;
@@ -4087,8 +4099,8 @@
             ctx.globalCompositeOperation = 'source-over'; // Ensure normal blending
 
             const scaleBarLength = 100; // Represents 100 meters
-            const infoBoxX = CANVAS_WIDTH - 240; // Position from right edge
-            const infoBoxY = CANVAS_HEIGHT - 80;
+            const infoBoxX = canvas.width - 240; // Position from right edge
+            const infoBoxY = canvas.height - 80;
 
             // Draw semi-transparent background for entire info box
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -4225,8 +4237,15 @@
 
             // Log occasionally to avoid spam (1% of updates)
             if (Math.random() < 0.01) {
-                console.log('[UPDATE GHOST] Target:', Math.round(targetX), Math.round(targetY),
-                           'Path length:', selectedAircraft.flightPath?.length, 'State:', validation.state);
+                const pathStart = selectedAircraft.flightPath?.[0];
+                const pathEnd = selectedAircraft.flightPath?.[selectedAircraft.flightPath.length - 1];
+                console.log('[UPDATE GHOST]', {
+                    target: `(${Math.round(targetX)}, ${Math.round(targetY)})`,
+                    pathLength: selectedAircraft.flightPath?.length,
+                    pathStart: pathStart ? `(${Math.round(pathStart.x)}, ${Math.round(pathStart.y)})` : 'none',
+                    pathEnd: pathEnd ? `(${Math.round(pathEnd.x)}, ${Math.round(pathEnd.y)})` : 'none',
+                    state: validation.state
+                });
             }
 
             ghostAircraft.state = validation.state;
