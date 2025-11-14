@@ -2854,6 +2854,12 @@
                 const dy = targetY - this.startY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 this.targetSpeed = distance / turnTime;
+
+                // CRITICAL: Recalculate and store the flight path for rendering locked orders
+                // This ensures both player and AI aircraft show their realistic paths
+                const validation = this.calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading, slipAngle);
+                // flightPath is already set by calculateManeuverValidation, just log for debugging
+                console.log(`[LOCK ORDERS] ${this.name} locked with path length:`, this.flightPath?.length);
             }
 
             unlockOrders() {
@@ -3728,7 +3734,7 @@
                 // Don't draw the path if this aircraft is currently being edited (has a ghost)
                 if (plane === selectedAircraft && ghostAircraft) continue;
 
-                if (plane.flightPath && plane.flightPath.length > 1 && plane.hasOrders) {
+                if (plane.flightPath && plane.flightPath.length > 0 && plane.hasOrders) {
                     ctx.strokeStyle = plane.isPlayer ? '#00aaff' : '#ff6666';
                     ctx.lineWidth = 2;
                     ctx.setLineDash([5, 5]); // Dotted line
@@ -3740,11 +3746,16 @@
                     }
                     ctx.stroke();
                     ctx.setLineDash([]); // Reset to solid line
+
+                    // Debug: Log AI paths occasionally
+                    if (!plane.isPlayer && Math.random() < 0.005) {
+                        console.log(`[RENDER] ${plane.name} AI path:`, plane.flightPath.length, 'points');
+                    }
                 }
             }
 
             // Render ghost aircraft flight path
-            if (ghostAircraft && ghostAircraft.aircraft.flightPath && ghostAircraft.aircraft.flightPath.length > 1) {
+            if (ghostAircraft && ghostAircraft.aircraft.flightPath && ghostAircraft.aircraft.flightPath.length > 0) {
                 // Color based on validation state
                 let pathColor = '#00ff00'; // valid = green
                 if (ghostAircraft.state === 'stressful') pathColor = '#ffaa00'; // yellow
@@ -3769,7 +3780,8 @@
                 // Draw waypoint markers along the path for better visibility
                 ctx.fillStyle = pathColor;
                 ctx.setLineDash([]); // Reset to solid
-                for (let i = 0; i < ghostAircraft.aircraft.flightPath.length; i += 5) { // Every 5th point
+                const markerInterval = Math.max(1, Math.floor(ghostAircraft.aircraft.flightPath.length / 20)); // ~20 markers
+                for (let i = 0; i < ghostAircraft.aircraft.flightPath.length; i += markerInterval) {
                     ctx.beginPath();
                     ctx.arc(ghostAircraft.aircraft.flightPath[i].x, ghostAircraft.aircraft.flightPath[i].y, 4, 0, Math.PI * 2);
                     ctx.fill();
@@ -3778,12 +3790,15 @@
                 ctx.restore();
 
                 // Debug: Log occasionally to verify rendering
-                if (Math.random() < 0.01) { // Log ~1% of frames
+                if (Math.random() < 0.005) { // Log ~0.5% of frames
                     console.log('[RENDER] Ghost path rendered:', ghostAircraft.aircraft.flightPath.length, 'points, color:', pathColor);
                 }
             } else if (ghostAircraft && gameState === 'ORDER') {
-                console.warn('[RENDER] Ghost exists but path missing or too short!',
-                            'Path:', ghostAircraft.aircraft.flightPath?.length);
+                // Only warn occasionally to avoid spam
+                if (Math.random() < 0.01) {
+                    console.warn('[RENDER] Ghost exists but path missing or empty!',
+                                'Path length:', ghostAircraft.aircraft.flightPath?.length);
+                }
             }
 
             // Render aircraft
@@ -4208,18 +4223,24 @@
                 ghostSlipAngle
             );
 
-            console.log('[UPDATE GHOST] Target:', Math.round(targetX), Math.round(targetY),
-                       'Path length:', selectedAircraft.flightPath?.length, 'State:', validation.state);
+            // Log occasionally to avoid spam (1% of updates)
+            if (Math.random() < 0.01) {
+                console.log('[UPDATE GHOST] Target:', Math.round(targetX), Math.round(targetY),
+                           'Path length:', selectedAircraft.flightPath?.length, 'State:', validation.state);
+            }
 
             ghostAircraft.state = validation.state;
             ghostAircraft.validation = validation;
 
             // Copy the calculated flight path to the ghost aircraft for rendering
+            // This is a reference copy, so both share the same path array
             ghostAircraft.aircraft.flightPath = selectedAircraft.flightPath;
 
-            // Verify the path was copied
+            // Verify the path was copied and has sufficient points
             if (!ghostAircraft.aircraft.flightPath || ghostAircraft.aircraft.flightPath.length < 2) {
-                console.error('[UPDATE GHOST] Flight path missing or too short!', ghostAircraft.aircraft.flightPath?.length);
+                console.warn('[UPDATE GHOST] Flight path insufficient!',
+                            'Length:', ghostAircraft.aircraft.flightPath?.length,
+                            'Distance from aircraft:', Math.round(Math.sqrt((targetX - selectedAircraft.x)**2 + (targetY - selectedAircraft.y)**2)));
             }
 
             // Position ghost at the END of the calculated path (where aircraft will actually end up)
@@ -4231,7 +4252,7 @@
                 // Apply slip/skid angle to final heading (nose points different direction than movement)
                 ghostAircraft.aircraft.heading = (finalState.heading + ghostSlipAngle + 360) % 360;
             } else {
-                // Fallback if no path calculated
+                // Fallback if no path calculated - position ghost at target
                 ghostAircraft.aircraft.x = targetX;
                 ghostAircraft.aircraft.y = targetY;
                 ghostAircraft.aircraft.altitude = targetAltitude;
@@ -4308,11 +4329,15 @@
             mouseX = canvasCoords.x;
             mouseY = canvasCoords.y;
 
-            // Debug: Log mouse movement during ORDER phase with selected aircraft
-            if (gameState === 'ORDER' && selectedAircraft && ghostAircraft && (Math.abs(mouseX - oldMouseX) > 1 || Math.abs(mouseY - oldMouseY) > 1)) {
-                console.log('[MOUSEMOVE] Canvas coords:', Math.round(mouseX), Math.round(mouseY), 'Selected:', selectedAircraft.name);
+            // Debug: Log mouse movement during ORDER phase with selected aircraft (reduced frequency)
+            if (gameState === 'ORDER' && selectedAircraft && ghostAircraft && (Math.abs(mouseX - oldMouseX) > 5 || Math.abs(mouseY - oldMouseY) > 5)) {
+                if (Math.random() < 0.1) { // Log only 10% of movements to avoid spam
+                    console.log('[MOUSEMOVE] Canvas coords:', Math.round(mouseX), Math.round(mouseY),
+                               'Selected:', selectedAircraft?.name, 'Path length:', selectedAircraft?.flightPath?.length);
+                }
             }
 
+            // Update ghost aircraft path as mouse moves (ORDER phase only)
             if (selectedAircraft && ghostAircraft && gameState === 'ORDER') {
                 updateGhost();
                 updateGhostPanel();
@@ -4411,28 +4436,62 @@
                         // Unlock orders - but recreate ghost at unlocked position
                         plane.unlockOrders();
                         selectedAircraft = plane;
-                        ghostAircraft = {
-                            aircraft: new Aircraft(plane.name, plane.type, plane.targetX, plane.targetY,
-                                plane.targetAltitude, plane.targetHeading, plane.isPlayer),
-                            state: 'valid'
-                        };
-                        ghostRotation = 0;
-                        ghostAltitudeOffset = 0;
-                        ghostSlipAngle = 0;
-                        updateGhost();
-                    } else {
-                        console.log('Selecting aircraft');
-                        // Select aircraft
-                        selectedAircraft = plane;
+
+                        // Get current mouse position for the ghost
+                        const rect = canvas.getBoundingClientRect();
+                        const canvasCoords = screenToCanvas(lastScreenX, lastScreenY);
+                        mouseX = canvasCoords.x;
+                        mouseY = canvasCoords.y;
+
+                        // Create ghost at the aircraft's current position
                         ghostAircraft = {
                             aircraft: new Aircraft(plane.name, plane.type, plane.x, plane.y,
                                 plane.altitude, plane.heading, plane.isPlayer),
                             state: 'valid'
                         };
+
+                        // Initialize ghost to match aircraft state
+                        ghostAircraft.aircraft.speed = plane.speed;
+                        ghostAircraft.aircraft.throttle = plane.throttle;
+
                         ghostRotation = 0;
                         ghostAltitudeOffset = 0;
                         ghostSlipAngle = 0;
+                        updateGhost();
+                        console.log('[UNLOCK] Ghost recreated with path length:', selectedAircraft.flightPath?.length);
+                    } else {
+                        console.log('Selecting aircraft');
+                        // Select aircraft
+                        selectedAircraft = plane;
+
+                        // Get current canvas mouse position for initial path
+                        const rect = canvas.getBoundingClientRect();
+                        const canvasCoords = screenToCanvas(lastScreenX, lastScreenY);
+                        mouseX = canvasCoords.x;
+                        mouseY = canvasCoords.y;
+
+                        // Create ghost aircraft starting from current position
+                        ghostAircraft = {
+                            aircraft: new Aircraft(plane.name, plane.type, plane.x, plane.y,
+                                plane.altitude, plane.heading, plane.isPlayer),
+                            state: 'valid'
+                        };
+
+                        // Initialize ghost position to match selected aircraft
+                        ghostAircraft.aircraft.x = plane.x;
+                        ghostAircraft.aircraft.y = plane.y;
+                        ghostAircraft.aircraft.altitude = plane.altitude;
+                        ghostAircraft.aircraft.heading = plane.heading;
+                        ghostAircraft.aircraft.speed = plane.speed;
+                        ghostAircraft.aircraft.throttle = plane.throttle;
+
+                        ghostRotation = 0;
+                        ghostAltitudeOffset = 0;
+                        ghostSlipAngle = 0;
+
+                        // Calculate initial path to current mouse position
                         updateGhost(); // Update ghost immediately
+                        console.log('[AIRCRAFT SELECT] Ghost initialized with path length:', selectedAircraft.flightPath?.length);
                     }
                     return;
                 }
