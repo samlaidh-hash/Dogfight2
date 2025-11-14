@@ -1613,17 +1613,10 @@
                 this.explosionTime = 0;
                 this.maxRange = 1500; // meters
                 this.distanceTraveled = 0;
-                this.target = target; // Optional ground target to aim at
+                this.target = target; // For reference only - WW2 rockets are unguided
 
-                // Simple homing if target provided
-                if (this.target && !this.target.isDestroyed) {
-                    const dx = this.target.x - this.x;
-                    const dy = this.target.y - this.y;
-                    const angleToTarget = Math.atan2(dx, -dy) * 180 / Math.PI;
-                    this.heading = angleToTarget;
-                    this.velocityX = this.speed * Math.sin(this.heading * Math.PI / 180);
-                    this.velocityY = -this.speed * Math.cos(this.heading * Math.PI / 180);
-                }
+                // WW2 rockets (like M8, RP-3, RS-82) are unguided
+                // They fly straight in the direction fired - no homing
             }
 
             update(dt) {
@@ -4470,7 +4463,7 @@
                         // Bomb if target in cone, at reasonable altitude (not too high, not too low)
                         if (angleDiff < 30 && distance < 600 && attacker.altitude > 100 && attacker.altitude < 3000) {
                             attacker.dropBomb();
-                            attacker.bombCooldown = 20; // Cooldown between bomb drops
+                            attacker.bombCooldown = 5; // Cooldown between bomb drops (5 turns)
                             console.log(`${attacker.name}: Auto-dropped bomb on ground target at ${distance.toFixed(0)}m`);
                             break; // Only one bomb per turn
                         }
@@ -4498,7 +4491,7 @@
                             // Launch rocket at ground target
                             if (angleDiff < 25 && distance < 800 && attacker.altitude < 2000) {
                                 attacker.launchRocket(target);
-                                attacker.rocketCooldown = 8; // Cooldown between rocket launches
+                                attacker.rocketCooldown = 4; // Cooldown between rocket launches (4 turns)
                                 console.log(`${attacker.name}: Auto-launched rocket at ground target ${target.type} at ${distance.toFixed(0)}m`);
                                 break; // Only one rocket per turn
                             }
@@ -4531,7 +4524,7 @@
                                 );
                                 if (!losBlocked) {
                                     attacker.launchRocketAtAircraft(target);
-                                    attacker.rocketCooldown = 10; // Slightly longer cooldown for air-to-air
+                                    attacker.rocketCooldown = 5; // Cooldown for air-to-air rockets (5 turns)
                                     console.log(`${attacker.name}: Auto-launched rocket at aircraft ${target.name} at ${distance.toFixed(0)}m`);
                                     break; // Only one rocket per turn
                                 }
