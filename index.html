@@ -79,13 +79,13 @@
         #aircraftPanel {
             top: 10px;
             max-height: 45vh;
-            overflow-y: auto;
+            overflow-y: visible;
         }
 
         #controlsPanel {
             top: calc(45vh + 20px);
             max-height: 45vh;
-            overflow-y: auto;
+            overflow-y: visible;
         }
 
         #executeButton {
@@ -460,7 +460,7 @@
 
         <div id="ghostPanel" class="ghost-panel"></div>
 
-        <div id="realisticModeToggle" style="position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.7); padding: 10px; border-radius: 5px;">
+        <div id="realisticModeToggle" style="position: absolute; top: 10px; right: 270px; background: rgba(0, 0, 0, 0.7); padding: 10px; border-radius: 5px; z-index: 150;">
             <label style="cursor: pointer; font-size: 14px;">
                 <input type="checkbox" id="realisticModeCheckbox" style="margin-right: 8px; cursor: pointer;">
                 Realistic AI Display
@@ -2586,7 +2586,21 @@
                 }
 
                 this.flightPath = path;
-                return { path, valid: startSpeed >= 120 };
+                const finalState = path[path.length - 1];
+                return {
+                    path: path,
+                    state: startSpeed >= 120 ? 'valid' : 'illegal',
+                    warnings: startSpeed < 120 ? ['Speed too low for Immelmann (min 120 m/s)'] : [],
+                    targetSpeed: Math.round(finalState.speed),
+                    gForce: '6.0',
+                    climbRate: Math.round(loopRadius * 2 / turnTime),
+                    targetAltitude: Math.round(finalState.altitude),
+                    targetHeading: Math.round(finalState.heading),
+                    finalX: finalState.x,
+                    finalY: finalState.y,
+                    finalAltitude: finalState.altitude,
+                    finalFlightHeading: finalState.heading
+                };
             }
 
             // Calculate Split-S: half roll inverted + half loop down to reverse direction while losing altitude
@@ -2662,7 +2676,21 @@
                 }
 
                 this.flightPath = path;
-                return { path, valid: this.altitude >= 500 };
+                const finalState = path[path.length - 1];
+                return {
+                    path: path,
+                    state: this.altitude >= 500 ? 'valid' : 'illegal',
+                    warnings: this.altitude < 500 ? ['Altitude too low for Split-S (min 500m)'] : [],
+                    targetSpeed: Math.round(finalState.speed),
+                    gForce: '6.0',
+                    climbRate: 0,
+                    targetAltitude: Math.round(finalState.altitude),
+                    targetHeading: Math.round(finalState.heading),
+                    finalX: finalState.x,
+                    finalY: finalState.y,
+                    finalAltitude: finalState.altitude,
+                    finalFlightHeading: finalState.heading
+                };
             }
 
             // Calculate Full Loop: complete vertical loop returning to original heading
@@ -2710,7 +2738,22 @@
                 }
 
                 this.flightPath = path;
-                return { path, valid: startSpeed >= 140 && this.altitude >= loopRadius };
+                const finalState = path[path.length - 1];
+                return {
+                    path: path,
+                    state: (startSpeed >= 140 && this.altitude >= loopRadius) ? 'valid' : 'illegal',
+                    warnings: startSpeed < 140 ? ['Speed too low for Loop (min 140 m/s)'] :
+                             this.altitude < loopRadius ? ['Altitude too low for Loop'] : [],
+                    targetSpeed: Math.round(finalState.speed),
+                    gForce: '6.0',
+                    climbRate: 0,
+                    targetAltitude: Math.round(finalState.altitude),
+                    targetHeading: Math.round(finalState.heading),
+                    finalX: finalState.x,
+                    finalY: finalState.y,
+                    finalAltitude: finalState.altitude,
+                    finalFlightHeading: finalState.heading
+                };
             }
 
             // Calculate Half Loop: half of vertical loop (ends inverted, heading reversed, altitude gained)
@@ -2753,7 +2796,21 @@
                 }
 
                 this.flightPath = path;
-                return { path, valid: startSpeed >= 130 };
+                const finalState = path[path.length - 1];
+                return {
+                    path: path,
+                    state: startSpeed >= 130 ? 'valid' : 'illegal',
+                    warnings: startSpeed < 130 ? ['Speed too low for Half Loop (min 130 m/s)'] : [],
+                    targetSpeed: Math.round(finalState.speed),
+                    gForce: '6.0',
+                    climbRate: Math.round(loopRadius * 2 / turnTime),
+                    targetAltitude: Math.round(finalState.altitude),
+                    targetHeading: Math.round(finalState.heading),
+                    finalX: finalState.x,
+                    finalY: finalState.y,
+                    finalAltitude: finalState.altitude,
+                    finalFlightHeading: finalState.heading
+                };
             }
 
             calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading, slipAngle = 0) {
@@ -4010,6 +4067,7 @@
 
             // Draw scale bar, version, and zoom in bottom right corner
             ctx.save(); // Save state before drawing UI elements
+            ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform to identity matrix
             ctx.globalAlpha = 1.0; // Ensure full opacity
             ctx.globalCompositeOperation = 'source-over'; // Ensure normal blending
 
