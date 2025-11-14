@@ -79,13 +79,13 @@
         #aircraftPanel {
             top: 10px;
             max-height: 45vh;
-            overflow-y: auto;
+            overflow-y: visible;
         }
 
         #controlsPanel {
             top: calc(45vh + 20px);
             max-height: 45vh;
-            overflow-y: auto;
+            overflow-y: visible;
         }
 
         #executeButton {
@@ -655,6 +655,9 @@
         let player1Aircraft = [];
         let player2Aircraft = [];
         let awaitingPlayerSwitch = false;
+
+        // Manual gun firing control
+        let manualFireHeld = false;
 
         // Game settings
         let gameSettings = {
@@ -2586,7 +2589,21 @@
                 }
 
                 this.flightPath = path;
-                return { path, valid: startSpeed >= 120 };
+                const finalState = path[path.length - 1];
+                return {
+                    path: path,
+                    state: startSpeed >= 120 ? 'valid' : 'illegal',
+                    warnings: startSpeed < 120 ? ['Speed too low for Immelmann (min 120 m/s)'] : [],
+                    targetSpeed: Math.round(finalState.speed),
+                    gForce: '6.0',
+                    climbRate: Math.round(loopRadius * 2 / turnTime),
+                    targetAltitude: Math.round(finalState.altitude),
+                    targetHeading: Math.round(finalState.heading),
+                    finalX: finalState.x,
+                    finalY: finalState.y,
+                    finalAltitude: finalState.altitude,
+                    finalFlightHeading: finalState.heading
+                };
             }
 
             // Calculate Split-S: half roll inverted + half loop down to reverse direction while losing altitude
@@ -2662,7 +2679,21 @@
                 }
 
                 this.flightPath = path;
-                return { path, valid: this.altitude >= 500 };
+                const finalState = path[path.length - 1];
+                return {
+                    path: path,
+                    state: this.altitude >= 500 ? 'valid' : 'illegal',
+                    warnings: this.altitude < 500 ? ['Altitude too low for Split-S (min 500m)'] : [],
+                    targetSpeed: Math.round(finalState.speed),
+                    gForce: '6.0',
+                    climbRate: 0,
+                    targetAltitude: Math.round(finalState.altitude),
+                    targetHeading: Math.round(finalState.heading),
+                    finalX: finalState.x,
+                    finalY: finalState.y,
+                    finalAltitude: finalState.altitude,
+                    finalFlightHeading: finalState.heading
+                };
             }
 
             // Calculate Full Loop: complete vertical loop returning to original heading
@@ -2710,7 +2741,22 @@
                 }
 
                 this.flightPath = path;
-                return { path, valid: startSpeed >= 140 && this.altitude >= loopRadius };
+                const finalState = path[path.length - 1];
+                return {
+                    path: path,
+                    state: (startSpeed >= 140 && this.altitude >= loopRadius) ? 'valid' : 'illegal',
+                    warnings: startSpeed < 140 ? ['Speed too low for Loop (min 140 m/s)'] :
+                             this.altitude < loopRadius ? ['Altitude too low for Loop'] : [],
+                    targetSpeed: Math.round(finalState.speed),
+                    gForce: '6.0',
+                    climbRate: 0,
+                    targetAltitude: Math.round(finalState.altitude),
+                    targetHeading: Math.round(finalState.heading),
+                    finalX: finalState.x,
+                    finalY: finalState.y,
+                    finalAltitude: finalState.altitude,
+                    finalFlightHeading: finalState.heading
+                };
             }
 
             // Calculate Half Loop: half of vertical loop (ends inverted, heading reversed, altitude gained)
@@ -2753,7 +2799,21 @@
                 }
 
                 this.flightPath = path;
-                return { path, valid: startSpeed >= 130 };
+                const finalState = path[path.length - 1];
+                return {
+                    path: path,
+                    state: startSpeed >= 130 ? 'valid' : 'illegal',
+                    warnings: startSpeed < 130 ? ['Speed too low for Half Loop (min 130 m/s)'] : [],
+                    targetSpeed: Math.round(finalState.speed),
+                    gForce: '6.0',
+                    climbRate: Math.round(loopRadius * 2 / turnTime),
+                    targetAltitude: Math.round(finalState.altitude),
+                    targetHeading: Math.round(finalState.heading),
+                    finalX: finalState.x,
+                    finalY: finalState.y,
+                    finalAltitude: finalState.altitude,
+                    finalFlightHeading: finalState.heading
+                };
             }
 
             calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading, slipAngle = 0) {
@@ -3421,8 +3481,28 @@
 
                         shooter.timeOnTarget += 0.1;
 
-                        // Fire if chance exceeds threshold and angle is good
-                        if (hitChance >= shooter.fireThreshold && angleDiff < 15) {
+                        // Determine if this aircraft should fire
+                        // Manual fire override: If spacebar is held and this is player's aircraft, fire!
+                        let shouldFire = false;
+
+                        if (manualFireHeld && gameState === 'EXECUTION') {
+                            // Check if shooter is player-controlled
+                            const isPlayerAircraft = hotSeatMode ?
+                                (currentPlayer === 1 && player1Aircraft.includes(shooter)) ||
+                                (currentPlayer === 2 && player2Aircraft.includes(shooter)) :
+                                (shooter === spitfire);
+
+                            if (isPlayerAircraft && angleDiff < 20) {
+                                shouldFire = true;
+                            }
+                        }
+
+                        // AI fire: Fire if chance exceeds threshold and angle is good
+                        if (!shouldFire && hitChance >= shooter.fireThreshold && angleDiff < 15) {
+                            shouldFire = true;
+                        }
+
+                        if (shouldFire) {
                             shooter.isFiring = true;
 
                             // Handle mixed armament vs single weapon
@@ -4010,6 +4090,7 @@
 
             // Draw scale bar, version, and zoom in bottom right corner
             ctx.save(); // Save state before drawing UI elements
+            ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform to identity matrix
             ctx.globalAlpha = 1.0; // Ensure full opacity
             ctx.globalCompositeOperation = 'source-over'; // Ensure normal blending
 
@@ -4552,6 +4633,17 @@
                     updateGhost();
                     updateGhostPanel();
                     break;
+                case ' ':
+                    // Spacebar - manual gun firing
+                    manualFireHeld = true;
+                    break;
+            }
+        });
+
+        // Keyboard release handler for manual gun firing
+        window.addEventListener('keyup', (e) => {
+            if (e.key === ' ') {
+                manualFireHeld = false;
             }
         });
 
