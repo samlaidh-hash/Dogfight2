@@ -447,6 +447,7 @@
                 <div>• L: Loop</div>
                 <div>• H: Half-loop</div>
                 <div>• Z/X: fire threshold down/up</div>
+                <div>• B: toggle rocket Air/Ground mode</div>
                 <div>• Click again to lock</div>
                 <div style="margin-top: 10px; font-weight: bold; color: #88ff88;">Wingman Commands:</div>
                 <div>• 1: Attack my target</div>
@@ -961,6 +962,7 @@
                 ],
                 fuelCapacity: 386,
                 fuelConsumption: 0.5,
+                canCarryRockets: true, // Mk IID "Tank Buster" variant
                 color: '#0088dd'
             },
             'P-40': {
@@ -978,12 +980,13 @@
                 weapons: { type: 'hmg', count: 6, ammo: 1740, burstSize: 6, damage: [3, 6], rof: 2 },
                 fuelCapacity: 568,
                 fuelConsumption: 0.52,
+                canCarryBombs: true, // Limited ground attack capability
                 color: '#00aa88'
             },
             'Fw-190': {
                 name: 'Focke-Wulf Fw 190 A-8',
                 nation: 'German',
-                role: 'Fighter',
+                role: 'Fighter-Bomber',
                 maxSpeed: 178,
                 minSpeed: 32,
                 maxTurnRate: 62,
@@ -1017,6 +1020,8 @@
                 ],
                 fuelCapacity: 525,
                 fuelConsumption: 0.58,
+                canCarryBombs: true, // Jabo variants
+                canCarryRockets: true,
                 color: '#ff3333'
             },
             'Me-262': {
@@ -1076,6 +1081,193 @@
                 fuelConsumption: 0.35, // Very fuel efficient
                 lowDurability: true, // Takes extra damage
                 color: '#ff6666'
+            },
+            'Bf-110': {
+                name: 'Messerschmitt Bf 110 C-4',
+                nation: 'German',
+                role: 'Heavy Fighter/Ground Attack',
+                maxSpeed: 170, // m/s (~560 km/h)
+                minSpeed: 35, // Heavy, higher stall speed
+                maxTurnRate: 48, // Poor turn rate (heavy twin-engine)
+                maxClimbRate: 12,
+                maxDiveRate: 40,
+                maxGForce: 6,
+                maxAcceleration: 13,
+                maxBraking: 15,
+                // Heavy armament: 4× 7.92mm MG 17 + 2× 20mm MG FF/M cannons
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.92mm MG 17',
+                        count: 4,
+                        ammo: 4000, // 1000 rounds per gun
+                        burstSize: 6,
+                        damage: [2, 4],
+                        rof: 1,
+                        sound: 'mg'
+                    },
+                    {
+                        type: 'cannon',
+                        name: '20mm MG FF/M',
+                        count: 2,
+                        ammo: 360, // 180 rounds per gun
+                        burstSize: 4,
+                        damage: [7, 14],
+                        rof: 3,
+                        sound: 'cannon'
+                    }
+                ],
+                fuelCapacity: 1270, // Long range
+                fuelConsumption: 0.8, // Twin engines
+                canCarryBombs: true,
+                canCarryRockets: true,
+                color: '#dd3333'
+            },
+            'Ju-87': {
+                name: 'Junkers Ju 87 D-5 Stuka',
+                nation: 'German',
+                role: 'Dive Bomber',
+                maxSpeed: 135, // m/s (~410 km/h) - Slow!
+                minSpeed: 28,
+                maxTurnRate: 45, // Poor maneuverability
+                maxClimbRate: 9, // Poor climb
+                maxDiveRate: 60, // EXCELLENT dive (purpose-built dive bomber)
+                maxGForce: 5.5,
+                maxAcceleration: 10,
+                maxBraking: 14,
+                // Defensive armament: 2× 7.92mm MG 17
+                weapons: {
+                    type: 'mg',
+                    name: '7.92mm MG 17',
+                    count: 2,
+                    ammo: 2000,
+                    burstSize: 3,
+                    damage: [2, 4],
+                    rof: 1,
+                    sound: 'mg'
+                },
+                fuelCapacity: 800,
+                fuelConsumption: 0.6,
+                canCarryBombs: true, // Primary role: bombing
+                bombCapacity: 4, // Carries more bombs than fighters
+                canCarryRockets: true,
+                color: '#aa3333'
+            },
+            'Ju-88': {
+                name: 'Junkers Ju 88 A-4',
+                nation: 'German',
+                role: 'Medium Bomber',
+                maxSpeed: 150, // m/s (~470 km/h)
+                minSpeed: 32,
+                maxTurnRate: 42, // Poor turn (bomber)
+                maxClimbRate: 10,
+                maxDiveRate: 45,
+                maxGForce: 5,
+                maxAcceleration: 11,
+                maxBraking: 13,
+                // Defensive: 3× 7.92mm MG 81
+                weapons: {
+                    type: 'mg',
+                    name: '7.92mm MG 81',
+                    count: 3,
+                    ammo: 3000,
+                    burstSize: 4,
+                    damage: [2, 4],
+                    rof: 1,
+                    sound: 'mg'
+                },
+                fuelCapacity: 1680, // Very long range
+                fuelConsumption: 0.9, // Twin engines
+                canCarryBombs: true,
+                bombCapacity: 6, // Heavy bomber load
+                color: '#993333'
+            },
+            'He-111': {
+                name: 'Heinkel He 111 H-6',
+                nation: 'German',
+                role: 'Medium Bomber',
+                maxSpeed: 140, // m/s (~440 km/h)
+                minSpeed: 30,
+                maxTurnRate: 38, // Very poor turn
+                maxClimbRate: 8,
+                maxDiveRate: 35,
+                maxGForce: 4.5,
+                maxAcceleration: 10,
+                maxBraking: 12,
+                // Defensive: 5× 7.92mm MG 15/17
+                weapons: {
+                    type: 'mg',
+                    name: '7.92mm MG 15/17',
+                    count: 5,
+                    ammo: 5000,
+                    burstSize: 5,
+                    damage: [2, 4],
+                    rof: 1,
+                    sound: 'mg'
+                },
+                fuelCapacity: 2400, // Very long range bomber
+                fuelConsumption: 1.0, // Twin engines
+                canCarryBombs: true,
+                bombCapacity: 8, // Heavy bomber
+                color: '#883333'
+            },
+            'Typhoon': {
+                name: 'Hawker Typhoon Mk IB',
+                nation: 'British',
+                role: 'Fighter-Bomber/Ground Attack',
+                maxSpeed: 178, // m/s (~652 km/h)
+                minSpeed: 33,
+                maxTurnRate: 55, // Heavy, poor turn
+                maxClimbRate: 15,
+                maxDiveRate: 45, // Excellent dive
+                maxGForce: 7,
+                maxAcceleration: 17,
+                maxBraking: 16,
+                // Heavy armament: 4× 20mm Hispano Mk II cannons
+                weapons: {
+                    type: 'cannon',
+                    name: '20mm Hispano Mk II',
+                    count: 4,
+                    ammo: 560, // 140 rounds per gun
+                    burstSize: 6,
+                    damage: [7, 14],
+                    rof: 2,
+                    sound: 'cannon'
+                },
+                fuelCapacity: 750,
+                fuelConsumption: 0.65,
+                canCarryBombs: true,
+                canCarryRockets: true, // Famous for rocket attacks
+                color: '#0099dd'
+            },
+            'Tempest': {
+                name: 'Hawker Tempest Mk V',
+                nation: 'British',
+                role: 'Fighter-Bomber',
+                maxSpeed: 190, // m/s (~700 km/h) - Very fast!
+                minSpeed: 30,
+                maxTurnRate: 62,
+                maxClimbRate: 18, // Excellent climb
+                maxDiveRate: 48,
+                maxGForce: 7.5,
+                maxAcceleration: 19,
+                maxBraking: 18,
+                // Armament: 4× 20mm Hispano Mk V cannons
+                weapons: {
+                    type: 'cannon',
+                    name: '20mm Hispano Mk V',
+                    count: 4,
+                    ammo: 800, // 200 rounds per gun
+                    burstSize: 6,
+                    damage: [7, 14],
+                    rof: 2,
+                    sound: 'cannon'
+                },
+                fuelCapacity: 760,
+                fuelConsumption: 0.68,
+                canCarryBombs: true,
+                canCarryRockets: true,
+                color: '#00aaee'
             }
         };
 
@@ -1310,7 +1502,415 @@
             }
         }
 
+        // Bomb and Rocket projectile classes (Enhancement #8)
+        class Bomb {
+            constructor(x, y, altitude, velocity, heading) {
+                this.x = x;
+                this.y = y;
+                this.altitude = altitude;
+                this.velocityX = velocity * Math.sin(heading * Math.PI / 180);
+                this.velocityY = -velocity * Math.cos(heading * Math.PI / 180);
+                this.velocityZ = 0; // Vertical velocity
+                this.gravity = 9.8; // m/s²
+                this.isActive = true;
+                this.explosionRadius = 50; // meters
+                this.damage = 80; // Base damage
+                this.hasExploded = false;
+                this.explosionTime = 0;
+            }
+
+            update(dt) {
+                if (!this.isActive || this.hasExploded) return;
+
+                // Apply gravity
+                this.velocityZ += this.gravity * dt;
+
+                // Update position
+                this.x += this.velocityX * dt;
+                this.y += this.velocityY * dt;
+                this.altitude -= this.velocityZ * dt;
+
+                // Check ground impact
+                const terrainHeight = terrain.getHeightAt(this.x, this.y);
+                if (this.altitude <= terrainHeight) {
+                    this.altitude = terrainHeight;
+                    this.explode();
+                }
+            }
+
+            explode() {
+                if (this.hasExploded) return;
+                this.hasExploded = true;
+                this.explosionTime = Date.now();
+                this.isActive = false;
+
+                // Damage ground targets in radius
+                for (let target of groundTargets) {
+                    if (target.isDestroyed) continue;
+                    const dx = target.x - this.x;
+                    const dy = target.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < this.explosionRadius) {
+                        const damageFalloff = 1 - (distance / this.explosionRadius);
+                        const actualDamage = this.damage * damageFalloff;
+                        target.takeDamage(actualDamage);
+                        console.log(`Bomb hit ${target.type} for ${actualDamage.toFixed(1)} damage at ${distance.toFixed(1)}m`);
+                    }
+                }
+            }
+
+            render() {
+                if (this.hasExploded) {
+                    // Render explosion
+                    const elapsed = Date.now() - this.explosionTime;
+                    if (elapsed < 1000) {
+                        const progress = elapsed / 1000;
+                        const alpha = 1 - progress;
+                        const size = 20 + progress * 40;
+
+                        // Orange fireball
+                        ctx.fillStyle = `rgba(255, 150, 0, ${alpha * 0.8})`;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Yellow core
+                        ctx.fillStyle = `rgba(255, 255, 100, ${alpha})`;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, size * 0.5, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Smoke
+                        ctx.fillStyle = `rgba(40, 40, 40, ${alpha * 0.5})`;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, size * 1.2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                } else if (this.isActive) {
+                    // Render falling bomb
+                    ctx.fillStyle = '#444444';
+                    ctx.beginPath();
+                    ctx.ellipse(this.x, this.y, 3, 6, this.velocityY / this.velocityX, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        class Rocket {
+            constructor(x, y, altitude, heading, target = null) {
+                this.x = x;
+                this.y = y;
+                this.altitude = altitude;
+                this.heading = heading;
+                this.speed = 200; // m/s - very fast
+                this.velocityX = this.speed * Math.sin(heading * Math.PI / 180);
+                this.velocityY = -this.speed * Math.cos(heading * Math.PI / 180);
+                this.isActive = true;
+                this.damage = 40; // Direct hit damage
+                this.explosionRadius = 20; // Smaller than bombs
+                this.hasExploded = false;
+                this.explosionTime = 0;
+                this.maxRange = 1500; // meters
+                this.distanceTraveled = 0;
+                this.target = target; // For reference only - WW2 rockets are unguided
+
+                // WW2 rockets (like M8, RP-3, RS-82) are unguided
+                // They fly straight in the direction fired - no homing
+            }
+
+            update(dt) {
+                if (!this.isActive || this.hasExploded) return;
+
+                // Update position
+                const dx = this.velocityX * dt;
+                const dy = this.velocityY * dt;
+                this.x += dx;
+                this.y += dy;
+                this.distanceTraveled += Math.sqrt(dx * dx + dy * dy);
+
+                // Check max range
+                if (this.distanceTraveled > this.maxRange) {
+                    this.isActive = false;
+                    return;
+                }
+
+                // Check ground impact
+                const terrainHeight = terrain.getHeightAt(this.x, this.y);
+                if (this.altitude <= terrainHeight + 5) { // Explode slightly above ground
+                    this.explode();
+                    return;
+                }
+
+                // Check direct hit on ground targets
+                for (let target of groundTargets) {
+                    if (target.isDestroyed) continue;
+                    const dx = target.x - this.x;
+                    const dy = target.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < target.size) {
+                        this.explode();
+                        return;
+                    }
+                }
+            }
+
+            explode() {
+                if (this.hasExploded) return;
+                this.hasExploded = true;
+                this.explosionTime = Date.now();
+                this.isActive = false;
+
+                // Damage ground targets in radius
+                for (let target of groundTargets) {
+                    if (target.isDestroyed) continue;
+                    const dx = target.x - this.x;
+                    const dy = target.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < this.explosionRadius) {
+                        const damageFalloff = 1 - (distance / this.explosionRadius);
+                        const actualDamage = this.damage * (0.5 + 0.5 * damageFalloff); // 50-100% damage
+                        target.takeDamage(actualDamage);
+                        console.log(`Rocket hit ${target.type} for ${actualDamage.toFixed(1)} damage at ${distance.toFixed(1)}m`);
+                    }
+                }
+            }
+
+            render() {
+                if (this.hasExploded) {
+                    // Render explosion (smaller than bomb)
+                    const elapsed = Date.now() - this.explosionTime;
+                    if (elapsed < 600) {
+                        const progress = elapsed / 600;
+                        const alpha = 1 - progress;
+                        const size = 15 + progress * 25;
+
+                        // Orange explosion
+                        ctx.fillStyle = `rgba(255, 120, 0, ${alpha * 0.9})`;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Yellow flash
+                        if (progress < 0.3) {
+                            ctx.fillStyle = `rgba(255, 255, 150, ${alpha})`;
+                            ctx.beginPath();
+                            ctx.arc(this.x, this.y, size * 0.6, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                } else if (this.isActive) {
+                    // Render rocket
+                    const angle = this.heading * Math.PI / 180;
+
+                    // Rocket body
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.rotate(angle);
+                    ctx.fillStyle = '#666666';
+                    ctx.fillRect(-2, -6, 4, 12);
+
+                    // Rocket fins
+                    ctx.fillStyle = '#555555';
+                    ctx.beginPath();
+                    ctx.moveTo(-4, 6);
+                    ctx.lineTo(0, 4);
+                    ctx.lineTo(4, 6);
+                    ctx.fill();
+
+                    // Rocket exhaust
+                    ctx.fillStyle = '#ff8800';
+                    ctx.beginPath();
+                    ctx.moveTo(-2, 6);
+                    ctx.lineTo(0, 10);
+                    ctx.lineTo(2, 6);
+                    ctx.fill();
+
+                    ctx.restore();
+                }
+            }
+        }
+
+        // Air-to-Air Rocket class
+        class RocketAA {
+            constructor(x, y, altitude, heading, target) {
+                this.x = x;
+                this.y = y;
+                this.altitude = altitude;
+                this.heading = heading;
+                this.speed = 250; // m/s - faster than ground rockets
+                this.velocityX = this.speed * Math.sin(heading * Math.PI / 180);
+                this.velocityY = -this.speed * Math.cos(heading * Math.PI / 180);
+                this.isActive = true;
+                this.damage = 35; // Direct hit damage
+                this.explosionRadius = 15; // Small proximity fuse
+                this.hasExploded = false;
+                this.explosionTime = 0;
+                this.maxRange = 1000; // meters
+                this.distanceTraveled = 0;
+                this.target = target; // Aircraft target
+
+                // Simple lead calculation for air-to-air
+                if (this.target && !this.target.isDestroyed) {
+                    const dx = this.target.x - this.x;
+                    const dy = this.target.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const timeToTarget = distance / this.speed;
+
+                    // Lead the target
+                    const leadX = this.target.x + this.target.speed * Math.sin(this.target.heading * Math.PI / 180) * timeToTarget;
+                    const leadY = this.target.y - this.target.speed * Math.cos(this.target.heading * Math.PI / 180) * timeToTarget;
+
+                    const angleToTarget = Math.atan2(leadX - this.x, -(leadY - this.y)) * 180 / Math.PI;
+                    this.heading = angleToTarget;
+                    this.velocityX = this.speed * Math.sin(this.heading * Math.PI / 180);
+                    this.velocityY = -this.speed * Math.cos(this.heading * Math.PI / 180);
+                }
+            }
+
+            update(dt) {
+                if (!this.isActive || this.hasExploded) return;
+
+                // Update position
+                const dx = this.velocityX * dt;
+                const dy = this.velocityY * dt;
+                this.x += dx;
+                this.y += dy;
+                this.distanceTraveled += Math.sqrt(dx * dx + dy * dy);
+
+                // Check max range
+                if (this.distanceTraveled > this.maxRange) {
+                    this.isActive = false;
+                    return;
+                }
+
+                // Check ground impact
+                const terrainHeight = terrain.getHeightAt(this.x, this.y);
+                if (this.altitude <= terrainHeight + 5) {
+                    this.isActive = false; // Fizzle on ground impact
+                    return;
+                }
+
+                // Check proximity to aircraft
+                for (let target of aircraft) {
+                    if (target.isDestroyed) continue;
+                    const dx = target.x - this.x;
+                    const dy = target.y - this.y;
+                    const dz = target.altitude - this.altitude;
+                    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    // Proximity fuse - explode near aircraft
+                    if (distance < this.explosionRadius) {
+                        this.explode();
+                        return;
+                    }
+                }
+            }
+
+            explode() {
+                if (this.hasExploded) return;
+                this.hasExploded = true;
+                this.explosionTime = Date.now();
+                this.isActive = false;
+
+                // Damage aircraft in radius
+                for (let target of aircraft) {
+                    if (target.isDestroyed) continue;
+                    const dx = target.x - this.x;
+                    const dy = target.y - this.y;
+                    const dz = target.altitude - this.altitude;
+                    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    if (distance < this.explosionRadius * 2) { // Damage radius larger than proximity fuse
+                        const damageFalloff = 1 - (distance / (this.explosionRadius * 2));
+                        const actualDamage = this.damage * (0.3 + 0.7 * damageFalloff); // 30-100% damage
+
+                        // Apply damage using component damage system
+                        if (typeof applyComponentDamage === 'function') {
+                            applyComponentDamage(target, actualDamage);
+                        } else {
+                            target.damage += actualDamage;
+                        }
+
+                        console.log(`Air-to-air rocket hit ${target.name} for ${actualDamage.toFixed(1)} damage at ${distance.toFixed(1)}m`);
+
+                        // Add visual hit effect
+                        target.hitEffects.push({
+                            x: target.x,
+                            y: target.y,
+                            type: 'rocket',
+                            time: Date.now(),
+                            duration: 400
+                        });
+
+                        // Check for destruction
+                        if (target.damage >= 100 && !target.isDestroyed) {
+                            target.isDestroyed = true;
+                            console.log(`💥 ${target.name} DESTROYED by air-to-air rocket!`);
+                        }
+                    }
+                }
+            }
+
+            render() {
+                if (this.hasExploded) {
+                    // Render explosion
+                    const elapsed = Date.now() - this.explosionTime;
+                    if (elapsed < 500) {
+                        const progress = elapsed / 500;
+                        const alpha = 1 - progress;
+                        const size = 12 + progress * 20;
+
+                        // Orange explosion
+                        ctx.fillStyle = `rgba(255, 120, 0, ${alpha * 0.9})`;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Yellow core
+                        if (progress < 0.4) {
+                            ctx.fillStyle = `rgba(255, 255, 150, ${alpha})`;
+                            ctx.beginPath();
+                            ctx.arc(this.x, this.y, size * 0.5, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                } else if (this.isActive) {
+                    // Render rocket (same as ground rocket)
+                    const angle = this.heading * Math.PI / 180;
+
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.rotate(angle);
+                    ctx.fillStyle = '#888888'; // Slightly lighter for air-to-air
+                    ctx.fillRect(-2, -6, 4, 12);
+
+                    // Rocket fins
+                    ctx.fillStyle = '#666666';
+                    ctx.beginPath();
+                    ctx.moveTo(-4, 6);
+                    ctx.lineTo(0, 4);
+                    ctx.lineTo(4, 6);
+                    ctx.fill();
+
+                    // Rocket exhaust (brighter for air-to-air)
+                    ctx.fillStyle = '#ffaa00';
+                    ctx.beginPath();
+                    ctx.moveTo(-2, 6);
+                    ctx.lineTo(0, 10);
+                    ctx.lineTo(2, 6);
+                    ctx.fill();
+
+                    ctx.restore();
+                }
+            }
+        }
+
         let groundTargets = [];
+        let bombs = []; // Active bombs
+        let rockets = []; // Active rockets (both ground and air-to-air)
 
         // Canvas setup
         const canvas = document.getElementById('gameCanvas');
@@ -1712,8 +2312,11 @@
                 // Bombs and rockets (if applicable)
                 this.canCarryBombs = specs.canCarryBombs || false;
                 this.canCarryRockets = specs.canCarryRockets || false;
-                this.bombs = this.canCarryBombs ? 2 : 0;
-                this.rockets = this.canCarryRockets ? 8 : 0;
+                this.bombs = this.canCarryBombs ? (specs.bombCapacity || 2) : 0;
+                this.rockets = this.canCarryRockets ? (specs.rocketCapacity || 8) : 0;
+                this.rocketMode = 'ground'; // 'air' or 'ground' - toggle rocket targeting mode
+                this.bombCooldown = 0; // Cooldown between bomb drops
+                this.rocketCooldown = 0; // Cooldown between rocket launches
 
                 // Component damage system (Enhancement #4)
                 this.damage = 0;
@@ -2178,6 +2781,69 @@
                     }
                 }
 
+                // Draw damage visual effects (smoke and flames)
+                if (!isGhost && !this.isDestroyed) {
+                    // Light damage: 30-60% - smoke trail
+                    if (this.damage >= 30) {
+                        const smokeIntensity = Math.min((this.damage - 30) / 30, 1); // 0 to 1
+                        const numSmokeParticles = Math.floor(3 + smokeIntensity * 3);
+
+                        for (let i = 0; i < numSmokeParticles; i++) {
+                            const offset = i * 15;
+                            const smokeX = this.x - Math.sin(this.heading * Math.PI / 180) * offset;
+                            const smokeY = this.y + Math.cos(this.heading * Math.PI / 180) * offset;
+                            const smokeSize = 4 + Math.random() * 4 + i * 0.8;
+                            const smokeOpacity = (0.3 + smokeIntensity * 0.2) - (i * 0.04);
+
+                            ctx.fillStyle = `rgba(80, 80, 80, ${smokeOpacity})`;
+                            ctx.beginPath();
+                            ctx.arc(smokeX, smokeY, smokeSize, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+
+                    // Heavy damage: 60%+ - smoke trail + flames
+                    if (this.damage >= 60) {
+                        const flameIntensity = Math.min((this.damage - 60) / 40, 1); // 0 to 1
+
+                        // Flames from engine/wings
+                        const time = Date.now() * 0.01;
+                        const flameFlicker = Math.sin(time) * 0.3 + 0.7; // 0.4 to 1.0
+
+                        for (let i = 0; i < 3; i++) {
+                            const flameX = this.x + (Math.random() - 0.5) * 15;
+                            const flameY = this.y + (Math.random() - 0.5) * 15;
+                            const flameSize = (3 + Math.random() * 4) * flameFlicker * flameIntensity;
+
+                            // Orange/yellow flames
+                            const flameColors = [
+                                `rgba(255, 150, 0, ${0.6 * flameFlicker * flameIntensity})`,
+                                `rgba(255, 100, 0, ${0.7 * flameFlicker * flameIntensity})`,
+                                `rgba(255, 200, 50, ${0.5 * flameFlicker * flameIntensity})`
+                            ];
+
+                            ctx.fillStyle = flameColors[i % 3];
+                            ctx.beginPath();
+                            ctx.arc(flameX, flameY, flameSize, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+
+                        // Dark smoke from fire
+                        for (let i = 0; i < 4; i++) {
+                            const offset = i * 12;
+                            const smokeX = this.x - Math.sin(this.heading * Math.PI / 180) * offset + (Math.random() - 0.5) * 8;
+                            const smokeY = this.y + Math.cos(this.heading * Math.PI / 180) * offset + (Math.random() - 0.5) * 8;
+                            const smokeSize = 5 + Math.random() * 5 + i * 1;
+                            const smokeOpacity = (0.5 * flameIntensity) - (i * 0.08);
+
+                            ctx.fillStyle = `rgba(40, 40, 40, ${smokeOpacity})`;
+                            ctx.beginPath();
+                            ctx.arc(smokeX, smokeY, smokeSize, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                }
+
                 // Draw altitude indicator or destruction label
                 if (!isGhost) {
                     if (this.isDestroyed) {
@@ -2529,25 +3195,26 @@
                 let currentX = this.x;
                 let currentY = this.y;
                 let currentSpeed = startSpeed;
+                let loopForwardDist = 0;
 
                 for (let i = 0; i <= NUM_STEPS; i++) {
                     const progress = i / NUM_STEPS;
                     const time = progress * turnTime;
 
                     if (time < halfLoopTime) {
-                        // First half: climb in a loop
+                        // First half: climb in a vertical half-loop
                         const loopProgress = time / halfLoopTime;
                         const angle = loopProgress * Math.PI; // 0 to π (180°)
 
-                        // Calculate position on circular arc
-                        const arcX = Math.sin(angle) * loopRadius;
-                        const arcY = -(1 - Math.cos(angle)) * loopRadius; // Negative because climbing
+                        // For a vertical loop, aircraft moves FORWARD while climbing
+                        loopForwardDist = Math.sin(angle) * loopRadius;
+                        const altitudeGain = (1 - Math.cos(angle)) * loopRadius;
 
-                        // Rotate arc based on initial heading
-                        const headingRad = (currentHeading - 90) * Math.PI / 180;
-                        currentX = this.x + (arcX * Math.cos(headingRad) - arcY * Math.sin(headingRad));
-                        currentY = this.y + (arcX * Math.sin(headingRad) + arcY * Math.cos(headingRad));
-                        currentAltitude = this.altitude + (1 - Math.cos(angle)) * loopRadius;
+                        // Calculate position based on initial heading
+                        const headingRad = (this.heading - 90) * Math.PI / 180;
+                        currentX = this.x + loopForwardDist * Math.cos(headingRad);
+                        currentY = this.y + loopForwardDist * Math.sin(headingRad);
+                        currentAltitude = this.altitude + altitudeGain;
 
                         // Aircraft heading follows the loop
                         currentHeading = (this.heading + angle * 180 / Math.PI) % 360;
@@ -2559,16 +3226,18 @@
                         this.currentGForce = 1 + Math.sin(angle) * 5;
                     } else {
                         // Second half: roll to upright while continuing forward
-                        // At top of loop, heading is reversed, now roll to upright
+                        // At top of loop, heading is reversed (180° from start), now roll to upright
                         const rollProgress = (time - halfLoopTime) / (turnTime - halfLoopTime);
 
-                        // Continue forward at reduced speed
-                        const forwardDist = (time - halfLoopTime) * currentSpeed;
-                        const headingRad = (this.heading + 180) * Math.PI / 180;
-                        currentX = this.x + (Math.sin(angle) * loopRadius + forwardDist) * Math.cos(headingRad - Math.PI/2);
-                        currentY = this.y + (Math.sin(angle) * loopRadius + forwardDist) * Math.sin(headingRad - Math.PI/2);
+                        // Continue forward at reduced speed (in the new direction - reversed heading)
+                        const additionalDist = (time - halfLoopTime) * currentSpeed;
+                        const reversedHeadingRad = ((this.heading + 180) - 90) * Math.PI / 180;
+                        currentX = this.x + loopForwardDist * Math.cos((this.heading - 90) * Math.PI / 180) +
+                                   additionalDist * Math.cos(reversedHeadingRad);
+                        currentY = this.y + loopForwardDist * Math.sin((this.heading - 90) * Math.PI / 180) +
+                                   additionalDist * Math.sin(reversedHeadingRad);
 
-                        // Maintain altitude
+                        // Maintain altitude at top of loop
                         currentAltitude = this.altitude + loopRadius * 2;
                         currentHeading = (this.heading + 180) % 360;
 
@@ -2620,41 +3289,43 @@
                 let currentX = this.x;
                 let currentY = this.y;
                 let currentSpeed = startSpeed;
+                let rollDist = 0;
 
                 for (let i = 0; i <= NUM_STEPS; i++) {
                     const progress = i / NUM_STEPS;
                     const time = progress * turnTime;
 
                     if (time < halfRollTime) {
-                        // First: roll inverted
+                        // First: roll inverted while continuing forward
                         const rollProgress = time / halfRollTime;
-                        // Continue mostly straight while rolling
-                        const forwardDist = time * currentSpeed;
-                        const headingRad = this.heading * Math.PI / 180;
-                        currentX = this.x + forwardDist * Math.cos(headingRad - Math.PI/2);
-                        currentY = this.y + forwardDist * Math.sin(headingRad - Math.PI/2);
-                        currentAltitude = this.altitude; // Slight loss
+                        rollDist = time * currentSpeed;
+
+                        // Continue straight ahead while rolling
+                        const headingRad = (this.heading - 90) * Math.PI / 180;
+                        currentX = this.x + rollDist * Math.cos(headingRad);
+                        currentY = this.y + rollDist * Math.sin(headingRad);
+                        currentAltitude = this.altitude;
                         currentHeading = this.heading;
 
                         this.currentGForce = 1 + Math.sin(rollProgress * Math.PI) * 2;
                     } else {
-                        // Second: dive in half loop
+                        // Second: dive in vertical half-loop
                         const loopProgress = (time - halfRollTime) / halfLoopTime;
                         const angle = loopProgress * Math.PI; // 0 to π
 
-                        // Calculate position on circular arc (diving)
-                        const arcX = Math.sin(angle) * loopRadius;
-                        const arcY = (1 - Math.cos(angle)) * loopRadius; // Positive because diving
+                        // For a vertical dive loop, aircraft moves FORWARD while diving
+                        const loopForwardDist = Math.sin(angle) * loopRadius;
+                        const altitudeLoss = (1 - Math.cos(angle)) * loopRadius;
 
-                        // Rotate arc based on heading
-                        const headingRad = (this.heading - 90) * Math.PI / 180;
-                        const rollDist = halfRollTime * startSpeed;
-                        const baseX = this.x + rollDist * Math.cos(this.heading * Math.PI / 180 - Math.PI/2);
-                        const baseY = this.y + rollDist * Math.sin(this.heading * Math.PI / 180 - Math.PI/2);
+                        // Calculate position: roll distance + loop forward distance (in reversed direction)
+                        const initialHeadingRad = (this.heading - 90) * Math.PI / 180;
+                        const reversedHeadingRad = ((this.heading + 180) - 90) * Math.PI / 180;
 
-                        currentX = baseX + (arcX * Math.cos(headingRad) - arcY * Math.sin(headingRad));
-                        currentY = baseY + (arcX * Math.sin(headingRad) + arcY * Math.cos(headingRad));
-                        currentAltitude = this.altitude - (1 - Math.cos(angle)) * loopRadius;
+                        currentX = this.x + rollDist * Math.cos(initialHeadingRad) +
+                                   loopForwardDist * Math.cos(reversedHeadingRad);
+                        currentY = this.y + rollDist * Math.sin(initialHeadingRad) +
+                                   loopForwardDist * Math.sin(reversedHeadingRad);
+                        currentAltitude = this.altitude - altitudeLoss;
 
                         // Heading reverses through the dive
                         currentHeading = (this.heading + angle * 180 / Math.PI) % 360;
@@ -2707,15 +3378,16 @@
                     const progress = i / NUM_STEPS;
                     const angle = progress * 2 * Math.PI; // Full 360°
 
-                    // Calculate position on circular arc
-                    const arcX = Math.sin(angle) * loopRadius;
-                    const arcY = -(1 - Math.cos(angle)) * loopRadius;
-
-                    // Rotate arc based on initial heading
-                    const headingRad = (this.heading - 90) * Math.PI / 180;
-                    const currentX = this.x + (arcX * Math.cos(headingRad) - arcY * Math.sin(headingRad));
-                    const currentY = this.y + (arcX * Math.sin(headingRad) + arcY * Math.cos(headingRad));
+                    // For a vertical loop, aircraft moves FORWARD while gaining/losing altitude
+                    // Forward distance along heading direction
+                    const forwardDist = Math.sin(angle) * loopRadius;
+                    // Altitude change (goes up, then back down)
                     const currentAltitude = this.altitude + (1 - Math.cos(angle)) * loopRadius;
+
+                    // Calculate position based on heading
+                    const headingRad = (this.heading - 90) * Math.PI / 180;
+                    const currentX = this.x + forwardDist * Math.cos(headingRad);
+                    const currentY = this.y + forwardDist * Math.sin(headingRad);
 
                     // Speed varies: loses speed climbing, gains diving
                     let currentSpeed = startSpeed;
@@ -2770,15 +3442,16 @@
                     const progress = i / NUM_STEPS;
                     const angle = progress * Math.PI; // Half loop: 0 to π
 
-                    // Calculate position on circular arc
-                    const arcX = Math.sin(angle) * loopRadius;
-                    const arcY = -(1 - Math.cos(angle)) * loopRadius;
-
-                    // Rotate arc based on initial heading
-                    const headingRad = (this.heading - 90) * Math.PI / 180;
-                    const currentX = this.x + (arcX * Math.cos(headingRad) - arcY * Math.sin(headingRad));
-                    const currentY = this.y + (arcX * Math.sin(headingRad) + arcY * Math.cos(headingRad));
+                    // For a vertical half-loop, aircraft moves FORWARD while climbing
+                    // Forward distance along heading direction
+                    const forwardDist = Math.sin(angle) * loopRadius;
+                    // Altitude change (climbs up)
                     const currentAltitude = this.altitude + (1 - Math.cos(angle)) * loopRadius;
+
+                    // Calculate position based on heading
+                    const headingRad = (this.heading - 90) * Math.PI / 180;
+                    const currentX = this.x + forwardDist * Math.cos(headingRad);
+                    const currentY = this.y + forwardDist * Math.sin(headingRad);
 
                     // Speed bleeds off during climb
                     const currentSpeed = startSpeed * (1 - 0.3 * progress);
@@ -3008,6 +3681,48 @@
                 this.hasOrders = false;
             }
 
+            // Enhancement #8: Drop bomb
+            dropBomb() {
+                if (this.bombs <= 0) {
+                    console.log(`${this.name} has no bombs left!`);
+                    return false;
+                }
+
+                this.bombs--;
+                const bomb = new Bomb(this.x, this.y, this.altitude, this.speed, this.heading);
+                bombs.push(bomb);
+                console.log(`${this.name} dropped bomb! ${this.bombs} remaining. Alt: ${this.altitude.toFixed(0)}m, Speed: ${this.speed.toFixed(0)} m/s`);
+                return true;
+            }
+
+            // Enhancement #8: Launch rocket (ground targets)
+            launchRocket(target = null) {
+                if (this.rockets <= 0) {
+                    console.log(`${this.name} has no rockets left!`);
+                    return false;
+                }
+
+                this.rockets--;
+                const rocket = new Rocket(this.x, this.y, this.altitude, this.heading, target);
+                rockets.push(rocket);
+                console.log(`${this.name} launched rocket! ${this.rockets} remaining`);
+                return true;
+            }
+
+            // Launch rocket at aircraft (air-to-air)
+            launchRocketAtAircraft(target) {
+                if (this.rockets <= 0) {
+                    console.log(`${this.name} has no rockets left!`);
+                    return false;
+                }
+
+                this.rockets--;
+                const rocket = new RocketAA(this.x, this.y, this.altitude, this.heading, target);
+                rockets.push(rocket);
+                console.log(`${this.name} launched air-to-air rocket! ${this.rockets} remaining`);
+                return true;
+            }
+
             getStatsHTML() {
                 const ammoColor = this.ammunition < 100 ? 'color: #ff4444;' : '';
                 const ammoPercent = Math.round((this.ammunition / this.maxAmmunition) * 100);
@@ -3059,8 +3774,9 @@
                                   this.weaponType === 'hmg' ? 'HMGs' : 'Cannon';
 
                 // Enhancement #8: Bombs/Rockets (if available)
+                const rocketModeText = this.rockets > 0 ? ` (${this.rocketMode.toUpperCase()})` : '';
                 const ordinanceDisplay = (this.bombs > 0 || this.rockets > 0) ?
-                    `<div class="stat-line" style="color: #88ff88;">Bombs: ${this.bombs} | Rockets: ${this.rockets}</div>` : '';
+                    `<div class="stat-line" style="color: #88ff88;">Bombs: ${this.bombs} | Rockets: ${this.rockets}${rocketModeText}</div>` : '';
 
                 // Show critical hits
                 const critDisplay = this.criticalHitsDealt > 0 ?
@@ -3171,7 +3887,7 @@
         }
 
         // Initialize game
-        const terrain = new Terrain();
+        let terrain = new Terrain();
         let spitfire = null;
         let me109 = null;
         let aircraft = [];
@@ -3712,6 +4428,111 @@
                     }
                 }
             }
+
+            // Automatic ground attack weapons (bombs and rockets)
+            processGroundAttackWeapons();
+        }
+
+        // Automatic deployment of bombs and rockets
+        function processGroundAttackWeapons() {
+            // Decrement cooldowns
+            for (let plane of aircraft) {
+                if (plane.bombCooldown > 0) plane.bombCooldown--;
+                if (plane.rocketCooldown > 0) plane.rocketCooldown--;
+            }
+
+            for (let attacker of aircraft) {
+                if (attacker.isDestroyed) continue;
+
+                // Auto-deploy bombs on ground targets
+                if (attacker.bombs > 0 && attacker.bombCooldown === 0) {
+                    for (let target of groundTargets) {
+                        if (target.isDestroyed) continue;
+
+                        const dx = target.x - attacker.x;
+                        const dy = target.y - attacker.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        // Check if target is in bombing cone (wider than guns, 30 degrees)
+                        const angleToTarget = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
+                        let angleDiff = angleToTarget - attacker.heading;
+                        if (angleDiff > 180) angleDiff -= 360;
+                        if (angleDiff < -180) angleDiff += 360;
+                        angleDiff = Math.abs(angleDiff);
+
+                        // Bomb if target in cone, at reasonable altitude (not too high, not too low)
+                        if (angleDiff < 30 && distance < 600 && attacker.altitude > 100 && attacker.altitude < 3000) {
+                            attacker.dropBomb();
+                            attacker.bombCooldown = 5; // Cooldown between bomb drops (5 turns)
+                            console.log(`${attacker.name}: Auto-dropped bomb on ground target at ${distance.toFixed(0)}m`);
+                            break; // Only one bomb per turn
+                        }
+                    }
+                }
+
+                // Auto-launch rockets based on mode
+                if (attacker.rockets > 0 && attacker.rocketCooldown === 0) {
+                    if (attacker.rocketMode === 'ground') {
+                        // Ground mode - target ground units
+                        for (let target of groundTargets) {
+                            if (target.isDestroyed) continue;
+
+                            const dx = target.x - attacker.x;
+                            const dy = target.y - attacker.y;
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+
+                            // Check if target is in firing cone (25 degrees, tighter than bombs)
+                            const angleToTarget = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
+                            let angleDiff = angleToTarget - attacker.heading;
+                            if (angleDiff > 180) angleDiff -= 360;
+                            if (angleDiff < -180) angleDiff += 360;
+                            angleDiff = Math.abs(angleDiff);
+
+                            // Launch rocket at ground target
+                            if (angleDiff < 25 && distance < 800 && attacker.altitude < 2000) {
+                                attacker.launchRocket(target);
+                                attacker.rocketCooldown = 4; // Cooldown between rocket launches (4 turns)
+                                console.log(`${attacker.name}: Auto-launched rocket at ground target ${target.type} at ${distance.toFixed(0)}m`);
+                                break; // Only one rocket per turn
+                            }
+                        }
+                    } else if (attacker.rocketMode === 'air') {
+                        // Air mode - target aircraft (like guns but with rockets)
+                        for (let target of aircraft) {
+                            if (attacker === target) continue;
+                            if (target.isDestroyed) continue;
+
+                            const dx = target.x - attacker.x;
+                            const dy = target.y - attacker.y;
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+
+                            // Check if target is in firing cone (20 degrees, same as guns)
+                            const angleToTarget = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
+                            let angleDiff = angleToTarget - attacker.heading;
+                            if (angleDiff > 180) angleDiff -= 360;
+                            if (angleDiff < -180) angleDiff += 360;
+                            angleDiff = Math.abs(angleDiff);
+
+                            const altitudeDiff = Math.abs(target.altitude - attacker.altitude);
+
+                            // Launch rocket at air target (similar logic to gun firing)
+                            if (angleDiff < 20 && distance < 500 && altitudeDiff < 400) {
+                                // Check line of sight
+                                const losBlocked = !terrain.isLineOfSightClear(
+                                    attacker.x, attacker.y, attacker.altitude,
+                                    target.x, target.y, target.altitude
+                                );
+                                if (!losBlocked) {
+                                    attacker.launchRocketAtAircraft(target);
+                                    attacker.rocketCooldown = 5; // Cooldown for air-to-air rockets (5 turns)
+                                    console.log(`${attacker.name}: Auto-launched rocket at aircraft ${target.name} at ${distance.toFixed(0)}m`);
+                                    break; // Only one rocket per turn
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // Rendering
@@ -4054,6 +4875,14 @@
                 target.render();
             }
 
+            // Render bombs and rockets (Enhancement #8)
+            for (let bomb of bombs) {
+                bomb.render();
+            }
+            for (let rocket of rockets) {
+                rocket.render();
+            }
+
             // Render ghost if in order mode
             if (ghostAircraft) {
                 ghostAircraft.aircraft.renderSVG(true, ghostAircraft.state);
@@ -4092,7 +4921,7 @@
             // Render energy diagram (Enhancement #9)
             renderEnergyDiagram();
 
-            // Draw scale bar, version, and zoom in bottom right corner
+            // Draw scale bar, version, zoom, and terrain altitude in bottom right corner
             ctx.save(); // Save state before drawing UI elements
             ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform to identity matrix
             ctx.globalAlpha = 1.0; // Ensure full opacity
@@ -4100,11 +4929,11 @@
 
             const scaleBarLength = 100; // Represents 100 meters
             const infoBoxX = canvas.width - 240; // Position from right edge
-            const infoBoxY = canvas.height - 80;
+            const infoBoxY = canvas.height - 100;
 
             // Draw semi-transparent background for entire info box
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.fillRect(infoBoxX - 10, infoBoxY - 10, 230, 70);
+            ctx.fillRect(infoBoxX - 10, infoBoxY - 10, 230, 90);
 
             ctx.strokeStyle = '#ffffff';
             ctx.fillStyle = '#ffffff';
@@ -4138,6 +4967,10 @@
 
             // Draw version number
             ctx.fillText(`Version: ${GAME_VERSION}`, scaleBarX, scaleBarY + 20);
+
+            // Draw terrain altitude at mouse cursor
+            const terrainHeight = terrain.getHeightAt(mouseX, mouseY);
+            ctx.fillText(`Terrain: ${Math.round(terrainHeight)}m`, scaleBarX, scaleBarY + 40);
 
             ctx.restore(); // Restore state after drawing UI elements
         }
@@ -4688,6 +5521,14 @@
                     updateGhost();
                     updateGhostPanel();
                     break;
+                case 'b':
+                    // Toggle rocket mode between Air and Ground
+                    if (selectedAircraft.rockets > 0) {
+                        selectedAircraft.rocketMode = selectedAircraft.rocketMode === 'air' ? 'ground' : 'air';
+                        console.log(`${selectedAircraft.name}: Rocket mode set to ${selectedAircraft.rocketMode.toUpperCase()}`);
+                        updateStats();
+                    }
+                    break;
             }
         });
 
@@ -4832,6 +5673,26 @@
                 for (let plane of aircraft) {
                     if (plane.hasOrders) {
                         plane.executeOrders(progress);
+                    }
+                }
+
+                // Update bombs and rockets (Enhancement #8)
+                const dt = 1 / 60; // Assume 60 FPS for physics
+                for (let i = bombs.length - 1; i >= 0; i--) {
+                    bombs[i].update(dt);
+                    // Remove inactive bombs after explosion animation completes
+                    if (bombs[i].hasExploded && Date.now() - bombs[i].explosionTime > 1000) {
+                        bombs.splice(i, 1);
+                    }
+                }
+                for (let i = rockets.length - 1; i >= 0; i--) {
+                    rockets[i].update(dt);
+                    // Remove inactive rockets after explosion animation completes
+                    if (rockets[i].hasExploded && Date.now() - rockets[i].explosionTime > 600) {
+                        rockets.splice(i, 1);
+                    } else if (!rockets[i].isActive && !rockets[i].hasExploded) {
+                        // Remove rockets that went out of range
+                        rockets.splice(i, 1);
                     }
                 }
 
