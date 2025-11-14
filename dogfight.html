@@ -372,6 +372,21 @@
             z-index: 75;
         }
 
+        .altitude-display {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #0f9d58;
+            border-radius: 5px;
+            padding: 8px 12px;
+            font-size: 14px;
+            color: #0f9d58;
+            pointer-events: none;
+            display: none;
+            z-index: 75;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
         h1 {
             margin-bottom: 10px;
             font-size: 20px;
@@ -459,6 +474,7 @@
         </div>
 
         <div id="ghostPanel" class="ghost-panel"></div>
+        <div id="altitudeDisplay" class="altitude-display"></div>
 
         <div id="realisticModeToggle" style="position: absolute; top: 10px; right: 270px; background: rgba(0, 0, 0, 0.7); padding: 10px; border-radius: 5px; z-index: 150;">
             <label style="cursor: pointer; font-size: 14px;">
@@ -4323,6 +4339,28 @@
             panel.innerHTML = panelHTML;
         }
 
+        // Helper function to update altitude display
+        function updateAltitudeDisplay() {
+            if (!terrain) return;
+
+            const panel = document.getElementById('altitudeDisplay');
+            const terrainHeight = terrain.getHeightAt(mouseX, mouseY);
+
+            panel.style.display = 'block';
+            // Position slightly offset from cursor to avoid obscuring it
+            panel.style.left = (lastScreenX + 15) + 'px';
+            panel.style.top = (lastScreenY - 35) + 'px';
+
+            // Color coding based on altitude
+            let altColor = '#0f9d58';  // Green for low terrain
+            if (terrainHeight > 800) altColor = '#ffaa00';  // Orange for moderate terrain
+            if (terrainHeight > 1200) altColor = '#ff4444'; // Red for high terrain
+
+            panel.style.borderColor = altColor;
+            panel.style.color = altColor;
+            panel.innerHTML = `Terrain: ${Math.round(terrainHeight)}m`;
+        }
+
         let lastScreenX = 0;
         let lastScreenY = 0;
 
@@ -4347,6 +4385,9 @@
             const oldMouseY = mouseY;
             mouseX = canvasCoords.x;
             mouseY = canvasCoords.y;
+
+            // Update altitude display to show terrain height at cursor
+            updateAltitudeDisplay();
 
             // Debug: Log mouse movement during ORDER phase with selected aircraft (reduced frequency)
             if (gameState === 'ORDER' && selectedAircraft && ghostAircraft && (Math.abs(mouseX - oldMouseX) > 5 || Math.abs(mouseY - oldMouseY) > 5)) {
@@ -4388,6 +4429,11 @@
             if (isPanning) {
                 isPanning = false;
                 canvas.style.cursor = 'default';
+            }
+            // Hide altitude display when mouse leaves canvas
+            const altitudePanel = document.getElementById('altitudeDisplay');
+            if (altitudePanel) {
+                altitudePanel.style.display = 'none';
             }
         });
 
