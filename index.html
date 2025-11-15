@@ -651,6 +651,7 @@
         let aiPredictedGhost = null; // Predicted AI position based on last turn
         let realisticMode = false; // Toggle for realistic AI display
         let executionStartTime = 0;
+        let currentProgress = 0; // Current execution progress (0 to 1) - used by render function
         let executionRecording = [];
         let isPaused = false;
         let pausedTime = 0;
@@ -5498,7 +5499,7 @@
                 for (let plane of aircraft) {
                     if (plane.isInMultiTurnManeuver && !plane.isDestroyed) {
                         // Calculate current progress
-                        const totalElapsed = plane.maneuverElapsedTime + (progress * turnTime);
+                        const totalElapsed = plane.maneuverElapsedTime + (currentProgress * turnTime);
                         const percentComplete = Math.min((totalElapsed / plane.maneuverRequiredTime) * 100, 100);
                         const remaining = Math.max(0, plane.maneuverRequiredTime - totalElapsed);
 
@@ -6329,6 +6330,7 @@
             if (gameState === 'EXECUTION') {
                 const elapsed = Date.now() - executionStartTime;
                 const progress = Math.min(1, elapsed / executionTime);
+                currentProgress = progress; // Update global for render function
 
                 // Move aircraft
                 for (let plane of aircraft) {
@@ -6412,6 +6414,7 @@
                         // Don't change state - stay in EXECUTION
                     } else {
                         gameState = 'REVIEW';
+                        currentProgress = 0; // Reset progress when exiting execution
                     }
 
                     // Reset hot-seat mode for next turn (only if not continuing maneuvers)
