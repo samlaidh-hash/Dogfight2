@@ -5832,7 +5832,10 @@
                                 val.finalFlightHeading,
                                 ghostSlipAngle // Save slip angle for nose direction during execution
                             );
-                            selectedAircraft = null; // Deselect but keep ghost visible
+
+                            // Clear selection and ghost aircraft
+                            selectedAircraft = null;
+                            ghostAircraft = null;
                             ghostRotation = 0;
                             ghostAltitudeOffset = 0;
                             ghostSlipAngle = 0;
@@ -5843,6 +5846,9 @@
                                 const bothPlayersDone = checkHotSeatOrdersComplete();
                                 if (bothPlayersDone) {
                                     // Both players have completed orders, update UI to show execute button
+                                    updateUI();
+                                } else {
+                                    // Update UI even if not both players done (to refresh display)
                                     updateUI();
                                 }
                             } else {
@@ -5936,20 +5942,35 @@
                     val.finalFlightHeading,
                     ghostSlipAngle // Save slip angle for nose direction during execution
                 );
-                selectedAircraft = null; // Deselect but keep ghost visible
+
+                // Clear selection and ghost aircraft
+                selectedAircraft = null;
+                ghostAircraft = null;
                 ghostRotation = 0;
                 ghostAltitudeOffset = 0;
                 ghostSlipAngle = 0;
                 document.getElementById('ghostPanel').style.display = 'none';
 
-                // Generate AI orders for all AI aircraft
-                for (let aiPlane of aircraft) {
-                    if (!aiPlane.isPlayer && !aiPlane.isDestroyed) {
-                        generateAIOrders(aiPlane);
+                // Hot-seat mode: check if we need to switch players
+                if (hotSeatMode) {
+                    const bothPlayersDone = checkHotSeatOrdersComplete();
+                    if (bothPlayersDone) {
+                        // Both players have completed orders, update UI to show execute button
+                        updateUI();
+                    } else {
+                        // Update UI even if not both players done (to refresh display)
+                        updateUI();
                     }
+                } else {
+                    // Generate AI orders for all AI aircraft (single player only)
+                    for (let aiPlane of aircraft) {
+                        if (!aiPlane.isPlayer && !aiPlane.isDestroyed) {
+                            generateAIOrders(aiPlane);
+                        }
+                    }
+                    // Update UI to show execute button
+                    updateUI();
                 }
-                // Update UI to show execute button
-                updateUI();
             } else {
                 console.log('Cannot lock:', {
                     selectedAircraft: !!selectedAircraft,
