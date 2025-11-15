@@ -78,13 +78,13 @@
 
         #aircraftPanel {
             top: 10px;
-            max-height: 45vh;
+            max-height: none;
             overflow-y: visible;
         }
 
         #controlsPanel {
-            top: calc(45vh + 20px);
-            max-height: 45vh;
+            top: calc(55vh + 20px);
+            max-height: 35vh;
             overflow-y: visible;
         }
 
@@ -175,7 +175,7 @@
 
         .minimap {
             position: absolute;
-            bottom: 100px;
+            bottom: 180px;
             right: 10px;
             width: 200px;
             height: 200px;
@@ -210,7 +210,7 @@
 
         #energyDiagram {
             position: absolute;
-            bottom: 320px;
+            bottom: 400px;
             right: 10px;
             width: 200px;
             height: 200px;
@@ -4929,7 +4929,7 @@
 
             const scaleBarLength = 100; // Represents 100 meters
             const infoBoxX = canvas.width - 240; // Position from right edge
-            const infoBoxY = canvas.height - 100;
+            const infoBoxY = canvas.height - 200; // Moved up to be visible on screen
 
             // Draw semi-transparent background for entire info box
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
