@@ -78,13 +78,13 @@
 
         #aircraftPanel {
             top: 10px;
-            max-height: none;
+            max-height: 45vh;
             overflow-y: visible;
         }
 
         #controlsPanel {
-            top: calc(55vh + 20px);
-            max-height: 35vh;
+            top: calc(45vh + 20px);
+            max-height: 45vh;
             overflow-y: visible;
         }
 
@@ -175,7 +175,7 @@
 
         .minimap {
             position: absolute;
-            bottom: 180px;
+            bottom: 100px;
             right: 10px;
             width: 200px;
             height: 200px;
@@ -210,7 +210,7 @@
 
         #energyDiagram {
             position: absolute;
-            bottom: 400px;
+            bottom: 320px;
             right: 10px;
             width: 200px;
             height: 200px;
@@ -446,6 +446,9 @@
                 <div>• T: Split-S</div>
                 <div>• L: Loop</div>
                 <div>• H: Half-loop</div>
+                <div>• J: Dive bomb</div>
+                <div>• N: Level bomb</div>
+                <div>• K: Strafing run</div>
                 <div>• Z/X: fire threshold down/up</div>
                 <div>• B: toggle rocket Air/Ground mode</div>
                 <div>• Click again to lock</div>
@@ -833,6 +836,7 @@
                         burstSize: 4,
                         damage: [2, 4],
                         rof: 1,
+                        range: 500, // meters - effective range for MGs
                         sound: 'mg'
                     },
                     {
@@ -843,6 +847,7 @@
                         burstSize: 2,
                         damage: [6, 12],
                         rof: 3,
+                        range: 800, // meters - effective range for cannons
                         sound: 'cannon'
                     }
                 ],
@@ -872,6 +877,7 @@
                         burstSize: 4, // 2 rounds per gun
                         damage: [3, 6],
                         rof: 2, // Faster than cannon
+                        range: 600, // meters - effective range for HMGs
                         sound: 'hmg'
                     },
                     {
@@ -882,6 +888,7 @@
                         burstSize: 2,
                         damage: [8, 15], // High damage
                         rof: 4, // Slower rate of fire
+                        range: 800, // meters - effective range for cannons
                         sound: 'cannon'
                     }
                 ],
@@ -2273,19 +2280,30 @@
 
                 if (this.hasMixedArmament) {
                     // Mixed armament (like Me-109)
-                    this.weaponGroups = weaponsData.map(w => ({
-                        type: w.type,
-                        name: w.name,
-                        count: w.count,
-                        ammunition: w.ammo,
-                        maxAmmunition: w.ammo,
-                        ammoPerBurst: w.burstSize,
-                        damageMin: w.damage[0],
-                        damageMax: w.damage[1],
-                        rateOfFire: w.rof,
-                        firingCooldown: 0,
-                        sound: w.sound
-                    }));
+                    this.weaponGroups = weaponsData.map(w => {
+                        // Set default range based on weapon type if not specified
+                        let weaponRange = w.range;
+                        if (!weaponRange) {
+                            if (w.type === 'mg') weaponRange = 500;
+                            else if (w.type === 'hmg') weaponRange = 600;
+                            else if (w.type === 'cannon') weaponRange = 800;
+                            else weaponRange = 500; // Default
+                        }
+                        return {
+                            type: w.type,
+                            name: w.name,
+                            count: w.count,
+                            ammunition: w.ammo,
+                            maxAmmunition: w.ammo,
+                            ammoPerBurst: w.burstSize,
+                            damageMin: w.damage[0],
+                            damageMax: w.damage[1],
+                            rateOfFire: w.rof,
+                            range: weaponRange, // meters - effective range
+                            firingCooldown: 0,
+                            sound: w.sound
+                        };
+                    });
 
                     // Set primary weapon type and total ammo for UI
                     this.weaponType = 'mixed';
@@ -2301,6 +2319,18 @@
                     this.damagePerHit = weaponsData.damage[0] + Math.random() * (weaponsData.damage[1] - weaponsData.damage[0]);
                     this.rateOfFire = weaponsData.rof;
                     this.fireThreshold = weaponsData.type === 'cannon' ? 0.35 : 0.25;
+                    // Set weapon range - use from database or default based on type
+                    if (weaponsData.range) {
+                        this.weaponRange = weaponsData.range;
+                    } else if (weaponsData.type === 'mg') {
+                        this.weaponRange = 500;
+                    } else if (weaponsData.type === 'hmg') {
+                        this.weaponRange = 600;
+                    } else if (weaponsData.type === 'cannon') {
+                        this.weaponRange = 800;
+                    } else {
+                        this.weaponRange = 500; // Default
+                    }
                     this.weaponGroups = null;
                 }
 
@@ -2363,7 +2393,15 @@
                 this.gForcePenalty = 0;
 
                 // Advanced aerobatic maneuvers
-                this.maneuverType = 'none'; // none, immelmann, split-s, loop, half-loop
+                this.maneuverType = 'none'; // none, immelmann, split-s, loop, half-loop, dive-bomb, level-bomb, strafe
+
+                // Multi-turn maneuver system
+                this.maneuverRequiredTime = 0; // Total time in seconds required for the maneuver
+                this.maneuverElapsedTime = 0; // Total time in seconds elapsed so far
+                this.maneuverProgress = 0; // Overall progress (0 to 1 across all turns)
+                this.isInMultiTurnManeuver = false; // Currently executing a multi-turn maneuver
+                this.maneuverCancelled = false; // Emergency cancellation flag
+                this.maneuverCancellationPenalty = 0; // Turns of penalty remaining after cancellation
 
                 // Automatic banking visualization
                 this.currentTurnRate = 0; // Current turn rate in degrees/second for visual banking
@@ -2461,8 +2499,10 @@
 
                 if (useImage) {
                     // Draw the aircraft SVG image centered with transparency
-                    const imgWidth = 80;
-                    const imgHeight = 80;
+                    // Scale to match real dimensions: Spitfire is ~9.2m long, Bf 109 is ~9m
+                    // At 1 pixel ≈ 1 meter scale, use 15 pixels for visibility
+                    const imgWidth = 15;
+                    const imgHeight = 15;
 
                     // Create offscreen canvas to process the image
                     const offscreenCanvas = document.createElement('canvas');
@@ -3486,6 +3526,316 @@
                 };
             }
 
+            // Calculate Dive Bomb: steep dive toward ground target, pull up before impact
+            calculateDiveBombPath() {
+                const TIME_STEP = 0.1;
+                const NUM_STEPS = Math.floor(turnTime / TIME_STEP);
+                const path = [];
+
+                // Dive bomb requires sufficient altitude for safe pull-up
+                const MIN_ALTITUDE = 500;
+                const PULL_UP_ALTITUDE = 150; // Start pull-up at this altitude
+                const DIVE_ANGLE = 45; // degrees
+
+                if (this.altitude < MIN_ALTITUDE) {
+                    // Not enough altitude to safely dive bomb
+                    this.flightPath = [{
+                        x: this.x,
+                        y: this.y,
+                        altitude: this.altitude,
+                        heading: this.heading,
+                        speed: this.speed
+                    }];
+                    return {
+                        path: this.flightPath,
+                        state: 'illegal',
+                        warnings: [`Altitude too low for Dive Bomb (min ${MIN_ALTITUDE}m, current ${Math.round(this.altitude)}m)`],
+                        targetSpeed: Math.round(this.speed),
+                        gForce: '1.0',
+                        climbRate: 0,
+                        targetAltitude: Math.round(this.altitude),
+                        targetHeading: Math.round(this.heading),
+                        finalX: this.x,
+                        finalY: this.y,
+                        finalAltitude: this.altitude,
+                        finalFlightHeading: this.heading
+                    };
+                }
+
+                const startSpeed = this.speed;
+                const headingRad = (this.heading - 90) * Math.PI / 180;
+
+                // Calculate dive distance and pull-up arc
+                const diveAltitudeLoss = this.altitude - PULL_UP_ALTITUDE;
+                const diveDistance = diveAltitudeLoss / Math.tan(DIVE_ANGLE * Math.PI / 180);
+
+                // Pull-up radius based on speed gained during dive
+                const diveSpeedGain = Math.sqrt(2 * 9.81 * diveAltitudeLoss * 0.7); // ~70% efficiency
+                const pullUpSpeed = startSpeed + diveSpeedGain;
+                const pullUpRadius = (pullUpSpeed * pullUpSpeed) / (this.maxGForce * 9.81);
+
+                for (let i = 0; i <= NUM_STEPS; i++) {
+                    const progress = i / NUM_STEPS;
+                    let currentX, currentY, currentAltitude, currentSpeed, currentHeading;
+
+                    // Three phases: approach (10%), dive (60%), pull-up (30%)
+                    if (progress < 0.1) {
+                        // Initial approach - level flight
+                        const phaseProgress = progress / 0.1;
+                        const dist = phaseProgress * diveDistance * 0.15;
+                        currentX = this.x + dist * Math.cos(headingRad);
+                        currentY = this.y + dist * Math.sin(headingRad);
+                        currentAltitude = this.altitude;
+                        currentSpeed = startSpeed;
+                        currentHeading = this.heading;
+                        this.currentGForce = 1.0;
+                    } else if (progress < 0.7) {
+                        // Dive phase
+                        const phaseProgress = (progress - 0.1) / 0.6;
+                        const dist = diveDistance * 0.15 + phaseProgress * diveDistance * 0.75;
+                        currentX = this.x + dist * Math.cos(headingRad);
+                        currentY = this.y + dist * Math.sin(headingRad);
+                        currentAltitude = this.altitude - phaseProgress * diveAltitudeLoss;
+                        currentSpeed = startSpeed + phaseProgress * diveSpeedGain;
+                        currentHeading = this.heading; // Maintain heading during dive
+                        this.currentGForce = 1.5; // Light G-load during dive
+                    } else {
+                        // Pull-up phase
+                        const phaseProgress = (progress - 0.7) / 0.3;
+                        const pullUpAngle = phaseProgress * (Math.PI / 2); // 90-degree pull-up
+
+                        // Arc during pull-up
+                        const arcDist = Math.sin(pullUpAngle) * pullUpRadius;
+                        const totalDist = diveDistance * 0.9 + arcDist;
+                        currentX = this.x + totalDist * Math.cos(headingRad);
+                        currentY = this.y + totalDist * Math.sin(headingRad);
+                        currentAltitude = PULL_UP_ALTITUDE + (1 - Math.cos(pullUpAngle)) * pullUpRadius;
+                        currentSpeed = pullUpSpeed * (1 - 0.2 * phaseProgress); // Bleed speed in pull-up
+                        currentHeading = this.heading; // Exit same heading
+                        this.currentGForce = 3.0 + Math.sin(pullUpAngle) * 4.0; // High G during pull-up
+                    }
+
+                    path.push({
+                        x: currentX,
+                        y: currentY,
+                        altitude: currentAltitude,
+                        heading: currentHeading,
+                        speed: currentSpeed
+                    });
+                }
+
+                this.flightPath = path;
+                const finalState = path[path.length - 1];
+                return {
+                    path: path,
+                    state: 'valid',
+                    warnings: [],
+                    targetSpeed: Math.round(finalState.speed),
+                    gForce: '7.0',
+                    climbRate: Math.round((finalState.altitude - PULL_UP_ALTITUDE) / (turnTime * 0.3)),
+                    targetAltitude: Math.round(finalState.altitude),
+                    targetHeading: Math.round(finalState.heading),
+                    finalX: finalState.x,
+                    finalY: finalState.y,
+                    finalAltitude: finalState.altitude,
+                    finalFlightHeading: finalState.heading
+                };
+            }
+
+            // Calculate Level Bomb: maintain altitude and fly straight for precision bombing
+            calculateLevelBombPath() {
+                const TIME_STEP = 0.1;
+                const NUM_STEPS = Math.floor(turnTime / TIME_STEP);
+                const path = [];
+
+                const startSpeed = this.speed;
+                const headingRad = (this.heading - 90) * Math.PI / 180;
+                const distance = startSpeed * turnTime;
+
+                for (let i = 0; i <= NUM_STEPS; i++) {
+                    const progress = i / NUM_STEPS;
+                    const dist = progress * distance;
+
+                    const currentX = this.x + dist * Math.cos(headingRad);
+                    const currentY = this.y + dist * Math.sin(headingRad);
+
+                    path.push({
+                        x: currentX,
+                        y: currentY,
+                        altitude: this.altitude, // Maintain constant altitude
+                        heading: this.heading, // Maintain constant heading
+                        speed: startSpeed // Maintain constant speed
+                    });
+
+                    this.currentGForce = 1.0; // Level flight, no G-force
+                }
+
+                this.flightPath = path;
+                const finalState = path[path.length - 1];
+                return {
+                    path: path,
+                    state: 'valid',
+                    warnings: [],
+                    targetSpeed: Math.round(finalState.speed),
+                    gForce: '1.0',
+                    climbRate: 0,
+                    targetAltitude: Math.round(finalState.altitude),
+                    targetHeading: Math.round(finalState.heading),
+                    finalX: finalState.x,
+                    finalY: finalState.y,
+                    finalAltitude: finalState.altitude,
+                    finalFlightHeading: finalState.heading
+                };
+            }
+
+            // Calculate Strafing Run: low-level, high-speed attack run
+            calculateStrafingRunPath() {
+                const TIME_STEP = 0.1;
+                const NUM_STEPS = Math.floor(turnTime / TIME_STEP);
+                const path = [];
+
+                const TARGET_STRAFE_ALTITUDE = 100; // Low altitude for strafing
+                const MIN_SAFE_ALTITUDE = 50;
+                const startSpeed = Math.max(this.speed, 150); // Fast approach
+                const headingRad = (this.heading - 90) * Math.PI / 180;
+
+                // Determine if we need to climb or descend to strafe altitude
+                const altitudeDiff = TARGET_STRAFE_ALTITUDE - this.altitude;
+                const needsAltitudeChange = Math.abs(altitudeDiff) > 20;
+
+                for (let i = 0; i <= NUM_STEPS; i++) {
+                    const progress = i / NUM_STEPS;
+                    let currentAltitude, currentSpeed;
+
+                    if (needsAltitudeChange && progress < 0.3) {
+                        // First 30% - adjust to strafe altitude
+                        const phaseProgress = progress / 0.3;
+                        currentAltitude = this.altitude + altitudeDiff * phaseProgress;
+                        currentSpeed = startSpeed;
+                        this.currentGForce = 1.0 + Math.abs(altitudeDiff) * 0.002; // Slight G-load during altitude change
+                    } else {
+                        // Remainder - maintain low altitude, high speed
+                        currentAltitude = TARGET_STRAFE_ALTITUDE;
+                        currentSpeed = startSpeed * 1.1; // Slight speed increase at low altitude
+                        this.currentGForce = 1.0;
+                    }
+
+                    // Straight-line path
+                    const dist = progress * startSpeed * turnTime;
+                    const currentX = this.x + dist * Math.cos(headingRad);
+                    const currentY = this.y + dist * Math.sin(headingRad);
+
+                    path.push({
+                        x: currentX,
+                        y: currentY,
+                        altitude: Math.max(currentAltitude, MIN_SAFE_ALTITUDE), // Never go below minimum safe altitude
+                        heading: this.heading,
+                        speed: currentSpeed
+                    });
+                }
+
+                this.flightPath = path;
+                const finalState = path[path.length - 1];
+
+                // Check if final altitude is dangerously low
+                const warnings = [];
+                if (finalState.altitude < MIN_SAFE_ALTITUDE + 20) {
+                    warnings.push('Warning: Very low altitude - risk of ground collision');
+                }
+
+                return {
+                    path: path,
+                    state: 'valid',
+                    warnings: warnings,
+                    targetSpeed: Math.round(finalState.speed),
+                    gForce: needsAltitudeChange ? '2.0' : '1.0',
+                    climbRate: Math.round((finalState.altitude - this.altitude) / turnTime),
+                    targetAltitude: Math.round(finalState.altitude),
+                    targetHeading: Math.round(finalState.heading),
+                    finalX: finalState.x,
+                    finalY: finalState.y,
+                    finalAltitude: finalState.altitude,
+                    finalFlightHeading: finalState.heading
+                };
+            }
+
+            // Calculate the realistic time (in seconds) a maneuver should take
+            calculateManeuverRealisticTime() {
+                const startSpeed = this.speed;
+
+                switch(this.maneuverType) {
+                    case 'loop': {
+                        // Full loop: circumference = 2πr, where r = v²/(g*maxG)
+                        const loopRadius = (startSpeed * startSpeed) / (this.maxGForce * 9.81);
+                        const circumference = 2 * Math.PI * loopRadius;
+                        const avgSpeed = startSpeed * 0.8; // Speed varies during loop
+                        return circumference / avgSpeed;
+                    }
+
+                    case 'half-loop': {
+                        // Half loop: half the circumference
+                        const loopRadius = (startSpeed * startSpeed) / (this.maxGForce * 9.81);
+                        const halfCircumference = Math.PI * loopRadius;
+                        const avgSpeed = startSpeed * 0.8;
+                        return halfCircumference / avgSpeed;
+                    }
+
+                    case 'immelmann': {
+                        // Immelmann: half loop + half roll (slightly longer than half loop)
+                        const loopRadius = (startSpeed * startSpeed) / (this.maxGForce * 9.81);
+                        const halfCircumference = Math.PI * loopRadius;
+                        const avgSpeed = startSpeed * 0.75; // Slower due to energy loss
+                        return (halfCircumference / avgSpeed) + 1.0; // +1s for the roll
+                    }
+
+                    case 'split-s': {
+                        // Split-S: half roll + half loop
+                        const loopRadius = (startSpeed * startSpeed) / (this.maxGForce * 9.81);
+                        const halfCircumference = Math.PI * loopRadius;
+                        const avgSpeed = startSpeed * 0.85; // Gains speed in dive
+                        return 1.0 + (halfCircumference / avgSpeed); // 1s for roll + loop time
+                    }
+
+                    case 'dive-bomb': {
+                        // Dive bomb: approach + dive + pull-up
+                        const PULL_UP_ALTITUDE = 150;
+                        const diveAltitudeLoss = Math.max(0, this.altitude - PULL_UP_ALTITUDE);
+                        const diveSpeedGain = Math.sqrt(2 * 9.81 * diveAltitudeLoss * 0.7);
+                        const pullUpSpeed = startSpeed + diveSpeedGain;
+                        const pullUpRadius = (pullUpSpeed * pullUpSpeed) / (this.maxGForce * 9.81);
+
+                        // Time = dive time + pull-up arc time
+                        const diveTime = diveAltitudeLoss / (startSpeed * Math.sin(45 * Math.PI / 180));
+                        const pullUpArcLength = (Math.PI / 2) * pullUpRadius; // 90-degree arc
+                        const pullUpTime = pullUpArcLength / pullUpSpeed;
+
+                        return diveTime + pullUpTime + 0.5; // +0.5s for approach
+                    }
+
+                    case 'level-bomb': {
+                        // Level bomb: straight and level flight
+                        return turnTime; // Standard turn duration
+                    }
+
+                    case 'strafe': {
+                        // Strafing run: fast, low-level pass
+                        const altitudeDiff = Math.abs(100 - this.altitude);
+                        const needsAltitudeChange = altitudeDiff > 20;
+
+                        if (needsAltitudeChange) {
+                            // Add time for altitude adjustment
+                            const adjustTime = altitudeDiff / (startSpeed * 0.2); // Shallow descent/climb
+                            return turnTime + Math.min(adjustTime, 1.0);
+                        }
+                        return turnTime;
+                    }
+
+                    default:
+                        // Regular flight: not a special maneuver
+                        return turnTime;
+                }
+            }
+
             calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading, slipAngle = 0) {
                 // Check if we're doing a special maneuver
                 if (this.maneuverType === 'immelmann') {
@@ -3496,6 +3846,12 @@
                     return this.calculateLoopPath();
                 } else if (this.maneuverType === 'half-loop') {
                     return this.calculateHalfLoopPath();
+                } else if (this.maneuverType === 'dive-bomb') {
+                    return this.calculateDiveBombPath();
+                } else if (this.maneuverType === 'level-bomb') {
+                    return this.calculateLevelBombPath();
+                } else if (this.maneuverType === 'strafe') {
+                    return this.calculateStrafingRunPath();
                 }
 
                 // Use the new realistic path calculation
@@ -3533,6 +3889,25 @@
                 const validation = this.calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading, slipAngle);
                 // flightPath is already set by calculateManeuverValidation, just log for debugging
                 console.log(`[LOCK ORDERS] ${this.name} locked with path length:`, this.flightPath?.length);
+
+                // Calculate multi-turn requirements for special maneuvers
+                if (this.maneuverType !== 'none') {
+                    this.maneuverRequiredTime = this.calculateManeuverRealisticTime();
+                    this.maneuverElapsedTime = 0;
+                    this.maneuverProgress = 0;
+                    this.maneuverCancelled = false;
+
+                    // Set multi-turn flag if maneuver requires more time than current turn duration
+                    this.isInMultiTurnManeuver = this.maneuverRequiredTime > turnTime;
+
+                    const estimatedTurns = Math.ceil(this.maneuverRequiredTime / turnTime);
+                    console.log(`[MULTI-TURN] ${this.name} ${this.maneuverType}: requires ${this.maneuverRequiredTime.toFixed(1)}s (≈${estimatedTurns} turns at ${turnTime}s/turn)`);
+                } else {
+                    // Regular movement - completes in current turn
+                    this.maneuverRequiredTime = 0;
+                    this.maneuverElapsedTime = 0;
+                    this.isInMultiTurnManeuver = false;
+                }
             }
 
             unlockOrders() {
@@ -3544,7 +3919,17 @@
             }
 
             executeOrders(progress) {
-                // progress goes from 0 to 1
+                // progress goes from 0 to 1 for the current turn
+
+                // For multi-turn maneuvers, map progress to the overall maneuver progress
+                let overallProgress = progress;
+                if (this.isInMultiTurnManeuver) {
+                    // Calculate total elapsed time: previous turns + current turn progress
+                    const currentTurnElapsed = progress * turnTime;
+                    const totalElapsed = this.maneuverElapsedTime + currentTurnElapsed;
+                    overallProgress = Math.min(totalElapsed / this.maneuverRequiredTime, 1.0);
+                    this.maneuverProgress = overallProgress;
+                }
 
                 // Handle roll mechanics during execution
                 if (this.rollType !== 'none') {
@@ -3585,12 +3970,15 @@
 
                 // Follow the precalculated realistic flight path
                 if (this.flightPath && this.flightPath.length > 1) {
+                    // Use overall progress for multi-turn maneuvers, regular progress otherwise
+                    const pathProgress = this.isInMultiTurnManeuver ? overallProgress : progress;
+
                     // Find the point in the path corresponding to current progress
-                    const pathIndex = Math.floor(progress * (this.flightPath.length - 1));
+                    const pathIndex = Math.floor(pathProgress * (this.flightPath.length - 1));
                     const nextIndex = Math.min(pathIndex + 1, this.flightPath.length - 1);
 
                     // Interpolate between path points for smooth animation
-                    const localProgress = (progress * (this.flightPath.length - 1)) - pathIndex;
+                    const localProgress = (pathProgress * (this.flightPath.length - 1)) - pathIndex;
 
                     const current = this.flightPath[pathIndex];
                     const next = this.flightPath[nextIndex];
@@ -4152,8 +4540,18 @@
                     if (angleDiff < -180) angleDiff += 360;
                     angleDiff = Math.abs(angleDiff);
 
+                    // Calculate maximum weapon range for this aircraft
+                    let maxWeaponRange = 400; // Default fallback
+                    if (shooter.hasMixedArmament && shooter.weaponGroups) {
+                        // Get max range from all weapon groups
+                        maxWeaponRange = Math.max(...shooter.weaponGroups.map(w => w.range || 400));
+                    } else if (shooter.weaponRange) {
+                        // Single weapon type
+                        maxWeaponRange = shooter.weaponRange;
+                    }
+
                     // Firing cone: 20 degrees for realistic gunnery
-                    if (angleDiff < 20 && distance < 400) {
+                    if (angleDiff < 20 && distance < maxWeaponRange) {
                         // Check line of sight - clouds can block vision!
                         const losBlocked = !terrain.isLineOfSightClear(
                             shooter.x, shooter.y, shooter.altitude,
@@ -4172,7 +4570,7 @@
                         // Calculate hit chance
                         let effectiveGunnerySkill = shooter.gunnerySkill * (1 - shooter.gForcePenalty);
                         let hitChance = effectiveGunnerySkill * 0.6;
-                        hitChance *= Math.max(0.1, 1 - distance / 400); // Distance factor (max 400m)
+                        hitChance *= Math.max(0.1, 1 - distance / maxWeaponRange); // Distance factor based on weapon range
                         hitChance *= Math.max(0.3, 1 - altitudeDiff / 500); // Altitude factor
                         hitChance *= Math.min(1, 0.2 + shooter.timeOnTarget / 8); // Time on target bonus
 
@@ -4225,22 +4623,22 @@
                                         // MGs: Good at all ranges, use for ranging/suppression
                                         shouldFireThisWeapon = true; // Fire whenever in arc
                                     } else if (weaponGroup.type === 'hmg') {
-                                        // HMGs: Effective at medium range, fairly common ammo
-                                        shouldFireThisWeapon = distance < 350 || hitChance > 0.4;
+                                        // HMGs: Effective at medium range (60% of max range), fairly common ammo
+                                        shouldFireThisWeapon = distance < (weaponGroup.range * 0.6) || hitChance > 0.4;
                                     } else if (weaponGroup.type === 'cannon') {
                                         // Cannons: Save for close range where they're most effective
                                         // Calculate ammo percentage remaining
                                         const ammoPercent = weaponGroup.ammunition / weaponGroup.maxAmmunition;
 
                                         if (ammoPercent < 0.2) {
-                                            // Critical ammo! Only fire at very close range with high hit chance
-                                            shouldFireThisWeapon = distance < 150 && hitChance > 0.5;
+                                            // Critical ammo! Only fire at very close range (20% of max) with high hit chance
+                                            shouldFireThisWeapon = distance < (weaponGroup.range * 0.2) && hitChance > 0.5;
                                         } else if (ammoPercent < 0.5) {
-                                            // Low ammo, be conservative
-                                            shouldFireThisWeapon = distance < 200 && hitChance > 0.4;
+                                            // Low ammo, be conservative (25% of max range)
+                                            shouldFireThisWeapon = distance < (weaponGroup.range * 0.25) && hitChance > 0.4;
                                         } else {
-                                            // Plenty of ammo, fire at close-medium range
-                                            shouldFireThisWeapon = distance < 250;
+                                            // Plenty of ammo, fire at close-medium range (35% of max)
+                                            shouldFireThisWeapon = distance < (weaponGroup.range * 0.35);
                                         }
                                     }
 
@@ -4620,6 +5018,38 @@
                     ctx.fill();
                 }
 
+                // Draw time markers for multi-turn maneuvers
+                if (selectedAircraft.maneuverType !== 'none') {
+                    const maneuverTime = selectedAircraft.calculateManeuverRealisticTime();
+                    const isMultiTurn = maneuverTime > turnTime;
+                    if (isMultiTurn) {
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.fillStyle = '#ffffff';
+                        ctx.lineWidth = 2;
+                        ctx.font = 'bold 14px Courier New';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+
+                        // Draw markers at each turn-duration interval
+                        const numMarkers = Math.ceil(maneuverTime / turnTime);
+                        for (let i = 1; i < numMarkers; i++) {
+                            const timeProgress = (i * turnTime) / maneuverTime;
+                            const pathIndex = Math.floor(timeProgress * (ghostAircraft.aircraft.flightPath.length - 1));
+                            const point = ghostAircraft.aircraft.flightPath[pathIndex];
+
+                            // Draw a vertical line marker
+                            ctx.beginPath();
+                            ctx.moveTo(point.x - 10, point.y - 15);
+                            ctx.lineTo(point.x - 10, point.y + 15);
+                            ctx.stroke();
+
+                            // Draw time marker
+                            const timeAtMarker = i * turnTime;
+                            ctx.fillText(`${timeAtMarker}s`, point.x + 10, point.y);
+                        }
+                    }
+                }
+
                 ctx.restore();
 
                 // Debug: Log occasionally to verify rendering
@@ -4929,7 +5359,7 @@
 
             const scaleBarLength = 100; // Represents 100 meters
             const infoBoxX = canvas.width - 240; // Position from right edge
-            const infoBoxY = canvas.height - 200; // Moved up to be visible on screen
+            const infoBoxY = canvas.height - 100;
 
             // Draw semi-transparent background for entire info box
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -4971,6 +5401,57 @@
             // Draw terrain altitude at mouse cursor
             const terrainHeight = terrain.getHeightAt(mouseX, mouseY);
             ctx.fillText(`Terrain: ${Math.round(terrainHeight)}m`, scaleBarX, scaleBarY + 40);
+
+            // Draw multi-turn maneuver progress indicators (during EXECUTION only)
+            if (gameState === 'EXECUTION') {
+                let yOffset = 80; // Start position from top
+                for (let plane of aircraft) {
+                    if (plane.isInMultiTurnManeuver && !plane.isDestroyed) {
+                        // Calculate current progress
+                        const totalElapsed = plane.maneuverElapsedTime + (progress * turnTime);
+                        const percentComplete = Math.min((totalElapsed / plane.maneuverRequiredTime) * 100, 100);
+                        const remaining = Math.max(0, plane.maneuverRequiredTime - totalElapsed);
+
+                        // Draw progress bar background
+                        const barX = 20;
+                        const barY = yOffset;
+                        const barWidth = 300;
+                        const barHeight = 50;
+
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                        ctx.fillRect(barX, barY, barWidth, barHeight);
+                        ctx.strokeStyle = plane.isPlayer ? '#00aaff' : '#ff6666';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+                        // Draw progress fill
+                        const fillWidth = (barWidth - 4) * (percentComplete / 100);
+                        const gradient = ctx.createLinearGradient(barX + 2, barY + 2, barX + 2 + fillWidth, barY + 2);
+                        gradient.addColorStop(0, plane.isPlayer ? '#0066aa' : '#aa4444');
+                        gradient.addColorStop(1, plane.isPlayer ? '#00aaff' : '#ff6666');
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(barX + 2, barY + 2, fillWidth, barHeight - 4);
+
+                        // Draw text
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 14px Courier New';
+                        ctx.textAlign = 'left';
+                        ctx.fillText(`${plane.name}: ${plane.maneuverType.toUpperCase()}`, barX + 5, barY + 18);
+                        ctx.font = '12px Courier New';
+                        ctx.fillText(`${percentComplete.toFixed(0)}% - ${remaining.toFixed(1)}s remaining`, barX + 5, barY + 35);
+
+                        // Show cancel option for player aircraft
+                        if (plane.isPlayer) {
+                            ctx.fillStyle = '#ffaa00';
+                            ctx.font = '10px Courier New';
+                            ctx.textAlign = 'right';
+                            ctx.fillText('Press C to cancel (penalty)', barX + barWidth - 5, barY + 45);
+                        }
+
+                        yOffset += 60; // Next progress bar
+                    }
+                }
+            }
 
             ctx.restore(); // Restore state after drawing UI elements
         }
@@ -5021,7 +5502,7 @@
         let ghostRotation = 0;
         let ghostAltitudeOffset = 0;
         let ghostSlipAngle = 0; // Slip/skid angle in degrees (nose pointing different direction than movement)
-        let zoomLevel = 1.0; // Zoom level for canvas (1.0 = no zoom)
+        let zoomLevel = 1.2; // Zoom level for canvas (1.0 = no zoom, 1.2 = 20% zoomed in)
         let panX = 0; // Pan offset X
         let panY = 0; // Pan offset Y
         let isPanning = false; // Middle mouse button panning active
@@ -5055,7 +5536,12 @@
             // Target position (where mouse is pointing)
             const targetX = mouseX;
             const targetY = mouseY;
-            const targetHeading = (selectedAircraft.heading + ghostRotation + 360) % 360;
+
+            // Calculate heading from aircraft to mouse position
+            const dx = targetX - selectedAircraft.x;
+            const dy = targetY - selectedAircraft.y;
+            const targetHeading = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
+
             const targetAltitude = Math.max(ALTITUDE_MIN,
                 Math.min(ALTITUDE_MAX, selectedAircraft.altitude + ghostAltitudeOffset));
 
@@ -5134,6 +5620,24 @@
             const fireThresholdPercent = Math.round(selectedAircraft.fireThreshold * 100);
             const fireThresholdColor = selectedAircraft.fireThreshold < 0.20 ? '#ff4444' :
                                       selectedAircraft.fireThreshold < 0.30 ? '#ffaa00' : '#00ff00';
+
+            // Calculate multi-turn requirements
+            let multiTurnInfo = '';
+            if (selectedAircraft.maneuverType !== 'none') {
+                const maneuverTime = selectedAircraft.calculateManeuverRealisticTime();
+                const estimatedTurns = Math.ceil(maneuverTime / turnTime);
+                const isMultiTurn = maneuverTime > turnTime;
+                const maneuverColor = isMultiTurn ? '#ffaa00' : '#00ff00';
+                multiTurnInfo = `
+                    <div style="color: ${maneuverColor}; font-weight: bold; margin-top: 5px; border-top: 1px solid #444; padding-top: 5px;">
+                        <div>Maneuver: ${selectedAircraft.maneuverType.toUpperCase()}</div>
+                        <div>Required Time: ${maneuverTime.toFixed(1)}s</div>
+                        <div>Estimated: ≈${estimatedTurns} turn${estimatedTurns > 1 ? 's' : ''} @ ${turnTime}s/turn</div>
+                        ${isMultiTurn ? '<div style="color: #ff8800;">⚠ MULTI-TURN COMMITMENT</div>' : ''}
+                    </div>
+                `;
+            }
+
             let panelHTML = `
                 <div>Throttle: ${throttlePercent}%</div>
                 <div>Heading: ${validation.targetHeading}°</div>
@@ -5143,6 +5647,7 @@
                 <div>G-Force: ${validation.gForce}G</div>
                 <div style="color: ${rollColor}">Roll: ${rollDisplay}</div>
                 <div style="color: ${fireThresholdColor}">Fire Threshold: ${fireThresholdPercent}%</div>
+                ${multiTurnInfo}
             `;
 
             if (validation.warnings.length > 0) {
@@ -5416,6 +5921,41 @@
                 }
             }
 
+            // Emergency cancellation - works during EXECUTION phase
+            if (e.key.toLowerCase() === 'c' && gameState === 'EXECUTION') {
+                // Check if any player aircraft are in multi-turn maneuvers
+                for (let plane of aircraft) {
+                    if (plane.isPlayer && plane.isInMultiTurnManeuver && !plane.maneuverCancelled) {
+                        // Cancel the maneuver with consequences
+                        plane.maneuverCancelled = true;
+                        plane.isInMultiTurnManeuver = false;
+
+                        // Apply consequences based on current G-force and speed
+                        const gPenalty = Math.max(0, (plane.currentGForce - 2) * 5); // Higher G = more damage
+                        plane.damage += gPenalty;
+
+                        // Loss of speed due to sudden maneuver cancellation
+                        plane.speed = Math.max(plane.minSpeed, plane.speed * 0.85); // Lose 15% speed
+
+                        // Possible control damage
+                        if (plane.currentGForce > 4) {
+                            plane.systemDamage.controls = Math.min(1.0, plane.systemDamage.controls + 0.1);
+                        }
+
+                        // Pilot becomes disoriented for 1 turn
+                        plane.maneuverCancellationPenalty = 1;
+
+                        console.log(`[EMERGENCY CANCEL] ${plane.name} cancelled ${plane.maneuverType}! Damage: +${gPenalty.toFixed(1)}, Speed: ${plane.speed.toFixed(0)} m/s`);
+
+                        // Reset maneuver state
+                        plane.maneuverType = 'none';
+                        plane.maneuverElapsedTime = 0;
+                        plane.maneuverRequiredTime = 0;
+                    }
+                }
+                return;
+            }
+
             if (!selectedAircraft || !ghostAircraft) return;
 
             switch(e.key.toLowerCase()) {
@@ -5504,6 +6044,33 @@
                     // Toggle Half-loop
                     selectedAircraft.maneuverType = selectedAircraft.maneuverType === 'half-loop' ? 'none' : 'half-loop';
                     if (selectedAircraft.maneuverType === 'half-loop') {
+                        selectedAircraft.rollType = 'none'; // Clear roll
+                    }
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'j':
+                    // Toggle Dive Bomb
+                    selectedAircraft.maneuverType = selectedAircraft.maneuverType === 'dive-bomb' ? 'none' : 'dive-bomb';
+                    if (selectedAircraft.maneuverType === 'dive-bomb') {
+                        selectedAircraft.rollType = 'none'; // Clear roll
+                    }
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'n':
+                    // Toggle Level Bomb
+                    selectedAircraft.maneuverType = selectedAircraft.maneuverType === 'level-bomb' ? 'none' : 'level-bomb';
+                    if (selectedAircraft.maneuverType === 'level-bomb') {
+                        selectedAircraft.rollType = 'none'; // Clear roll
+                    }
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'k':
+                    // Toggle Strafing Run
+                    selectedAircraft.maneuverType = selectedAircraft.maneuverType === 'strafe' ? 'none' : 'strafe';
+                    if (selectedAircraft.maneuverType === 'strafe') {
                         selectedAircraft.rollType = 'none'; // Clear roll
                     }
                     updateGhost();
@@ -5716,22 +6283,56 @@
                 }
 
                 if (progress >= 1 && gameState !== 'GAMEOVER') {
-                    // Finalize execution
+                    // Check for multi-turn maneuvers in progress
+                    let hasOngoingManeuvers = false;
+                    for (let plane of aircraft) {
+                        if (plane.isInMultiTurnManeuver && !plane.maneuverCancelled) {
+                            // Add this turn's time to elapsed time
+                            plane.maneuverElapsedTime += turnTime;
+
+                            // Check if maneuver is complete
+                            if (plane.maneuverElapsedTime < plane.maneuverRequiredTime) {
+                                hasOngoingManeuvers = true;
+                                const remaining = plane.maneuverRequiredTime - plane.maneuverElapsedTime;
+                                console.log(`[MULTI-TURN] ${plane.name} continuing ${plane.maneuverType}: ${plane.maneuverElapsedTime.toFixed(1)}s/${plane.maneuverRequiredTime.toFixed(1)}s (${remaining.toFixed(1)}s remaining)`);
+                            } else {
+                                // Maneuver complete
+                                plane.isInMultiTurnManeuver = false;
+                                plane.maneuverType = 'none';
+                                plane.maneuverElapsedTime = 0;
+                                plane.maneuverRequiredTime = 0;
+                                console.log(`[MULTI-TURN] ${plane.name} completed maneuver`);
+                            }
+                        }
+                    }
+
+                    // Finalize execution for all aircraft
                     for (let plane of aircraft) {
                         plane.finalizeExecution();
                     }
-                    gameState = 'REVIEW';
 
-                    // Reset hot-seat mode for next turn
-                    if (hotSeatMode) {
+                    // If there are ongoing multi-turn maneuvers, immediately restart execution
+                    if (hasOngoingManeuvers) {
+                        console.log('[MULTI-TURN] Continuing for ongoing maneuvers...');
+                        executionStartTime = Date.now();
+                        // Don't change state - stay in EXECUTION
+                    } else {
+                        gameState = 'REVIEW';
+                    }
+
+                    // Reset hot-seat mode for next turn (only if not continuing maneuvers)
+                    if (hotSeatMode && !hasOngoingManeuvers) {
                         currentPlayer = 1;
                     }
 
-                    document.getElementById('replayButton').style.display = 'block';
-                    document.getElementById('nextPhase2s').style.display = 'block';
-                    document.getElementById('nextPhase4s').style.display = 'block';
-                    document.getElementById('nextPhase6s').style.display = 'block';
-                    document.getElementById('nextPhase8s').style.display = 'block';
+                    // Only show buttons if we're actually transitioning to REVIEW
+                    if (!hasOngoingManeuvers) {
+                        document.getElementById('replayButton').style.display = 'block';
+                        document.getElementById('nextPhase2s').style.display = 'block';
+                        document.getElementById('nextPhase4s').style.display = 'block';
+                        document.getElementById('nextPhase6s').style.display = 'block';
+                        document.getElementById('nextPhase8s').style.display = 'block';
+                    }
                 }
             }
 
