@@ -5079,7 +5079,7 @@
                 }
 
                 // Draw time markers for multi-turn maneuvers
-                if (selectedAircraft.maneuverType !== 'none') {
+                if (selectedAircraft && selectedAircraft.maneuverType !== 'none') {
                     const maneuverTime = selectedAircraft.calculateManeuverRealisticTime();
                     const isMultiTurn = maneuverTime > turnTime;
                     if (isMultiTurn) {
