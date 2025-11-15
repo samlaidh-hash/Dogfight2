@@ -5198,6 +5198,9 @@
                 for (let plane of aircraft) {
                     if (plane.isDestroyed) continue;
 
+                    // Only show firing cone for the selected aircraft
+                    if (plane !== selectedAircraft) continue;
+
                     // Find enemy targets
                     const enemies = aircraft.filter(p => p.isPlayer !== plane.isPlayer && !p.isDestroyed);
 
