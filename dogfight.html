@@ -175,7 +175,7 @@
 
         .minimap {
             position: absolute;
-            bottom: 100px;
+            bottom: 200px;
             right: 10px;
             width: 200px;
             height: 200px;
@@ -210,7 +210,7 @@
 
         #energyDiagram {
             position: absolute;
-            bottom: 320px;
+            bottom: 420px;
             right: 10px;
             width: 200px;
             height: 200px;
@@ -5423,7 +5423,7 @@
 
             const scaleBarLength = 100; // Represents 100 meters
             const infoBoxX = canvas.width - 240; // Position from right edge
-            const infoBoxY = canvas.height - 140;
+            const infoBoxY = canvas.height - 240;
 
             // Draw semi-transparent background for entire info box
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -5852,6 +5852,8 @@
                                         generateAIOrders(aiPlane);
                                     }
                                 }
+                                // Update UI to show execute button
+                                updateUI();
                             }
                         } else {
                             console.log('Ghost illegal, not locking');
@@ -5946,6 +5948,8 @@
                         generateAIOrders(aiPlane);
                     }
                 }
+                // Update UI to show execute button
+                updateUI();
             } else {
                 console.log('Cannot lock:', {
                     selectedAircraft: !!selectedAircraft,
