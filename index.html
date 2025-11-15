@@ -41,7 +41,9 @@
             background: rgba(0, 0, 0, 0.7);
             padding: 15px;
             border-radius: 0 5px 5px 0;
-            min-width: 250px;
+            min-width: 280px;
+            width: auto;
+            max-width: 350px;
             transition: transform 0.3s ease-in-out;
             cursor: default;
             z-index: 100;
@@ -76,16 +78,16 @@
             pointer-events: auto;
         }
 
-        #aircraftPanel {
+        #controlsPanel {
             top: 10px;
-            max-height: 45vh;
-            overflow-y: visible;
+            max-height: 40vh;
+            overflow-y: auto;
         }
 
-        #controlsPanel {
-            top: calc(45vh + 20px);
-            max-height: 45vh;
-            overflow-y: visible;
+        #aircraftPanel {
+            top: calc(40vh + 20px);
+            max-height: 50vh;
+            overflow-y: auto;
         }
 
         #executeButton {
@@ -411,10 +413,10 @@
 
         <!-- Aircraft Info Panel (Top) -->
         <div id="aircraftPanel" class="ui-panel">
-            <div class="panel-tab" onclick="togglePanel('aircraftPanel')">AIRCRAFT</div>
+            <div class="panel-tab" onclick="togglePanel('aircraftPanel')" title="Show/hide aircraft status panel">AIRCRAFT</div>
             <h1 style="font-size: 18px;">DOGFIGHT 2</h1>
-            <div id="phaseDisplay" class="stat-line">Phase: <span id="currentPhase">ORDER</span></div>
-            <div id="turnDisplay" class="stat-line">Turn: <span id="currentTurn">1</span></div>
+            <div id="phaseDisplay" class="stat-line" title="Current game phase: ORDER (plan moves), EXECUTION (watch combat), or REVIEW (after combat)">Phase: <span id="currentPhase">ORDER</span></div>
+            <div id="turnDisplay" class="stat-line" title="Current turn number">Turn: <span id="currentTurn">1</span></div>
 
             <h2 style="font-size: 16px; margin-top: 10px;">Spitfire (You)</h2>
             <div id="spitfireStats"></div>
@@ -432,9 +434,9 @@
 
         <!-- Controls Panel (Bottom) -->
         <div id="controlsPanel" class="ui-panel">
-            <div class="panel-tab" onclick="togglePanel('controlsPanel')">CONTROLS</div>
+            <div class="panel-tab" onclick="togglePanel('controlsPanel')" title="Show/hide controls reference panel">CONTROLS</div>
             <div style="font-size: 11px; color: #888;">
-                <div style="font-weight: bold; margin-bottom: 5px;">Flight Controls:</div>
+                <div style="font-weight: bold; margin-bottom: 5px;" title="Keyboard and mouse controls for flight">Flight Controls:</div>
                 <div>• Click aircraft to order</div>
                 <div>• Move mouse to position</div>
                 <div>• Mouse wheel: zoom in/out</div>
@@ -464,9 +466,9 @@
 
         <div id="ghostPanel" class="ghost-panel"></div>
 
-        <div id="realisticModeToggle" style="position: absolute; top: 10px; right: 270px; background: rgba(0, 0, 0, 0.7); padding: 10px; border-radius: 5px; z-index: 150;">
+        <div id="realisticModeToggle" style="position: absolute; top: 10px; right: 270px; background: rgba(0, 0, 0, 0.7); padding: 10px; border-radius: 5px; z-index: 150;" title="Toggle between showing AI's actual planned move (unrealistic) or prediction based on last turn (realistic fog of war)">
             <label style="cursor: pointer; font-size: 14px;">
-                <input type="checkbox" id="realisticModeCheckbox" style="margin-right: 8px; cursor: pointer;">
+                <input type="checkbox" id="realisticModeCheckbox" style="margin-right: 8px; cursor: pointer;" title="When enabled, shows predicted AI position instead of actual planned move">
                 Realistic AI Display
             </label>
             <div style="font-size: 11px; color: #aaa; margin-top: 5px; max-width: 200px;">
@@ -474,16 +476,16 @@
             </div>
         </div>
 
-        <button id="executeButton">EXECUTE ORDERS</button>
-        <button id="replayButton">REPLAY</button>
-        <button id="nextPhase2s" class="nextPhaseButton">NEXT PHASE (2s)</button>
-        <button id="nextPhase4s" class="nextPhaseButton">NEXT PHASE (4s)</button>
-        <button id="nextPhase6s" class="nextPhaseButton">NEXT PHASE (6s)</button>
-        <button id="nextPhase8s" class="nextPhaseButton">NEXT PHASE (8s)</button>
+        <button id="executeButton" title="Execute all locked orders and begin the combat phase">EXECUTE ORDERS</button>
+        <button id="replayButton" title="Replay the last execution phase">REPLAY</button>
+        <button id="nextPhase2s" class="nextPhaseButton" title="Begin next turn with 2 second duration">NEXT PHASE (2s)</button>
+        <button id="nextPhase4s" class="nextPhaseButton" title="Begin next turn with 4 second duration (standard)">NEXT PHASE (4s)</button>
+        <button id="nextPhase6s" class="nextPhaseButton" title="Begin next turn with 6 second duration">NEXT PHASE (6s)</button>
+        <button id="nextPhase8s" class="nextPhaseButton" title="Begin next turn with 8 second duration">NEXT PHASE (8s)</button>
 
-        <button id="restartButton">RESTART</button>
-        <button id="pauseButton">PAUSE</button>
-        <button id="settingsButton">SETTINGS</button>
+        <button id="restartButton" title="Restart the battle from the beginning">RESTART</button>
+        <button id="pauseButton" title="Pause or resume the execution phase">PAUSE</button>
+        <button id="settingsButton" title="Open game settings and options">SETTINGS</button>
 
         <canvas id="minimap" class="minimap" width="200" height="200"></canvas>
         <canvas id="energyDiagram" width="200" height="200"></canvas>
@@ -557,29 +559,103 @@
             <div class="setting-row">
                 <span class="setting-label">Your Aircraft:</span>
                 <select id="playerAircraftSelect">
-                    <option value="Spitfire">Supermarine Spitfire</option>
-                    <option value="Me-109">Messerschmitt Bf 109</option>
-                    <option value="P-51">P-51D Mustang</option>
-                    <option value="P-47">P-47D Thunderbolt</option>
-                    <option value="Hurricane">Hawker Hurricane</option>
-                    <option value="P-40">P-40 Warhawk</option>
-                    <option value="Fw-190">Focke-Wulf Fw 190</option>
-                    <option value="Me-262">Me 262 Jet</option>
-                    <option value="Zero">A6M Zero</option>
+                    <optgroup label="🇬🇧 British">
+                        <option value="Spitfire">Supermarine Spitfire Mk Vb</option>
+                        <option value="Hurricane">Hawker Hurricane Mk IIB</option>
+                        <option value="Typhoon">Hawker Typhoon Mk IB</option>
+                        <option value="Tempest">Hawker Tempest Mk V</option>
+                        <option value="Mosquito">De Havilland Mosquito FB Mk VI</option>
+                    </optgroup>
+                    <optgroup label="🇺🇸 American">
+                        <option value="P-51">P-51D Mustang</option>
+                        <option value="P-47">P-47D Thunderbolt</option>
+                        <option value="P-40">P-40 Warhawk</option>
+                        <option value="P-38">P-38 Lightning</option>
+                        <option value="P-39">P-39 Airacobra</option>
+                        <option value="B-25">B-25 Mitchell</option>
+                        <option value="B-26">B-26 Marauder</option>
+                    </optgroup>
+                    <optgroup label="🇩🇪 German">
+                        <option value="Me-109">Messerschmitt Bf 109 G-6</option>
+                        <option value="Fw-190">Focke-Wulf Fw 190 A-8</option>
+                        <option value="Me-262">Me 262 Schwalbe (Jet)</option>
+                        <option value="Ta-152">Ta 152 H-1</option>
+                        <option value="Bf-110">Bf 110 C-4</option>
+                        <option value="Me-410">Me 410 Hornisse</option>
+                        <option value="Ju-87">Ju 87 Stuka</option>
+                        <option value="Ju-88">Ju 88 A-4</option>
+                        <option value="He-111">He 111 H-6</option>
+                        <option value="Hs-129">Hs 129 B-2 (Tank Buster)</option>
+                    </optgroup>
+                    <optgroup label="🇸🇺 Soviet">
+                        <option value="Yak-1">Yak-1</option>
+                        <option value="Yak-7">Yak-7B</option>
+                        <option value="Yak-9">Yak-9D</option>
+                        <option value="I-16">I-16 Type 24</option>
+                        <option value="MiG-3">MiG-3</option>
+                        <option value="IL-2">IL-2 Sturmovik</option>
+                        <option value="Pe-2">Pe-2</option>
+                    </optgroup>
+                    <optgroup label="🇯🇵 Japanese">
+                        <option value="Zero">A6M5 Zero</option>
+                    </optgroup>
+                    <optgroup label="🇮🇹 Italian">
+                        <option value="MC.202">MC.202 Folgore</option>
+                    </optgroup>
+                    <optgroup label="🇷🇴 Romanian">
+                        <option value="IAR-80">IAR 80</option>
+                    </optgroup>
                 </select>
             </div>
             <div class="setting-row">
                 <span class="setting-label">Enemy Aircraft:</span>
                 <select id="enemyAircraftSelect">
-                    <option value="Me-109" selected>Messerschmitt Bf 109</option>
-                    <option value="Spitfire">Supermarine Spitfire</option>
-                    <option value="P-51">P-51D Mustang</option>
-                    <option value="P-47">P-47D Thunderbolt</option>
-                    <option value="Hurricane">Hawker Hurricane</option>
-                    <option value="P-40">P-40 Warhawk</option>
-                    <option value="Fw-190">Focke-Wulf Fw 190</option>
-                    <option value="Me-262">Me 262 Jet</option>
-                    <option value="Zero">A6M Zero</option>
+                    <optgroup label="🇬🇧 British">
+                        <option value="Spitfire">Supermarine Spitfire Mk Vb</option>
+                        <option value="Hurricane">Hawker Hurricane Mk IIB</option>
+                        <option value="Typhoon">Hawker Typhoon Mk IB</option>
+                        <option value="Tempest">Hawker Tempest Mk V</option>
+                        <option value="Mosquito">De Havilland Mosquito FB Mk VI</option>
+                    </optgroup>
+                    <optgroup label="🇺🇸 American">
+                        <option value="P-51">P-51D Mustang</option>
+                        <option value="P-47">P-47D Thunderbolt</option>
+                        <option value="P-40">P-40 Warhawk</option>
+                        <option value="P-38">P-38 Lightning</option>
+                        <option value="P-39">P-39 Airacobra</option>
+                        <option value="B-25">B-25 Mitchell</option>
+                        <option value="B-26">B-26 Marauder</option>
+                    </optgroup>
+                    <optgroup label="🇩🇪 German">
+                        <option value="Me-109" selected>Messerschmitt Bf 109 G-6</option>
+                        <option value="Fw-190">Focke-Wulf Fw 190 A-8</option>
+                        <option value="Me-262">Me 262 Schwalbe (Jet)</option>
+                        <option value="Ta-152">Ta 152 H-1</option>
+                        <option value="Bf-110">Bf 110 C-4</option>
+                        <option value="Me-410">Me 410 Hornisse</option>
+                        <option value="Ju-87">Ju 87 Stuka</option>
+                        <option value="Ju-88">Ju 88 A-4</option>
+                        <option value="He-111">He 111 H-6</option>
+                        <option value="Hs-129">Hs 129 B-2 (Tank Buster)</option>
+                    </optgroup>
+                    <optgroup label="🇸🇺 Soviet">
+                        <option value="Yak-1">Yak-1</option>
+                        <option value="Yak-7">Yak-7B</option>
+                        <option value="Yak-9">Yak-9D</option>
+                        <option value="I-16">I-16 Type 24</option>
+                        <option value="MiG-3">MiG-3</option>
+                        <option value="IL-2">IL-2 Sturmovik</option>
+                        <option value="Pe-2">Pe-2</option>
+                    </optgroup>
+                    <optgroup label="🇯🇵 Japanese">
+                        <option value="Zero">A6M5 Zero</option>
+                    </optgroup>
+                    <optgroup label="🇮🇹 Italian">
+                        <option value="MC.202">MC.202 Folgore</option>
+                    </optgroup>
+                    <optgroup label="🇷🇴 Romanian">
+                        <option value="IAR-80">IAR 80</option>
+                    </optgroup>
                 </select>
             </div>
             <div style="text-align: center; margin-top: 20px;">
@@ -649,6 +725,7 @@
         let aiPredictedGhost = null; // Predicted AI position based on last turn
         let realisticMode = false; // Toggle for realistic AI display
         let executionStartTime = 0;
+        let currentProgress = 0; // Current execution progress (0 to 1) - used by render function
         let executionRecording = [];
         let isPaused = false;
         let pausedTime = 0;
@@ -1275,6 +1352,628 @@
                 canCarryBombs: true,
                 canCarryRockets: true,
                 color: '#00aaee'
+            },
+            'P-38': {
+                name: 'Lockheed P-38 Lightning',
+                nation: 'American',
+                role: 'Heavy Fighter',
+                maxSpeed: 185, // m/s (~666 km/h)
+                minSpeed: 33, // Twin-engine, heavier
+                maxTurnRate: 54, // Heavy, poor turn
+                maxClimbRate: 16,
+                maxDiveRate: 42,
+                maxGForce: 7,
+                maxAcceleration: 17,
+                maxBraking: 15,
+                // Concentrated nose armament: 1× 20mm + 4× .50 cal
+                weapons: [
+                    {
+                        type: 'cannon',
+                        name: '20mm AN/M2',
+                        count: 1,
+                        ammo: 150,
+                        burstSize: 2,
+                        damage: [8, 16],
+                        rof: 3,
+                        sound: 'cannon'
+                    },
+                    {
+                        type: 'hmg',
+                        name: '.50 cal M2',
+                        count: 4,
+                        ammo: 2000, // 500 rounds per gun
+                        burstSize: 6,
+                        damage: [3, 6],
+                        rof: 1,
+                        sound: 'hmg'
+                    }
+                ],
+                fuelCapacity: 1703, // Excellent range
+                fuelConsumption: 0.75, // Twin engines
+                canCarryBombs: true,
+                canCarryRockets: true,
+                color: '#0088cc'
+            },
+            'P-39': {
+                name: 'Bell P-39 Airacobra',
+                nation: 'American',
+                role: 'Fighter/Ground Attack',
+                maxSpeed: 163, // m/s (~586 km/h)
+                minSpeed: 29,
+                maxTurnRate: 65,
+                maxClimbRate: 11, // Poor climb above 4000m
+                maxDiveRate: 35,
+                maxGForce: 7,
+                maxAcceleration: 15,
+                maxBraking: 17,
+                // Nose cannon + MGs
+                weapons: [
+                    {
+                        type: 'cannon',
+                        name: '37mm M4',
+                        count: 1,
+                        ammo: 30, // Very limited ammo!
+                        burstSize: 1,
+                        damage: [15, 25], // Devastating when it hits
+                        rof: 5,
+                        sound: 'cannon'
+                    },
+                    {
+                        type: 'hmg',
+                        name: '.50 cal M2',
+                        count: 2,
+                        ammo: 400,
+                        burstSize: 4,
+                        damage: [3, 6],
+                        rof: 2,
+                        sound: 'hmg'
+                    }
+                ],
+                fuelCapacity: 454,
+                fuelConsumption: 0.5,
+                canCarryBombs: true,
+                color: '#0099aa'
+            },
+            'MC.202': {
+                name: 'Macchi C.202 Folgore',
+                nation: 'Italian',
+                role: 'Fighter',
+                maxSpeed: 169, // m/s (~600 km/h)
+                minSpeed: 28,
+                maxTurnRate: 70, // Excellent maneuverability
+                maxClimbRate: 15,
+                maxDiveRate: 32,
+                maxGForce: 7,
+                maxAcceleration: 15,
+                maxBraking: 18,
+                // Light armament: 2× 12.7mm Breda-SAFAT
+                weapons: {
+                    type: 'hmg',
+                    name: '12.7mm Breda-SAFAT',
+                    count: 2,
+                    ammo: 720, // 360 rounds per gun
+                    burstSize: 4,
+                    damage: [3, 6],
+                    rof: 2,
+                    sound: 'hmg'
+                },
+                fuelCapacity: 430,
+                fuelConsumption: 0.48,
+                color: '#00aa77'
+            },
+            'Yak-1': {
+                name: 'Yakovlev Yak-1',
+                nation: 'Soviet',
+                role: 'Fighter',
+                maxSpeed: 167, // m/s (~592 km/h)
+                minSpeed: 28,
+                maxTurnRate: 72, // Good turn rate
+                maxClimbRate: 15,
+                maxDiveRate: 30,
+                maxGForce: 6.5,
+                maxAcceleration: 15,
+                maxBraking: 17,
+                // Armament: 1× 20mm ShVAK + 1× 12.7mm UBS
+                weapons: [
+                    {
+                        type: 'cannon',
+                        name: '20mm ShVAK',
+                        count: 1,
+                        ammo: 120,
+                        burstSize: 2,
+                        damage: [7, 14],
+                        rof: 3,
+                        sound: 'cannon'
+                    },
+                    {
+                        type: 'hmg',
+                        name: '12.7mm UBS',
+                        count: 1,
+                        ammo: 200,
+                        burstSize: 2,
+                        damage: [3, 6],
+                        rof: 2,
+                        sound: 'hmg'
+                    }
+                ],
+                fuelCapacity: 304,
+                fuelConsumption: 0.45,
+                color: '#dd5555'
+            },
+            'Yak-7': {
+                name: 'Yakovlev Yak-7B',
+                nation: 'Soviet',
+                role: 'Fighter',
+                maxSpeed: 171, // m/s (~615 km/h)
+                minSpeed: 29,
+                maxTurnRate: 70,
+                maxClimbRate: 16,
+                maxDiveRate: 32,
+                maxGForce: 7,
+                maxAcceleration: 16,
+                maxBraking: 17,
+                // Armament: 1× 20mm ShVAK + 2× 12.7mm UBS
+                weapons: [
+                    {
+                        type: 'cannon',
+                        name: '20mm ShVAK',
+                        count: 1,
+                        ammo: 120,
+                        burstSize: 2,
+                        damage: [7, 14],
+                        rof: 3,
+                        sound: 'cannon'
+                    },
+                    {
+                        type: 'hmg',
+                        name: '12.7mm UBS',
+                        count: 2,
+                        ammo: 400,
+                        burstSize: 4,
+                        damage: [3, 6],
+                        rof: 2,
+                        sound: 'hmg'
+                    }
+                ],
+                fuelCapacity: 330,
+                fuelConsumption: 0.47,
+                color: '#dd6666'
+            },
+            'Yak-9': {
+                name: 'Yakovlev Yak-9D',
+                nation: 'Soviet',
+                role: 'Fighter',
+                maxSpeed: 174, // m/s (~599 km/h)
+                minSpeed: 28,
+                maxTurnRate: 71,
+                maxClimbRate: 16,
+                maxDiveRate: 33,
+                maxGForce: 7,
+                maxAcceleration: 16,
+                maxBraking: 18,
+                // Armament: 1× 20mm ShVAK + 1× 12.7mm UBS
+                weapons: [
+                    {
+                        type: 'cannon',
+                        name: '20mm ShVAK',
+                        count: 1,
+                        ammo: 120,
+                        burstSize: 2,
+                        damage: [7, 14],
+                        rof: 3,
+                        sound: 'cannon'
+                    },
+                    {
+                        type: 'hmg',
+                        name: '12.7mm UBS',
+                        count: 1,
+                        ammo: 200,
+                        burstSize: 2,
+                        damage: [3, 6],
+                        rof: 2,
+                        sound: 'hmg'
+                    }
+                ],
+                fuelCapacity: 480, // Long range variant
+                fuelConsumption: 0.46,
+                color: '#dd7777'
+            },
+            'I-16': {
+                name: 'Polikarpov I-16 Type 24',
+                nation: 'Soviet',
+                role: 'Fighter',
+                maxSpeed: 154, // m/s (~525 km/h) - Old design
+                minSpeed: 25, // Very low stall speed
+                maxTurnRate: 78, // Exceptional turn rate!
+                maxClimbRate: 13,
+                maxDiveRate: 28,
+                maxGForce: 6,
+                maxAcceleration: 13,
+                maxBraking: 16,
+                // Armament: 2× 20mm ShVAK
+                weapons: {
+                    type: 'cannon',
+                    name: '20mm ShVAK',
+                    count: 2,
+                    ammo: 180, // 90 rounds per gun
+                    burstSize: 4,
+                    damage: [7, 14],
+                    rof: 3,
+                    sound: 'cannon'
+                },
+                fuelCapacity: 225,
+                fuelConsumption: 0.4,
+                canCarryRockets: true, // RS-82 rockets
+                color: '#cc5555'
+            },
+            'MiG-3': {
+                name: 'Mikoyan-Gurevich MiG-3',
+                nation: 'Soviet',
+                role: 'High-Altitude Fighter',
+                maxSpeed: 176, // m/s (~640 km/h) - Fast at altitude
+                minSpeed: 31,
+                maxTurnRate: 62, // Poor low-altitude handling
+                maxClimbRate: 17, // Excellent climb
+                maxDiveRate: 38,
+                maxGForce: 6.5,
+                maxAcceleration: 16,
+                maxBraking: 16,
+                // Armament: 1× 12.7mm UBS + 2× 7.62mm ShKAS
+                weapons: [
+                    {
+                        type: 'hmg',
+                        name: '12.7mm UBS',
+                        count: 1,
+                        ammo: 300,
+                        burstSize: 2,
+                        damage: [3, 6],
+                        rof: 2,
+                        sound: 'hmg'
+                    },
+                    {
+                        type: 'mg',
+                        name: '7.62mm ShKAS',
+                        count: 2,
+                        ammo: 1500,
+                        burstSize: 4,
+                        damage: [2, 4],
+                        rof: 1,
+                        sound: 'mg'
+                    }
+                ],
+                fuelCapacity: 463,
+                fuelConsumption: 0.52,
+                color: '#bb4444'
+            },
+            'Ta-152': {
+                name: 'Focke-Wulf Ta 152 H-1',
+                nation: 'German',
+                role: 'High-Altitude Interceptor',
+                maxSpeed: 195, // m/s (~755 km/h) - Very fast!
+                minSpeed: 32,
+                maxTurnRate: 58,
+                maxClimbRate: 20, // Excellent high-altitude climb
+                maxDiveRate: 45,
+                maxGForce: 7.5,
+                maxAcceleration: 18,
+                maxBraking: 17,
+                // Armament: 1× 30mm MK 108 + 2× 20mm MG 151/20
+                weapons: [
+                    {
+                        type: 'cannon',
+                        name: '30mm MK 108',
+                        count: 1,
+                        ammo: 90,
+                        burstSize: 2,
+                        damage: [12, 20], // Devastating
+                        rof: 4,
+                        sound: 'cannon'
+                    },
+                    {
+                        type: 'cannon',
+                        name: '20mm MG 151/20',
+                        count: 2,
+                        ammo: 350,
+                        burstSize: 4,
+                        damage: [7, 14],
+                        rof: 3,
+                        sound: 'cannon'
+                    }
+                ],
+                fuelCapacity: 595,
+                fuelConsumption: 0.6,
+                color: '#cc2222'
+            },
+            'IAR-80': {
+                name: 'IAR 80',
+                nation: 'Romanian',
+                role: 'Fighter',
+                maxSpeed: 161, // m/s (~580 km/h)
+                minSpeed: 29,
+                maxTurnRate: 68,
+                maxClimbRate: 14,
+                maxDiveRate: 32,
+                maxGForce: 6.5,
+                maxAcceleration: 14,
+                maxBraking: 17,
+                // Armament: 6× 7.92mm FN Browning
+                weapons: {
+                    type: 'mg',
+                    name: '7.92mm FN Browning',
+                    count: 6,
+                    ammo: 3600, // 600 rounds per gun
+                    burstSize: 8,
+                    damage: [2, 4],
+                    rof: 1,
+                    sound: 'mg'
+                },
+                fuelCapacity: 320,
+                fuelConsumption: 0.48,
+                canCarryBombs: true,
+                color: '#aa9944'
+            },
+            'IL-2': {
+                name: 'Ilyushin IL-2 Sturmovik',
+                nation: 'Soviet',
+                role: 'Ground Attack',
+                maxSpeed: 141, // m/s (~414 km/h)
+                minSpeed: 30,
+                maxTurnRate: 50, // Heavy, armored
+                maxClimbRate: 10,
+                maxDiveRate: 35,
+                maxGForce: 5.5,
+                maxAcceleration: 11,
+                maxBraking: 14,
+                // Armament: 2× 23mm VYa-23 cannons + 2× 7.62mm ShKAS
+                weapons: [
+                    {
+                        type: 'cannon',
+                        name: '23mm VYa-23',
+                        count: 2,
+                        ammo: 300,
+                        burstSize: 4,
+                        damage: [8, 15],
+                        rof: 3,
+                        sound: 'cannon'
+                    },
+                    {
+                        type: 'mg',
+                        name: '7.62mm ShKAS',
+                        count: 2,
+                        ammo: 1500,
+                        burstSize: 4,
+                        damage: [2, 4],
+                        rof: 1,
+                        sound: 'mg'
+                    }
+                ],
+                fuelCapacity: 535,
+                fuelConsumption: 0.65,
+                canCarryBombs: true,
+                canCarryRockets: true,
+                highDurability: true, // Heavily armored
+                color: '#aa3333'
+            },
+            'Hs-129': {
+                name: 'Henschel Hs 129 B-2',
+                nation: 'German',
+                role: 'Ground Attack/Tank Buster',
+                maxSpeed: 139, // m/s (~408 km/h)
+                minSpeed: 31,
+                maxTurnRate: 48, // Heavy, poor turn
+                maxClimbRate: 9,
+                maxDiveRate: 33,
+                maxGForce: 5,
+                maxAcceleration: 10,
+                maxBraking: 13,
+                // Armament: 2× 20mm MG 151/20 + 2× 7.92mm MG 17 (or 30mm MK 101)
+                weapons: [
+                    {
+                        type: 'cannon',
+                        name: '30mm MK 101',
+                        count: 1,
+                        ammo: 30, // Very limited!
+                        burstSize: 1,
+                        damage: [12, 22], // Anti-tank
+                        rof: 5,
+                        sound: 'cannon'
+                    },
+                    {
+                        type: 'cannon',
+                        name: '20mm MG 151/20',
+                        count: 2,
+                        ammo: 250,
+                        burstSize: 4,
+                        damage: [7, 14],
+                        rof: 3,
+                        sound: 'cannon'
+                    }
+                ],
+                fuelCapacity: 450,
+                fuelConsumption: 0.6,
+                canCarryBombs: true,
+                canCarryRockets: true,
+                color: '#995555'
+            },
+            'Me-410': {
+                name: 'Messerschmitt Me 410 Hornisse',
+                nation: 'German',
+                role: 'Heavy Fighter/Bomber Destroyer',
+                maxSpeed: 177, // m/s (~624 km/h)
+                minSpeed: 34,
+                maxTurnRate: 50, // Heavy twin-engine
+                maxClimbRate: 13,
+                maxDiveRate: 42,
+                maxGForce: 6,
+                maxAcceleration: 15,
+                maxBraking: 14,
+                // Heavy armament: 2× 20mm MG 151/20 + 2× 7.92mm MG 17
+                weapons: [
+                    {
+                        type: 'cannon',
+                        name: '20mm MG 151/20',
+                        count: 2,
+                        ammo: 700,
+                        burstSize: 4,
+                        damage: [7, 14],
+                        rof: 3,
+                        sound: 'cannon'
+                    },
+                    {
+                        type: 'mg',
+                        name: '7.92mm MG 17',
+                        count: 2,
+                        ammo: 2000,
+                        burstSize: 4,
+                        damage: [2, 4],
+                        rof: 1,
+                        sound: 'mg'
+                    }
+                ],
+                fuelCapacity: 1170,
+                fuelConsumption: 0.75,
+                canCarryBombs: true,
+                color: '#bb2222'
+            },
+            'Pe-2': {
+                name: 'Petlyakov Pe-2',
+                nation: 'Soviet',
+                role: 'Dive Bomber/Light Bomber',
+                maxSpeed: 158, // m/s (~540 km/h)
+                minSpeed: 32,
+                maxTurnRate: 52,
+                maxClimbRate: 11,
+                maxDiveRate: 50, // Good dive bomber
+                maxGForce: 5.5,
+                maxAcceleration: 12,
+                maxBraking: 14,
+                // Defensive armament: 2× 12.7mm UBT + 3× 7.62mm ShKAS
+                weapons: [
+                    {
+                        type: 'hmg',
+                        name: '12.7mm UBT',
+                        count: 2,
+                        ammo: 500,
+                        burstSize: 4,
+                        damage: [3, 6],
+                        rof: 2,
+                        sound: 'hmg'
+                    },
+                    {
+                        type: 'mg',
+                        name: '7.62mm ShKAS',
+                        count: 3,
+                        ammo: 2250,
+                        burstSize: 4,
+                        damage: [2, 4],
+                        rof: 1,
+                        sound: 'mg'
+                    }
+                ],
+                fuelCapacity: 1100,
+                fuelConsumption: 0.8,
+                canCarryBombs: true,
+                bombCapacity: 4,
+                color: '#993344'
+            },
+            'B-25': {
+                name: 'North American B-25 Mitchell',
+                nation: 'American',
+                role: 'Medium Bomber',
+                maxSpeed: 147, // m/s (~442 km/h)
+                minSpeed: 33,
+                maxTurnRate: 45,
+                maxClimbRate: 10,
+                maxDiveRate: 38,
+                maxGForce: 5,
+                maxAcceleration: 11,
+                maxBraking: 13,
+                // Defensive: 6× .50 cal (nose, dorsal, tail, waist)
+                weapons: {
+                    type: 'hmg',
+                    name: '.50 cal M2',
+                    count: 6,
+                    ammo: 3000,
+                    burstSize: 8,
+                    damage: [3, 6],
+                    rof: 2,
+                    sound: 'hmg'
+                },
+                fuelCapacity: 2618,
+                fuelConsumption: 1.0,
+                canCarryBombs: true,
+                bombCapacity: 6,
+                color: '#006699'
+            },
+            'B-26': {
+                name: 'Martin B-26 Marauder',
+                nation: 'American',
+                role: 'Medium Bomber',
+                maxSpeed: 153, // m/s (~462 km/h)
+                minSpeed: 35, // High wing loading
+                maxTurnRate: 42,
+                maxClimbRate: 9,
+                maxDiveRate: 40,
+                maxGForce: 5,
+                maxAcceleration: 12,
+                maxBraking: 12,
+                // Defensive: 11× .50 cal
+                weapons: {
+                    type: 'hmg',
+                    name: '.50 cal M2',
+                    count: 11,
+                    ammo: 5500,
+                    burstSize: 12,
+                    damage: [3, 6],
+                    rof: 2,
+                    sound: 'hmg'
+                },
+                fuelCapacity: 2117,
+                fuelConsumption: 0.95,
+                canCarryBombs: true,
+                bombCapacity: 6,
+                color: '#005588'
+            },
+            'Mosquito': {
+                name: 'De Havilland Mosquito FB Mk VI',
+                nation: 'British',
+                role: 'Fighter-Bomber/Multi-role',
+                maxSpeed: 183, // m/s (~660 km/h) - Very fast for twin-engine!
+                minSpeed: 32,
+                maxTurnRate: 56,
+                maxClimbRate: 14,
+                maxDiveRate: 43,
+                maxGForce: 6.5,
+                maxAcceleration: 16,
+                maxBraking: 15,
+                // Heavy nose armament: 4× 20mm Hispano + 4× .303 Browning
+                weapons: [
+                    {
+                        type: 'cannon',
+                        name: '20mm Hispano Mk II',
+                        count: 4,
+                        ammo: 600,
+                        burstSize: 6,
+                        damage: [7, 14],
+                        rof: 2,
+                        sound: 'cannon'
+                    },
+                    {
+                        type: 'mg',
+                        name: '.303 Browning',
+                        count: 4,
+                        ammo: 2000,
+                        burstSize: 6,
+                        damage: [2, 4],
+                        rof: 1,
+                        sound: 'mg'
+                    }
+                ],
+                fuelCapacity: 1356,
+                fuelConsumption: 0.72,
+                canCarryBombs: true,
+                canCarryRockets: true,
+                color: '#008899'
             }
         };
 
@@ -2309,7 +3008,7 @@
                     this.weaponType = 'mixed';
                     this.ammunition = weaponsData.reduce((sum, w) => sum + w.ammo, 0);
                     this.maxAmmunition = this.ammunition;
-                    this.fireThreshold = 0.30; // Mixed armament threshold
+                    this.fireThreshold = 0.15; // Mixed armament threshold - reduced to allow earlier firing
                 } else {
                     // Single weapon type (legacy support)
                     this.weaponType = weaponsData.type;
@@ -2318,7 +3017,7 @@
                     this.ammoPerBurst = weaponsData.burstSize;
                     this.damagePerHit = weaponsData.damage[0] + Math.random() * (weaponsData.damage[1] - weaponsData.damage[0]);
                     this.rateOfFire = weaponsData.rof;
-                    this.fireThreshold = weaponsData.type === 'cannon' ? 0.35 : 0.25;
+                    this.fireThreshold = weaponsData.type === 'cannon' ? 0.20 : 0.15; // Reduced to allow more frequent firing
                     // Set weapon range - use from database or default based on type
                     if (weaponsData.range) {
                         this.weaponRange = weaponsData.range;
@@ -4098,8 +4797,6 @@
             }
 
             getStatsHTML() {
-                const ammoColor = this.ammunition < 100 ? 'color: #ff4444;' : '';
-                const ammoPercent = Math.round((this.ammunition / this.maxAmmunition) * 100);
                 const damageColor = this.damage > 50 ? 'color: #ff4444;' : this.damage > 25 ? 'color: #ffaa00;' : '';
                 const hitWarning = this.lastHitBy ? `<div style="color: #ff0000; animation: blink 0.5s infinite;">⚠ HIT BY ${this.lastHitBy.toUpperCase()}!</div>` : '';
 
@@ -4143,9 +4840,34 @@
                 const fireThresholdColor = this.fireThreshold < 0.20 ? '#ff4444' :
                                           this.fireThreshold < 0.30 ? '#ffaa00' : '#88ff88';
 
-                // Enhancement #8: Weapon info
-                const weaponName = this.weaponType === 'mg' ? 'MGs' :
-                                  this.weaponType === 'hmg' ? 'HMGs' : 'Cannon';
+                // Enhancement #8: Weapon info - support mixed armament
+                let weaponDisplay = '';
+                if (this.hasMixedArmament && this.weaponGroups) {
+                    // Display each weapon group with its percentage
+                    for (let weaponGroup of this.weaponGroups) {
+                        const weaponPercent = Math.round((weaponGroup.ammunition / weaponGroup.maxAmmunition) * 100);
+                        const weaponColor = weaponGroup.ammunition < 20 ? 'color: #ff4444;' : '';
+
+                        // Determine display name based on weapon type
+                        let displayName = weaponGroup.name;
+                        if (weaponGroup.type === 'mg') {
+                            displayName = 'LMG'; // Light Machine Gun (.303, 7.7mm, etc.)
+                        } else if (weaponGroup.type === 'hmg') {
+                            displayName = 'HMG'; // Heavy Machine Gun (13mm, .50 cal, etc.)
+                        } else if (weaponGroup.type === 'cannon') {
+                            displayName = 'Cannons'; // Cannons (20mm, 30mm, etc.)
+                        }
+
+                        weaponDisplay += `<div class="stat-line" style="${weaponColor}">${displayName}: ${weaponPercent}%</div>`;
+                    }
+                } else {
+                    // Single weapon type
+                    const weaponName = this.weaponType === 'mg' ? 'LMG' :
+                                      this.weaponType === 'hmg' ? 'HMG' : 'Cannons';
+                    const ammoPercent = Math.round((this.ammunition / this.maxAmmunition) * 100);
+                    const ammoColor = this.ammunition < 100 ? 'color: #ff4444;' : '';
+                    weaponDisplay = `<div class="stat-line" style="${ammoColor}">${weaponName}: ${ammoPercent}% ${this.isFiring ? '🔥' : ''}</div>`;
+                }
 
                 // Enhancement #8: Bombs/Rockets (if available)
                 const rocketModeText = this.rockets > 0 ? ` (${this.rocketMode.toUpperCase()})` : '';
@@ -4174,7 +4896,7 @@
                     <div class="stat-line">Hdg: ${Math.round(this.heading)}°</div>
                     ${fuelDisplay}
                     ${fuelLeakWarning}
-                    <div class="stat-line" style="${ammoColor}">${weaponName}: ${ammoPercent}% ${this.isFiring ? '🔥' : ''}</div>
+                    ${weaponDisplay}
                     <div class="stat-line" style="${damageColor}">Damage: ${Math.round(this.damage)}%</div>
                     ${componentInfo}
                     <div class="stat-line" style="color: ${fireThresholdColor}">Fire Min: ${fireThresholdPercent}%</div>
@@ -4626,6 +5348,11 @@
                         }
 
                         shooter.timeOnTarget += 0.1;
+
+                        // Debug logging for firing decisions
+                        if (Math.random() < 0.01) { // Log occasionally to avoid spam
+                            console.log(`[FIRING CHECK] ${shooter.name} vs ${target.name}: distance=${Math.round(distance)}m, angleDiff=${angleDiff.toFixed(1)}°, hitChance=${(hitChance * 100).toFixed(1)}%, threshold=${(shooter.fireThreshold * 100).toFixed(1)}%, timeOnTarget=${shooter.timeOnTarget.toFixed(1)}s`);
+                        }
 
                         // Fire if chance exceeds threshold and angle is good
                         if (hitChance >= shooter.fireThreshold && angleDiff < 15) {
@@ -5468,7 +6195,7 @@
                 for (let plane of aircraft) {
                     if (plane.isInMultiTurnManeuver && !plane.isDestroyed) {
                         // Calculate current progress
-                        const totalElapsed = plane.maneuverElapsedTime + (progress * turnTime);
+                        const totalElapsed = plane.maneuverElapsedTime + (currentProgress * turnTime);
                         const percentComplete = Math.min((totalElapsed / plane.maneuverRequiredTime) * 100, 100);
                         const remaining = Math.max(0, plane.maneuverRequiredTime - totalElapsed);
 
@@ -5498,7 +6225,7 @@
                         ctx.textAlign = 'left';
                         ctx.fillText(`${plane.name}: ${plane.maneuverType.toUpperCase()}`, barX + 5, barY + 18);
                         ctx.font = '12px Courier New';
-                        ctx.fillText(`${percentComplete.toFixed(0)}% - ${remaining.toFixed(1)}s remaining`, barX + 5, barY + 35);
+                        ctx.fillText(`${percentComplete.toFixed(0)}% - ${totalElapsed.toFixed(1)}s / ${plane.maneuverRequiredTime.toFixed(1)}s`, barX + 5, barY + 35);
 
                         // Show cancel option for player aircraft
                         if (plane.isPlayer) {
@@ -6299,6 +7026,7 @@
             if (gameState === 'EXECUTION') {
                 const elapsed = Date.now() - executionStartTime;
                 const progress = Math.min(1, elapsed / executionTime);
+                currentProgress = progress; // Update global for render function
 
                 // Move aircraft
                 for (let plane of aircraft) {
@@ -6382,6 +7110,7 @@
                         // Don't change state - stay in EXECUTION
                     } else {
                         gameState = 'REVIEW';
+                        currentProgress = 0; // Reset progress when exiting execution
                     }
 
                     // Reset hot-seat mode for next turn (only if not continuing maneuvers)
