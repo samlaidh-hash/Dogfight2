@@ -446,6 +446,9 @@
                 <div>• T: Split-S</div>
                 <div>• L: Loop</div>
                 <div>• H: Half-loop</div>
+                <div>• J: Dive bomb</div>
+                <div>• N: Level bomb</div>
+                <div>• K: Strafing run</div>
                 <div>• Z/X: fire threshold down/up</div>
                 <div>• B: toggle rocket Air/Ground mode</div>
                 <div>• Click again to lock</div>
@@ -2390,7 +2393,7 @@
                 this.gForcePenalty = 0;
 
                 // Advanced aerobatic maneuvers
-                this.maneuverType = 'none'; // none, immelmann, split-s, loop, half-loop
+                this.maneuverType = 'none'; // none, immelmann, split-s, loop, half-loop, dive-bomb, level-bomb, strafe
 
                 // Multi-turn maneuver system
                 this.maneuverRequiredTime = 0; // Total time in seconds required for the maneuver
@@ -3523,6 +3526,239 @@
                 };
             }
 
+            // Calculate Dive Bomb: steep dive toward ground target, pull up before impact
+            calculateDiveBombPath() {
+                const TIME_STEP = 0.1;
+                const NUM_STEPS = Math.floor(turnTime / TIME_STEP);
+                const path = [];
+
+                // Dive bomb requires sufficient altitude for safe pull-up
+                const MIN_ALTITUDE = 500;
+                const PULL_UP_ALTITUDE = 150; // Start pull-up at this altitude
+                const DIVE_ANGLE = 45; // degrees
+
+                if (this.altitude < MIN_ALTITUDE) {
+                    // Not enough altitude to safely dive bomb
+                    this.flightPath = [{
+                        x: this.x,
+                        y: this.y,
+                        altitude: this.altitude,
+                        heading: this.heading,
+                        speed: this.speed
+                    }];
+                    return {
+                        path: this.flightPath,
+                        state: 'illegal',
+                        warnings: [`Altitude too low for Dive Bomb (min ${MIN_ALTITUDE}m, current ${Math.round(this.altitude)}m)`],
+                        targetSpeed: Math.round(this.speed),
+                        gForce: '1.0',
+                        climbRate: 0,
+                        targetAltitude: Math.round(this.altitude),
+                        targetHeading: Math.round(this.heading),
+                        finalX: this.x,
+                        finalY: this.y,
+                        finalAltitude: this.altitude,
+                        finalFlightHeading: this.heading
+                    };
+                }
+
+                const startSpeed = this.speed;
+                const headingRad = (this.heading - 90) * Math.PI / 180;
+
+                // Calculate dive distance and pull-up arc
+                const diveAltitudeLoss = this.altitude - PULL_UP_ALTITUDE;
+                const diveDistance = diveAltitudeLoss / Math.tan(DIVE_ANGLE * Math.PI / 180);
+
+                // Pull-up radius based on speed gained during dive
+                const diveSpeedGain = Math.sqrt(2 * 9.81 * diveAltitudeLoss * 0.7); // ~70% efficiency
+                const pullUpSpeed = startSpeed + diveSpeedGain;
+                const pullUpRadius = (pullUpSpeed * pullUpSpeed) / (this.maxGForce * 9.81);
+
+                for (let i = 0; i <= NUM_STEPS; i++) {
+                    const progress = i / NUM_STEPS;
+                    let currentX, currentY, currentAltitude, currentSpeed, currentHeading;
+
+                    // Three phases: approach (10%), dive (60%), pull-up (30%)
+                    if (progress < 0.1) {
+                        // Initial approach - level flight
+                        const phaseProgress = progress / 0.1;
+                        const dist = phaseProgress * diveDistance * 0.15;
+                        currentX = this.x + dist * Math.cos(headingRad);
+                        currentY = this.y + dist * Math.sin(headingRad);
+                        currentAltitude = this.altitude;
+                        currentSpeed = startSpeed;
+                        currentHeading = this.heading;
+                        this.currentGForce = 1.0;
+                    } else if (progress < 0.7) {
+                        // Dive phase
+                        const phaseProgress = (progress - 0.1) / 0.6;
+                        const dist = diveDistance * 0.15 + phaseProgress * diveDistance * 0.75;
+                        currentX = this.x + dist * Math.cos(headingRad);
+                        currentY = this.y + dist * Math.sin(headingRad);
+                        currentAltitude = this.altitude - phaseProgress * diveAltitudeLoss;
+                        currentSpeed = startSpeed + phaseProgress * diveSpeedGain;
+                        currentHeading = this.heading; // Maintain heading during dive
+                        this.currentGForce = 1.5; // Light G-load during dive
+                    } else {
+                        // Pull-up phase
+                        const phaseProgress = (progress - 0.7) / 0.3;
+                        const pullUpAngle = phaseProgress * (Math.PI / 2); // 90-degree pull-up
+
+                        // Arc during pull-up
+                        const arcDist = Math.sin(pullUpAngle) * pullUpRadius;
+                        const totalDist = diveDistance * 0.9 + arcDist;
+                        currentX = this.x + totalDist * Math.cos(headingRad);
+                        currentY = this.y + totalDist * Math.sin(headingRad);
+                        currentAltitude = PULL_UP_ALTITUDE + (1 - Math.cos(pullUpAngle)) * pullUpRadius;
+                        currentSpeed = pullUpSpeed * (1 - 0.2 * phaseProgress); // Bleed speed in pull-up
+                        currentHeading = this.heading; // Exit same heading
+                        this.currentGForce = 3.0 + Math.sin(pullUpAngle) * 4.0; // High G during pull-up
+                    }
+
+                    path.push({
+                        x: currentX,
+                        y: currentY,
+                        altitude: currentAltitude,
+                        heading: currentHeading,
+                        speed: currentSpeed
+                    });
+                }
+
+                this.flightPath = path;
+                const finalState = path[path.length - 1];
+                return {
+                    path: path,
+                    state: 'valid',
+                    warnings: [],
+                    targetSpeed: Math.round(finalState.speed),
+                    gForce: '7.0',
+                    climbRate: Math.round((finalState.altitude - PULL_UP_ALTITUDE) / (turnTime * 0.3)),
+                    targetAltitude: Math.round(finalState.altitude),
+                    targetHeading: Math.round(finalState.heading),
+                    finalX: finalState.x,
+                    finalY: finalState.y,
+                    finalAltitude: finalState.altitude,
+                    finalFlightHeading: finalState.heading
+                };
+            }
+
+            // Calculate Level Bomb: maintain altitude and fly straight for precision bombing
+            calculateLevelBombPath() {
+                const TIME_STEP = 0.1;
+                const NUM_STEPS = Math.floor(turnTime / TIME_STEP);
+                const path = [];
+
+                const startSpeed = this.speed;
+                const headingRad = (this.heading - 90) * Math.PI / 180;
+                const distance = startSpeed * turnTime;
+
+                for (let i = 0; i <= NUM_STEPS; i++) {
+                    const progress = i / NUM_STEPS;
+                    const dist = progress * distance;
+
+                    const currentX = this.x + dist * Math.cos(headingRad);
+                    const currentY = this.y + dist * Math.sin(headingRad);
+
+                    path.push({
+                        x: currentX,
+                        y: currentY,
+                        altitude: this.altitude, // Maintain constant altitude
+                        heading: this.heading, // Maintain constant heading
+                        speed: startSpeed // Maintain constant speed
+                    });
+
+                    this.currentGForce = 1.0; // Level flight, no G-force
+                }
+
+                this.flightPath = path;
+                const finalState = path[path.length - 1];
+                return {
+                    path: path,
+                    state: 'valid',
+                    warnings: [],
+                    targetSpeed: Math.round(finalState.speed),
+                    gForce: '1.0',
+                    climbRate: 0,
+                    targetAltitude: Math.round(finalState.altitude),
+                    targetHeading: Math.round(finalState.heading),
+                    finalX: finalState.x,
+                    finalY: finalState.y,
+                    finalAltitude: finalState.altitude,
+                    finalFlightHeading: finalState.heading
+                };
+            }
+
+            // Calculate Strafing Run: low-level, high-speed attack run
+            calculateStrafingRunPath() {
+                const TIME_STEP = 0.1;
+                const NUM_STEPS = Math.floor(turnTime / TIME_STEP);
+                const path = [];
+
+                const TARGET_STRAFE_ALTITUDE = 100; // Low altitude for strafing
+                const MIN_SAFE_ALTITUDE = 50;
+                const startSpeed = Math.max(this.speed, 150); // Fast approach
+                const headingRad = (this.heading - 90) * Math.PI / 180;
+
+                // Determine if we need to climb or descend to strafe altitude
+                const altitudeDiff = TARGET_STRAFE_ALTITUDE - this.altitude;
+                const needsAltitudeChange = Math.abs(altitudeDiff) > 20;
+
+                for (let i = 0; i <= NUM_STEPS; i++) {
+                    const progress = i / NUM_STEPS;
+                    let currentAltitude, currentSpeed;
+
+                    if (needsAltitudeChange && progress < 0.3) {
+                        // First 30% - adjust to strafe altitude
+                        const phaseProgress = progress / 0.3;
+                        currentAltitude = this.altitude + altitudeDiff * phaseProgress;
+                        currentSpeed = startSpeed;
+                        this.currentGForce = 1.0 + Math.abs(altitudeDiff) * 0.002; // Slight G-load during altitude change
+                    } else {
+                        // Remainder - maintain low altitude, high speed
+                        currentAltitude = TARGET_STRAFE_ALTITUDE;
+                        currentSpeed = startSpeed * 1.1; // Slight speed increase at low altitude
+                        this.currentGForce = 1.0;
+                    }
+
+                    // Straight-line path
+                    const dist = progress * startSpeed * turnTime;
+                    const currentX = this.x + dist * Math.cos(headingRad);
+                    const currentY = this.y + dist * Math.sin(headingRad);
+
+                    path.push({
+                        x: currentX,
+                        y: currentY,
+                        altitude: Math.max(currentAltitude, MIN_SAFE_ALTITUDE), // Never go below minimum safe altitude
+                        heading: this.heading,
+                        speed: currentSpeed
+                    });
+                }
+
+                this.flightPath = path;
+                const finalState = path[path.length - 1];
+
+                // Check if final altitude is dangerously low
+                const warnings = [];
+                if (finalState.altitude < MIN_SAFE_ALTITUDE + 20) {
+                    warnings.push('Warning: Very low altitude - risk of ground collision');
+                }
+
+                return {
+                    path: path,
+                    state: 'valid',
+                    warnings: warnings,
+                    targetSpeed: Math.round(finalState.speed),
+                    gForce: needsAltitudeChange ? '2.0' : '1.0',
+                    climbRate: Math.round((finalState.altitude - this.altitude) / turnTime),
+                    targetAltitude: Math.round(finalState.altitude),
+                    targetHeading: Math.round(finalState.heading),
+                    finalX: finalState.x,
+                    finalY: finalState.y,
+                    finalAltitude: finalState.altitude,
+                    finalFlightHeading: finalState.heading
+                };
+            }
+
             // Calculate the realistic time (in seconds) a maneuver should take
             calculateManeuverRealisticTime() {
                 const startSpeed = this.speed;
@@ -3560,6 +3796,40 @@
                         return 1.0 + (halfCircumference / avgSpeed); // 1s for roll + loop time
                     }
 
+                    case 'dive-bomb': {
+                        // Dive bomb: approach + dive + pull-up
+                        const PULL_UP_ALTITUDE = 150;
+                        const diveAltitudeLoss = Math.max(0, this.altitude - PULL_UP_ALTITUDE);
+                        const diveSpeedGain = Math.sqrt(2 * 9.81 * diveAltitudeLoss * 0.7);
+                        const pullUpSpeed = startSpeed + diveSpeedGain;
+                        const pullUpRadius = (pullUpSpeed * pullUpSpeed) / (this.maxGForce * 9.81);
+
+                        // Time = dive time + pull-up arc time
+                        const diveTime = diveAltitudeLoss / (startSpeed * Math.sin(45 * Math.PI / 180));
+                        const pullUpArcLength = (Math.PI / 2) * pullUpRadius; // 90-degree arc
+                        const pullUpTime = pullUpArcLength / pullUpSpeed;
+
+                        return diveTime + pullUpTime + 0.5; // +0.5s for approach
+                    }
+
+                    case 'level-bomb': {
+                        // Level bomb: straight and level flight
+                        return turnTime; // Standard turn duration
+                    }
+
+                    case 'strafe': {
+                        // Strafing run: fast, low-level pass
+                        const altitudeDiff = Math.abs(100 - this.altitude);
+                        const needsAltitudeChange = altitudeDiff > 20;
+
+                        if (needsAltitudeChange) {
+                            // Add time for altitude adjustment
+                            const adjustTime = altitudeDiff / (startSpeed * 0.2); // Shallow descent/climb
+                            return turnTime + Math.min(adjustTime, 1.0);
+                        }
+                        return turnTime;
+                    }
+
                     default:
                         // Regular flight: not a special maneuver
                         return turnTime;
@@ -3576,6 +3846,12 @@
                     return this.calculateLoopPath();
                 } else if (this.maneuverType === 'half-loop') {
                     return this.calculateHalfLoopPath();
+                } else if (this.maneuverType === 'dive-bomb') {
+                    return this.calculateDiveBombPath();
+                } else if (this.maneuverType === 'level-bomb') {
+                    return this.calculateLevelBombPath();
+                } else if (this.maneuverType === 'strafe') {
+                    return this.calculateStrafingRunPath();
                 }
 
                 // Use the new realistic path calculation
@@ -5768,6 +6044,33 @@
                     // Toggle Half-loop
                     selectedAircraft.maneuverType = selectedAircraft.maneuverType === 'half-loop' ? 'none' : 'half-loop';
                     if (selectedAircraft.maneuverType === 'half-loop') {
+                        selectedAircraft.rollType = 'none'; // Clear roll
+                    }
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'j':
+                    // Toggle Dive Bomb
+                    selectedAircraft.maneuverType = selectedAircraft.maneuverType === 'dive-bomb' ? 'none' : 'dive-bomb';
+                    if (selectedAircraft.maneuverType === 'dive-bomb') {
+                        selectedAircraft.rollType = 'none'; // Clear roll
+                    }
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'n':
+                    // Toggle Level Bomb
+                    selectedAircraft.maneuverType = selectedAircraft.maneuverType === 'level-bomb' ? 'none' : 'level-bomb';
+                    if (selectedAircraft.maneuverType === 'level-bomb') {
+                        selectedAircraft.rollType = 'none'; // Clear roll
+                    }
+                    updateGhost();
+                    updateGhostPanel();
+                    break;
+                case 'k':
+                    // Toggle Strafing Run
+                    selectedAircraft.maneuverType = selectedAircraft.maneuverType === 'strafe' ? 'none' : 'strafe';
+                    if (selectedAircraft.maneuverType === 'strafe') {
                         selectedAircraft.rollType = 'none'; // Clear roll
                     }
                     updateGhost();
