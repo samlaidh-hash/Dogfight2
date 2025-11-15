@@ -5231,27 +5231,15 @@
 
                         const inRange = distance3D < maxRange;
 
-                        // Only draw if target is in arc or nearly in arc (for awareness)
-                        if (angleDiff <= 45) {
+                        // Only draw firing cone when target is in arc AND in range
+                        if (inArc && inRange) {
                             ctx.save();
                             ctx.translate(plane.x, plane.y);
                             ctx.rotate((plane.heading) * Math.PI / 180);
 
-                            // Determine color based on status
-                            let coneColor, alpha;
-                            if (inArc && inRange) {
-                                // In arc and range - bright red/green
-                                coneColor = plane.isPlayer ? '0, 255, 0' : '255, 50, 50'; // Green for player, red for enemy
-                                alpha = 0.1;
-                            } else if (inArc) {
-                                // In arc but out of range - yellow
-                                coneColor = '255, 200, 0';
-                                alpha = 0.08;
-                            } else {
-                                // Out of arc - faint indicator
-                                coneColor = '100, 100, 100';
-                                alpha = 0.05;
-                            }
+                            // Single color: red for enemies, green for player
+                            const coneColor = plane.isPlayer ? '0, 255, 0' : '255, 50, 50';
+                            const alpha = 0.15;
 
                             // Draw firing cone (15 degree arc on each side)
                             const arcAngle = 15 * Math.PI / 180;
@@ -5269,17 +5257,15 @@
                             ctx.arc(0, 0, maxRange, -Math.PI/2 - arcAngle, -Math.PI/2 + arcAngle);
                             ctx.stroke();
 
-                            // Draw center line to target if in arc
-                            if (inArc) {
-                                ctx.strokeStyle = `rgba(${coneColor}, ${alpha * 2})`;
-                                ctx.lineWidth = 1;
-                                ctx.setLineDash([5, 5]);
-                                ctx.beginPath();
-                                ctx.moveTo(0, 0);
-                                ctx.lineTo(0, -Math.min(distance2D, maxRange));
-                                ctx.stroke();
-                                ctx.setLineDash([]);
-                            }
+                            // Draw center line to target
+                            ctx.strokeStyle = `rgba(${coneColor}, ${alpha * 2})`;
+                            ctx.lineWidth = 1;
+                            ctx.setLineDash([5, 5]);
+                            ctx.beginPath();
+                            ctx.moveTo(0, 0);
+                            ctx.lineTo(0, -Math.min(distance2D, maxRange));
+                            ctx.stroke();
+                            ctx.setLineDash([]);
 
                             ctx.restore();
                         }
