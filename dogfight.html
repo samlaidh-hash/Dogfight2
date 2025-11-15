@@ -1937,12 +1937,16 @@
             imagesLoaded++;
             if (imagesLoaded === totalImages) {
                 console.log('All aircraft images loaded');
+                // Trigger a render to show the loaded images
+                if (typeof render === 'function') render();
             }
         };
         aircraftImages.bf109.onload = () => {
             imagesLoaded++;
             if (imagesLoaded === totalImages) {
                 console.log('All aircraft images loaded');
+                // Trigger a render to show the loaded images
+                if (typeof render === 'function') render();
             }
         };
 
@@ -3090,18 +3094,8 @@
                     const newX = state.x + Math.cos(headingRad) * distance;
                     const newY = state.y + Math.sin(headingRad) * distance;
 
-                    // Check for slip/skid (lateral forces during turn)
-                    let slipWarning = null;
-                    if (turnGForce > 0) {
-                        const bankAngle = Math.atan(turnGForce) * 180 / Math.PI;
-                        // Ideally, bank angle should match turn rate
-                        // If turning too fast for bank angle, you're skidding
-                        // If bank too steep for turn rate, you're slipping
-                        // Simplified: warn if turning hard (>50% of max G)
-                        if (turnGForce > this.maxGForce * 0.5) {
-                            slipWarning = `Skid/Slip at ${stepTime.toFixed(1)}s`;
-                        }
-                    }
+                    // NOTE: Slip/skid warnings for intentional slip angles are handled separately below.
+                    // High G-force alone doesn't indicate slip in a coordinated turn.
 
                     // Update state
                     state = {
@@ -3145,14 +3139,6 @@
                         if (overallState !== 'illegal') overallState = 'stressful';
                         if (!warnings.some(w => w.includes('High G'))) {
                             warnings.push(`High G-force (${turnGForce.toFixed(1)}G)`);
-                        }
-                    }
-
-                    // Slip/skid warning
-                    if (slipWarning && overallState !== 'illegal') {
-                        overallState = 'stressful';
-                        if (!warnings.some(w => w.includes('Skid'))) {
-                            warnings.push(slipWarning);
                         }
                     }
 
@@ -5854,7 +5840,11 @@
 
                             // Hot-seat mode: check if we need to switch players
                             if (hotSeatMode) {
-                                checkHotSeatOrdersComplete();
+                                const bothPlayersDone = checkHotSeatOrdersComplete();
+                                if (bothPlayersDone) {
+                                    // Both players have completed orders, update UI to show execute button
+                                    updateUI();
+                                }
                             } else {
                                 // Generate AI orders for all AI aircraft (single player only)
                                 for (let aiPlane of aircraft) {
