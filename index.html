@@ -3138,14 +3138,6 @@
                         }
                     }
 
-                    // Slip/skid warning
-                    if (slipWarning && overallState !== 'illegal') {
-                        overallState = 'stressful';
-                        if (!warnings.some(w => w.includes('Skid'))) {
-                            warnings.push(slipWarning);
-                        }
-                    }
-
                     // Intentional slip/skid angle warnings
                     if (Math.abs(slipAngle) > 20) {
                         if (overallState !== 'illegal') overallState = 'stressful';
