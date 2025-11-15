@@ -5660,7 +5660,7 @@
 
         // Helper function to update ghost panel
         function updateGhostPanel() {
-            if (!ghostAircraft || !ghostAircraft.validation) return;
+            if (!selectedAircraft || !ghostAircraft || !ghostAircraft.validation) return;
 
             const panel = document.getElementById('ghostPanel');
             panel.style.display = 'block';
