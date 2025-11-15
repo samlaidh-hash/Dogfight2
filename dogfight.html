@@ -2456,7 +2456,8 @@
                             rateOfFire: w.rof,
                             range: weaponRange, // meters - effective range
                             firingCooldown: 0,
-                            sound: w.sound
+                            sound: w.sound,
+                            mount: w.mount || 'front' // front, left, right, rear, turret
                         };
                     });
 
@@ -4681,6 +4682,52 @@
             }
         }
 
+        // Helper function to check if target is in weapon's firing arc based on mount position
+        function isInWeaponArc(angleDiff, mount) {
+            // angleDiff is the unsigned angle difference (0-180)
+            // mount types: front, left, right, rear, turret
+
+            if (mount === 'turret') {
+                // Turrets can fire in any direction
+                return true;
+            }
+
+            if (mount === 'front') {
+                // Front-mounted guns: ±20 degrees from heading
+                return angleDiff < 20;
+            }
+
+            if (mount === 'rear') {
+                // Rear-mounted guns: 160-180 degrees from heading
+                return angleDiff > 160;
+            }
+
+            // For left/right mounts, we need the signed angle difference
+            // This is handled differently in the main firing logic
+            return false;
+        }
+
+        // Helper function to check if target is in side-mounted weapon arc
+        function isInSideMountArc(angleToTarget, shooterHeading, mount) {
+            // angleToTarget and shooterHeading are 0-360 degrees
+            // Get signed angle difference
+            let signedAngleDiff = angleToTarget - shooterHeading;
+            if (signedAngleDiff > 180) signedAngleDiff -= 360;
+            if (signedAngleDiff < -180) signedAngleDiff += 360;
+
+            if (mount === 'left') {
+                // Left-mounted guns: 70-110 degrees (90 ± 20) from heading
+                return signedAngleDiff >= 70 && signedAngleDiff <= 110;
+            }
+
+            if (mount === 'right') {
+                // Right-mounted guns: -110 to -70 degrees (-90 ± 20) from heading
+                return signedAngleDiff >= -110 && signedAngleDiff <= -70;
+            }
+
+            return false;
+        }
+
         // Combat system
         function processCombat() {
             // Reset firing states and clear old hit warnings
@@ -4722,7 +4769,8 @@
                     let angleDiff = angleToTarget - shooterFlightHeading;
                     if (angleDiff > 180) angleDiff -= 360;
                     if (angleDiff < -180) angleDiff += 360;
-                    angleDiff = Math.abs(angleDiff);
+                    const signedAngleDiff = angleDiff; // Keep signed version for side mount checks
+                    angleDiff = Math.abs(angleDiff); // Unsigned version for front/rear checks
 
                     // Calculate maximum weapon range for this aircraft
                     let maxWeaponRange = 400; // Default fallback
@@ -4734,8 +4782,38 @@
                         maxWeaponRange = shooter.weaponRange;
                     }
 
-                    // Firing cone: 20 degrees for realistic gunnery
-                    if (angleDiff < 20 && distance < maxWeaponRange) {
+                    // Check if any weapon can engage based on mount positions
+                    let canEngageTarget = false;
+                    if (shooter.hasMixedArmament && shooter.weaponGroups) {
+                        // Check each weapon mount
+                        for (let weaponGroup of shooter.weaponGroups) {
+                            if (weaponGroup.ammunition <= 0) continue;
+                            const mount = weaponGroup.mount || 'front';
+
+                            if (mount === 'front' && angleDiff < 20) {
+                                canEngageTarget = true;
+                                break;
+                            } else if (mount === 'rear' && angleDiff > 160) {
+                                canEngageTarget = true;
+                                break;
+                            } else if (mount === 'left' && signedAngleDiff >= 70 && signedAngleDiff <= 110) {
+                                canEngageTarget = true;
+                                break;
+                            } else if (mount === 'right' && signedAngleDiff >= -110 && signedAngleDiff <= -70) {
+                                canEngageTarget = true;
+                                break;
+                            } else if (mount === 'turret') {
+                                canEngageTarget = true;
+                                break;
+                            }
+                        }
+                    } else {
+                        // Single weapon type - assume front mount
+                        canEngageTarget = angleDiff < 20;
+                    }
+
+                    // Check if target can be engaged and is in range
+                    if (canEngageTarget && distance < maxWeaponRange) {
                         // Check line of sight - clouds can block vision!
                         const losBlocked = !terrain.isLineOfSightClear(
                             shooter.x, shooter.y, shooter.altitude,
@@ -4782,8 +4860,8 @@
 
                         shooter.timeOnTarget += 0.1;
 
-                        // Fire if chance exceeds threshold and angle is good
-                        if (hitChance >= shooter.fireThreshold && angleDiff < 15) {
+                        // Fire if chance exceeds threshold (angle check now per-weapon based on mount)
+                        if (hitChance >= shooter.fireThreshold) {
                             shooter.isFiring = true;
 
                             // Handle mixed armament vs single weapon
@@ -4799,6 +4877,24 @@
                                         weaponGroup.firingCooldown--;
                                         continue;
                                     }
+
+                                    // Check if this weapon is in firing arc based on mount
+                                    const mount = weaponGroup.mount || 'front';
+                                    let inArc = false;
+
+                                    if (mount === 'front') {
+                                        inArc = angleDiff < 15; // Tighter arc for actual firing
+                                    } else if (mount === 'rear') {
+                                        inArc = angleDiff > 165; // Rear arc
+                                    } else if (mount === 'left') {
+                                        inArc = signedAngleDiff >= 75 && signedAngleDiff <= 105; // Tighter side arc
+                                    } else if (mount === 'right') {
+                                        inArc = signedAngleDiff >= -105 && signedAngleDiff <= -75; // Tighter side arc
+                                    } else if (mount === 'turret') {
+                                        inArc = true; // Turrets can fire anywhere
+                                    }
+
+                                    if (!inArc) continue; // Skip this weapon if not in arc
 
                                     // Tactical firing logic: Different weapons have different optimal ranges
                                     let shouldFireThisWeapon = false;
@@ -5378,26 +5474,45 @@
                         let angleToTarget = Math.atan2(dx, -dy) * 180 / Math.PI;
                         if (angleToTarget < 0) angleToTarget += 360;
 
-                        // Check if in firing arc (±15 degrees from nose)
+                        // Calculate angle difference (unsigned and signed)
                         let angleDiff = Math.abs(angleToTarget - plane.heading);
                         if (angleDiff > 180) angleDiff = 360 - angleDiff;
 
-                        const inArc = angleDiff <= 15;
+                        let signedAngleDiff = angleToTarget - plane.heading;
+                        if (signedAngleDiff > 180) signedAngleDiff -= 360;
+                        if (signedAngleDiff < -180) signedAngleDiff += 360;
 
-                        // Get max weapon range
-                        let maxRange = 0;
+                        // Check which weapon mounts can engage this target
+                        let weaponsThatCanFire = [];
                         for (let weaponGroup of plane.weaponGroups) {
-                            if (weaponGroup.ammunition > 0 && weaponGroup.range > maxRange) {
-                                maxRange = weaponGroup.range;
+                            if (weaponGroup.ammunition <= 0) continue;
+
+                            const mount = weaponGroup.mount || 'front';
+                            let inArc = false;
+
+                            if (mount === 'front' && angleDiff <= 15) {
+                                inArc = true;
+                            } else if (mount === 'rear' && angleDiff > 165) {
+                                inArc = true;
+                            } else if (mount === 'left' && signedAngleDiff >= 75 && signedAngleDiff <= 105) {
+                                inArc = true;
+                            } else if (mount === 'right' && signedAngleDiff >= -105 && signedAngleDiff <= -75) {
+                                inArc = true;
+                            } else if (mount === 'turret') {
+                                inArc = true;
+                            }
+
+                            if (inArc && distance3D < weaponGroup.range) {
+                                weaponsThatCanFire.push({
+                                    mount: mount,
+                                    range: weaponGroup.range,
+                                    name: weaponGroup.name
+                                });
                             }
                         }
 
-                        if (maxRange === 0) continue; // No weapons with ammo
-
-                        const inRange = distance3D < maxRange;
-
-                        // Only draw firing cone when target is in arc AND in range
-                        if (inArc && inRange) {
+                        // Draw firing cones for each weapon that can engage
+                        if (weaponsThatCanFire.length > 0) {
                             ctx.save();
                             ctx.translate(plane.x, plane.y);
                             ctx.rotate((plane.heading) * Math.PI / 180);
@@ -5406,29 +5521,102 @@
                             const coneColor = plane.isPlayer ? '0, 255, 0' : '255, 50, 50';
                             const alpha = 0.15;
 
-                            // Draw firing cone (15 degree arc on each side)
-                            const arcAngle = 15 * Math.PI / 180;
-                            ctx.fillStyle = `rgba(${coneColor}, ${alpha})`;
-                            ctx.beginPath();
-                            ctx.moveTo(0, 0);
-                            ctx.arc(0, 0, maxRange, -Math.PI/2 - arcAngle, -Math.PI/2 + arcAngle);
-                            ctx.closePath();
-                            ctx.fill();
+                            // Draw each weapon's firing cone
+                            for (let weapon of weaponsThatCanFire) {
+                                const mount = weapon.mount;
+                                const range = weapon.range;
 
-                            // Draw range ring
-                            ctx.strokeStyle = `rgba(${coneColor}, ${alpha * 1.5})`;
-                            ctx.lineWidth = 2;
-                            ctx.beginPath();
-                            ctx.arc(0, 0, maxRange, -Math.PI/2 - arcAngle, -Math.PI/2 + arcAngle);
-                            ctx.stroke();
+                                if (mount === 'front') {
+                                    // Front arc: ±15 degrees from nose
+                                    const arcAngle = 15 * Math.PI / 180;
+                                    ctx.fillStyle = `rgba(${coneColor}, ${alpha})`;
+                                    ctx.beginPath();
+                                    ctx.moveTo(0, 0);
+                                    ctx.arc(0, 0, range, -Math.PI/2 - arcAngle, -Math.PI/2 + arcAngle);
+                                    ctx.closePath();
+                                    ctx.fill();
+
+                                    // Range ring
+                                    ctx.strokeStyle = `rgba(${coneColor}, ${alpha * 1.5})`;
+                                    ctx.lineWidth = 2;
+                                    ctx.beginPath();
+                                    ctx.arc(0, 0, range, -Math.PI/2 - arcAngle, -Math.PI/2 + arcAngle);
+                                    ctx.stroke();
+                                } else if (mount === 'left') {
+                                    // Left arc: 75-105 degrees (90 ± 15)
+                                    const startAngle = (90 - 15) * Math.PI / 180;
+                                    const endAngle = (90 + 15) * Math.PI / 180;
+                                    ctx.fillStyle = `rgba(${coneColor}, ${alpha})`;
+                                    ctx.beginPath();
+                                    ctx.moveTo(0, 0);
+                                    ctx.arc(0, 0, range, startAngle, endAngle);
+                                    ctx.closePath();
+                                    ctx.fill();
+
+                                    // Range ring
+                                    ctx.strokeStyle = `rgba(${coneColor}, ${alpha * 1.5})`;
+                                    ctx.lineWidth = 2;
+                                    ctx.beginPath();
+                                    ctx.arc(0, 0, range, startAngle, endAngle);
+                                    ctx.stroke();
+                                } else if (mount === 'right') {
+                                    // Right arc: -105 to -75 degrees (-90 ± 15)
+                                    const startAngle = (-90 - 15) * Math.PI / 180;
+                                    const endAngle = (-90 + 15) * Math.PI / 180;
+                                    ctx.fillStyle = `rgba(${coneColor}, ${alpha})`;
+                                    ctx.beginPath();
+                                    ctx.moveTo(0, 0);
+                                    ctx.arc(0, 0, range, startAngle, endAngle);
+                                    ctx.closePath();
+                                    ctx.fill();
+
+                                    // Range ring
+                                    ctx.strokeStyle = `rgba(${coneColor}, ${alpha * 1.5})`;
+                                    ctx.lineWidth = 2;
+                                    ctx.beginPath();
+                                    ctx.arc(0, 0, range, startAngle, endAngle);
+                                    ctx.stroke();
+                                } else if (mount === 'rear') {
+                                    // Rear arc: 165-195 degrees (180 ± 15)
+                                    const startAngle = (180 - 15) * Math.PI / 180;
+                                    const endAngle = (180 + 15) * Math.PI / 180;
+                                    ctx.fillStyle = `rgba(${coneColor}, ${alpha})`;
+                                    ctx.beginPath();
+                                    ctx.moveTo(0, 0);
+                                    ctx.arc(0, 0, range, startAngle, endAngle);
+                                    ctx.closePath();
+                                    ctx.fill();
+
+                                    // Range ring
+                                    ctx.strokeStyle = `rgba(${coneColor}, ${alpha * 1.5})`;
+                                    ctx.lineWidth = 2;
+                                    ctx.beginPath();
+                                    ctx.arc(0, 0, range, startAngle, endAngle);
+                                    ctx.stroke();
+                                } else if (mount === 'turret') {
+                                    // Turret: full 360 degree arc
+                                    ctx.fillStyle = `rgba(${coneColor}, ${alpha * 0.5})`;
+                                    ctx.beginPath();
+                                    ctx.arc(0, 0, range, 0, Math.PI * 2);
+                                    ctx.fill();
+
+                                    // Range ring
+                                    ctx.strokeStyle = `rgba(${coneColor}, ${alpha * 1.5})`;
+                                    ctx.lineWidth = 2;
+                                    ctx.beginPath();
+                                    ctx.arc(0, 0, range, 0, Math.PI * 2);
+                                    ctx.stroke();
+                                }
+                            }
 
                             // Draw center line to target
+                            const maxWeaponRange = Math.max(...weaponsThatCanFire.map(w => w.range));
                             ctx.strokeStyle = `rgba(${coneColor}, ${alpha * 2})`;
                             ctx.lineWidth = 1;
                             ctx.setLineDash([5, 5]);
                             ctx.beginPath();
                             ctx.moveTo(0, 0);
-                            ctx.lineTo(0, -Math.min(distance2D, maxRange));
+                            ctx.lineTo(0, -Math.min(distance2D, maxWeaponRange));
                             ctx.stroke();
                             ctx.setLineDash([]);
 
