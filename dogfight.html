@@ -4733,6 +4733,7 @@
             // Reset firing states and clear old hit warnings
             for (let plane of aircraft) {
                 plane.isFiring = false;
+                plane.firingWeapons = []; // Track which weapons are firing this frame
                 if (plane.firingCooldown > 0) plane.firingCooldown--;
 
                 // Clear hit warning after 2 seconds
@@ -4930,6 +4931,15 @@
                                     shooter.ammunition -= weaponGroup.ammoPerBurst; // Update total ammo
                                     weaponsFired.push(weaponGroup.name);
 
+                                    // Track this weapon for tracer rendering
+                                    shooter.firingWeapons.push({
+                                        mount: mount,
+                                        type: weaponGroup.type,
+                                        count: weaponGroup.count,
+                                        targetX: target.x,
+                                        targetY: target.y
+                                    });
+
                                     // Play appropriate sound
                                     if (weaponGroup.sound === 'mg') {
                                         soundSpitfireMG.currentTime = 0;
@@ -5011,6 +5021,15 @@
                                 // Single weapon type (legacy code)
                                 shooter.ammunition -= shooter.ammoPerBurst;
                                 shooter.firingCooldown = shooter.rateOfFire;
+
+                                // Track weapon for tracer rendering (assume front mount for legacy weapons)
+                                shooter.firingWeapons.push({
+                                    mount: 'front',
+                                    type: shooter.weaponType,
+                                    count: 1,
+                                    targetX: target.x,
+                                    targetY: target.y
+                                });
 
                                 console.log(`${shooter.name} FIRING at ${target.name}! Distance: ${Math.round(distance)}m, Angle: ${angleDiff.toFixed(1)}°, Hit chance: ${(hitChance * 100).toFixed(1)}%`);
 
@@ -5727,38 +5746,87 @@
                 }
             }
 
-            // Render gun fire effects (tracers and muzzle flash)
+            // Render gun fire effects (tracers, muzzle flash, and standard rounds)
             for (let plane of aircraft) {
-                if (plane.isFiring) {
-                    // Muzzle flash
+                if (plane.isFiring && plane.firingWeapons && plane.firingWeapons.length > 0) {
                     ctx.save();
                     ctx.translate(plane.x, plane.y);
+                    ctx.rotate((plane.heading) * Math.PI / 180);
 
-                    // Get flight heading (not nose heading)
-                    let flightHeading = plane.heading;
-                    if (plane.slipAngle !== 0) {
-                        flightHeading = (plane.heading - plane.slipAngle + 360) % 360;
-                    }
+                    // Render each firing weapon
+                    for (let weapon of plane.firingWeapons) {
+                        const mount = weapon.mount;
 
-                    ctx.rotate((flightHeading) * Math.PI / 180);
+                        // Determine firing angle based on mount
+                        let firingAngle = 0; // Relative to aircraft heading
+                        let muzzleOffsetX = 0;
+                        let muzzleOffsetY = -35; // Default front position
 
-                    // Flash effect
-                    ctx.fillStyle = 'rgba(255, 200, 0, 0.8)';
-                    ctx.beginPath();
-                    ctx.arc(0, -35, 10, 0, Math.PI * 2);
-                    ctx.fill();
+                        if (mount === 'front') {
+                            firingAngle = 0; // Straight ahead
+                            muzzleOffsetY = -35;
+                        } else if (mount === 'left') {
+                            firingAngle = 90; // Left side
+                            muzzleOffsetX = -30;
+                            muzzleOffsetY = 0;
+                        } else if (mount === 'right') {
+                            firingAngle = -90; // Right side
+                            muzzleOffsetX = 30;
+                            muzzleOffsetY = 0;
+                        } else if (mount === 'rear') {
+                            firingAngle = 180; // Behind
+                            muzzleOffsetY = 35;
+                        } else if (mount === 'turret') {
+                            // Calculate angle to target
+                            const dx = weapon.targetX - plane.x;
+                            const dy = weapon.targetY - plane.y;
+                            const angleToTarget = Math.atan2(dx, -dy) * 180 / Math.PI;
+                            firingAngle = angleToTarget - plane.heading;
+                            muzzleOffsetY = 0; // Turret at center
+                        }
 
-                    // Tracer bullets - draw several short lines ahead
-                    ctx.strokeStyle = 'rgba(255, 255, 100, 0.7)';
-                    ctx.lineWidth = 2;
-                    for (let i = 0; i < 5; i++) {
-                        const tracerStart = -40 - (i * 30);
-                        const tracerEnd = tracerStart - 15;
+                        ctx.save();
+                        ctx.translate(muzzleOffsetX, muzzleOffsetY);
+                        ctx.rotate(firingAngle * Math.PI / 180);
+
+                        // Muzzle flash
+                        ctx.fillStyle = 'rgba(255, 200, 0, 0.8)';
                         ctx.beginPath();
-                        ctx.moveTo(0, tracerStart);
-                        ctx.lineTo(0, tracerEnd);
-                        ctx.stroke();
+                        ctx.arc(0, 0, 10, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Draw mix of tracers and standard rounds
+                        // Typically 1 in 4-5 rounds is a tracer
+                        const numBullets = 8;
+                        const tracerFrequency = 4; // Every 4th bullet is a tracer
+
+                        for (let i = 0; i < numBullets; i++) {
+                            const bulletStart = -15 - (i * 25);
+                            const bulletEnd = bulletStart - 18;
+                            const isTracer = (i % tracerFrequency) === 0;
+
+                            ctx.beginPath();
+                            ctx.moveTo(0, bulletStart);
+                            ctx.lineTo(0, bulletEnd);
+
+                            if (isTracer) {
+                                // Tracers are bright and visible
+                                ctx.strokeStyle = 'rgba(255, 255, 100, 0.8)';
+                                ctx.lineWidth = 3;
+                                ctx.shadowColor = 'rgba(255, 255, 100, 0.5)';
+                                ctx.shadowBlur = 4;
+                            } else {
+                                // Standard rounds are dimmer and harder to see
+                                ctx.strokeStyle = 'rgba(200, 200, 180, 0.3)';
+                                ctx.lineWidth = 1.5;
+                                ctx.shadowBlur = 0;
+                            }
+                            ctx.stroke();
+                        }
+
+                        ctx.restore();
                     }
+
                     ctx.restore();
                 }
             }
