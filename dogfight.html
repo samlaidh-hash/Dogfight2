@@ -2365,6 +2365,14 @@
                 // Advanced aerobatic maneuvers
                 this.maneuverType = 'none'; // none, immelmann, split-s, loop, half-loop
 
+                // Multi-turn maneuver system
+                this.maneuverRequiredTime = 0; // Total time in seconds required for the maneuver
+                this.maneuverElapsedTime = 0; // Total time in seconds elapsed so far
+                this.maneuverProgress = 0; // Overall progress (0 to 1 across all turns)
+                this.isInMultiTurnManeuver = false; // Currently executing a multi-turn maneuver
+                this.maneuverCancelled = false; // Emergency cancellation flag
+                this.maneuverCancellationPenalty = 0; // Turns of penalty remaining after cancellation
+
                 // Automatic banking visualization
                 this.currentTurnRate = 0; // Current turn rate in degrees/second for visual banking
 
@@ -3486,6 +3494,49 @@
                 };
             }
 
+            // Calculate the realistic time (in seconds) a maneuver should take
+            calculateManeuverRealisticTime() {
+                const startSpeed = this.speed;
+
+                switch(this.maneuverType) {
+                    case 'loop': {
+                        // Full loop: circumference = 2πr, where r = v²/(g*maxG)
+                        const loopRadius = (startSpeed * startSpeed) / (this.maxGForce * 9.81);
+                        const circumference = 2 * Math.PI * loopRadius;
+                        const avgSpeed = startSpeed * 0.8; // Speed varies during loop
+                        return circumference / avgSpeed;
+                    }
+
+                    case 'half-loop': {
+                        // Half loop: half the circumference
+                        const loopRadius = (startSpeed * startSpeed) / (this.maxGForce * 9.81);
+                        const halfCircumference = Math.PI * loopRadius;
+                        const avgSpeed = startSpeed * 0.8;
+                        return halfCircumference / avgSpeed;
+                    }
+
+                    case 'immelmann': {
+                        // Immelmann: half loop + half roll (slightly longer than half loop)
+                        const loopRadius = (startSpeed * startSpeed) / (this.maxGForce * 9.81);
+                        const halfCircumference = Math.PI * loopRadius;
+                        const avgSpeed = startSpeed * 0.75; // Slower due to energy loss
+                        return (halfCircumference / avgSpeed) + 1.0; // +1s for the roll
+                    }
+
+                    case 'split-s': {
+                        // Split-S: half roll + half loop
+                        const loopRadius = (startSpeed * startSpeed) / (this.maxGForce * 9.81);
+                        const halfCircumference = Math.PI * loopRadius;
+                        const avgSpeed = startSpeed * 0.85; // Gains speed in dive
+                        return 1.0 + (halfCircumference / avgSpeed); // 1s for roll + loop time
+                    }
+
+                    default:
+                        // Regular flight: not a special maneuver
+                        return turnTime;
+                }
+            }
+
             calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading, slipAngle = 0) {
                 // Check if we're doing a special maneuver
                 if (this.maneuverType === 'immelmann') {
@@ -3533,6 +3584,25 @@
                 const validation = this.calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading, slipAngle);
                 // flightPath is already set by calculateManeuverValidation, just log for debugging
                 console.log(`[LOCK ORDERS] ${this.name} locked with path length:`, this.flightPath?.length);
+
+                // Calculate multi-turn requirements for special maneuvers
+                if (this.maneuverType !== 'none') {
+                    this.maneuverRequiredTime = this.calculateManeuverRealisticTime();
+                    this.maneuverElapsedTime = 0;
+                    this.maneuverProgress = 0;
+                    this.maneuverCancelled = false;
+
+                    // Set multi-turn flag if maneuver requires more time than current turn duration
+                    this.isInMultiTurnManeuver = this.maneuverRequiredTime > turnTime;
+
+                    const estimatedTurns = Math.ceil(this.maneuverRequiredTime / turnTime);
+                    console.log(`[MULTI-TURN] ${this.name} ${this.maneuverType}: requires ${this.maneuverRequiredTime.toFixed(1)}s (≈${estimatedTurns} turns at ${turnTime}s/turn)`);
+                } else {
+                    // Regular movement - completes in current turn
+                    this.maneuverRequiredTime = 0;
+                    this.maneuverElapsedTime = 0;
+                    this.isInMultiTurnManeuver = false;
+                }
             }
 
             unlockOrders() {
@@ -3544,7 +3614,17 @@
             }
 
             executeOrders(progress) {
-                // progress goes from 0 to 1
+                // progress goes from 0 to 1 for the current turn
+
+                // For multi-turn maneuvers, map progress to the overall maneuver progress
+                let overallProgress = progress;
+                if (this.isInMultiTurnManeuver) {
+                    // Calculate total elapsed time: previous turns + current turn progress
+                    const currentTurnElapsed = progress * turnTime;
+                    const totalElapsed = this.maneuverElapsedTime + currentTurnElapsed;
+                    overallProgress = Math.min(totalElapsed / this.maneuverRequiredTime, 1.0);
+                    this.maneuverProgress = overallProgress;
+                }
 
                 // Handle roll mechanics during execution
                 if (this.rollType !== 'none') {
@@ -3585,12 +3665,15 @@
 
                 // Follow the precalculated realistic flight path
                 if (this.flightPath && this.flightPath.length > 1) {
+                    // Use overall progress for multi-turn maneuvers, regular progress otherwise
+                    const pathProgress = this.isInMultiTurnManeuver ? overallProgress : progress;
+
                     // Find the point in the path corresponding to current progress
-                    const pathIndex = Math.floor(progress * (this.flightPath.length - 1));
+                    const pathIndex = Math.floor(pathProgress * (this.flightPath.length - 1));
                     const nextIndex = Math.min(pathIndex + 1, this.flightPath.length - 1);
 
                     // Interpolate between path points for smooth animation
-                    const localProgress = (progress * (this.flightPath.length - 1)) - pathIndex;
+                    const localProgress = (pathProgress * (this.flightPath.length - 1)) - pathIndex;
 
                     const current = this.flightPath[pathIndex];
                     const next = this.flightPath[nextIndex];
@@ -4620,6 +4703,38 @@
                     ctx.fill();
                 }
 
+                // Draw time markers for multi-turn maneuvers
+                if (selectedAircraft.maneuverType !== 'none') {
+                    const maneuverTime = selectedAircraft.calculateManeuverRealisticTime();
+                    const isMultiTurn = maneuverTime > turnTime;
+                    if (isMultiTurn) {
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.fillStyle = '#ffffff';
+                        ctx.lineWidth = 2;
+                        ctx.font = 'bold 14px Courier New';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+
+                        // Draw markers at each turn-duration interval
+                        const numMarkers = Math.ceil(maneuverTime / turnTime);
+                        for (let i = 1; i < numMarkers; i++) {
+                            const timeProgress = (i * turnTime) / maneuverTime;
+                            const pathIndex = Math.floor(timeProgress * (ghostAircraft.aircraft.flightPath.length - 1));
+                            const point = ghostAircraft.aircraft.flightPath[pathIndex];
+
+                            // Draw a vertical line marker
+                            ctx.beginPath();
+                            ctx.moveTo(point.x - 10, point.y - 15);
+                            ctx.lineTo(point.x - 10, point.y + 15);
+                            ctx.stroke();
+
+                            // Draw time marker
+                            const timeAtMarker = i * turnTime;
+                            ctx.fillText(`${timeAtMarker}s`, point.x + 10, point.y);
+                        }
+                    }
+                }
+
                 ctx.restore();
 
                 // Debug: Log occasionally to verify rendering
@@ -4972,6 +5087,57 @@
             const terrainHeight = terrain.getHeightAt(mouseX, mouseY);
             ctx.fillText(`Terrain: ${Math.round(terrainHeight)}m`, scaleBarX, scaleBarY + 40);
 
+            // Draw multi-turn maneuver progress indicators (during EXECUTION only)
+            if (gameState === 'EXECUTION') {
+                let yOffset = 80; // Start position from top
+                for (let plane of aircraft) {
+                    if (plane.isInMultiTurnManeuver && !plane.isDestroyed) {
+                        // Calculate current progress
+                        const totalElapsed = plane.maneuverElapsedTime + (progress * turnTime);
+                        const percentComplete = Math.min((totalElapsed / plane.maneuverRequiredTime) * 100, 100);
+                        const remaining = Math.max(0, plane.maneuverRequiredTime - totalElapsed);
+
+                        // Draw progress bar background
+                        const barX = 20;
+                        const barY = yOffset;
+                        const barWidth = 300;
+                        const barHeight = 50;
+
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                        ctx.fillRect(barX, barY, barWidth, barHeight);
+                        ctx.strokeStyle = plane.isPlayer ? '#00aaff' : '#ff6666';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+                        // Draw progress fill
+                        const fillWidth = (barWidth - 4) * (percentComplete / 100);
+                        const gradient = ctx.createLinearGradient(barX + 2, barY + 2, barX + 2 + fillWidth, barY + 2);
+                        gradient.addColorStop(0, plane.isPlayer ? '#0066aa' : '#aa4444');
+                        gradient.addColorStop(1, plane.isPlayer ? '#00aaff' : '#ff6666');
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(barX + 2, barY + 2, fillWidth, barHeight - 4);
+
+                        // Draw text
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 14px Courier New';
+                        ctx.textAlign = 'left';
+                        ctx.fillText(`${plane.name}: ${plane.maneuverType.toUpperCase()}`, barX + 5, barY + 18);
+                        ctx.font = '12px Courier New';
+                        ctx.fillText(`${percentComplete.toFixed(0)}% - ${remaining.toFixed(1)}s remaining`, barX + 5, barY + 35);
+
+                        // Show cancel option for player aircraft
+                        if (plane.isPlayer) {
+                            ctx.fillStyle = '#ffaa00';
+                            ctx.font = '10px Courier New';
+                            ctx.textAlign = 'right';
+                            ctx.fillText('Press C to cancel (penalty)', barX + barWidth - 5, barY + 45);
+                        }
+
+                        yOffset += 60; // Next progress bar
+                    }
+                }
+            }
+
             ctx.restore(); // Restore state after drawing UI elements
         }
 
@@ -5134,6 +5300,24 @@
             const fireThresholdPercent = Math.round(selectedAircraft.fireThreshold * 100);
             const fireThresholdColor = selectedAircraft.fireThreshold < 0.20 ? '#ff4444' :
                                       selectedAircraft.fireThreshold < 0.30 ? '#ffaa00' : '#00ff00';
+
+            // Calculate multi-turn requirements
+            let multiTurnInfo = '';
+            if (selectedAircraft.maneuverType !== 'none') {
+                const maneuverTime = selectedAircraft.calculateManeuverRealisticTime();
+                const estimatedTurns = Math.ceil(maneuverTime / turnTime);
+                const isMultiTurn = maneuverTime > turnTime;
+                const maneuverColor = isMultiTurn ? '#ffaa00' : '#00ff00';
+                multiTurnInfo = `
+                    <div style="color: ${maneuverColor}; font-weight: bold; margin-top: 5px; border-top: 1px solid #444; padding-top: 5px;">
+                        <div>Maneuver: ${selectedAircraft.maneuverType.toUpperCase()}</div>
+                        <div>Required Time: ${maneuverTime.toFixed(1)}s</div>
+                        <div>Estimated: ≈${estimatedTurns} turn${estimatedTurns > 1 ? 's' : ''} @ ${turnTime}s/turn</div>
+                        ${isMultiTurn ? '<div style="color: #ff8800;">⚠ MULTI-TURN COMMITMENT</div>' : ''}
+                    </div>
+                `;
+            }
+
             let panelHTML = `
                 <div>Throttle: ${throttlePercent}%</div>
                 <div>Heading: ${validation.targetHeading}°</div>
@@ -5143,6 +5327,7 @@
                 <div>G-Force: ${validation.gForce}G</div>
                 <div style="color: ${rollColor}">Roll: ${rollDisplay}</div>
                 <div style="color: ${fireThresholdColor}">Fire Threshold: ${fireThresholdPercent}%</div>
+                ${multiTurnInfo}
             `;
 
             if (validation.warnings.length > 0) {
@@ -5414,6 +5599,41 @@
                         changeFormation(formationTypes[nextIndex]);
                         return;
                 }
+            }
+
+            // Emergency cancellation - works during EXECUTION phase
+            if (e.key.toLowerCase() === 'c' && gameState === 'EXECUTION') {
+                // Check if any player aircraft are in multi-turn maneuvers
+                for (let plane of aircraft) {
+                    if (plane.isPlayer && plane.isInMultiTurnManeuver && !plane.maneuverCancelled) {
+                        // Cancel the maneuver with consequences
+                        plane.maneuverCancelled = true;
+                        plane.isInMultiTurnManeuver = false;
+
+                        // Apply consequences based on current G-force and speed
+                        const gPenalty = Math.max(0, (plane.currentGForce - 2) * 5); // Higher G = more damage
+                        plane.damage += gPenalty;
+
+                        // Loss of speed due to sudden maneuver cancellation
+                        plane.speed = Math.max(plane.minSpeed, plane.speed * 0.85); // Lose 15% speed
+
+                        // Possible control damage
+                        if (plane.currentGForce > 4) {
+                            plane.systemDamage.controls = Math.min(1.0, plane.systemDamage.controls + 0.1);
+                        }
+
+                        // Pilot becomes disoriented for 1 turn
+                        plane.maneuverCancellationPenalty = 1;
+
+                        console.log(`[EMERGENCY CANCEL] ${plane.name} cancelled ${plane.maneuverType}! Damage: +${gPenalty.toFixed(1)}, Speed: ${plane.speed.toFixed(0)} m/s`);
+
+                        // Reset maneuver state
+                        plane.maneuverType = 'none';
+                        plane.maneuverElapsedTime = 0;
+                        plane.maneuverRequiredTime = 0;
+                    }
+                }
+                return;
             }
 
             if (!selectedAircraft || !ghostAircraft) return;
@@ -5716,22 +5936,56 @@
                 }
 
                 if (progress >= 1 && gameState !== 'GAMEOVER') {
-                    // Finalize execution
+                    // Check for multi-turn maneuvers in progress
+                    let hasOngoingManeuvers = false;
+                    for (let plane of aircraft) {
+                        if (plane.isInMultiTurnManeuver && !plane.maneuverCancelled) {
+                            // Add this turn's time to elapsed time
+                            plane.maneuverElapsedTime += turnTime;
+
+                            // Check if maneuver is complete
+                            if (plane.maneuverElapsedTime < plane.maneuverRequiredTime) {
+                                hasOngoingManeuvers = true;
+                                const remaining = plane.maneuverRequiredTime - plane.maneuverElapsedTime;
+                                console.log(`[MULTI-TURN] ${plane.name} continuing ${plane.maneuverType}: ${plane.maneuverElapsedTime.toFixed(1)}s/${plane.maneuverRequiredTime.toFixed(1)}s (${remaining.toFixed(1)}s remaining)`);
+                            } else {
+                                // Maneuver complete
+                                plane.isInMultiTurnManeuver = false;
+                                plane.maneuverType = 'none';
+                                plane.maneuverElapsedTime = 0;
+                                plane.maneuverRequiredTime = 0;
+                                console.log(`[MULTI-TURN] ${plane.name} completed maneuver`);
+                            }
+                        }
+                    }
+
+                    // Finalize execution for all aircraft
                     for (let plane of aircraft) {
                         plane.finalizeExecution();
                     }
-                    gameState = 'REVIEW';
 
-                    // Reset hot-seat mode for next turn
-                    if (hotSeatMode) {
+                    // If there are ongoing multi-turn maneuvers, immediately restart execution
+                    if (hasOngoingManeuvers) {
+                        console.log('[MULTI-TURN] Continuing for ongoing maneuvers...');
+                        executionStartTime = Date.now();
+                        // Don't change state - stay in EXECUTION
+                    } else {
+                        gameState = 'REVIEW';
+                    }
+
+                    // Reset hot-seat mode for next turn (only if not continuing maneuvers)
+                    if (hotSeatMode && !hasOngoingManeuvers) {
                         currentPlayer = 1;
                     }
 
-                    document.getElementById('replayButton').style.display = 'block';
-                    document.getElementById('nextPhase2s').style.display = 'block';
-                    document.getElementById('nextPhase4s').style.display = 'block';
-                    document.getElementById('nextPhase6s').style.display = 'block';
-                    document.getElementById('nextPhase8s').style.display = 'block';
+                    // Only show buttons if we're actually transitioning to REVIEW
+                    if (!hasOngoingManeuvers) {
+                        document.getElementById('replayButton').style.display = 'block';
+                        document.getElementById('nextPhase2s').style.display = 'block';
+                        document.getElementById('nextPhase4s').style.display = 'block';
+                        document.getElementById('nextPhase6s').style.display = 'block';
+                        document.getElementById('nextPhase8s').style.display = 'block';
+                    }
                 }
             }
 
