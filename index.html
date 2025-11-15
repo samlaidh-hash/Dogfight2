@@ -5529,7 +5529,7 @@
                         ctx.textAlign = 'left';
                         ctx.fillText(`${plane.name}: ${plane.maneuverType.toUpperCase()}`, barX + 5, barY + 18);
                         ctx.font = '12px Courier New';
-                        ctx.fillText(`${percentComplete.toFixed(0)}% - ${remaining.toFixed(1)}s remaining`, barX + 5, barY + 35);
+                        ctx.fillText(`${percentComplete.toFixed(0)}% - ${totalElapsed.toFixed(1)}s / ${plane.maneuverRequiredTime.toFixed(1)}s`, barX + 5, barY + 35);
 
                         // Show cancel option for player aircraft
                         if (plane.isPlayer) {
