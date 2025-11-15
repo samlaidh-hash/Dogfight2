@@ -833,6 +833,7 @@
                         burstSize: 4,
                         damage: [2, 4],
                         rof: 1,
+                        range: 500, // meters - effective range for MGs
                         sound: 'mg'
                     },
                     {
@@ -843,6 +844,7 @@
                         burstSize: 2,
                         damage: [6, 12],
                         rof: 3,
+                        range: 800, // meters - effective range for cannons
                         sound: 'cannon'
                     }
                 ],
@@ -872,6 +874,7 @@
                         burstSize: 4, // 2 rounds per gun
                         damage: [3, 6],
                         rof: 2, // Faster than cannon
+                        range: 600, // meters - effective range for HMGs
                         sound: 'hmg'
                     },
                     {
@@ -882,6 +885,7 @@
                         burstSize: 2,
                         damage: [8, 15], // High damage
                         rof: 4, // Slower rate of fire
+                        range: 800, // meters - effective range for cannons
                         sound: 'cannon'
                     }
                 ],
@@ -2273,19 +2277,30 @@
 
                 if (this.hasMixedArmament) {
                     // Mixed armament (like Me-109)
-                    this.weaponGroups = weaponsData.map(w => ({
-                        type: w.type,
-                        name: w.name,
-                        count: w.count,
-                        ammunition: w.ammo,
-                        maxAmmunition: w.ammo,
-                        ammoPerBurst: w.burstSize,
-                        damageMin: w.damage[0],
-                        damageMax: w.damage[1],
-                        rateOfFire: w.rof,
-                        firingCooldown: 0,
-                        sound: w.sound
-                    }));
+                    this.weaponGroups = weaponsData.map(w => {
+                        // Set default range based on weapon type if not specified
+                        let weaponRange = w.range;
+                        if (!weaponRange) {
+                            if (w.type === 'mg') weaponRange = 500;
+                            else if (w.type === 'hmg') weaponRange = 600;
+                            else if (w.type === 'cannon') weaponRange = 800;
+                            else weaponRange = 500; // Default
+                        }
+                        return {
+                            type: w.type,
+                            name: w.name,
+                            count: w.count,
+                            ammunition: w.ammo,
+                            maxAmmunition: w.ammo,
+                            ammoPerBurst: w.burstSize,
+                            damageMin: w.damage[0],
+                            damageMax: w.damage[1],
+                            rateOfFire: w.rof,
+                            range: weaponRange, // meters - effective range
+                            firingCooldown: 0,
+                            sound: w.sound
+                        };
+                    });
 
                     // Set primary weapon type and total ammo for UI
                     this.weaponType = 'mixed';
@@ -2301,6 +2316,18 @@
                     this.damagePerHit = weaponsData.damage[0] + Math.random() * (weaponsData.damage[1] - weaponsData.damage[0]);
                     this.rateOfFire = weaponsData.rof;
                     this.fireThreshold = weaponsData.type === 'cannon' ? 0.35 : 0.25;
+                    // Set weapon range - use from database or default based on type
+                    if (weaponsData.range) {
+                        this.weaponRange = weaponsData.range;
+                    } else if (weaponsData.type === 'mg') {
+                        this.weaponRange = 500;
+                    } else if (weaponsData.type === 'hmg') {
+                        this.weaponRange = 600;
+                    } else if (weaponsData.type === 'cannon') {
+                        this.weaponRange = 800;
+                    } else {
+                        this.weaponRange = 500; // Default
+                    }
                     this.weaponGroups = null;
                 }
 
@@ -2469,8 +2496,10 @@
 
                 if (useImage) {
                     // Draw the aircraft SVG image centered with transparency
-                    const imgWidth = 80;
-                    const imgHeight = 80;
+                    // Scale to match real dimensions: Spitfire is ~9.2m long, Bf 109 is ~9m
+                    // At 1 pixel ≈ 1 meter scale, use 15 pixels for visibility
+                    const imgWidth = 15;
+                    const imgHeight = 15;
 
                     // Create offscreen canvas to process the image
                     const offscreenCanvas = document.createElement('canvas');
@@ -4235,8 +4264,18 @@
                     if (angleDiff < -180) angleDiff += 360;
                     angleDiff = Math.abs(angleDiff);
 
+                    // Calculate maximum weapon range for this aircraft
+                    let maxWeaponRange = 400; // Default fallback
+                    if (shooter.hasMixedArmament && shooter.weaponGroups) {
+                        // Get max range from all weapon groups
+                        maxWeaponRange = Math.max(...shooter.weaponGroups.map(w => w.range || 400));
+                    } else if (shooter.weaponRange) {
+                        // Single weapon type
+                        maxWeaponRange = shooter.weaponRange;
+                    }
+
                     // Firing cone: 20 degrees for realistic gunnery
-                    if (angleDiff < 20 && distance < 400) {
+                    if (angleDiff < 20 && distance < maxWeaponRange) {
                         // Check line of sight - clouds can block vision!
                         const losBlocked = !terrain.isLineOfSightClear(
                             shooter.x, shooter.y, shooter.altitude,
@@ -4255,7 +4294,7 @@
                         // Calculate hit chance
                         let effectiveGunnerySkill = shooter.gunnerySkill * (1 - shooter.gForcePenalty);
                         let hitChance = effectiveGunnerySkill * 0.6;
-                        hitChance *= Math.max(0.1, 1 - distance / 400); // Distance factor (max 400m)
+                        hitChance *= Math.max(0.1, 1 - distance / maxWeaponRange); // Distance factor based on weapon range
                         hitChance *= Math.max(0.3, 1 - altitudeDiff / 500); // Altitude factor
                         hitChance *= Math.min(1, 0.2 + shooter.timeOnTarget / 8); // Time on target bonus
 
@@ -4308,22 +4347,22 @@
                                         // MGs: Good at all ranges, use for ranging/suppression
                                         shouldFireThisWeapon = true; // Fire whenever in arc
                                     } else if (weaponGroup.type === 'hmg') {
-                                        // HMGs: Effective at medium range, fairly common ammo
-                                        shouldFireThisWeapon = distance < 350 || hitChance > 0.4;
+                                        // HMGs: Effective at medium range (60% of max range), fairly common ammo
+                                        shouldFireThisWeapon = distance < (weaponGroup.range * 0.6) || hitChance > 0.4;
                                     } else if (weaponGroup.type === 'cannon') {
                                         // Cannons: Save for close range where they're most effective
                                         // Calculate ammo percentage remaining
                                         const ammoPercent = weaponGroup.ammunition / weaponGroup.maxAmmunition;
 
                                         if (ammoPercent < 0.2) {
-                                            // Critical ammo! Only fire at very close range with high hit chance
-                                            shouldFireThisWeapon = distance < 150 && hitChance > 0.5;
+                                            // Critical ammo! Only fire at very close range (20% of max) with high hit chance
+                                            shouldFireThisWeapon = distance < (weaponGroup.range * 0.2) && hitChance > 0.5;
                                         } else if (ammoPercent < 0.5) {
-                                            // Low ammo, be conservative
-                                            shouldFireThisWeapon = distance < 200 && hitChance > 0.4;
+                                            // Low ammo, be conservative (25% of max range)
+                                            shouldFireThisWeapon = distance < (weaponGroup.range * 0.25) && hitChance > 0.4;
                                         } else {
-                                            // Plenty of ammo, fire at close-medium range
-                                            shouldFireThisWeapon = distance < 250;
+                                            // Plenty of ammo, fire at close-medium range (35% of max)
+                                            shouldFireThisWeapon = distance < (weaponGroup.range * 0.35);
                                         }
                                     }
 
