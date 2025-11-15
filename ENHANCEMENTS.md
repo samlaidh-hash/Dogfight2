@@ -89,7 +89,7 @@ This document details the comprehensive enhancements made to Dogfight 2, a WW2 a
 7. **Mitsubishi A6M Zero** (Japanese)
    - Role: Fighter
    - Top Speed: 166 m/s
-   - Strengths: BEST turn rate (80°/turn), excellent fuel efficiency
+   - Strengths: BEST turn rate (80°/second), excellent fuel efficiency
    - Weaknesses: Low durability (takes 1.4x damage), poor dive
    - Weapons: 2× 20mm cannon
 

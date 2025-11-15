@@ -817,7 +817,7 @@
                 role: 'Fighter',
                 maxSpeed: 170, // m/s (~605 km/h)
                 minSpeed: 30,
-                maxTurnRate: 72, // degrees per turn
+                maxTurnRate: 72, // degrees per second
                 maxClimbRate: 15,
                 maxDiveRate: 30,
                 maxGForce: 7,
@@ -4463,9 +4463,9 @@
                         // Bomb if target in cone, at reasonable altitude (not too high, not too low)
                         if (angleDiff < 30 && distance < 600 && attacker.altitude > 100 && attacker.altitude < 3000) {
                             attacker.dropBomb();
-                            attacker.bombCooldown = 5; // Cooldown between bomb drops (5 turns)
+                            attacker.bombCooldown = 5; // Cooldown between bomb drops (5 seconds)
                             console.log(`${attacker.name}: Auto-dropped bomb on ground target at ${distance.toFixed(0)}m`);
-                            break; // Only one bomb per turn
+                            break; // Only one bomb per pass
                         }
                     }
                 }
@@ -4491,9 +4491,9 @@
                             // Launch rocket at ground target
                             if (angleDiff < 25 && distance < 800 && attacker.altitude < 2000) {
                                 attacker.launchRocket(target);
-                                attacker.rocketCooldown = 4; // Cooldown between rocket launches (4 turns)
+                                attacker.rocketCooldown = 4; // Cooldown between rocket launches (4 seconds)
                                 console.log(`${attacker.name}: Auto-launched rocket at ground target ${target.type} at ${distance.toFixed(0)}m`);
-                                break; // Only one rocket per turn
+                                break; // Only one rocket per pass
                             }
                         }
                     } else if (attacker.rocketMode === 'air') {
@@ -4524,9 +4524,9 @@
                                 );
                                 if (!losBlocked) {
                                     attacker.launchRocketAtAircraft(target);
-                                    attacker.rocketCooldown = 5; // Cooldown for air-to-air rockets (5 turns)
+                                    attacker.rocketCooldown = 5; // Cooldown for air-to-air rockets (5 seconds)
                                     console.log(`${attacker.name}: Auto-launched rocket at aircraft ${target.name} at ${distance.toFixed(0)}m`);
-                                    break; // Only one rocket per turn
+                                    break; // Only one rocket per pass
                                 }
                             }
                         }
