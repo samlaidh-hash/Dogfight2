@@ -41,7 +41,9 @@
             background: rgba(0, 0, 0, 0.7);
             padding: 15px;
             border-radius: 0 5px 5px 0;
-            min-width: 250px;
+            min-width: 280px;
+            width: auto;
+            max-width: 350px;
             transition: transform 0.3s ease-in-out;
             cursor: default;
             z-index: 100;
@@ -76,16 +78,16 @@
             pointer-events: auto;
         }
 
-        #aircraftPanel {
+        #controlsPanel {
             top: 10px;
-            max-height: 45vh;
-            overflow-y: visible;
+            max-height: 40vh;
+            overflow-y: auto;
         }
 
-        #controlsPanel {
-            top: calc(45vh + 20px);
-            max-height: 45vh;
-            overflow-y: visible;
+        #aircraftPanel {
+            top: calc(40vh + 20px);
+            max-height: 50vh;
+            overflow-y: auto;
         }
 
         #executeButton {
@@ -411,10 +413,10 @@
 
         <!-- Aircraft Info Panel (Top) -->
         <div id="aircraftPanel" class="ui-panel">
-            <div class="panel-tab" onclick="togglePanel('aircraftPanel')">AIRCRAFT</div>
+            <div class="panel-tab" onclick="togglePanel('aircraftPanel')" title="Show/hide aircraft status panel">AIRCRAFT</div>
             <h1 style="font-size: 18px;">DOGFIGHT 2</h1>
-            <div id="phaseDisplay" class="stat-line">Phase: <span id="currentPhase">ORDER</span></div>
-            <div id="turnDisplay" class="stat-line">Turn: <span id="currentTurn">1</span></div>
+            <div id="phaseDisplay" class="stat-line" title="Current game phase: ORDER (plan moves), EXECUTION (watch combat), or REVIEW (after combat)">Phase: <span id="currentPhase">ORDER</span></div>
+            <div id="turnDisplay" class="stat-line" title="Current turn number">Turn: <span id="currentTurn">1</span></div>
 
             <h2 style="font-size: 16px; margin-top: 10px;">Spitfire (You)</h2>
             <div id="spitfireStats"></div>
@@ -432,9 +434,9 @@
 
         <!-- Controls Panel (Bottom) -->
         <div id="controlsPanel" class="ui-panel">
-            <div class="panel-tab" onclick="togglePanel('controlsPanel')">CONTROLS</div>
+            <div class="panel-tab" onclick="togglePanel('controlsPanel')" title="Show/hide controls reference panel">CONTROLS</div>
             <div style="font-size: 11px; color: #888;">
-                <div style="font-weight: bold; margin-bottom: 5px;">Flight Controls:</div>
+                <div style="font-weight: bold; margin-bottom: 5px;" title="Keyboard and mouse controls for flight">Flight Controls:</div>
                 <div>• Click aircraft to order</div>
                 <div>• Move mouse to position</div>
                 <div>• Mouse wheel: zoom in/out</div>
@@ -464,9 +466,9 @@
 
         <div id="ghostPanel" class="ghost-panel"></div>
 
-        <div id="realisticModeToggle" style="position: absolute; top: 10px; right: 270px; background: rgba(0, 0, 0, 0.7); padding: 10px; border-radius: 5px; z-index: 150;">
+        <div id="realisticModeToggle" style="position: absolute; top: 10px; right: 270px; background: rgba(0, 0, 0, 0.7); padding: 10px; border-radius: 5px; z-index: 150;" title="Toggle between showing AI's actual planned move (unrealistic) or prediction based on last turn (realistic fog of war)">
             <label style="cursor: pointer; font-size: 14px;">
-                <input type="checkbox" id="realisticModeCheckbox" style="margin-right: 8px; cursor: pointer;">
+                <input type="checkbox" id="realisticModeCheckbox" style="margin-right: 8px; cursor: pointer;" title="When enabled, shows predicted AI position instead of actual planned move">
                 Realistic AI Display
             </label>
             <div style="font-size: 11px; color: #aaa; margin-top: 5px; max-width: 200px;">
@@ -474,16 +476,16 @@
             </div>
         </div>
 
-        <button id="executeButton">EXECUTE ORDERS</button>
-        <button id="replayButton">REPLAY</button>
-        <button id="nextPhase2s" class="nextPhaseButton">NEXT PHASE (2s)</button>
-        <button id="nextPhase4s" class="nextPhaseButton">NEXT PHASE (4s)</button>
-        <button id="nextPhase6s" class="nextPhaseButton">NEXT PHASE (6s)</button>
-        <button id="nextPhase8s" class="nextPhaseButton">NEXT PHASE (8s)</button>
+        <button id="executeButton" title="Execute all locked orders and begin the combat phase">EXECUTE ORDERS</button>
+        <button id="replayButton" title="Replay the last execution phase">REPLAY</button>
+        <button id="nextPhase2s" class="nextPhaseButton" title="Begin next turn with 2 second duration">NEXT PHASE (2s)</button>
+        <button id="nextPhase4s" class="nextPhaseButton" title="Begin next turn with 4 second duration (standard)">NEXT PHASE (4s)</button>
+        <button id="nextPhase6s" class="nextPhaseButton" title="Begin next turn with 6 second duration">NEXT PHASE (6s)</button>
+        <button id="nextPhase8s" class="nextPhaseButton" title="Begin next turn with 8 second duration">NEXT PHASE (8s)</button>
 
-        <button id="restartButton">RESTART</button>
-        <button id="pauseButton">PAUSE</button>
-        <button id="settingsButton">SETTINGS</button>
+        <button id="restartButton" title="Restart the battle from the beginning">RESTART</button>
+        <button id="pauseButton" title="Pause or resume the execution phase">PAUSE</button>
+        <button id="settingsButton" title="Open game settings and options">SETTINGS</button>
 
         <canvas id="minimap" class="minimap" width="200" height="200"></canvas>
         <canvas id="energyDiagram" width="200" height="200"></canvas>
@@ -2309,7 +2311,7 @@
                     this.weaponType = 'mixed';
                     this.ammunition = weaponsData.reduce((sum, w) => sum + w.ammo, 0);
                     this.maxAmmunition = this.ammunition;
-                    this.fireThreshold = 0.30; // Mixed armament threshold
+                    this.fireThreshold = 0.15; // Mixed armament threshold - reduced to allow earlier firing
                 } else {
                     // Single weapon type (legacy support)
                     this.weaponType = weaponsData.type;
@@ -2318,7 +2320,7 @@
                     this.ammoPerBurst = weaponsData.burstSize;
                     this.damagePerHit = weaponsData.damage[0] + Math.random() * (weaponsData.damage[1] - weaponsData.damage[0]);
                     this.rateOfFire = weaponsData.rof;
-                    this.fireThreshold = weaponsData.type === 'cannon' ? 0.35 : 0.25;
+                    this.fireThreshold = weaponsData.type === 'cannon' ? 0.20 : 0.15; // Reduced to allow more frequent firing
                     // Set weapon range - use from database or default based on type
                     if (weaponsData.range) {
                         this.weaponRange = weaponsData.range;
@@ -4098,8 +4100,6 @@
             }
 
             getStatsHTML() {
-                const ammoColor = this.ammunition < 100 ? 'color: #ff4444;' : '';
-                const ammoPercent = Math.round((this.ammunition / this.maxAmmunition) * 100);
                 const damageColor = this.damage > 50 ? 'color: #ff4444;' : this.damage > 25 ? 'color: #ffaa00;' : '';
                 const hitWarning = this.lastHitBy ? `<div style="color: #ff0000; animation: blink 0.5s infinite;">⚠ HIT BY ${this.lastHitBy.toUpperCase()}!</div>` : '';
 
@@ -4143,9 +4143,34 @@
                 const fireThresholdColor = this.fireThreshold < 0.20 ? '#ff4444' :
                                           this.fireThreshold < 0.30 ? '#ffaa00' : '#88ff88';
 
-                // Enhancement #8: Weapon info
-                const weaponName = this.weaponType === 'mg' ? 'MGs' :
-                                  this.weaponType === 'hmg' ? 'HMGs' : 'Cannon';
+                // Enhancement #8: Weapon info - support mixed armament
+                let weaponDisplay = '';
+                if (this.hasMixedArmament && this.weaponGroups) {
+                    // Display each weapon group with its percentage
+                    for (let weaponGroup of this.weaponGroups) {
+                        const weaponPercent = Math.round((weaponGroup.ammunition / weaponGroup.maxAmmunition) * 100);
+                        const weaponColor = weaponGroup.ammunition < 20 ? 'color: #ff4444;' : '';
+
+                        // Determine display name based on weapon type
+                        let displayName = weaponGroup.name;
+                        if (weaponGroup.type === 'mg') {
+                            displayName = 'LMG'; // Light Machine Gun (.303, 7.7mm, etc.)
+                        } else if (weaponGroup.type === 'hmg') {
+                            displayName = 'HMG'; // Heavy Machine Gun (13mm, .50 cal, etc.)
+                        } else if (weaponGroup.type === 'cannon') {
+                            displayName = 'Cannons'; // Cannons (20mm, 30mm, etc.)
+                        }
+
+                        weaponDisplay += `<div class="stat-line" style="${weaponColor}">${displayName}: ${weaponPercent}%</div>`;
+                    }
+                } else {
+                    // Single weapon type
+                    const weaponName = this.weaponType === 'mg' ? 'LMG' :
+                                      this.weaponType === 'hmg' ? 'HMG' : 'Cannons';
+                    const ammoPercent = Math.round((this.ammunition / this.maxAmmunition) * 100);
+                    const ammoColor = this.ammunition < 100 ? 'color: #ff4444;' : '';
+                    weaponDisplay = `<div class="stat-line" style="${ammoColor}">${weaponName}: ${ammoPercent}% ${this.isFiring ? '🔥' : ''}</div>`;
+                }
 
                 // Enhancement #8: Bombs/Rockets (if available)
                 const rocketModeText = this.rockets > 0 ? ` (${this.rocketMode.toUpperCase()})` : '';
@@ -4174,7 +4199,7 @@
                     <div class="stat-line">Hdg: ${Math.round(this.heading)}°</div>
                     ${fuelDisplay}
                     ${fuelLeakWarning}
-                    <div class="stat-line" style="${ammoColor}">${weaponName}: ${ammoPercent}% ${this.isFiring ? '🔥' : ''}</div>
+                    ${weaponDisplay}
                     <div class="stat-line" style="${damageColor}">Damage: ${Math.round(this.damage)}%</div>
                     ${componentInfo}
                     <div class="stat-line" style="color: ${fireThresholdColor}">Fire Min: ${fireThresholdPercent}%</div>
@@ -4626,6 +4651,11 @@
                         }
 
                         shooter.timeOnTarget += 0.1;
+
+                        // Debug logging for firing decisions
+                        if (Math.random() < 0.01) { // Log occasionally to avoid spam
+                            console.log(`[FIRING CHECK] ${shooter.name} vs ${target.name}: distance=${Math.round(distance)}m, angleDiff=${angleDiff.toFixed(1)}°, hitChance=${(hitChance * 100).toFixed(1)}%, threshold=${(shooter.fireThreshold * 100).toFixed(1)}%, timeOnTarget=${shooter.timeOnTarget.toFixed(1)}s`);
+                        }
 
                         // Fire if chance exceeds threshold and angle is good
                         if (hitChance >= shooter.fireThreshold && angleDiff < 15) {
