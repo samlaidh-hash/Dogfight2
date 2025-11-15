@@ -5221,7 +5221,12 @@
             // Target position (where mouse is pointing)
             const targetX = mouseX;
             const targetY = mouseY;
-            const targetHeading = (selectedAircraft.heading + ghostRotation + 360) % 360;
+
+            // Calculate heading from aircraft to mouse position
+            const dx = targetX - selectedAircraft.x;
+            const dy = targetY - selectedAircraft.y;
+            const targetHeading = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
+
             const targetAltitude = Math.max(ALTITUDE_MIN,
                 Math.min(ALTITUDE_MAX, selectedAircraft.altitude + ghostAltitudeOffset));
 
