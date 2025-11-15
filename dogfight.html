@@ -42,6 +42,8 @@
             padding: 15px;
             border-radius: 0 5px 5px 0;
             min-width: 250px;
+            max-width: fit-content;
+            width: auto;
             transition: transform 0.3s ease-in-out;
             cursor: default;
             z-index: 100;
@@ -78,14 +80,42 @@
 
         #aircraftPanel {
             top: 10px;
-            max-height: 45vh;
-            overflow-y: visible;
+            max-height: 70vh;
+            overflow-y: auto;
         }
 
         #controlsPanel {
-            top: calc(45vh + 20px);
-            max-height: 45vh;
-            overflow-y: visible;
+            /* Repositioned to center top, landscape orientation */
+            left: 50%;
+            top: 10px;
+            transform: translateX(-50%);
+            border-radius: 5px;
+            max-width: 800px;
+            width: auto;
+            max-height: 160px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            padding: 10px 15px;
+        }
+
+        #controlsPanel.collapsed {
+            transform: translateX(-50%) translateY(-100%);
+        }
+
+        #controlsPanel .panel-tab {
+            left: 50%;
+            right: auto;
+            top: auto;
+            bottom: -30px;
+            transform: translateX(-50%);
+            writing-mode: horizontal-tb;
+            text-orientation: mixed;
+        }
+
+        #controlsPanel.collapsed .panel-tab {
+            transform: translateX(-50%) translateY(100%);
         }
 
         #executeButton {
@@ -384,6 +414,28 @@
             font-size: 16px;
             color: #0f9d58;
         }
+
+        /* Tooltip styles */
+        .stat-line[title] {
+            cursor: help;
+            position: relative;
+        }
+
+        .stat-line[title]:hover {
+            text-decoration: underline dotted;
+        }
+
+        /* Controls panel grid items */
+        .control-section {
+            font-size: 11px;
+            color: #888;
+        }
+
+        .control-section-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #88ff88;
+        }
     </style>
 </head>
 <body>
@@ -430,35 +482,43 @@
             </div>
         </div>
 
-        <!-- Controls Panel (Bottom) -->
+        <!-- Controls Panel (Center Top - Landscape) -->
         <div id="controlsPanel" class="ui-panel">
             <div class="panel-tab" onclick="togglePanel('controlsPanel')">CONTROLS</div>
-            <div style="font-size: 11px; color: #888;">
-                <div style="font-weight: bold; margin-bottom: 5px;">Flight Controls:</div>
-                <div>• Click aircraft to order</div>
-                <div>• Move mouse to position</div>
-                <div>• Mouse wheel: zoom in/out</div>
-                <div>• W/S: throttle up/down</div>
-                <div>• Q/E: altitude down/up</div>
-                <div>• A/D: slip/skid left/right</div>
-                <div>• R: cycle roll (none/half/full)</div>
-                <div>• I: Immelmann turn</div>
+            <div class="control-section">
+                <div class="control-section-title">Basic Flight:</div>
+                <div>• Click aircraft to select</div>
+                <div>• Move mouse to order position</div>
+                <div>• Mouse wheel: zoom</div>
+                <div>• W/S: throttle</div>
+                <div>• Q/E: altitude</div>
+                <div>• A/D: slip/skid</div>
+            </div>
+            <div class="control-section">
+                <div class="control-section-title">Maneuvers:</div>
+                <div>• R: cycle roll</div>
+                <div>• I: Immelmann</div>
                 <div>• T: Split-S</div>
                 <div>• L: Loop</div>
                 <div>• H: Half-loop</div>
+                <div>• Click again to lock</div>
+            </div>
+            <div class="control-section">
+                <div class="control-section-title">Weapons:</div>
+                <div>• Z/X: fire threshold</div>
                 <div>• J: Dive bomb</div>
                 <div>• N: Level bomb</div>
                 <div>• K: Strafing run</div>
-                <div>• Z/X: fire threshold down/up</div>
-                <div>• B: toggle rocket Air/Ground mode</div>
-                <div>• Click again to lock</div>
-                <div style="margin-top: 10px; font-weight: bold; color: #88ff88;">Wingman Commands:</div>
-                <div>• 1: Attack my target</div>
+                <div>• B: rocket mode</div>
+            </div>
+            <div class="control-section">
+                <div class="control-section-title">Wingman:</div>
+                <div>• 1: Attack target</div>
                 <div>• 2: Cover me</div>
-                <div>• 3: Break and attack</div>
-                <div>• 4: Rejoin formation</div>
+                <div>• 3: Break & attack</div>
+                <div>• 4: Rejoin</div>
                 <div>• 5: Free hunt</div>
-                <div>• F: Cycle formation</div>
+                <div>• F: Formation</div>
             </div>
         </div>
 
@@ -4111,9 +4171,9 @@
                 const fuelPercent = Math.round((this.fuel / this.maxFuel) * 100);
                 const fuelColor = fuelPercent < 20 ? 'color: #ff4444;' : fuelPercent < 40 ? 'color: #ffaa00;' : '';
                 const fuelDisplay = gameSettings.enableFuel ?
-                    `<div class="stat-line" style="${fuelColor}">Fuel: ${fuelPercent}%</div>` : '';
+                    `<div class="stat-line" style="${fuelColor}" title="Remaining fuel percentage. Consumed by flying, more at higher throttle. Aircraft will stall when empty.">Fuel: ${fuelPercent}%</div>` : '';
                 const fuelLeakWarning = this.fuelLeak ?
-                    `<div class="stat-line" style="color: #ff4444;">⚠ FUEL LEAK!</div>` : '';
+                    `<div class="stat-line" style="color: #ff4444;" title="Fuel tank is leaking! Fuel draining rapidly from damage.">⚠ FUEL LEAK!</div>` : '';
 
                 // Enhancement #4: Component damage display
                 let componentInfo = '';
@@ -4128,19 +4188,19 @@
                 }
 
                 // Show G-force during execution
-                const gForceDisplay = this.currentGForce > 1.5 ? `<div class="stat-line" style="color: #ffaa00;">G-Force: ${this.currentGForce.toFixed(1)}G</div>` : '';
+                const gForceDisplay = this.currentGForce > 1.5 ? `<div class="stat-line" style="color: #ffaa00;" title="G-forces experienced during maneuvers. High G-forces can cause pilot strain and blackouts.">G-Force: ${this.currentGForce.toFixed(1)}G</div>` : '';
 
                 // Show G-force penalty from previous turn
                 const gPenaltyDisplay = this.gForcePenalty > 0 ?
-                    `<div class="stat-line" style="color: #ff8800;">⚠ G-Strain: -${Math.round(this.gForcePenalty * 100)}% skill</div>` : '';
+                    `<div class="stat-line" style="color: #ff8800;" title="Pilot skill penalty from excessive G-forces in previous turn. Reduces accuracy and maneuverability.">⚠ G-Strain: -${Math.round(this.gForcePenalty * 100)}% skill</div>` : '';
 
                 // Show inverted status
                 const invertedDisplay = this.isInverted ?
-                    `<div class="stat-line" style="color: #ffaa00;">⤺ INVERTED</div>` : '';
+                    `<div class="stat-line" style="color: #ffaa00;" title="Aircraft is flying upside down. Affects control inputs and maneuverability.">⤺ INVERTED</div>` : '';
 
                 // Show pilot wounded
                 const pilotWoundedDisplay = this.pilotWounded ?
-                    `<div class="stat-line" style="color: #ff4444;">⚠ PILOT WOUNDED</div>` : '';
+                    `<div class="stat-line" style="color: #ff4444;" title="Pilot has been wounded by enemy fire. Reduced accuracy and slower reactions.">⚠ PILOT WOUNDED</div>` : '';
 
                 // Show fire threshold
                 const fireThresholdPercent = Math.round(this.fireThreshold * 100);
@@ -4154,7 +4214,7 @@
                 // Enhancement #8: Bombs/Rockets (if available)
                 const rocketModeText = this.rockets > 0 ? ` (${this.rocketMode.toUpperCase()})` : '';
                 const ordinanceDisplay = (this.bombs > 0 || this.rockets > 0) ?
-                    `<div class="stat-line" style="color: #88ff88;">Bombs: ${this.bombs} | Rockets: ${this.rockets}${rocketModeText}</div>` : '';
+                    `<div class="stat-line" style="color: #88ff88;" title="Available ordnance. Use J for dive bomb, N for level bomb, K for strafing run. Toggle rocket mode (Air/Ground) with B key.">Bombs: ${this.bombs} | Rockets: ${this.rockets}${rocketModeText}</div>` : '';
 
                 // Show critical hits
                 const critDisplay = this.criticalHitsDealt > 0 ?
@@ -4172,22 +4232,22 @@
 
                 return `
                     <div class="stat-line" style="font-size: 11px; color: #aaa;">${this.fullName}</div>
-                    <div class="stat-line">Alt: ${Math.round(this.altitude)}m</div>
-                    <div class="stat-line">Speed: ${Math.round(this.speed)} m/s</div>
-                    <div class="stat-line">Throttle: ${Math.round(this.throttle * 100)}%</div>
-                    <div class="stat-line">Hdg: ${Math.round(this.heading)}°</div>
+                    <div class="stat-line" title="Altitude above ground in meters">Alt: ${Math.round(this.altitude)}m</div>
+                    <div class="stat-line" title="Current airspeed in meters per second">Speed: ${Math.round(this.speed)} m/s</div>
+                    <div class="stat-line" title="Engine throttle setting (affects speed and fuel consumption)">Throttle: ${Math.round(this.throttle * 100)}%</div>
+                    <div class="stat-line" title="Compass heading in degrees (0° = North, 90° = East)">Hdg: ${Math.round(this.heading)}°</div>
                     ${fuelDisplay}
                     ${fuelLeakWarning}
-                    <div class="stat-line" style="${ammoColor}">${weaponName}: ${ammoPercent}% ${this.isFiring ? '🔥' : ''}</div>
-                    <div class="stat-line" style="${damageColor}">Damage: ${Math.round(this.damage)}%</div>
+                    <div class="stat-line" style="${ammoColor}" title="Remaining ammunition for ${weaponName === 'MGs' ? 'Machine Guns' : weaponName === 'HMGs' ? 'Heavy Machine Guns' : 'Cannons'}. Percentage of max capacity.">${weaponName}: ${ammoPercent}% ${this.isFiring ? '🔥' : ''}</div>
+                    <div class="stat-line" style="${damageColor}" title="Structural damage to aircraft. At 100% the aircraft is destroyed.">Damage: ${Math.round(this.damage)}%</div>
                     ${componentInfo}
-                    <div class="stat-line" style="color: ${fireThresholdColor}">Fire Min: ${fireThresholdPercent}%</div>
+                    <div class="stat-line" style="color: ${fireThresholdColor}" title="Minimum hit probability required to open fire. Lower = fires at longer range but wastes ammo. Adjust with Z/X keys.">Fire Min: ${fireThresholdPercent}%</div>
                     ${ordinanceDisplay}
-                    ${critDisplay}
-                    ${critTakenDisplay}
-                    ${engineDamageDisplay}
-                    ${controlDamageDisplay}
-                    ${weaponDamageDisplay}
+                    ${critDisplay ? `<div class="stat-line" style="color: #ff8800;" title="Number of critical hits dealt to enemy. Critical hits cause system damage (engine, controls, weapons).">💥 Crits: ${this.criticalHitsDealt}</div>` : ''}
+                    ${critTakenDisplay ? `<div class="stat-line" style="color: #ff4444;" title="Number of critical hits received. These cause permanent system damage until repaired.">💥 Hit by: ${this.criticalHitsTaken}</div>` : ''}
+                    ${engineDamageDisplay ? `<div class="stat-line" style="color: #ff4444;" title="Engine damage from critical hits. Reduces maximum speed and climb rate.">🔧 Engine: ${Math.round(this.systemDamage.engine * 100)}%</div>` : ''}
+                    ${controlDamageDisplay ? `<div class="stat-line" style="color: #ff4444;" title="Control surface damage from critical hits. Reduces turn rate and maneuverability.">⚙ Controls: ${Math.round(this.systemDamage.controls * 100)}%</div>` : ''}
+                    ${weaponDamageDisplay ? `<div class="stat-line" style="color: #ff4444;" title="Weapons system damage from critical hits. Reduces accuracy and rate of fire.">🎯 Weapons: ${Math.round(this.systemDamage.weapons * 100)}%</div>` : ''}
                     ${gForceDisplay}
                     ${gPenaltyDisplay}
                     ${invertedDisplay}
@@ -6797,47 +6857,85 @@
             ctx.font = 'bold 12px Courier New';
             ctx.fillText('Energy State', 10, 20);
 
-            if (aircraft.length < 2) return;
+            if (aircraft.length < 1) return;
 
             // Calculate energy states (specific energy = altitude + v²/2g)
             const g = 9.81;
-            const playerEnergy = spitfire.altitude + (spitfire.speed * spitfire.speed) / (2 * g);
-            const enemyEnergy = me109.altitude + (me109.speed * me109.speed) / (2 * g);
+            const energyStates = aircraft.map(ac => ({
+                aircraft: ac,
+                energy: ac.altitude + (ac.speed * ac.speed) / (2 * g)
+            }));
 
-            const maxEnergy = Math.max(playerEnergy, enemyEnergy, 1500);
-            const playerBarHeight = (playerEnergy / maxEnergy) * 120;
-            const enemyBarHeight = (enemyEnergy / maxEnergy) * 120;
+            // For 2 aircraft, use the classic side-by-side comparison
+            if (aircraft.length === 2) {
+                const playerEnergy = energyStates[0].energy;
+                const enemyEnergy = energyStates[1].energy;
+                const maxEnergy = Math.max(playerEnergy, enemyEnergy, 1500);
+                const playerBarHeight = (playerEnergy / maxEnergy) * 120;
+                const enemyBarHeight = (enemyEnergy / maxEnergy) * 120;
 
-            // Player energy bar
-            ctx.fillStyle = '#0099ff';
-            ctx.fillRect(30, 170 - playerBarHeight, 60, playerBarHeight);
-            ctx.strokeStyle = '#ffffff';
-            ctx.strokeRect(30, 50, 60, 120);
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '10px Courier New';
-            ctx.fillText('You', 45, 185);
+                // Player energy bar
+                ctx.fillStyle = '#0099ff';
+                ctx.fillRect(30, 170 - playerBarHeight, 60, playerBarHeight);
+                ctx.strokeStyle = '#ffffff';
+                ctx.strokeRect(30, 50, 60, 120);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '10px Courier New';
+                ctx.fillText('You', 45, 185);
 
-            // Enemy energy bar
-            ctx.fillStyle = '#ff4444';
-            ctx.fillRect(110, 170 - enemyBarHeight, 60, enemyBarHeight);
-            ctx.strokeRect(110, 50, 60, 120);
-            ctx.fillText('Enemy', 120, 185);
+                // Enemy energy bar
+                ctx.fillStyle = '#ff4444';
+                ctx.fillRect(110, 170 - enemyBarHeight, 60, enemyBarHeight);
+                ctx.strokeRect(110, 50, 60, 120);
+                ctx.fillText('Enemy', 120, 185);
 
-            // Energy advantage indicator
-            const advantage = playerEnergy - enemyEnergy;
-            ctx.fillStyle = advantage > 0 ? '#00ff00' : '#ff4444';
-            ctx.font = 'bold 14px Courier New';
-            const advantageText = advantage > 0 ? `+${Math.round(advantage)}m` : `${Math.round(advantage)}m`;
-            ctx.fillText(advantageText, 70, 40);
+                // Energy advantage indicator
+                const advantage = playerEnergy - enemyEnergy;
+                ctx.fillStyle = advantage > 0 ? '#00ff00' : '#ff4444';
+                ctx.font = 'bold 14px Courier New';
+                const advantageText = advantage > 0 ? `+${Math.round(advantage)}m` : `${Math.round(advantage)}m`;
+                ctx.fillText(advantageText, 70, 40);
 
-            // Engagement envelope (optimal attack zone)
-            ctx.strokeStyle = '#ffaa00';
-            ctx.setLineDash([3, 3]);
-            ctx.strokeRect(30, 90, 140, 40);
-            ctx.setLineDash([]);
-            ctx.fillStyle = '#ffaa00';
-            ctx.font = '9px Courier New';
-            ctx.fillText('Optimal Zone', 55, 115);
+                // Engagement envelope (optimal attack zone)
+                ctx.strokeStyle = '#ffaa00';
+                ctx.setLineDash([3, 3]);
+                ctx.strokeRect(30, 90, 140, 40);
+                ctx.setLineDash([]);
+                ctx.fillStyle = '#ffaa00';
+                ctx.font = '9px Courier New';
+                ctx.fillText('Optimal Zone', 55, 115);
+            } else {
+                // For more than 2 aircraft, show a list with bars
+                const maxEnergy = Math.max(...energyStates.map(e => e.energy), 1500);
+                const barMaxWidth = 120;
+                const startY = 35;
+                const barHeight = 18;
+                const spacing = 22;
+
+                energyStates.forEach((state, i) => {
+                    if (i >= 7) return; // Limit to 7 aircraft to fit in display
+
+                    const y = startY + (i * spacing);
+                    const barWidth = (state.energy / maxEnergy) * barMaxWidth;
+
+                    // Color based on team/player
+                    ctx.fillStyle = state.aircraft.isPlayer ? '#0099ff' : '#ff4444';
+                    ctx.fillRect(70, y, barWidth, barHeight);
+
+                    // Bar outline
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.strokeRect(70, y, barMaxWidth, barHeight);
+
+                    // Aircraft name/label
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '9px Courier New';
+                    const label = state.aircraft.name || `AC${i+1}`;
+                    ctx.fillText(label.substring(0, 8), 5, y + 13);
+
+                    // Energy value
+                    ctx.fillText(`${Math.round(state.energy)}`, 72, y + 13);
+                });
+            }
 
             // Border
             ctx.strokeStyle = '#0f3460';
