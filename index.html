@@ -2979,9 +2979,13 @@
                 for (let step = 0; step < NUM_STEPS; step++) {
                     const stepTime = (step + 1) * TIME_STEP;
 
+                    // Calculate heading to continuously steer towards target position
+                    const dx = targetX - state.x;
+                    const dy = targetY - state.y;
+                    const currentTargetHeading = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
+
                     // Calculate heading difference to reach target heading
-                    // Use the targetHeading parameter instead of calculating from position
-                    let headingDiff = targetHeading - state.heading;
+                    let headingDiff = currentTargetHeading - state.heading;
                     if (headingDiff > 180) headingDiff -= 360;
                     if (headingDiff < -180) headingDiff += 360;
 
@@ -4497,6 +4501,49 @@
             }
         }
 
+        // Generate AI preview paths during ORDER phase (doesn't lock orders, just shows intent)
+        function updateAIPreviewPaths() {
+            if (gameState !== 'ORDER') return;
+
+            for (let aiPlane of aircraft) {
+                // Only update preview paths for AI that hasn't locked orders yet
+                if (aiPlane.isPlayer || aiPlane.hasOrders || aiPlane.isDestroyed) continue;
+
+                // Find target (closest enemy aircraft)
+                let target = null;
+                let minDist = Infinity;
+                for (let plane of aircraft) {
+                    if (plane.isPlayer === aiPlane.isPlayer || plane.isDestroyed) continue;
+                    const dx = plane.x - aiPlane.x;
+                    const dy = plane.y - aiPlane.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        target = plane;
+                    }
+                }
+
+                if (!target) continue;
+
+                // Simple preview: AI will try to get behind the target
+                const behindDistance = 200;
+                const behindX = target.x - Math.cos((target.heading - 90) * Math.PI / 180) * behindDistance;
+                const behindY = target.y - Math.sin((target.heading - 90) * Math.PI / 180) * behindDistance;
+
+                const targetX = Math.max(50, Math.min(CANVAS_WIDTH - 50, behindX));
+                const targetY = Math.max(50, Math.min(CANVAS_HEIGHT - 50, behindY));
+                const targetAltitude = Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, target.altitude + 50));
+
+                const dxTarget = targetX - aiPlane.x;
+                const dyTarget = targetY - aiPlane.y;
+                const targetHeading = (Math.atan2(dyTarget, dxTarget) * 180 / Math.PI + 90 + 360) % 360;
+
+                // Calculate preview path (doesn't lock it)
+                const validation = aiPlane.calculateManeuverValidation(targetX, targetY, targetAltitude, targetHeading, 0);
+                // The path is already set in aiPlane.flightPath by calculateManeuverValidation
+            }
+        }
+
         // Combat system
         function processCombat() {
             // Reset firing states and clear old hit warnings
@@ -4620,25 +4667,25 @@
                                     let shouldFireThisWeapon = false;
 
                                     if (weaponGroup.type === 'mg') {
-                                        // MGs: Good at all ranges, use for ranging/suppression
-                                        shouldFireThisWeapon = true; // Fire whenever in arc
+                                        // MGs: Good at all ranges, use for ranging/suppression - fire within full effective range
+                                        shouldFireThisWeapon = distance < (weaponGroup.range * 0.95); // Fire up to 95% of max range
                                     } else if (weaponGroup.type === 'hmg') {
-                                        // HMGs: Effective at medium range (60% of max range), fairly common ammo
-                                        shouldFireThisWeapon = distance < (weaponGroup.range * 0.6) || hitChance > 0.4;
+                                        // HMGs: Effective at medium-long range, fire within most of effective range
+                                        shouldFireThisWeapon = distance < (weaponGroup.range * 0.90) || hitChance > 0.3;
                                     } else if (weaponGroup.type === 'cannon') {
-                                        // Cannons: Save for close range where they're most effective
+                                        // Cannons: Devastating at close-medium range, conserve ammo wisely
                                         // Calculate ammo percentage remaining
                                         const ammoPercent = weaponGroup.ammunition / weaponGroup.maxAmmunition;
 
                                         if (ammoPercent < 0.2) {
-                                            // Critical ammo! Only fire at very close range (20% of max) with high hit chance
-                                            shouldFireThisWeapon = distance < (weaponGroup.range * 0.2) && hitChance > 0.5;
+                                            // Critical ammo! Only fire at close range (50% of max) with decent hit chance
+                                            shouldFireThisWeapon = distance < (weaponGroup.range * 0.5) && hitChance > 0.35;
                                         } else if (ammoPercent < 0.5) {
-                                            // Low ammo, be conservative (25% of max range)
-                                            shouldFireThisWeapon = distance < (weaponGroup.range * 0.25) && hitChance > 0.4;
+                                            // Low ammo, be somewhat conservative (65% of max range)
+                                            shouldFireThisWeapon = distance < (weaponGroup.range * 0.65) && hitChance > 0.25;
                                         } else {
-                                            // Plenty of ammo, fire at close-medium range (35% of max)
-                                            shouldFireThisWeapon = distance < (weaponGroup.range * 0.35);
+                                            // Plenty of ammo, fire at close-medium range (80% of max)
+                                            shouldFireThisWeapon = distance < (weaponGroup.range * 0.80);
                                         }
                                     }
 
@@ -4953,9 +5000,10 @@
                 // Don't draw the path if this aircraft is currently being edited (has a ghost)
                 if (plane === selectedAircraft && ghostAircraft) continue;
 
+                // Render locked order paths (solid, bright colors)
                 if (plane.flightPath && plane.flightPath.length > 0 && plane.hasOrders) {
                     ctx.strokeStyle = plane.isPlayer ? '#00aaff' : '#ff6666';
-                    ctx.lineWidth = 2;
+                    ctx.lineWidth = 3;
                     ctx.setLineDash([5, 5]); // Dotted line
 
                     ctx.beginPath();
@@ -4969,6 +5017,36 @@
                     // Debug: Log AI paths occasionally
                     if (!plane.isPlayer && Math.random() < 0.005) {
                         console.log(`[RENDER] ${plane.name} AI path:`, plane.flightPath.length, 'points');
+                    }
+                }
+
+                // Render AI preview paths during ORDER phase (faint, semi-transparent)
+                if (!plane.isPlayer && !plane.hasOrders && plane.flightPath && plane.flightPath.length > 0 && gameState === 'ORDER') {
+                    ctx.save();
+                    ctx.globalAlpha = 0.4; // Semi-transparent to show it's a preview
+                    ctx.strokeStyle = '#ff8888'; // Light red for AI preview
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([10, 10]); // Long dashes for preview
+
+                    ctx.beginPath();
+                    ctx.moveTo(plane.flightPath[0].x, plane.flightPath[0].y);
+                    for (let i = 1; i < plane.flightPath.length; i++) {
+                        ctx.lineTo(plane.flightPath[i].x, plane.flightPath[i].y);
+                    }
+                    ctx.stroke();
+                    ctx.setLineDash([]); // Reset
+                    ctx.restore();
+
+                    // Draw a marker at the AI's intended end position
+                    if (plane.flightPath.length > 0) {
+                        const endPoint = plane.flightPath[plane.flightPath.length - 1];
+                        ctx.save();
+                        ctx.globalAlpha = 0.5;
+                        ctx.fillStyle = '#ff8888';
+                        ctx.beginPath();
+                        ctx.arc(endPoint.x, endPoint.y, 6, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
                     }
                 }
             }
@@ -6334,6 +6412,11 @@
                         document.getElementById('nextPhase8s').style.display = 'block';
                     }
                 }
+            }
+
+            // Update AI preview paths during ORDER phase
+            if (gameState === 'ORDER') {
+                updateAIPreviewPaths();
             }
 
             render();
