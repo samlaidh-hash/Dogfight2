@@ -2981,7 +2981,7 @@
                 path.push({...state});
 
                 for (let step = 0; step < NUM_STEPS; step++) {
-                    const stepTime = (step + 1) * TIME_STEP;
+                    const stepTime = step * TIME_STEP;
 
                     // Calculate heading to continuously steer towards target position
                     const dx = targetX - state.x;
@@ -5423,7 +5423,7 @@
 
             const scaleBarLength = 100; // Represents 100 meters
             const infoBoxX = canvas.width - 240; // Position from right edge
-            const infoBoxY = canvas.height - 100;
+            const infoBoxY = canvas.height - 140;
 
             // Draw semi-transparent background for entire info box
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
