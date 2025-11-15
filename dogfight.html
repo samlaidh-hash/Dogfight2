@@ -990,6 +990,8 @@
                 fuelConsumption: 0.6,
                 canCarryBombs: true,
                 canCarryRockets: true,
+                durability: 0.85, // Very rugged and well-protected
+                heavyArmour: true, // Famous for absorbing damage
                 color: '#0077cc'
             },
             'Hurricane': {
@@ -1146,7 +1148,7 @@
                 ],
                 fuelCapacity: 518,
                 fuelConsumption: 0.35, // Very fuel efficient
-                lowDurability: true, // Takes extra damage
+                durability: 1.4, // Fragile - takes extra damage
                 color: '#ff6666'
             },
             'Bf-110': {
@@ -1188,6 +1190,14 @@
                 fuelConsumption: 0.8, // Twin engines
                 canCarryBombs: true,
                 canCarryRockets: true,
+                defensiveTurret: {
+                    weaponType: 'mg',
+                    weaponName: '7.92mm MG 15',
+                    damage: [2, 4],
+                    range: 300,
+                    accuracy: 0.5,
+                    rof: 2
+                },
                 color: '#dd3333'
             },
             'Ju-87': {
@@ -1218,6 +1228,14 @@
                 canCarryBombs: true, // Primary role: bombing
                 bombCapacity: 4, // Carries more bombs than fighters
                 canCarryRockets: true,
+                defensiveTurret: {
+                    weaponType: 'mg',
+                    weaponName: '7.92mm MG 81Z',
+                    damage: [2, 5],
+                    range: 350,
+                    accuracy: 0.55,
+                    rof: 2
+                },
                 color: '#aa3333'
             },
             'Ju-88': {
@@ -1247,6 +1265,14 @@
                 fuelConsumption: 0.9, // Twin engines
                 canCarryBombs: true,
                 bombCapacity: 6, // Heavy bomber load
+                defensiveTurret: {
+                    weaponType: 'mg',
+                    weaponName: '7.92mm MG 81Z',
+                    damage: [2, 5],
+                    range: 350,
+                    accuracy: 0.6,
+                    rof: 2
+                },
                 color: '#993333'
             },
             'He-111': {
@@ -1276,6 +1302,14 @@
                 fuelConsumption: 1.0, // Twin engines
                 canCarryBombs: true,
                 bombCapacity: 8, // Heavy bomber
+                defensiveTurret: {
+                    weaponType: 'mg',
+                    weaponName: '7.92mm MG 15',
+                    damage: [2, 4],
+                    range: 300,
+                    accuracy: 0.55,
+                    rof: 2
+                },
                 color: '#883333'
             },
             'Typhoon': {
@@ -1335,6 +1369,59 @@
                 canCarryBombs: true,
                 canCarryRockets: true,
                 color: '#00aaee'
+            },
+            'Il-2': {
+                name: 'Ilyushin Il-2 Sturmovik',
+                nation: 'Soviet',
+                role: 'Ground Attack',
+                maxSpeed: 140, // m/s (~414 km/h)
+                minSpeed: 30,
+                maxTurnRate: 50, // Heavy, poor maneuverability
+                maxClimbRate: 10,
+                maxDiveRate: 35,
+                maxGForce: 6,
+                maxAcceleration: 12,
+                maxBraking: 14,
+                // Mixed armament: 2× 7.62mm ShKAS + 2× 23mm VYa-23 cannons
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.62mm ShKAS',
+                        count: 2,
+                        ammo: 1500, // 750 rounds per gun
+                        burstSize: 4,
+                        damage: [2, 4],
+                        rof: 1,
+                        sound: 'mg'
+                    },
+                    {
+                        type: 'cannon',
+                        name: '23mm VYa-23',
+                        count: 2,
+                        ammo: 300, // 150 rounds per gun
+                        burstSize: 3,
+                        damage: [8, 16], // Powerful anti-tank cannons
+                        rof: 3,
+                        sound: 'cannon'
+                    }
+                ],
+                fuelCapacity: 730,
+                fuelConsumption: 0.7,
+                canCarryBombs: true,
+                bombCapacity: 4,
+                canCarryRockets: true,
+                rocketCapacity: 8,
+                durability: 0.7, // Heavily armoured - takes less damage
+                heavyArmour: true, // Famous for its armour protection
+                defensiveTurret: {
+                    weaponType: 'mg',
+                    weaponName: '12.7mm UBT',
+                    damage: [3, 6],
+                    range: 400,
+                    accuracy: 0.6,
+                    rof: 2
+                },
+                color: '#cc6600'
             }
         };
 
@@ -2336,7 +2423,11 @@
                 this.maxBraking = specs.maxBraking;
                 this.aircraftColor = specs.color;
                 this.isJet = specs.isJet || false;
-                this.lowDurability = specs.lowDurability || false;
+
+                // Durability and armour systems
+                this.durability = specs.durability !== undefined ? specs.durability : 1.0; // Default 1.0 = normal damage
+                this.heavyArmour = specs.heavyArmour || false;
+                this.defensiveTurret = specs.defensiveTurret || null;
 
                 // Weapons from database - support both single weapon and mixed armament
                 const weaponsData = specs.weapons;
@@ -4780,10 +4871,8 @@
                                     // Apply combined damage from all weapon groups that hit
                                     let damageAmount = totalDamage;
 
-                                    // Low durability aircraft take extra damage
-                                    if (target.lowDurability) {
-                                        damageAmount *= 1.4;
-                                    }
+                                    // Apply durability multiplier (higher = less durable, lower = more durable)
+                                    damageAmount *= target.durability;
 
                                     // Apply weather penalties
                                     if (weatherState.rainfall > 0) {
@@ -4850,10 +4939,8 @@
                                     damageAmount *= 1.1;
                                 }
 
-                                // Low durability aircraft (like Zero) take extra damage
-                                if (target.lowDurability) {
-                                    damageAmount *= 1.4;
-                                }
+                                // Apply durability multiplier (higher = less durable, lower = more durable)
+                                damageAmount *= target.durability;
 
                                 // Apply weather penalties
                                 if (weatherState.rainfall > 0) {
@@ -4905,6 +4992,81 @@
                         }
                     } else {
                         shooter.timeOnTarget = Math.max(0, shooter.timeOnTarget - 0.05);
+                    }
+                }
+            }
+
+            // Defensive turret systems - aircraft with turrets can return fire from rear arc
+            for (let defender of aircraft) {
+                if (defender.isDestroyed || !defender.defensiveTurret) continue;
+
+                // Find attackers in rear arc
+                for (let attacker of aircraft) {
+                    if (attacker.isDestroyed || attacker === defender) continue;
+
+                    const dx = attacker.x - defender.x;
+                    const dy = attacker.y - defender.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    // Check if attacker is in turret range
+                    if (distance > defender.defensiveTurret.range) continue;
+
+                    // Calculate angle from defender to attacker
+                    const angleToAttacker = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
+                    let angleDiff = angleToAttacker - defender.heading;
+                    if (angleDiff > 180) angleDiff -= 360;
+                    if (angleDiff < -180) angleDiff += 360;
+
+                    // Turret fires in rear arc (120-240 degrees, centered at 180)
+                    const absAngle = Math.abs(angleDiff);
+                    if (absAngle < 120 || absAngle > 240) continue; // Not in rear arc
+
+                    // Altitude check
+                    const altDiff = Math.abs(attacker.altitude - defender.altitude);
+                    if (altDiff > 1000) continue;
+
+                    // Calculate hit chance based on range, skill, and turret accuracy
+                    const rangeMultiplier = 1 - (distance / defender.defensiveTurret.range);
+                    const baseAccuracy = defender.defensiveTurret.accuracy;
+                    const hitChance = baseAccuracy * rangeMultiplier * defender.gunnerySkill * 0.5; // Reduced effectiveness
+
+                    // Turrets fire continuously when enemy in arc
+                    if (Math.random() < hitChance * 0.3) { // Lower firing rate than main guns
+                        const turret = defender.defensiveTurret;
+                        const damageMin = turret.damage[0];
+                        const damageMax = turret.damage[1];
+                        let damageAmount = damageMin + Math.random() * (damageMax - damageMin);
+
+                        // Apply attacker's durability
+                        damageAmount *= attacker.durability;
+
+                        // Apply the damage
+                        applyComponentDamage(attacker, damageAmount);
+                        attacker.lastHitBy = `${defender.name} (turret)`;
+                        attacker.lastHitTime = Date.now();
+
+                        // Visual effect
+                        attacker.hitEffects.push({
+                            x: attacker.x,
+                            y: attacker.y,
+                            type: 'mg',
+                            time: Date.now(),
+                            duration: 200
+                        });
+
+                        console.log(`${defender.name} defensive turret HIT ${attacker.name}! Damage: ${damageAmount.toFixed(1)}`);
+
+                        // Check for destruction
+                        if (attacker.damage >= 100 && !attacker.isDestroyed) {
+                            attacker.isDestroyed = true;
+                            console.log(`💥 ${attacker.name} DESTROYED by ${defender.name}'s defensive turret!`);
+                        }
+
+                        // Play MG sound for turret
+                        soundSpitfireMG.currentTime = 0;
+                        soundSpitfireMG.play().catch(e => console.log('Audio play failed:', e));
+
+                        break; // Turret focuses on one target at a time
                     }
                 }
             }
