@@ -7098,9 +7098,12 @@
                         }
                     }
 
-                    // Finalize execution for all aircraft
+                    // Finalize execution ONLY for aircraft NOT in multi-turn maneuvers
                     for (let plane of aircraft) {
-                        plane.finalizeExecution();
+                        // Don't finalize if still in a multi-turn maneuver
+                        if (!plane.isInMultiTurnManeuver || plane.maneuverCancelled) {
+                            plane.finalizeExecution();
+                        }
                     }
 
                     // If there are ongoing multi-turn maneuvers, immediately restart execution
