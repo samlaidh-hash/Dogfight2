@@ -6,7 +6,7 @@ const path = require('path');
 (async () => {
     console.log('🔍 Starting game diagnostics...\n');
     
-    // Check if browsers are installed, if not, try to install
+    // Check if browsers are installed, if not, provide instructions
     try {
         const browser = await chromium.launch({ 
             headless: false, // Show browser for debugging
@@ -15,15 +15,13 @@ const path = require('path');
         await browser.close();
     } catch (error) {
         if (error.message.includes('Executable doesn\'t exist')) {
-            console.log('📦 Playwright browsers not installed. Installing...\n');
-            try {
-                execSync('node node_modules/playwright/install.js chromium', { stdio: 'inherit' });
-                console.log('✅ Browsers installed\n');
-            } catch (installError) {
-                console.error('❌ Failed to install browsers automatically.');
-                console.error('   Please run: npx playwright install chromium\n');
-                process.exit(1);
-            }
+            console.error('❌ Playwright browsers not installed.\n');
+            console.error('📦 To install browsers, run this command:');
+            console.error('   npx playwright install chromium\n');
+            console.error('   OR if that doesn\'t work:');
+            console.error('   node node_modules/playwright/cli.js install chromium\n');
+            console.error('   Make sure to run it as a SINGLE command, not multiple arguments.\n');
+            process.exit(1);
         } else {
             throw error;
         }
