@@ -2219,6 +2219,77 @@
                 lowDurability: true, // Fragile lower wing
                 fabricConstruction: true,
                 color: '#6699ff'
+            },
+
+            // === MODERN JET ERA (For testing missile system) ===
+
+            'F-15C': {
+                name: 'McDonnell Douglas F-15C Eagle',
+                era: 'Modern',
+                nation: 'American',
+                role: 'Air Superiority Fighter',
+                maxSpeed: 278, // m/s (~1000 km/h, Mach 0.9 at sea level)
+                minSpeed: 55, // High stall speed for jet
+                maxTurnRate: 55, // Good but not as agile as WW2 props
+                maxClimbRate: 40, // Excellent climb!
+                maxDiveRate: 80, // Can dive very fast
+                maxGForce: 9, // Can pull 9G
+                maxAcceleration: 35, // Powerful engines
+                maxBraking: 15, // Jets slow down less quickly
+                weapons: {
+                    type: 'cannon',
+                    name: 'M61 Vulcan 20mm',
+                    count: 1,
+                    ammo: 940,
+                    burstSize: 10, // High rate of fire
+                    damage: [6, 12],
+                    rof: 1,
+                    sound: 'cannon'
+                },
+                fuelCapacity: 6100, // Large internal fuel
+                fuelConsumption: 3.5, // High consumption
+                isJet: true,
+                // Missile capabilities
+                canCarryMissiles: true,
+                missileCapacity: 8, // 4× AIM-9 + 4× AIM-120
+                missileType: 'heat-seeking', // Can be changed to 'radar-guided'
+                lockOnTime: 1.5, // Fast lock
+                maxLockRange: 10000, // 10km lock range
+                color: '#2266ff'
+            },
+            'MiG-29': {
+                name: 'Mikoyan MiG-29 Fulcrum',
+                era: 'Modern',
+                nation: 'Soviet',
+                role: 'Multirole Fighter',
+                maxSpeed: 270, // m/s (~972 km/h)
+                minSpeed: 50,
+                maxTurnRate: 60, // Very agile for a jet
+                maxClimbRate: 42, // Excellent climb
+                maxDiveRate: 75,
+                maxGForce: 9,
+                maxAcceleration: 33,
+                maxBraking: 14,
+                weapons: {
+                    type: 'cannon',
+                    name: '30mm GSh-30-1',
+                    count: 1,
+                    ammo: 150,
+                    burstSize: 8,
+                    damage: [8, 16], // Heavier cannon
+                    rof: 2,
+                    sound: 'cannon'
+                },
+                fuelCapacity: 4365,
+                fuelConsumption: 3.2,
+                isJet: true,
+                // Missile capabilities
+                canCarryMissiles: true,
+                missileCapacity: 6,
+                missileType: 'heat-seeking',
+                lockOnTime: 2.0,
+                maxLockRange: 8000,
+                color: '#ff4444'
             }
         };
 
@@ -5622,6 +5693,24 @@
                 const ordinanceDisplay = (this.bombs > 0 || this.rockets > 0) ?
                     `<div class="stat-line" style="color: #88ff88;">Bombs: ${this.bombs} | Rockets: ${this.rockets}${rocketModeText}</div>` : '';
 
+                // Missiles (if available)
+                let missileDisplay = '';
+                if (this.canCarryMissiles && this.missiles > 0) {
+                    const missileColor = this.missiles < 2 ? '#ff8800' : '#88ff88';
+                    missileDisplay = `<div class="stat-line" style="color: ${missileColor};">Missiles: ${this.missiles}/${this.maxMissiles} (${this.missileType.toUpperCase()})</div>`;
+                }
+
+                // Lock status
+                let lockDisplay = '';
+                if (this.canCarryMissiles && this.lockTarget && !this.lockTarget.isDestroyed) {
+                    if (this.isLocked) {
+                        lockDisplay = `<div class="stat-line" style="color: #00ff00;">🎯 LOCKED: ${this.lockTarget.name}</div>`;
+                    } else {
+                        const lockPercent = Math.round(this.lockProgress * 100);
+                        lockDisplay = `<div class="stat-line" style="color: #ffaa00;">🎯 LOCKING: ${this.lockTarget.name} (${lockPercent}%)</div>`;
+                    }
+                }
+
                 // Show critical hits
                 const critDisplay = this.criticalHitsDealt > 0 ?
                     `<div class="stat-line" style="color: #ff8800;">💥 Crits: ${this.criticalHitsDealt}</div>` : '';
@@ -5649,6 +5738,8 @@
                     ${componentInfo}
                     <div class="stat-line" style="color: ${fireThresholdColor}">Fire Min: ${fireThresholdPercent}%</div>
                     ${ordinanceDisplay}
+                    ${missileDisplay}
+                    ${lockDisplay}
                     ${critDisplay}
                     ${critTakenDisplay}
                     ${engineDamageDisplay}
@@ -6847,6 +6938,9 @@
             for (let rocket of rockets) {
                 rocket.render();
             }
+            for (let missile of missiles) {
+                missile.render();
+            }
 
             // Render ghost if in order mode
             if (ghostAircraft) {
@@ -7635,6 +7729,61 @@
                         updateStats();
                     }
                     break;
+                case 'l':
+                    // Lock onto nearest enemy aircraft
+                    if (selectedAircraft.canCarryMissiles) {
+                        // Find nearest enemy
+                        let nearestEnemy = null;
+                        let minDistance = Infinity;
+
+                        for (let target of aircraft) {
+                            if (target === selectedAircraft || target.isDestroyed) continue;
+                            if (target.isPlayer === selectedAircraft.isPlayer) continue; // Same team
+
+                            const dx = target.x - selectedAircraft.x;
+                            const dy = target.y - selectedAircraft.y;
+                            const dz = target.altitude - selectedAircraft.altitude;
+                            const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                            // Check if in front and within lock range
+                            const angleToTarget = Math.atan2(dx, -dy) * 180 / Math.PI;
+                            let angleDiff = angleToTarget - selectedAircraft.heading;
+                            while (angleDiff > 180) angleDiff -= 360;
+                            while (angleDiff < -180) angleDiff += 360;
+
+                            if (Math.abs(angleDiff) < 60 && distance < selectedAircraft.lockRange) {
+                                if (distance < minDistance) {
+                                    minDistance = distance;
+                                    nearestEnemy = target;
+                                }
+                            }
+                        }
+
+                        if (nearestEnemy) {
+                            selectedAircraft.attemptLock(nearestEnemy);
+                            updateStats();
+                        } else {
+                            console.log(`${selectedAircraft.name}: No valid targets in lock cone!`);
+                        }
+                    } else {
+                        console.log(`${selectedAircraft.name} cannot carry missiles!`);
+                    }
+                    break;
+                case 'm':
+                    // Launch missile at locked target
+                    if (selectedAircraft.canCarryMissiles) {
+                        if (selectedAircraft.isLocked && selectedAircraft.lockTarget) {
+                            selectedAircraft.launchMissile();
+                            updateStats();
+                        } else if (selectedAircraft.lockTarget && !selectedAircraft.isLocked) {
+                            console.log(`${selectedAircraft.name}: Lock not achieved yet! (${Math.round(selectedAircraft.lockProgress * 100)}%)`);
+                        } else {
+                            console.log(`${selectedAircraft.name}: No target locked! Press 'L' to lock onto target.`);
+                        }
+                    } else {
+                        console.log(`${selectedAircraft.name} cannot carry missiles!`);
+                    }
+                    break;
             }
         });
 
@@ -7800,6 +7949,25 @@
                     } else if (!rockets[i].isActive && !rockets[i].hasExploded) {
                         // Remove rockets that went out of range
                         rockets.splice(i, 1);
+                    }
+                }
+
+                // Update missiles (guided)
+                for (let i = missiles.length - 1; i >= 0; i--) {
+                    missiles[i].update(dt);
+                    // Remove inactive missiles after explosion animation completes
+                    if (missiles[i].hasExploded && Date.now() - missiles[i].explosionTime > 800) {
+                        missiles.splice(i, 1);
+                    } else if (!missiles[i].isActive && !missiles[i].hasExploded) {
+                        // Remove missiles that went out of range or expired
+                        missiles.splice(i, 1);
+                    }
+                }
+
+                // Update lock-on systems for all aircraft
+                for (let plane of aircraft) {
+                    if (!plane.isDestroyed) {
+                        plane.updateLockOn(dt);
                     }
                 }
 
