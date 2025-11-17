@@ -952,6 +952,88 @@
                 weather: "clear",
                 timeOfDay: "noon",
                 briefing: "Intelligence reports an Me-262 jet fighter in the area. It's much faster than any propeller aircraft. Attack during turns when it's slow, or catch it landing. Head-on attacks are suicide - those 30mm cannons will tear you apart."
+            },
+            {
+                id: 11,
+                name: "Into the SAM Envelope",
+                type: "ground_attack",
+                description: "Test your skills against SA-2 surface-to-air missile sites.",
+                objectives: ["Destroy SAM sites", "Survive enemy missiles"],
+                playerAircraft: "P-47",
+                enemyAircraft: [],
+                samSites: [
+                    {type: 'sam_sa2', x: 800, y: 400},
+                    {type: 'sam_sa2', x: 1000, y: 600}
+                ],
+                weather: "clear",
+                timeOfDay: "noon",
+                briefing: "Enemy SA-2 Guideline SAM sites have been detected. These are sophisticated radar-guided missiles. Stay low to avoid detection, use terrain masking, and watch for launch plumes. Radar lock warnings will appear when you're being tracked."
+            },
+            {
+                id: 12,
+                name: "Patriot Challenge",
+                type: "ground_attack",
+                description: "Engage modern Patriot SAM systems.",
+                objectives: ["Destroy Patriot battery", "Evade all missiles"],
+                playerAircraft: "P-51",
+                enemyAircraft: [],
+                samSites: [
+                    {type: 'sam_patriot', x: 900, y: 500}
+                ],
+                weather: "clear",
+                timeOfDay: "afternoon",
+                briefing: "A single Patriot battery guards the target area. Modern and deadly with 70km range. Use speed and maneuverability to evade incoming missiles. Patriots can engage multiple targets - expect salvos."
+            },
+            {
+                id: 13,
+                name: "The Shilka Gauntlet",
+                type: "ground_attack",
+                description: "Run the gauntlet of radar-guided AAA.",
+                objectives: ["Destroy ZSU-23-4 units", "Complete strafing run"],
+                playerAircraft: "P-47",
+                enemyAircraft: [],
+                samSites: [
+                    {type: 'radar_aaa', x: 700, y: 450},
+                    {type: 'radar_aaa', x: 900, y: 450},
+                    {type: 'radar_aaa', x: 1100, y: 450}
+                ],
+                groundTargets: 3,
+                weather: "clear",
+                timeOfDay: "morning",
+                briefing: "Three ZSU-23-4 Shilka mobile AAA systems protect enemy positions. These quad 23mm cannons are radar-guided and lethal at low altitude. Stay fast, stay low between runs, and eliminate them before attacking the primary targets."
+            },
+            {
+                id: 14,
+                name: "S-300 Fortress",
+                type: "ground_attack",
+                description: "The ultimate SAM challenge - breach the S-300 defense network.",
+                objectives: ["Destroy S-300 battery", "Survive 150km engagement range"],
+                playerAircraft: "P-51",
+                enemyAircraft: [],
+                samSites: [
+                    {type: 'sam_s300', x: 950, y: 500}
+                ],
+                weather: "storm",
+                timeOfDay: "evening",
+                briefing: "The S-300 is one of the most advanced SAM systems ever deployed. 150km range, Mach 5 missiles, multi-target engagement. This is nearly impossible in a WW2 aircraft. Use terrain, weather, and every evasive maneuver you know. Good luck - you'll need it."
+            },
+            {
+                id: 15,
+                name: "Mixed Threat Environment",
+                type: "ground_attack",
+                description: "Face a combined arms air defense network.",
+                objectives: ["Destroy all SAM sites", "Destroy ground targets", "Survive"],
+                playerAircraft: "P-47",
+                enemyAircraft: ["Me-109"],
+                samSites: [
+                    {type: 'radar_aaa', x: 750, y: 400},
+                    {type: 'sam_sa2', x: 950, y: 450},
+                    {type: 'radar_aaa', x: 1150, y: 500}
+                ],
+                groundTargets: 2,
+                weather: "wind",
+                timeOfDay: "noon",
+                briefing: "This is a combined threat scenario - enemy fighters, SAMs, radar AAA, and ground targets. Prioritize threats: eliminate AAA first (low altitude threat), then SAMs (medium/high altitude), then fighters, finally ground targets. Coordinate your approach carefully."
             }
         ];
 
@@ -2985,6 +3067,83 @@
                 lowDurability: true, // Fragile lower wing
                 fabricConstruction: true,
                 color: '#6699ff'
+            },
+
+            // === MODERN JET ERA (For testing missile system) ===
+
+            'F-15C': {
+                name: 'McDonnell Douglas F-15C Eagle',
+                era: 'Modern',
+                nation: 'American',
+                role: 'Air Superiority Fighter',
+                maxSpeed: 278, // m/s (~1000 km/h, Mach 0.9 at sea level)
+                minSpeed: 55, // High stall speed for jet
+                maxTurnRate: 55, // Good but not as agile as WW2 props
+                maxClimbRate: 40, // Excellent climb!
+                maxDiveRate: 80, // Can dive very fast
+                maxGForce: 9, // Can pull 9G
+                maxAcceleration: 35, // Powerful engines
+                maxBraking: 15, // Jets slow down less quickly
+                weapons: {
+                    type: 'cannon',
+                    name: 'M61 Vulcan 20mm',
+                    count: 1,
+                    ammo: 940,
+                    burstSize: 10, // High rate of fire
+                    damage: [6, 12],
+                    rof: 1,
+                    sound: 'cannon'
+                },
+                fuelCapacity: 6100, // Large internal fuel
+                fuelConsumption: 3.5, // High consumption
+                isJet: true,
+                // Missile capabilities
+                canCarryMissiles: true,
+                missileCapacity: 8, // 4× AIM-9 + 4× AIM-120
+                missileType: 'heat-seeking', // Can be changed to 'radar-guided'
+                lockOnTime: 1.5, // Fast lock
+                maxLockRange: 10000, // 10km lock range
+                // Countermeasures
+                chaffCapacity: 60,
+                flareCapacity: 60,
+                color: '#2266ff'
+            },
+            'MiG-29': {
+                name: 'Mikoyan MiG-29 Fulcrum',
+                era: 'Modern',
+                nation: 'Soviet',
+                role: 'Multirole Fighter',
+                maxSpeed: 270, // m/s (~972 km/h)
+                minSpeed: 50,
+                maxTurnRate: 60, // Very agile for a jet
+                maxClimbRate: 42, // Excellent climb
+                maxDiveRate: 75,
+                maxGForce: 9,
+                maxAcceleration: 33,
+                maxBraking: 14,
+                weapons: {
+                    type: 'cannon',
+                    name: '30mm GSh-30-1',
+                    count: 1,
+                    ammo: 150,
+                    burstSize: 8,
+                    damage: [8, 16], // Heavier cannon
+                    rof: 2,
+                    sound: 'cannon'
+                },
+                fuelCapacity: 4365,
+                fuelConsumption: 3.2,
+                isJet: true,
+                // Missile capabilities
+                canCarryMissiles: true,
+                missileCapacity: 6,
+                missileType: 'heat-seeking',
+                lockOnTime: 2.0,
+                maxLockRange: 8000,
+                // Countermeasures
+                chaffCapacity: 60,
+                flareCapacity: 60,
+                color: '#ff4444'
             }
         };
 
@@ -3218,6 +3377,697 @@
                 }
             }
         }
+
+        // SAM Site class - Advanced ground-based air defense systems
+        class SAMSite {
+            constructor(x, y, samType = 'sam_sa2') {
+                this.x = x;
+                this.y = y;
+                this.type = samType;
+                this.health = 100;
+                this.isDestroyed = false;
+
+                // SAM type configurations
+                this.configs = {
+                    'sam_sa2': {
+                        name: 'SA-2 Guideline',
+                        era: 'Cold War',
+                        nation: 'Soviet',
+                        range: 30000, // 30km
+                        minRange: 5000, // 5km minimum engagement range
+                        minAltitude: 100, // meters
+                        maxAltitude: 18000, // 18km
+                        missileCount: 6,
+                        maxMissiles: 6,
+                        reloadTime: 30, // seconds
+                        salvoSize: 1,
+                        rateOfFire: 5, // seconds between missiles in salvo
+                        radarRange: 40000, // 40km search
+                        trackRange: 35000, // 35km track
+                        mobile: false,
+                        size: 40,
+                        launcherCount: 3
+                    },
+                    'sam_patriot': {
+                        name: 'MIM-104 Patriot',
+                        era: 'Modern',
+                        nation: 'USA',
+                        range: 70000, // 70km
+                        minRange: 3000,
+                        minAltitude: 60,
+                        maxAltitude: 24000,
+                        missileCount: 16,
+                        maxMissiles: 16,
+                        reloadTime: 20,
+                        salvoSize: 2,
+                        rateOfFire: 3,
+                        radarRange: 100000, // 100km search
+                        trackRange: 80000,
+                        mobile: true,
+                        size: 50,
+                        launcherCount: 4
+                    },
+                    'sam_s300': {
+                        name: 'S-300PMU',
+                        era: 'Modern',
+                        nation: 'Soviet/Russian',
+                        range: 150000, // 150km
+                        minRange: 5000,
+                        minAltitude: 25,
+                        maxAltitude: 27000,
+                        missileCount: 4,
+                        maxMissiles: 4,
+                        reloadTime: 40,
+                        salvoSize: 2,
+                        rateOfFire: 4,
+                        radarRange: 200000, // 200km search
+                        trackRange: 160000,
+                        mobile: true,
+                        size: 55,
+                        launcherCount: 4
+                    },
+                    'radar_aaa': {
+                        name: 'ZSU-23-4 Shilka',
+                        era: 'Cold War',
+                        nation: 'Soviet',
+                        range: 2500, // 2.5km
+                        minRange: 0,
+                        minAltitude: 0,
+                        maxAltitude: 1500,
+                        missileCount: 2000, // Rounds
+                        maxMissiles: 2000,
+                        reloadTime: 1, // Quick reload
+                        salvoSize: 50, // Burst
+                        rateOfFire: 0.1, // Rapid fire
+                        radarRange: 20000,
+                        trackRange: 8000,
+                        mobile: true,
+                        size: 30,
+                        isAAA: true, // This is AAA, not SAM
+                        damage: 8 // Per hit
+                    }
+                };
+
+                this.config = this.configs[samType];
+                this.size = this.config.size;
+
+                // Missile/ammo management
+                this.missiles = this.config.missileCount;
+                this.maxMissiles = this.config.maxMissiles;
+                this.reloadCooldown = 0;
+                this.fireCooldown = 0;
+
+                // Radar system
+                this.radarActive = true;
+                this.radarMode = 'search'; // 'search', 'track', 'off'
+                this.radarScanAngle = 0; // For search mode animation
+                this.trackedTarget = null;
+                this.trackingTime = 0;
+                this.minTrackTime = 2.0; // Need 2 seconds of tracking before launch
+
+                // Detection and engagement
+                this.detectedTargets = []; // Array of {aircraft, lastDetected, rcs}
+                this.engagementQueue = [];
+                this.launchedMissiles = []; // Track our missiles
+
+                // SEAD vulnerability
+                this.radarSignature = 1.0; // 0-1, higher = easier to detect for ARM
+                this.canShutdownRadar = true;
+                this.radarShutdownTime = 0;
+                this.shutdownDuration = 10; // Seconds to stay dark
+
+                // Visual effects
+                this.launchEffects = [];
+                this.radarPulses = [];
+
+                // Threat assessment
+                this.threatenedBy = null; // ARM missile targeting us
+            }
+
+            update(dt, aircraft) {
+                if (this.isDestroyed) return;
+
+                // Update cooldowns
+                if (this.reloadCooldown > 0) {
+                    this.reloadCooldown -= dt;
+                    if (this.reloadCooldown <= 0 && this.missiles < this.maxMissiles) {
+                        // Reload complete
+                        this.missiles = this.maxMissiles;
+                        console.log(`${this.config.name} reloaded!`);
+                    }
+                }
+
+                if (this.fireCooldown > 0) {
+                    this.fireCooldown -= dt;
+                }
+
+                // Radar shutdown management
+                if (this.radarShutdownTime > 0) {
+                    this.radarShutdownTime -= dt;
+                    if (this.radarShutdownTime <= 0) {
+                        this.radarActive = true;
+                        this.radarMode = 'search';
+                        console.log(`${this.config.name} radar back online`);
+                    }
+                }
+
+                // Rotate search radar
+                if (this.radarMode === 'search') {
+                    this.radarScanAngle += 60 * dt; // 60 degrees per second
+                    if (this.radarScanAngle >= 360) this.radarScanAngle -= 360;
+                }
+
+                if (!this.radarActive || this.radarMode === 'off') {
+                    this.trackedTarget = null;
+                    this.trackingTime = 0;
+                    return;
+                }
+
+                // Search for targets
+                this.searchForTargets(aircraft);
+
+                // Tracking logic
+                if (this.radarMode === 'track' && this.trackedTarget) {
+                    this.trackingTime += dt;
+
+                    // Check if target is still valid
+                    const dx = this.trackedTarget.x - this.x;
+                    const dy = this.trackedTarget.y - this.y;
+                    const dz = this.trackedTarget.altitude;
+                    const distance2D = Math.sqrt(dx * dx + dy * dy);
+                    const distance3D = Math.sqrt(distance2D * distance2D + dz * dz);
+
+                    if (this.trackedTarget.isDestroyed ||
+                        distance3D > this.config.trackRange ||
+                        dz < this.config.minAltitude ||
+                        dz > this.config.maxAltitude) {
+                        // Lost track
+                        this.radarMode = 'search';
+                        this.trackedTarget = null;
+                        this.trackingTime = 0;
+                    } else if (this.trackingTime >= this.minTrackTime &&
+                               this.missiles > 0 &&
+                               this.fireCooldown <= 0 &&
+                               distance3D >= this.config.minRange) {
+                        // Fire missile!
+                        this.fireMissile();
+                    }
+                }
+
+                // Update launch effects
+                this.launchEffects = this.launchEffects.filter(effect =>
+                    Date.now() - effect.time < effect.duration
+                );
+
+                // Remove old radar pulses
+                this.radarPulses = this.radarPulses.filter(pulse =>
+                    Date.now() - pulse.time < pulse.duration
+                );
+            }
+
+            searchForTargets(aircraft) {
+                this.detectedTargets = [];
+
+                let highestThreat = null;
+                let highestThreatLevel = 0;
+
+                for (let plane of aircraft) {
+                    if (plane.isDestroyed) continue;
+
+                    const dx = plane.x - this.x;
+                    const dy = plane.y - this.y;
+                    const distance2D = Math.sqrt(dx * dx + dy * dy);
+                    const distance3D = Math.sqrt(distance2D * distance2D + plane.altitude * plane.altitude);
+
+                    // Check if in radar range
+                    if (distance3D > this.config.radarRange) continue;
+                    if (plane.altitude < this.config.minAltitude) continue;
+                    if (plane.altitude > this.config.maxAltitude) continue;
+
+                    // Calculate RCS (Radar Cross Section) - simplified
+                    let rcs = 1.0;
+                    if (plane.size) rcs = plane.size / 20; // Smaller = harder to detect
+
+                    // Detection probability based on range and RCS
+                    const detectionProb = rcs * (1 - distance3D / this.config.radarRange);
+
+                    if (Math.random() < detectionProb || this.trackedTarget === plane) {
+                        this.detectedTargets.push({
+                            aircraft: plane,
+                            distance: distance3D,
+                            threat: this.calculateThreatLevel(plane, distance3D)
+                        });
+
+                        // Threat assessment for prioritization
+                        const threatLevel = this.calculateThreatLevel(plane, distance3D);
+                        if (threatLevel > highestThreatLevel) {
+                            highestThreatLevel = threatLevel;
+                            highestThreat = plane;
+                        }
+                    }
+                }
+
+                // Switch to track mode if we found a high threat
+                if (this.radarMode === 'search' && highestThreat && highestThreatLevel > 0.5) {
+                    this.radarMode = 'track';
+                    this.trackedTarget = highestThreat;
+                    this.trackingTime = 0;
+                    console.log(`${this.config.name} tracking ${highestThreat.name} at ${(Math.sqrt(Math.pow(highestThreat.x - this.x, 2) + Math.pow(highestThreat.y - this.y, 2)) / 1000).toFixed(1)}km`);
+                }
+            }
+
+            calculateThreatLevel(aircraft, distance) {
+                // Calculate how much of a threat this aircraft is
+                let threat = 1.0;
+
+                // Closer = higher threat
+                threat *= (1 - distance / this.config.range);
+
+                // Lower altitude = easier target = higher priority
+                threat *= (1 - aircraft.altitude / this.config.maxAltitude);
+
+                // Fast aircraft = higher threat
+                if (aircraft.speed > 200) threat *= 1.3;
+
+                return Math.max(0, Math.min(1, threat));
+            }
+
+            fireMissile() {
+                if (this.missiles <= 0 || !this.trackedTarget) return null;
+
+                if (this.config.isAAA) {
+                    // AAA burst fire
+                    this.fireAAA();
+                } else {
+                    // Launch SAM
+                    const missile = new SAMMissile(
+                        this.x,
+                        this.y,
+                        terrain.getHeightAt(this.x, this.y) + 10,
+                        this.trackedTarget,
+                        this.type
+                    );
+
+                    this.missiles--;
+                    this.fireCooldown = this.config.rateOfFire;
+                    this.launchedMissiles.push(missile);
+
+                    // Add launch effect
+                    this.launchEffects.push({
+                        x: this.x,
+                        y: this.y,
+                        time: Date.now(),
+                        duration: 1000
+                    });
+
+                    console.log(`${this.config.name} launched SAM at ${this.trackedTarget.name}! (${this.missiles} missiles remaining)`);
+
+                    // Check if we need to reload
+                    if (this.missiles <= 0) {
+                        this.reloadCooldown = this.config.reloadTime;
+                        this.radarMode = 'search';
+                        this.trackedTarget = null;
+                        this.trackingTime = 0;
+                    }
+
+                    return missile;
+                }
+            }
+
+            fireAAA() {
+                // ZSU-23-4 Shilka rapid fire
+                if (!this.trackedTarget) return;
+
+                const dx = this.trackedTarget.x - this.x;
+                const dy = this.trackedTarget.y - this.y;
+                const distance2D = Math.sqrt(dx * dx + dy * dy);
+                const distance3D = Math.sqrt(distance2D * distance2D + this.trackedTarget.altitude * this.trackedTarget.altitude);
+
+                // Hit chance calculation
+                let hitChance = 0.08; // 8% base
+                hitChance *= Math.max(0.1, 1 - distance3D / this.config.range);
+                hitChance *= Math.max(0.3, 1 - this.trackedTarget.altitude / 1000);
+
+                // Fire burst
+                for (let i = 0; i < 10; i++) {
+                    if (Math.random() < hitChance) {
+                        applyComponentDamage(this.trackedTarget, this.config.damage);
+                        console.log(`Shilka HIT ${this.trackedTarget.name}!`);
+                    }
+                }
+
+                // Add muzzle flash effect
+                this.launchEffects.push({
+                    x: this.x,
+                    y: this.y,
+                    time: Date.now(),
+                    duration: 200,
+                    type: 'aaa'
+                });
+
+                this.missiles -= 10;
+                this.fireCooldown = this.config.rateOfFire;
+
+                if (this.missiles <= 100) {
+                    this.reloadCooldown = this.config.reloadTime;
+                }
+            }
+
+            shutdownRadar() {
+                if (!this.canShutdownRadar) return;
+                this.radarActive = false;
+                this.radarMode = 'off';
+                this.radarShutdownTime = this.shutdownDuration;
+                this.trackedTarget = null;
+                this.trackingTime = 0;
+                console.log(`${this.config.name} radar shut down!`);
+            }
+
+            takeDamage(amount) {
+                if (this.isDestroyed) return false;
+                this.health -= amount;
+                if (this.health <= 0) {
+                    this.isDestroyed = true;
+                    this.radarActive = false;
+                    console.log(`${this.config.name} DESTROYED!`);
+                    return true;
+                }
+                return false;
+            }
+
+            render() {
+                // Render radar pulses
+                for (let pulse of this.radarPulses) {
+                    const age = Date.now() - pulse.time;
+                    const progress = age / pulse.duration;
+                    const alpha = 1 - progress;
+                    const radius = pulse.radius * (1 + progress);
+
+                    ctx.strokeStyle = `rgba(0, 255, 100, ${alpha * 0.4})`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // Render launch effects
+                for (let effect of this.launchEffects) {
+                    const age = Date.now() - effect.time;
+                    const progress = age / effect.duration;
+                    const alpha = 1 - progress;
+
+                    if (effect.type === 'aaa') {
+                        // Muzzle flash for AAA
+                        ctx.fillStyle = `rgba(255, 200, 0, ${alpha})`;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, 8, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        // Missile launch smoke
+                        const size = 10 + progress * 30;
+                        ctx.fillStyle = `rgba(200, 200, 200, ${alpha * 0.6})`;
+                        ctx.beginPath();
+                        ctx.arc(effect.x, effect.y, size, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Orange flash
+                        if (progress < 0.3) {
+                            ctx.fillStyle = `rgba(255, 150, 0, ${alpha})`;
+                            ctx.beginPath();
+                            ctx.arc(effect.x, effect.y, size * 0.6, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                }
+
+                if (this.isDestroyed) {
+                    // Render destroyed site
+                    ctx.fillStyle = 'rgba(50, 50, 50, 0.6)';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size * 0.8, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Smoke
+                    for (let i = 0; i < 3; i++) {
+                        ctx.fillStyle = `rgba(40, 40, 40, ${0.4 - i * 0.1})`;
+                        ctx.beginPath();
+                        ctx.arc(this.x + (Math.random() - 0.5) * 10, this.y - 15 - i * 10, 8 + i * 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                } else {
+                    // Render SAM site based on type
+                    if (this.config.isAAA) {
+                        // ZSU-23-4 Shilka
+                        // Chassis
+                        ctx.fillStyle = '#556655';
+                        ctx.fillRect(this.x - 12, this.y - 8, 24, 16);
+
+                        // Turret
+                        ctx.fillStyle = '#667766';
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, 10, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Quad barrels
+                        ctx.strokeStyle = '#333333';
+                        ctx.lineWidth = 2;
+                        for (let i = -1; i <= 1; i += 2) {
+                            for (let j = -1; j <= 1; j += 2) {
+                                ctx.beginPath();
+                                ctx.moveTo(this.x + i * 3, this.y + j * 3);
+                                ctx.lineTo(this.x + i * 3, this.y + j * 3 - 12);
+                                ctx.stroke();
+                            }
+                        }
+
+                        // Radar dish
+                        if (this.radarActive) {
+                            ctx.save();
+                            ctx.translate(this.x, this.y - 15);
+                            ctx.rotate(this.radarScanAngle * Math.PI / 180);
+                            ctx.strokeStyle = 'rgba(0, 255, 100, 0.6)';
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.arc(0, 0, 6, 0, Math.PI);
+                            ctx.stroke();
+                            ctx.restore();
+                        }
+                    } else {
+                        // SAM site (SA-2, Patriot, S-300)
+                        // Command center
+                        ctx.fillStyle = '#555555';
+                        ctx.fillRect(this.x - 15, this.y - 10, 30, 20);
+
+                        // Missile launchers
+                        const launcherPositions = [];
+                        const spacing = 25;
+                        for (let i = 0; i < this.config.launcherCount; i++) {
+                            const angle = (i / this.config.launcherCount) * Math.PI * 2;
+                            const lx = this.x + Math.cos(angle) * spacing;
+                            const ly = this.y + Math.sin(angle) * spacing;
+                            launcherPositions.push({x: lx, y: ly});
+
+                            // Launcher platform
+                            ctx.fillStyle = '#666666';
+                            ctx.fillRect(lx - 8, ly - 6, 16, 12);
+
+                            // Missiles (if available)
+                            const missilesPerLauncher = Math.ceil(this.missiles / this.config.launcherCount);
+                            if (missilesPerLauncher > 0) {
+                                ctx.fillStyle = '#dddddd';
+                                ctx.strokeStyle = '#333333';
+                                ctx.lineWidth = 1;
+                                for (let m = 0; m < Math.min(missilesPerLauncher, 2); m++) {
+                                    ctx.beginPath();
+                                    ctx.ellipse(lx + m * 4 - 2, ly, 2, 6, 0, 0, Math.PI * 2);
+                                    ctx.fill();
+                                    ctx.stroke();
+                                }
+                            }
+                        }
+
+                        // Radar dish
+                        ctx.fillStyle = '#777777';
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y - 20, 12, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        if (this.radarActive) {
+                            // Radar beam
+                            ctx.save();
+                            ctx.translate(this.x, this.y - 20);
+
+                            if (this.radarMode === 'search') {
+                                // Rotating search beam
+                                ctx.rotate(this.radarScanAngle * Math.PI / 180);
+                                const gradient = ctx.createLinearGradient(0, 0, 0, -50);
+                                gradient.addColorStop(0, 'rgba(0, 255, 100, 0.3)');
+                                gradient.addColorStop(1, 'rgba(0, 255, 100, 0)');
+                                ctx.fillStyle = gradient;
+                                ctx.beginPath();
+                                ctx.moveTo(0, 0);
+                                ctx.lineTo(-15, -50);
+                                ctx.lineTo(15, -50);
+                                ctx.closePath();
+                                ctx.fill();
+                            } else if (this.radarMode === 'track' && this.trackedTarget) {
+                                // Tracking beam to target
+                                const dx = this.trackedTarget.x - this.x;
+                                const dy = this.trackedTarget.y - this.y;
+                                const angle = Math.atan2(dx, -dy);
+                                ctx.rotate(angle);
+
+                                ctx.strokeStyle = 'rgba(255, 50, 50, 0.5)';
+                                ctx.lineWidth = 3;
+                                ctx.beginPath();
+                                ctx.moveTo(0, 0);
+                                ctx.lineTo(0, -100);
+                                ctx.stroke();
+                            }
+
+                            ctx.restore();
+                        }
+                    }
+
+                    // Health bar
+                    if (this.health < 100) {
+                        ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+                        ctx.fillRect(this.x - 20, this.y - this.size - 15, 40 * (this.health / 100), 4);
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                        ctx.strokeRect(this.x - 20, this.y - this.size - 15, 40, 4);
+                    }
+
+                    // Status indicators
+                    if (this.reloadCooldown > 0) {
+                        ctx.fillStyle = 'rgba(255, 200, 0, 0.8)';
+                        ctx.font = '10px monospace';
+                        ctx.fillText('RELOAD', this.x - 18, this.y + this.size + 15);
+                    }
+
+                    if (this.radarMode === 'track' && this.trackedTarget) {
+                        ctx.fillStyle = 'rgba(255, 50, 50, 0.8)';
+                        ctx.font = '10px monospace';
+                        ctx.fillText('TRACK', this.x - 15, this.y + this.size + 25);
+                    }
+                }
+            }
+        }
+
+        // SAM Missile class - Surface-to-air guided missile
+        class SAMMissile extends Missile {
+            constructor(x, y, altitude, target, samType) {
+                super(x, y, altitude, 0, target, 'sam');
+
+                this.samType = samType;
+                this.isGroundLaunched = true;
+
+                // Configure based on SAM type
+                if (samType === 'sam_sa2') {
+                    this.maxSpeed = 700; // m/s (Mach 2)
+                    this.acceleration = 150;
+                    this.maxTurnRate = 120;
+                    this.damage = 60;
+                    this.explosionRadius = 25;
+                    this.motorBurnTime = 6;
+                    this.maxRange = 30000;
+                } else if (samType === 'sam_patriot') {
+                    this.maxSpeed = 1200; // m/s (Mach 3.5)
+                    this.acceleration = 250;
+                    this.maxTurnRate = 200;
+                    this.damage = 80;
+                    this.explosionRadius = 30;
+                    this.motorBurnTime = 8;
+                    this.maxRange = 70000;
+                } else if (samType === 'sam_s300') {
+                    this.maxSpeed = 1800; // m/s (Mach 5)
+                    this.acceleration = 300;
+                    this.maxTurnRate = 250;
+                    this.damage = 90;
+                    this.explosionRadius = 35;
+                    this.motorBurnTime = 10;
+                    this.maxRange = 150000;
+                }
+
+                // Initial climb phase
+                this.launchPhase = true;
+                this.launchTime = 0;
+                this.launchDuration = 1.5; // Vertical boost for 1.5 seconds
+
+                // Calculate initial heading toward target
+                if (target) {
+                    const dx = target.x - x;
+                    const dy = target.y - y;
+                    this.heading = (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360;
+                    this.pitch = 75; // Launch at steep angle
+                }
+            }
+
+            update(dt) {
+                if (!this.isActive || this.hasExploded) return;
+
+                this.timeAlive += dt;
+                this.launchTime += dt;
+
+                // Launch phase - vertical climb
+                if (this.launchPhase && this.launchTime < this.launchDuration) {
+                    this.pitch = 75 - (this.launchTime / this.launchDuration) * 30; // Gradually pitch down
+                } else {
+                    this.launchPhase = false;
+                }
+
+                // Call parent update
+                super.update(dt);
+            }
+
+            render() {
+                if (this.hasExploded) {
+                    super.render();
+                    return;
+                }
+
+                // SAM missiles are larger and have more prominent smoke trails
+                ctx.save();
+
+                // Smoke trail
+                if (this.motorFuelRemaining > 0) {
+                    ctx.fillStyle = 'rgba(200, 200, 200, 0.4)';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 6, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Rocket motor flame
+                    ctx.fillStyle = 'rgba(255, 150, 0, 0.8)';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Missile body
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.heading * Math.PI / 180);
+
+                // Body
+                ctx.fillStyle = '#dddddd';
+                ctx.fillRect(-2, -10, 4, 20);
+
+                // Nose cone
+                ctx.fillStyle = '#ff5555';
+                ctx.beginPath();
+                ctx.moveTo(0, -10);
+                ctx.lineTo(-2, -6);
+                ctx.lineTo(2, -6);
+                ctx.closePath();
+                ctx.fill();
+
+                // Fins
+                ctx.fillStyle = '#aaaaaa';
+                ctx.fillRect(-4, 6, 8, 3);
+                ctx.fillRect(-1, 4, 2, 6);
+
+                ctx.restore();
+            }
+        }
+
 
         // Bomb and Rocket projectile classes (Enhancement #8)
         class Bomb {
@@ -3776,9 +4626,64 @@
             }
 
             checkCountermeasures() {
-                // Check for nearby chaff or flares
-                // This would integrate with a countermeasures system
-                // For now, simplified: random chance of losing lock near target
+                // Check for nearby chaff (radar-guided missiles)
+                if (this.type === 'radar-guided' && this.chaffSusceptibility > 0) {
+                    for (let chaff of chaffClouds) {
+                        if (!chaff.isActive) continue;
+
+                        const dx = chaff.x - this.x;
+                        const dy = chaff.y - this.y;
+                        const dz = chaff.altitude - this.altitude;
+                        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                        if (distance < chaff.effectiveRadius) {
+                            // Chaff effectiveness based on radar cross section and susceptibility
+                            const effectiveness = chaff.radarCrossSection * this.chaffSusceptibility;
+
+                            // Degrade lock strength
+                            this.lockStrength *= (1.0 - effectiveness * 0.15);
+
+                            // Chance to completely break lock
+                            if (Math.random() < effectiveness * 0.25) {
+                                this.isLocked = false;
+                                this.lockStrength *= 0.5;
+                                console.log(`🎯 Missile lock broken by chaff!`);
+                            }
+                        }
+                    }
+                }
+
+                // Check for nearby flares (heat-seeking missiles)
+                if (this.type === 'heat-seeking' && this.flareSusceptibility > 0) {
+                    for (let flare of flares) {
+                        if (!flare.isActive || flare.temperature <= 0) continue;
+
+                        const dx = flare.x - this.x;
+                        const dy = flare.y - this.y;
+                        const dz = flare.altitude - this.altitude;
+                        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                        if (distance < flare.effectiveRadius) {
+                            // Flare effectiveness based on temperature and susceptibility
+                            const tempFactor = flare.temperature / flare.peakTemperature;
+                            const effectiveness = tempFactor * this.flareSusceptibility;
+
+                            // Degrade lock strength
+                            this.lockStrength *= (1.0 - effectiveness * 0.2);
+
+                            // Chance to retarget to flare (break lock on aircraft)
+                            if (Math.random() < effectiveness * 0.35) {
+                                // Missile goes for the flare instead
+                                this.isLocked = false;
+                                this.lockStrength *= 0.3;
+                                this.target = null; // Lose target entirely
+                                console.log(`🔥 Missile decoyed by flare!`);
+                            }
+                        }
+                    }
+                }
+
+                // Existing behavior: target maneuvering can still degrade lock
                 if (this.target && !this.target.isDestroyed) {
                     const dx = this.target.x - this.x;
                     const dy = this.target.y - this.y;
@@ -4004,11 +4909,210 @@
             }
         }
 
+        // Chaff class - decoys radar-guided missiles
+        class Chaff {
+            constructor(x, y, altitude, heading, parentVelocityX, parentVelocityY) {
+                this.x = x;
+                this.y = y;
+                this.altitude = altitude;
+                this.heading = heading;
+
+                // Inherit some velocity from parent aircraft, plus random dispersion
+                this.velocityX = parentVelocityX * 0.3 + (Math.random() - 0.5) * 20;
+                this.velocityY = parentVelocityY * 0.3 + (Math.random() - 0.5) * 20;
+                this.velocityZ = (Math.random() - 0.5) * 5; // Slight vertical drift
+
+                // Chaff properties
+                this.effectiveRadius = 50; // meters - area of effect for decoying missiles
+                this.radarCrossSection = 1.0; // Strong radar return initially
+                this.lifetime = 8.0; // seconds - how long chaff remains effective
+                this.age = 0;
+                this.isActive = true;
+
+                // Visual properties
+                this.particles = [];
+                const particleCount = 15;
+                for (let i = 0; i < particleCount; i++) {
+                    this.particles.push({
+                        offsetX: (Math.random() - 0.5) * 10,
+                        offsetY: (Math.random() - 0.5) * 10,
+                        size: 1 + Math.random() * 2
+                    });
+                }
+            }
+
+            update(dt) {
+                if (!this.isActive) return;
+
+                this.age += dt;
+
+                // Chaff disperses and becomes less effective over time
+                this.radarCrossSection = Math.max(0, 1.0 - (this.age / this.lifetime));
+                this.effectiveRadius += dt * 8; // Expands as it disperses
+
+                // Update position with drag
+                this.x += this.velocityX * dt;
+                this.y += this.velocityY * dt;
+                this.altitude += this.velocityZ * dt;
+
+                // Apply drag
+                this.velocityX *= 0.95;
+                this.velocityY *= 0.95;
+                this.velocityZ *= 0.95;
+
+                // Chaff falls slowly
+                this.altitude -= dt * 5;
+
+                // Deactivate if expired or hit ground
+                if (this.age >= this.lifetime || this.altitude <= 0) {
+                    this.isActive = false;
+                }
+            }
+
+            render() {
+                if (!this.isActive) return;
+
+                const alpha = this.radarCrossSection * 0.7;
+
+                // Draw chaff cloud
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                // Draw particles
+                for (let particle of this.particles) {
+                    ctx.fillStyle = `rgba(180, 180, 180, ${alpha * 0.6})`;
+                    ctx.beginPath();
+                    ctx.arc(
+                        particle.offsetX * (1 + this.age * 0.5),
+                        particle.offsetY * (1 + this.age * 0.5),
+                        particle.size,
+                        0, Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+
+                // Central glow
+                const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.effectiveRadius * 0.3);
+                gradient.addColorStop(0, `rgba(200, 200, 220, ${alpha * 0.4})`);
+                gradient.addColorStop(1, 'rgba(200, 200, 220, 0)');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.effectiveRadius * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        // Flare class - decoys heat-seeking missiles
+        class Flare {
+            constructor(x, y, altitude, heading, parentVelocityX, parentVelocityY) {
+                this.x = x;
+                this.y = y;
+                this.altitude = altitude;
+                this.heading = heading;
+
+                // Inherit some velocity from parent, plus ejection velocity
+                const ejectAngle = (heading + (Math.random() - 0.5) * 60) * Math.PI / 180;
+                const ejectSpeed = 30 + Math.random() * 20;
+                this.velocityX = parentVelocityX * 0.2 + Math.sin(ejectAngle) * ejectSpeed;
+                this.velocityY = parentVelocityY * 0.2 - Math.cos(ejectAngle) * ejectSpeed;
+                this.velocityZ = -10 - Math.random() * 10; // Ejected downward
+
+                // Flare properties
+                this.effectiveRadius = 40; // meters - area of effect for decoying missiles
+                this.temperature = 2000; // Kelvin - very hot initially
+                this.peakTemperature = 2000;
+                this.burnTime = 5.0; // seconds - how long flare burns
+                this.age = 0;
+                this.isActive = true;
+
+                // Visual properties
+                this.glowSize = 8;
+            }
+
+            update(dt) {
+                if (!this.isActive) return;
+
+                this.age += dt;
+
+                // Flare temperature profile: quick rise, then gradual decay
+                if (this.age < 0.5) {
+                    // Burn-in phase
+                    this.temperature = this.peakTemperature * (this.age / 0.5);
+                } else {
+                    // Decay phase
+                    this.temperature = this.peakTemperature * (1.0 - ((this.age - 0.5) / (this.burnTime - 0.5)));
+                }
+                this.temperature = Math.max(0, this.temperature);
+
+                // Update position
+                this.x += this.velocityX * dt;
+                this.y += this.velocityY * dt;
+                this.altitude += this.velocityZ * dt;
+
+                // Apply drag
+                this.velocityX *= 0.92;
+                this.velocityY *= 0.92;
+                this.velocityZ *= 0.92;
+
+                // Gravity
+                this.velocityZ -= 9.8 * dt;
+
+                // Deactivate if expired or hit ground
+                if (this.age >= this.burnTime || this.altitude <= 0) {
+                    this.isActive = false;
+                }
+            }
+
+            render() {
+                if (!this.isActive || this.temperature <= 0) return;
+
+                const intensity = this.temperature / this.peakTemperature;
+
+                // Draw flare
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                // Outer glow
+                const outerGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.glowSize * 2);
+                outerGradient.addColorStop(0, `rgba(255, 180, 100, ${intensity * 0.6})`);
+                outerGradient.addColorStop(0.5, `rgba(255, 120, 50, ${intensity * 0.3})`);
+                outerGradient.addColorStop(1, 'rgba(255, 80, 0, 0)');
+                ctx.fillStyle = outerGradient;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.glowSize * 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Inner bright core
+                const innerGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.glowSize);
+                innerGradient.addColorStop(0, `rgba(255, 255, 255, ${intensity})`);
+                innerGradient.addColorStop(0.4, `rgba(255, 220, 150, ${intensity * 0.9})`);
+                innerGradient.addColorStop(1, `rgba(255, 150, 80, ${intensity * 0.4})`);
+                ctx.fillStyle = innerGradient;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.glowSize, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Sparkle effect for active burning
+                if (intensity > 0.3) {
+                    ctx.fillStyle = `rgba(255, 255, 255, ${intensity * 0.8})`;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.glowSize * 0.3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
         let groundTargets = [];
-        let aerialUnits = []; // Blimps, balloons, airships
+        let samSites = []; // SAM/AAA sites
         let bombs = []; // Active bombs
         let rockets = []; // Active rockets (both ground and air-to-air)
         let missiles = []; // Active guided missiles
+        let chaffClouds = []; // Active chaff countermeasures
+        let flares = []; // Active flare countermeasures
 
         // Canvas setup
         const canvas = document.getElementById('gameCanvas');
@@ -5215,6 +6319,16 @@
                 this.lockRange = specs.maxLockRange || 5000; // meters
                 this.isLocked = false; // Lock achieved
                 this.lockTone = false; // Audio cue for lock
+
+                // Countermeasure system
+                this.chaffCapacity = specs.chaffCapacity || 0;
+                this.flareCapacity = specs.flareCapacity || 0;
+                this.chaff = this.chaffCapacity;
+                this.flares = this.flareCapacity;
+                this.chaffReloadTime = 1.0; // seconds between chaff dispenses
+                this.flareReloadTime = 1.0; // seconds between flare dispenses
+                this.chaffCooldown = 0; // Current cooldown timer
+                this.flareCooldown = 0; // Current cooldown timer
 
                 // Component damage system (Enhancement #4)
                 this.damage = 0;
@@ -7357,6 +8471,37 @@
                 const ordinanceDisplay = (this.bombs > 0 || this.rockets > 0) ?
                     `<div class="stat-line" style="color: #88ff88;">Bombs: ${this.bombs} | Rockets: ${this.rockets}${rocketModeText}</div>` : '';
 
+                // Missiles (if available)
+                let missileDisplay = '';
+                if (this.canCarryMissiles && this.missiles > 0) {
+                    const missileColor = this.missiles < 2 ? '#ff8800' : '#88ff88';
+                    missileDisplay = `<div class="stat-line" style="color: ${missileColor};">Missiles: ${this.missiles}/${this.maxMissiles} (${this.missileType.toUpperCase()})</div>`;
+                }
+
+                // Lock status
+                let lockDisplay = '';
+                if (this.canCarryMissiles && this.lockTarget && !this.lockTarget.isDestroyed) {
+                    if (this.isLocked) {
+                        lockDisplay = `<div class="stat-line" style="color: #00ff00;">🎯 LOCKED: ${this.lockTarget.name}</div>`;
+                    } else {
+                        const lockPercent = Math.round(this.lockProgress * 100);
+                        lockDisplay = `<div class="stat-line" style="color: #ffaa00;">🎯 LOCKING: ${this.lockTarget.name} (${lockPercent}%)</div>`;
+                    }
+                }
+
+                // Countermeasures (if available)
+                let countermeasureDisplay = '';
+                if (this.chaffCapacity > 0 || this.flareCapacity > 0) {
+                    const chaffColor = this.chaff === 0 ? '#ff4444' : this.chaff < 10 ? '#ffaa00' : '#88ff88';
+                    const flareColor = this.flares === 0 ? '#ff4444' : this.flares < 10 ? '#ffaa00' : '#88ff88';
+                    const chaffCooldownText = this.chaffCooldown > 0 ? ` (${this.chaffCooldown.toFixed(1)}s)` : '';
+                    const flareCooldownText = this.flareCooldown > 0 ? ` (${this.flareCooldown.toFixed(1)}s)` : '';
+                    countermeasureDisplay = `<div class="stat-line" style="font-size: 11px;">` +
+                        `<span style="color: ${chaffColor};">Chaff: ${this.chaff}${chaffCooldownText}</span> | ` +
+                        `<span style="color: ${flareColor};">Flares: ${this.flares}${flareCooldownText}</span>` +
+                        `</div>`;
+                }
+
                 // Show critical hits
                 const critDisplay = this.criticalHitsDealt > 0 ?
                     `<div class="stat-line" style="color: #ff8800;">💥 Crits: ${this.criticalHitsDealt}</div>` : '';
@@ -7384,6 +8529,9 @@
                     ${componentInfo}
                     <div class="stat-line" style="color: ${fireThresholdColor}">Fire Min: ${fireThresholdPercent}%</div>
                     ${ordinanceDisplay}
+                    ${missileDisplay}
+                    ${lockDisplay}
+                    ${countermeasureDisplay}
                     ${critDisplay}
                     ${critTakenDisplay}
                     ${engineDamageDisplay}
@@ -8576,12 +9724,28 @@
                 target.render();
             }
 
+            // Render SAM sites
+            for (let samSite of samSites) {
+                samSite.render();
+            }
+
             // Render bombs and rockets (Enhancement #8)
             for (let bomb of bombs) {
                 bomb.render();
             }
             for (let rocket of rockets) {
                 rocket.render();
+            }
+            for (let missile of missiles) {
+                missile.render();
+            }
+
+            // Render countermeasures (chaff and flares)
+            for (let chaff of chaffClouds) {
+                chaff.render();
+            }
+            for (let flare of flares) {
+                flare.render();
             }
 
             // Render ghost if in order mode
@@ -8721,6 +9885,109 @@
 
                         yOffset += 60; // Next progress bar
                     }
+                }
+
+                // SAM Threat Warnings
+                if (samSites.length > 0) {
+                    let warningY = canvas.height - 100; // Bottom of screen
+                    const warningX = canvas.width - 250;
+
+                    for (let samSite of samSites) {
+                        if (samSite.isDestroyed) continue;
+
+                        // Check if any player aircraft is being tracked
+                        for (let plane of aircraft) {
+                            if (!plane.isPlayer || plane.isDestroyed) continue;
+
+                            const dx = plane.x - samSite.x;
+                            const dy = plane.y - samSite.y;
+                            const distance2D = Math.sqrt(dx * dx + dy * dy);
+                            const distance3D = Math.sqrt(distance2D * distance2D + plane.altitude * plane.altitude);
+
+                            // Check if in threat range
+                            if (distance3D < samSite.config.radarRange) {
+                                // Draw warning box
+                                ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                                ctx.fillRect(warningX, warningY, 240, 70);
+
+                                if (samSite.radarMode === 'track' && samSite.trackedTarget === plane) {
+                                    // TRACK warning - red, more urgent
+                                    ctx.strokeStyle = '#ff0000';
+                                    ctx.lineWidth = 3;
+                                    ctx.strokeRect(warningX, warningY, 240, 70);
+
+                                    ctx.fillStyle = '#ff0000';
+                                    ctx.font = 'bold 16px Courier New';
+                                    ctx.textAlign = 'left';
+                                    ctx.fillText('⚠ RADAR LOCK ⚠', warningX + 10, warningY + 20);
+
+                                    ctx.font = '12px Courier New';
+                                    ctx.fillStyle = '#ffaa00';
+                                    ctx.fillText(`${samSite.config.name}`, warningX + 10, warningY + 38);
+                                    ctx.fillText(`Range: ${(distance3D / 1000).toFixed(1)}km`, warningX + 10, warningY + 52);
+
+                                    const lockPercent = Math.min(100, (samSite.trackingTime / samSite.minTrackTime) * 100);
+                                    ctx.fillText(`Lock: ${lockPercent.toFixed(0)}%`, warningX + 140, warningY + 52);
+
+                                    // Flashing effect for imminent launch
+                                    if (samSite.trackingTime >= samSite.minTrackTime * 0.8) {
+                                        const flash = Math.sin(Date.now() * 0.01) > 0;
+                                        if (flash) {
+                                            ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+                                            ctx.fillRect(warningX + 2, warningY + 2, 236, 66);
+                                        }
+                                    }
+                                } else if (distance3D < samSite.config.trackRange) {
+                                    // SEARCH warning - yellow, less urgent
+                                    ctx.strokeStyle = '#ffaa00';
+                                    ctx.lineWidth = 2;
+                                    ctx.strokeRect(warningX, warningY, 240, 70);
+
+                                    ctx.fillStyle = '#ffaa00';
+                                    ctx.font = 'bold 14px Courier New';
+                                    ctx.textAlign = 'left';
+                                    ctx.fillText('⚠ SAM THREAT ⚠', warningX + 10, warningY + 20);
+
+                                    ctx.font = '12px Courier New';
+                                    ctx.fillText(`${samSite.config.name}`, warningX + 10, warningY + 38);
+                                    ctx.fillText(`Range: ${(distance3D / 1000).toFixed(1)}km`, warningX + 10, warningY + 52);
+                                    ctx.fillText(`Status: ${samSite.radarMode.toUpperCase()}`, warningX + 140, warningY + 52);
+                                }
+
+                                warningY -= 80; // Stack warnings vertically
+                            }
+                        }
+                    }
+                }
+
+                // Active SAM missile warnings
+                let missileWarnings = 0;
+                for (let missile of missiles) {
+                    if (missile.isGroundLaunched && missile.target && missile.target.isPlayer && !missile.hasExploded) {
+                        missileWarnings++;
+                    }
+                }
+
+                if (missileWarnings > 0) {
+                    const mwX = canvas.width / 2 - 100;
+                    const mwY = 50;
+
+                    // Flashing red warning
+                    const flash = Math.floor(Date.now() / 300) % 2 === 0;
+                    ctx.fillStyle = flash ? 'rgba(255, 0, 0, 0.9)' : 'rgba(200, 0, 0, 0.8)';
+                    ctx.fillRect(mwX, mwY, 200, 40);
+
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(mwX, mwY, 200, 40);
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 18px Courier New';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('MISSILE INBOUND', mwX + 100, mwY + 18);
+
+                    ctx.font = 'bold 16px Courier New';
+                    ctx.fillText(`${missileWarnings} SAM${missileWarnings > 1 ? 's' : ''}`, mwX + 100, mwY + 34);
                 }
             }
 
@@ -9201,6 +10468,7 @@
             // Emergency cancellation - works during EXECUTION phase
             if (e.key.toLowerCase() === 'c' && gameState === 'EXECUTION') {
                 // Check if any player aircraft are in multi-turn maneuvers
+                let cancelledAny = false;
                 for (let plane of aircraft) {
                     if (plane.isPlayer && plane.isInMultiTurnManeuver && !plane.maneuverCancelled) {
                         // Cancel the maneuver with consequences
@@ -9228,6 +10496,51 @@
                         plane.maneuverType = 'none';
                         plane.maneuverElapsedTime = 0;
                         plane.maneuverRequiredTime = 0;
+                        cancelledAny = true;
+                    }
+                }
+                if (cancelledAny) return;
+
+                // If no maneuver was cancelled, check for chaff dispensing
+                for (let plane of aircraft) {
+                    if (plane.isPlayer && plane.chaff > 0 && plane.chaffCooldown <= 0) {
+                        // Dispense chaff
+                        plane.chaff--;
+                        plane.chaffCooldown = plane.chaffReloadTime;
+
+                        // Calculate aircraft velocity
+                        const headingRad = plane.heading * Math.PI / 180;
+                        const velocityX = plane.speed * Math.sin(headingRad);
+                        const velocityY = -plane.speed * Math.cos(headingRad);
+
+                        // Create chaff cloud
+                        const chaff = new Chaff(plane.x, plane.y, plane.altitude, plane.heading, velocityX, velocityY);
+                        chaffClouds.push(chaff);
+
+                        console.log(`[COUNTERMEASURE] ${plane.name} dispensed chaff! Remaining: ${plane.chaff}`);
+                    }
+                }
+                return;
+            }
+
+            // Flare dispensing - works during EXECUTION phase
+            if (e.key.toLowerCase() === 'v' && gameState === 'EXECUTION') {
+                for (let plane of aircraft) {
+                    if (plane.isPlayer && plane.flares > 0 && plane.flareCooldown <= 0) {
+                        // Dispense flare
+                        plane.flares--;
+                        plane.flareCooldown = plane.flareReloadTime;
+
+                        // Calculate aircraft velocity
+                        const headingRad = plane.heading * Math.PI / 180;
+                        const velocityX = plane.speed * Math.sin(headingRad);
+                        const velocityY = -plane.speed * Math.cos(headingRad);
+
+                        // Create flare
+                        const flare = new Flare(plane.x, plane.y, plane.altitude, plane.heading, velocityX, velocityY);
+                        flares.push(flare);
+
+                        console.log(`[COUNTERMEASURE] ${plane.name} dispensed flare! Remaining: ${plane.flares}`);
                     }
                 }
                 return;
@@ -9371,6 +10684,61 @@
                         selectedAircraft.rocketMode = selectedAircraft.rocketMode === 'air' ? 'ground' : 'air';
                         console.log(`${selectedAircraft.name}: Rocket mode set to ${selectedAircraft.rocketMode.toUpperCase()}`);
                         updateStats();
+                    }
+                    break;
+                case 'l':
+                    // Lock onto nearest enemy aircraft
+                    if (selectedAircraft.canCarryMissiles) {
+                        // Find nearest enemy
+                        let nearestEnemy = null;
+                        let minDistance = Infinity;
+
+                        for (let target of aircraft) {
+                            if (target === selectedAircraft || target.isDestroyed) continue;
+                            if (target.isPlayer === selectedAircraft.isPlayer) continue; // Same team
+
+                            const dx = target.x - selectedAircraft.x;
+                            const dy = target.y - selectedAircraft.y;
+                            const dz = target.altitude - selectedAircraft.altitude;
+                            const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                            // Check if in front and within lock range
+                            const angleToTarget = Math.atan2(dx, -dy) * 180 / Math.PI;
+                            let angleDiff = angleToTarget - selectedAircraft.heading;
+                            while (angleDiff > 180) angleDiff -= 360;
+                            while (angleDiff < -180) angleDiff += 360;
+
+                            if (Math.abs(angleDiff) < 60 && distance < selectedAircraft.lockRange) {
+                                if (distance < minDistance) {
+                                    minDistance = distance;
+                                    nearestEnemy = target;
+                                }
+                            }
+                        }
+
+                        if (nearestEnemy) {
+                            selectedAircraft.attemptLock(nearestEnemy);
+                            updateStats();
+                        } else {
+                            console.log(`${selectedAircraft.name}: No valid targets in lock cone!`);
+                        }
+                    } else {
+                        console.log(`${selectedAircraft.name} cannot carry missiles!`);
+                    }
+                    break;
+                case 'm':
+                    // Launch missile at locked target
+                    if (selectedAircraft.canCarryMissiles) {
+                        if (selectedAircraft.isLocked && selectedAircraft.lockTarget) {
+                            selectedAircraft.launchMissile();
+                            updateStats();
+                        } else if (selectedAircraft.lockTarget && !selectedAircraft.isLocked) {
+                            console.log(`${selectedAircraft.name}: Lock not achieved yet! (${Math.round(selectedAircraft.lockProgress * 100)}%)`);
+                        } else {
+                            console.log(`${selectedAircraft.name}: No target locked! Press 'L' to lock onto target.`);
+                        }
+                    } else {
+                        console.log(`${selectedAircraft.name} cannot carry missiles!`);
                     }
                     break;
             }
@@ -9538,6 +10906,66 @@
                     } else if (!rockets[i].isActive && !rockets[i].hasExploded) {
                         // Remove rockets that went out of range
                         rockets.splice(i, 1);
+                    }
+                }
+
+                // Update missiles (guided)
+                for (let i = missiles.length - 1; i >= 0; i--) {
+                    missiles[i].update(dt);
+                    // Remove inactive missiles after explosion animation completes
+                    if (missiles[i].hasExploded && Date.now() - missiles[i].explosionTime > 800) {
+                        missiles.splice(i, 1);
+                    } else if (!missiles[i].isActive && !missiles[i].hasExploded) {
+                        // Remove missiles that went out of range or expired
+                        missiles.splice(i, 1);
+                    }
+                }
+
+                // Update SAM sites
+                for (let samSite of samSites) {
+                    if (!samSite.isDestroyed) {
+                        samSite.update(dt, aircraft);
+                        // Collect any newly launched missiles
+                        for (let missile of samSite.launchedMissiles) {
+                            if (!missiles.includes(missile)) {
+                                missiles.push(missile);
+                            }
+                        }
+                    }
+                }
+
+                // Update countermeasures (chaff and flares)
+                for (let i = chaffClouds.length - 1; i >= 0; i--) {
+                    chaffClouds[i].update(dt);
+                    // Remove inactive chaff
+                    if (!chaffClouds[i].isActive) {
+                        chaffClouds.splice(i, 1);
+                    }
+                }
+                for (let i = flares.length - 1; i >= 0; i--) {
+                    flares[i].update(dt);
+                    // Remove inactive flares
+                    if (!flares[i].isActive) {
+                        flares.splice(i, 1);
+                    }
+                }
+
+                // Update countermeasure cooldowns for all aircraft
+                for (let plane of aircraft) {
+                    if (!plane.isDestroyed) {
+                        if (plane.chaffCooldown > 0) {
+                            plane.chaffCooldown = Math.max(0, plane.chaffCooldown - dt);
+                        }
+                        if (plane.flareCooldown > 0) {
+                            plane.flareCooldown = Math.max(0, plane.flareCooldown - dt);
+                        }
+                    }
+                }
+
+                // Update lock-on systems for all aircraft
+                for (let plane of aircraft) {
+                    if (!plane.isDestroyed) {
+                        plane.updateLockOn(dt);
                     }
                 }
 
@@ -10396,6 +11824,14 @@
                     const y = 300 + Math.random() * 400;
                     groundTargets.push(new GroundTarget(x, y, type));
                 }
+            }
+
+            // Create SAM sites if needed
+            if (currentMission.samSites) {
+                for (let samConfig of currentMission.samSites) {
+                    samSites.push(new SAMSite(samConfig.x, samConfig.y, samConfig.type));
+                }
+                console.log(`${currentMission.samSites.length} SAM site(s) deployed`);
             }
 
             // Re-assign references (for backward compatibility)
