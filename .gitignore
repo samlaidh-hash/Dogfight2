@@ -6,6 +6,7 @@ package-lock.json
 
 # Test artifacts
 *.png
+!images/*.png
 ui-test-screenshot.png
 
 # OS files
