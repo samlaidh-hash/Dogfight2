@@ -869,6 +869,24 @@
                 weather: "clear",
                 timeOfDay: "noon",
                 briefing: "Intelligence reports an Me-262 jet fighter in the area. It's much faster than any propeller aircraft. Attack during turns when it's slow, or catch it landing. Head-on attacks are suicide - those 30mm cannons will tear you apart."
+            },
+            {
+                id: 11,
+                name: "Strike Force",
+                type: "naval_strike",
+                description: "Attack an enemy naval task force with bombs and rockets.",
+                objectives: ["Sink or damage all capital ships", "Survive heavy AA fire"],
+                playerAircraft: "P-47",
+                enemyAircraft: [],
+                weather: "clear",
+                timeOfDay: "noon",
+                capitalShips: [
+                    { x: 900, y: 250, type: 'battleship', heading: 90 },
+                    { x: 1100, y: 450, type: 'carrier', heading: 80 },
+                    { x: 700, y: 350, type: 'cruiser', heading: 100 },
+                    { x: 800, y: 550, type: 'destroyer', heading: 70 }
+                ],
+                briefing: "Enemy naval task force detected: 1 Battleship, 1 Carrier, 1 Cruiser, and 1 Destroyer. This is a maximum threat scenario. Each ship has multiple AA batteries with overlapping fields of fire. You're armed with bombs and rockets - use them wisely. Approach from altitude, dive-bomb the large ships, and use rockets on the destroyer. The battleship has the heaviest armor - multiple hits required. Stay fast and avoid extended exposure to AA fire. Good hunting!"
             }
         ];
 
@@ -1656,6 +1674,497 @@
             }
         }
 
+        // Capital Ship class - Large naval vessels with AA batteries
+        class CapitalShip {
+            constructor(x, y, type = 'destroyer') {
+                this.x = x;
+                this.y = y;
+                this.type = type; // 'battleship', 'carrier', 'destroyer', 'cruiser'
+                this.heading = 90; // degrees (0 = north, 90 = east)
+
+                // Ship specifications based on type
+                const specs = {
+                    'battleship': {
+                        length: 270,
+                        beam: 33,
+                        speed: 15, // m/s (~30 knots)
+                        health: 2000,
+                        armor: {
+                            bow: 100,
+                            midship: 150,
+                            stern: 80,
+                            superstructure: 50
+                        },
+                        aaBatteries: [
+                            { x: 0, y: -100, range: 800, rateOfFire: 15, accuracy: 0.18, type: 'heavy' },
+                            { x: 0, y: -50, range: 600, rateOfFire: 10, accuracy: 0.22, type: 'medium' },
+                            { x: -15, y: 0, range: 400, rateOfFire: 8, accuracy: 0.25, type: 'light' },
+                            { x: 15, y: 0, range: 400, rateOfFire: 8, accuracy: 0.25, type: 'light' },
+                            { x: 0, y: 50, range: 600, rateOfFire: 10, accuracy: 0.22, type: 'medium' },
+                            { x: 0, y: 100, range: 800, rateOfFire: 15, accuracy: 0.18, type: 'heavy' }
+                        ],
+                        compartments: 12
+                    },
+                    'carrier': {
+                        length: 250,
+                        beam: 30,
+                        speed: 12, // m/s (~24 knots)
+                        health: 1500,
+                        armor: {
+                            bow: 60,
+                            midship: 80,
+                            stern: 60,
+                            superstructure: 40
+                        },
+                        aaBatteries: [
+                            { x: -12, y: -80, range: 500, rateOfFire: 10, accuracy: 0.20, type: 'medium' },
+                            { x: 12, y: -80, range: 500, rateOfFire: 10, accuracy: 0.20, type: 'medium' },
+                            { x: -12, y: 0, range: 400, rateOfFire: 8, accuracy: 0.23, type: 'light' },
+                            { x: 12, y: 0, range: 400, rateOfFire: 8, accuracy: 0.23, type: 'light' },
+                            { x: -12, y: 80, range: 500, rateOfFire: 10, accuracy: 0.20, type: 'medium' },
+                            { x: 12, y: 80, range: 500, rateOfFire: 10, accuracy: 0.20, type: 'medium' }
+                        ],
+                        compartments: 10
+                    },
+                    'destroyer': {
+                        length: 115,
+                        beam: 12,
+                        speed: 18, // m/s (~35 knots)
+                        health: 500,
+                        armor: {
+                            bow: 30,
+                            midship: 40,
+                            stern: 30,
+                            superstructure: 20
+                        },
+                        aaBatteries: [
+                            { x: 0, y: -30, range: 500, rateOfFire: 10, accuracy: 0.20, type: 'medium' },
+                            { x: 0, y: 0, range: 400, rateOfFire: 8, accuracy: 0.23, type: 'light' },
+                            { x: 0, y: 30, range: 500, rateOfFire: 10, accuracy: 0.20, type: 'medium' }
+                        ],
+                        compartments: 6
+                    },
+                    'cruiser': {
+                        length: 180,
+                        beam: 18,
+                        speed: 16, // m/s (~32 knots)
+                        health: 1000,
+                        armor: {
+                            bow: 60,
+                            midship: 80,
+                            stern: 50,
+                            superstructure: 35
+                        },
+                        aaBatteries: [
+                            { x: 0, y: -60, range: 700, rateOfFire: 12, accuracy: 0.20, type: 'heavy' },
+                            { x: -10, y: -20, range: 500, rateOfFire: 10, accuracy: 0.22, type: 'medium' },
+                            { x: 10, y: -20, range: 500, rateOfFire: 10, accuracy: 0.22, type: 'medium' },
+                            { x: -10, y: 20, range: 400, rateOfFire: 8, accuracy: 0.25, type: 'light' },
+                            { x: 10, y: 20, range: 400, rateOfFire: 8, accuracy: 0.25, type: 'light' },
+                            { x: 0, y: 60, range: 700, rateOfFire: 12, accuracy: 0.20, type: 'heavy' }
+                        ],
+                        compartments: 8
+                    }
+                };
+
+                const spec = specs[type];
+                this.length = spec.length;
+                this.beam = spec.beam;
+                this.speed = spec.speed;
+                this.maxHealth = spec.health;
+                this.health = spec.health;
+                this.armor = spec.armor;
+                this.compartments = spec.compartments;
+
+                // Initialize AA batteries with cooldowns
+                this.aaBatteries = spec.aaBatteries.map(battery => ({
+                    ...battery,
+                    fireCooldown: 0,
+                    isDestroyed: false
+                }));
+
+                // Damage model
+                this.floodedCompartments = 0;
+                this.listing = 0; // Tilt angle in degrees (0 = upright, positive = starboard list)
+                this.isSinking = false;
+                this.sinkProgress = 0; // 0 to 1
+                this.isDestroyed = false;
+
+                // Movement
+                this.velocityX = 0;
+                this.velocityY = 0;
+
+                // Visual effects
+                this.flakEffects = [];
+                this.damageEffects = [];
+                this.fireLocations = [];
+            }
+
+            update(dt) {
+                if (this.isDestroyed) return;
+
+                // Update position based on heading and speed
+                const headingRad = this.heading * Math.PI / 180;
+                this.velocityX = this.speed * Math.sin(headingRad);
+                this.velocityY = -this.speed * Math.cos(headingRad);
+                this.x += this.velocityX * dt;
+                this.y += this.velocityY * dt;
+
+                // Update damage effects
+                if (this.health < this.maxHealth * 0.5) {
+                    // Add fire effects for damaged ships
+                    if (Math.random() < 0.02) {
+                        this.fireLocations.push({
+                            x: (Math.random() - 0.5) * this.length * 0.6,
+                            y: (Math.random() - 0.5) * this.beam,
+                            intensity: Math.random() * 0.5 + 0.5,
+                            time: Date.now()
+                        });
+                    }
+                    // Remove old fires
+                    this.fireLocations = this.fireLocations.filter(fire => Date.now() - fire.time < 10000);
+                }
+
+                // Progressive flooding and listing
+                const damageRatio = 1 - (this.health / this.maxHealth);
+                this.floodedCompartments = Math.floor(damageRatio * this.compartments);
+                this.listing = this.floodedCompartments * (15 / this.compartments); // Up to 15 degrees list
+
+                // Sinking mechanics
+                if (this.floodedCompartments >= this.compartments * 0.7 || this.health <= 0) {
+                    this.isSinking = true;
+                    this.sinkProgress = Math.min(1, this.sinkProgress + dt * 0.1); // Sink over 10 seconds
+
+                    if (this.sinkProgress >= 1) {
+                        this.isDestroyed = true;
+                    }
+                }
+
+                // Update AA battery cooldowns
+                for (let battery of this.aaBatteries) {
+                    if (battery.fireCooldown > 0) {
+                        battery.fireCooldown--;
+                    }
+                }
+            }
+
+            render() {
+                if (this.sinkProgress > 0.95) return; // Don't render fully sunk ships
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.heading * Math.PI / 180);
+
+                // Apply listing (tilt)
+                if (this.listing > 0) {
+                    ctx.transform(1, 0, this.listing * 0.02, 1, 0, 0); // Skew effect for listing
+                }
+
+                // Apply sinking offset
+                const sinkOffset = this.sinkProgress * this.beam * 2;
+
+                // Render flak bursts
+                const now = Date.now();
+                this.flakEffects = this.flakEffects.filter(flak => now - flak.time < flak.duration);
+                for (let flak of this.flakEffects) {
+                    const age = now - flak.time;
+                    const progress = age / flak.duration;
+                    const alpha = 1 - progress;
+
+                    ctx.save();
+                    ctx.rotate(-this.heading * Math.PI / 180); // Counter-rotate for flak
+                    ctx.translate(-this.x, -this.y);
+
+                    // Black smoke puff
+                    ctx.fillStyle = `rgba(40, 40, 40, ${alpha * 0.6})`;
+                    const size = 15 + progress * 25;
+                    ctx.beginPath();
+                    ctx.arc(flak.x, flak.y, size, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Orange flash at start
+                    if (progress < 0.2) {
+                        ctx.fillStyle = `rgba(255, 150, 0, ${(1 - progress / 0.2) * 0.8})`;
+                        ctx.beginPath();
+                        ctx.arc(flak.x, flak.y, size * 0.6, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.restore();
+                }
+
+                // Ship hull
+                const hullAlpha = this.isSinking ? Math.max(0.3, 1 - this.sinkProgress) : 1;
+                ctx.fillStyle = `rgba(100, 100, 110, ${hullAlpha})`;
+
+                // Main hull shape (simplified ship silhouette)
+                ctx.beginPath();
+                ctx.moveTo(0, -this.length / 2); // Bow
+                ctx.lineTo(this.beam / 3, -this.length / 3);
+                ctx.lineTo(this.beam / 2, -this.length / 4);
+                ctx.lineTo(this.beam / 2, this.length / 3);
+                ctx.lineTo(this.beam / 3, this.length / 2); // Stern
+                ctx.lineTo(-this.beam / 3, this.length / 2);
+                ctx.lineTo(-this.beam / 2, this.length / 3);
+                ctx.lineTo(-this.beam / 2, -this.length / 4);
+                ctx.lineTo(-this.beam / 3, -this.length / 3);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = `rgba(70, 70, 80, ${hullAlpha})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Deck
+                ctx.fillStyle = `rgba(140, 120, 100, ${hullAlpha})`;
+                ctx.fillRect(-this.beam / 2 + 2, -this.length / 2 + 10 + sinkOffset, this.beam - 4, this.length - 20);
+
+                // Superstructure (bridge, etc.)
+                if (this.type === 'carrier') {
+                    // Carrier island (offset to starboard)
+                    ctx.fillStyle = `rgba(120, 120, 130, ${hullAlpha})`;
+                    ctx.fillRect(this.beam / 4, -this.length / 6, this.beam / 3, this.length / 3);
+                    // Flight deck markings
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${hullAlpha * 0.5})`;
+                    ctx.lineWidth = 1;
+                    for (let i = -3; i <= 3; i++) {
+                        ctx.beginPath();
+                        ctx.moveTo(-this.beam / 4, i * 30);
+                        ctx.lineTo(this.beam / 4, i * 30);
+                        ctx.stroke();
+                    }
+                } else {
+                    // Bridge/superstructure for other ships
+                    ctx.fillStyle = `rgba(120, 120, 130, ${hullAlpha})`;
+                    const superHeight = this.length / 5;
+                    ctx.fillRect(-this.beam / 4, -superHeight / 2, this.beam / 2, superHeight);
+
+                    // Smokestack
+                    ctx.fillStyle = `rgba(80, 70, 60, ${hullAlpha})`;
+                    ctx.fillRect(-this.beam / 8, -superHeight / 4, this.beam / 4, superHeight / 2);
+                }
+
+                // Gun turrets (main armament)
+                if (this.type !== 'carrier') {
+                    ctx.fillStyle = `rgba(90, 90, 100, ${hullAlpha})`;
+                    const turretPositions = this.type === 'battleship'
+                        ? [-this.length / 3, -this.length / 6, this.length / 6, this.length / 3]
+                        : this.type === 'cruiser'
+                        ? [-this.length / 3, this.length / 3]
+                        : [-this.length / 4, this.length / 4];
+
+                    for (let pos of turretPositions) {
+                        ctx.beginPath();
+                        ctx.arc(0, pos, this.beam / 5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+                // AA gun positions
+                ctx.fillStyle = `rgba(70, 70, 80, ${hullAlpha})`;
+                for (let battery of this.aaBatteries) {
+                    if (!battery.isDestroyed) {
+                        ctx.beginPath();
+                        ctx.arc(battery.x, battery.y, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+                // Fire effects
+                for (let fire of this.fireLocations) {
+                    const fireAge = (now - fire.time) / 1000;
+                    const fireAlpha = Math.max(0, 1 - fireAge / 10);
+
+                    // Flames
+                    ctx.fillStyle = `rgba(255, 100, 0, ${fireAlpha * fire.intensity})`;
+                    ctx.beginPath();
+                    ctx.arc(fire.x, fire.y + sinkOffset, 5 + Math.random() * 3, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Smoke
+                    ctx.fillStyle = `rgba(40, 40, 40, ${fireAlpha * 0.6})`;
+                    ctx.beginPath();
+                    ctx.arc(fire.x, fire.y - 10 + sinkOffset, 8 + fireAge * 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Wake effect (churning water at stern)
+                if (!this.isSinking && this.speed > 0) {
+                    ctx.strokeStyle = `rgba(255, 255, 255, 0.3)`;
+                    ctx.lineWidth = 1;
+                    for (let i = 0; i < 3; i++) {
+                        ctx.beginPath();
+                        ctx.arc(-this.beam / 4, this.length / 2 + i * 8, this.beam / 3 + i * 4, 0, Math.PI);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.arc(this.beam / 4, this.length / 2 + i * 8, this.beam / 3 + i * 4, 0, Math.PI);
+                        ctx.stroke();
+                    }
+                }
+
+                ctx.restore();
+
+                // Health bar
+                if (this.health < this.maxHealth && !this.isDestroyed) {
+                    const barWidth = this.length;
+                    const barHeight = 6;
+                    const barY = this.y - this.beam - 15;
+
+                    ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+                    ctx.fillRect(this.x - barWidth / 2, barY, barWidth * (this.health / this.maxHealth), barHeight);
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.strokeRect(this.x - barWidth / 2, barY, barWidth, barHeight);
+
+                    // Show ship type
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.font = '10px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(this.type.toUpperCase(), this.x, barY - 5);
+                }
+
+                // Sinking indicator
+                if (this.isSinking) {
+                    ctx.fillStyle = 'rgba(255, 50, 50, 0.8)';
+                    ctx.font = '12px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('SINKING', this.x, this.y - this.beam - 30);
+                }
+            }
+
+            takeDamage(amount, hitX, hitY) {
+                if (this.isDestroyed) return false;
+
+                // Determine which zone was hit
+                const relativeY = hitY - this.y;
+                const rotatedY = relativeY * Math.cos(-this.heading * Math.PI / 180) -
+                                (hitX - this.x) * Math.sin(-this.heading * Math.PI / 180);
+
+                let zone;
+                if (rotatedY < -this.length / 4) {
+                    zone = 'bow';
+                } else if (rotatedY > this.length / 4) {
+                    zone = 'stern';
+                } else if (Math.abs(rotatedY) < this.length / 8) {
+                    zone = 'midship';
+                } else {
+                    zone = 'superstructure';
+                }
+
+                // Apply armor reduction
+                const armorValue = this.armor[zone] || 50;
+                const damageMultiplier = Math.max(0.1, 1 - armorValue / 200);
+                const actualDamage = amount * damageMultiplier;
+
+                this.health -= actualDamage;
+
+                // Chance to destroy an AA battery
+                if (Math.random() < 0.15) {
+                    const activeBatteries = this.aaBatteries.filter(b => !b.isDestroyed);
+                    if (activeBatteries.length > 0) {
+                        const randomBattery = activeBatteries[Math.floor(Math.random() * activeBatteries.length)];
+                        randomBattery.isDestroyed = true;
+                        console.log(`${this.type}: AA battery destroyed!`);
+                    }
+                }
+
+                // Add damage effect
+                this.damageEffects.push({
+                    x: hitX,
+                    y: hitY,
+                    time: Date.now()
+                });
+
+                console.log(`${this.type}: Hit in ${zone}! Armor: ${armorValue}, Damage: ${actualDamage.toFixed(1)}, Health: ${this.health.toFixed(1)}/${this.maxHealth}`);
+
+                if (this.health <= 0) {
+                    this.isDestroyed = true;
+                    console.log(`${this.type}: DESTROYED!`);
+                    return true;
+                }
+                return false;
+            }
+
+            fireAABatteries(aircraft) {
+                if (this.isDestroyed || this.isSinking) return [];
+
+                const hits = [];
+
+                for (let battery of this.aaBatteries) {
+                    if (battery.isDestroyed || battery.fireCooldown > 0) continue;
+
+                    // Get battery world position
+                    const batteryWorldX = this.x + battery.x * Math.cos(this.heading * Math.PI / 180) -
+                                         battery.y * Math.sin(this.heading * Math.PI / 180);
+                    const batteryWorldY = this.y + battery.x * Math.sin(this.heading * Math.PI / 180) +
+                                         battery.y * Math.cos(this.heading * Math.PI / 180);
+
+                    // Find closest aircraft in range
+                    let target = null;
+                    let minDist = Infinity;
+
+                    for (let plane of aircraft) {
+                        if (plane.isDestroyed) continue;
+
+                        const dx = plane.x - batteryWorldX;
+                        const dy = plane.y - batteryWorldY;
+                        const distance2D = Math.sqrt(dx * dx + dy * dy);
+                        const distance3D = Math.sqrt(distance2D * distance2D + plane.altitude * plane.altitude);
+
+                        if (distance3D < battery.range && distance3D < minDist) {
+                            minDist = distance3D;
+                            target = plane;
+                        }
+                    }
+
+                    if (!target) continue;
+
+                    // Fire!
+                    battery.fireCooldown = battery.rateOfFire;
+
+                    // Calculate hit chance
+                    const dx = target.x - batteryWorldX;
+                    const dy = target.y - batteryWorldY;
+                    const distance2D = Math.sqrt(dx * dx + dy * dy);
+
+                    let hitChance = battery.accuracy;
+                    hitChance *= Math.max(0.1, 1 - distance2D / battery.range);
+                    hitChance *= Math.max(0.2, 1 - target.altitude / 1000);
+                    hitChance *= Math.max(0.5, 1 - target.speed / target.maxSpeed);
+
+                    // Create flak burst visual
+                    const flakX = target.x + (Math.random() - 0.5) * 60;
+                    const flakY = target.y + (Math.random() - 0.5) * 60;
+                    this.flakEffects.push({
+                        x: flakX,
+                        y: flakY,
+                        altitude: target.altitude,
+                        time: Date.now(),
+                        duration: 900
+                    });
+
+                    // Check if hit
+                    if (Math.random() < hitChance) {
+                        const baseDamage = battery.type === 'heavy' ? 25 : battery.type === 'medium' ? 18 : 12;
+                        const damage = baseDamage + Math.random() * 10;
+                        hits.push({ target: target, damage: damage, battery: battery.type });
+                    }
+                }
+
+                return hits;
+            }
+
+            // Check if a point is within the ship's collision bounds
+            containsPoint(x, y) {
+                // Rotate point to ship's local space
+                const dx = x - this.x;
+                const dy = y - this.y;
+                const headingRad = -this.heading * Math.PI / 180;
+                const localX = dx * Math.cos(headingRad) - dy * Math.sin(headingRad);
+                const localY = dx * Math.sin(headingRad) + dy * Math.cos(headingRad);
+
+                // Check if point is within ship bounds
+                return Math.abs(localX) <= this.beam / 2 && Math.abs(localY) <= this.length / 2;
+            }
+        }
+
         // Bomb and Rocket projectile classes (Enhancement #8)
         class Bomb {
             constructor(x, y, altitude, velocity, heading) {
@@ -1710,6 +2219,30 @@
                         const actualDamage = this.damage * damageFalloff;
                         target.takeDamage(actualDamage);
                         console.log(`Bomb hit ${target.type} for ${actualDamage.toFixed(1)} damage at ${distance.toFixed(1)}m`);
+                    }
+                }
+
+                // Damage capital ships in radius
+                for (let ship of capitalShips) {
+                    if (ship.isDestroyed) continue;
+
+                    // Check if bomb hit the ship directly
+                    if (ship.containsPoint(this.x, this.y)) {
+                        // Direct hit - full damage
+                        ship.takeDamage(this.damage, this.x, this.y);
+                        console.log(`Bomb DIRECT HIT on ${ship.type}!`);
+                    } else {
+                        // Check for near miss damage
+                        const dx = ship.x - this.x;
+                        const dy = ship.y - this.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance < this.explosionRadius + ship.length / 2) {
+                            const damageFalloff = 1 - (distance / (this.explosionRadius + ship.length / 2));
+                            const actualDamage = this.damage * damageFalloff * 0.5; // Near miss does half damage
+                            ship.takeDamage(actualDamage, this.x, this.y);
+                            console.log(`Bomb near miss on ${ship.type} for ${actualDamage.toFixed(1)} damage at ${distance.toFixed(1)}m`);
+                        }
                     }
                 }
             }
@@ -1808,6 +2341,15 @@
                         return;
                     }
                 }
+
+                // Check direct hit on capital ships
+                for (let ship of capitalShips) {
+                    if (ship.isDestroyed) continue;
+                    if (ship.containsPoint(this.x, this.y)) {
+                        this.explode();
+                        return;
+                    }
+                }
             }
 
             explode() {
@@ -1828,6 +2370,30 @@
                         const actualDamage = this.damage * (0.5 + 0.5 * damageFalloff); // 50-100% damage
                         target.takeDamage(actualDamage);
                         console.log(`Rocket hit ${target.type} for ${actualDamage.toFixed(1)} damage at ${distance.toFixed(1)}m`);
+                    }
+                }
+
+                // Damage capital ships in radius
+                for (let ship of capitalShips) {
+                    if (ship.isDestroyed) continue;
+
+                    // Check if rocket hit the ship directly
+                    if (ship.containsPoint(this.x, this.y)) {
+                        // Direct hit - full damage
+                        ship.takeDamage(this.damage, this.x, this.y);
+                        console.log(`Rocket DIRECT HIT on ${ship.type}!`);
+                    } else {
+                        // Check for near miss damage
+                        const dx = ship.x - this.x;
+                        const dy = ship.y - this.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance < this.explosionRadius + ship.beam) {
+                            const damageFalloff = 1 - (distance / (this.explosionRadius + ship.beam));
+                            const actualDamage = this.damage * (0.5 + 0.5 * damageFalloff) * 0.5; // Near miss does half damage
+                            ship.takeDamage(actualDamage, this.x, this.y);
+                            console.log(`Rocket near miss on ${ship.type} for ${actualDamage.toFixed(1)} damage at ${distance.toFixed(1)}m`);
+                        }
                     }
                 }
             }
@@ -2063,6 +2629,7 @@
         }
 
         let groundTargets = [];
+        let capitalShips = []; // Capital ships (battleships, carriers, destroyers, cruisers)
         let bombs = []; // Active bombs
         let rockets = []; // Active rockets (both ground and air-to-air)
 
@@ -5197,6 +5764,15 @@
                 }
             }
 
+            // Capital Ship AA batteries fire at aircraft
+            for (let ship of capitalShips) {
+                const hits = ship.fireAABatteries(aircraft);
+                for (let hit of hits) {
+                    applyComponentDamage(hit.target, hit.damage);
+                    console.log(`${ship.type} ${hit.battery} AA battery HIT ${hit.target.name}! Damage: ${hit.damage.toFixed(1)}`);
+                }
+            }
+
             // Automatic ground attack weapons (bombs and rockets)
             processGroundAttackWeapons();
         }
@@ -5212,9 +5788,12 @@
             for (let attacker of aircraft) {
                 if (attacker.isDestroyed) continue;
 
-                // Auto-deploy bombs on ground targets
+                // Auto-deploy bombs on ground targets and capital ships
                 if (attacker.bombs > 0 && attacker.bombCooldown === 0) {
-                    for (let target of groundTargets) {
+                    let targetFound = false;
+
+                    // Check capital ships first (priority targets)
+                    for (let target of capitalShips) {
                         if (target.isDestroyed) continue;
 
                         const dx = target.x - attacker.x;
@@ -5229,11 +5808,38 @@
                         angleDiff = Math.abs(angleDiff);
 
                         // Bomb if target in cone, at reasonable altitude (not too high, not too low)
-                        if (angleDiff < 30 && distance < 600 && attacker.altitude > 100 && attacker.altitude < 3000) {
+                        if (angleDiff < 30 && distance < 800 && attacker.altitude > 100 && attacker.altitude < 3000) {
                             attacker.dropBomb();
                             attacker.bombCooldown = 5; // Cooldown between bomb drops (5 seconds)
-                            console.log(`${attacker.name}: Auto-dropped bomb on ground target at ${distance.toFixed(0)}m`);
+                            console.log(`${attacker.name}: Auto-dropped bomb on ${target.type} at ${distance.toFixed(0)}m`);
+                            targetFound = true;
                             break; // Only one bomb per pass
+                        }
+                    }
+
+                    // Check ground targets if no ship was targeted
+                    if (!targetFound) {
+                        for (let target of groundTargets) {
+                            if (target.isDestroyed) continue;
+
+                            const dx = target.x - attacker.x;
+                            const dy = target.y - attacker.y;
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+
+                            // Check if target is in bombing cone (wider than guns, 30 degrees)
+                            const angleToTarget = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
+                            let angleDiff = angleToTarget - attacker.heading;
+                            if (angleDiff > 180) angleDiff -= 360;
+                            if (angleDiff < -180) angleDiff += 360;
+                            angleDiff = Math.abs(angleDiff);
+
+                            // Bomb if target in cone, at reasonable altitude (not too high, not too low)
+                            if (angleDiff < 30 && distance < 600 && attacker.altitude > 100 && attacker.altitude < 3000) {
+                                attacker.dropBomb();
+                                attacker.bombCooldown = 5; // Cooldown between bomb drops (5 seconds)
+                                console.log(`${attacker.name}: Auto-dropped bomb on ground target at ${distance.toFixed(0)}m`);
+                                break; // Only one bomb per pass
+                            }
                         }
                     }
                 }
@@ -5241,8 +5847,11 @@
                 // Auto-launch rockets based on mode
                 if (attacker.rockets > 0 && attacker.rocketCooldown === 0) {
                     if (attacker.rocketMode === 'ground') {
-                        // Ground mode - target ground units
-                        for (let target of groundTargets) {
+                        // Ground mode - target ground units and capital ships
+                        let targetFound = false;
+
+                        // Check capital ships first (priority targets)
+                        for (let target of capitalShips) {
                             if (target.isDestroyed) continue;
 
                             const dx = target.x - attacker.x;
@@ -5256,12 +5865,39 @@
                             if (angleDiff < -180) angleDiff += 360;
                             angleDiff = Math.abs(angleDiff);
 
-                            // Launch rocket at ground target
-                            if (angleDiff < 25 && distance < 800 && attacker.altitude < 2000) {
+                            // Launch rocket at capital ship
+                            if (angleDiff < 25 && distance < 1000 && attacker.altitude < 2000) {
                                 attacker.launchRocket(target);
                                 attacker.rocketCooldown = 4; // Cooldown between rocket launches (4 seconds)
-                                console.log(`${attacker.name}: Auto-launched rocket at ground target ${target.type} at ${distance.toFixed(0)}m`);
+                                console.log(`${attacker.name}: Auto-launched rocket at ${target.type} at ${distance.toFixed(0)}m`);
+                                targetFound = true;
                                 break; // Only one rocket per pass
+                            }
+                        }
+
+                        // Check ground targets if no ship was targeted
+                        if (!targetFound) {
+                            for (let target of groundTargets) {
+                                if (target.isDestroyed) continue;
+
+                                const dx = target.x - attacker.x;
+                                const dy = target.y - attacker.y;
+                                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                                // Check if target is in firing cone (25 degrees, tighter than bombs)
+                                const angleToTarget = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
+                                let angleDiff = angleToTarget - attacker.heading;
+                                if (angleDiff > 180) angleDiff -= 360;
+                                if (angleDiff < -180) angleDiff += 360;
+                                angleDiff = Math.abs(angleDiff);
+
+                                // Launch rocket at ground target
+                                if (angleDiff < 25 && distance < 800 && attacker.altitude < 2000) {
+                                    attacker.launchRocket(target);
+                                    attacker.rocketCooldown = 4; // Cooldown between rocket launches (4 seconds)
+                                    console.log(`${attacker.name}: Auto-launched rocket at ground target ${target.type} at ${distance.toFixed(0)}m`);
+                                    break; // Only one rocket per pass
+                                }
                             }
                         }
                     } else if (attacker.rocketMode === 'air') {
@@ -5834,6 +6470,11 @@
             // Render ground targets (Enhancement #6)
             for (let target of groundTargets) {
                 target.render();
+            }
+
+            // Render capital ships
+            for (let ship of capitalShips) {
+                ship.render();
             }
 
             // Render bombs and rockets (Enhancement #8)
@@ -6823,6 +7464,11 @@
                     }
                 }
 
+                // Update capital ships
+                for (let ship of capitalShips) {
+                    ship.update(dt);
+                }
+
                 // Process combat
                 processCombat();
 
@@ -6966,6 +7612,7 @@
             ghostAircraft = null;
             executionRecording = [];
             groundTargets = [];
+            capitalShips = [];
 
             // Reset hot-seat multiplayer state
             hotSeatMode = false;
@@ -7677,6 +8324,7 @@
             gameState = 'ORDER';
             currentTurn = 1;
             groundTargets = [];
+            capitalShips = [];
 
             // Set weather
             applyWeather(currentMission.weather);
@@ -7700,6 +8348,15 @@
                     const x = 600 + Math.random() * 600;
                     const y = 300 + Math.random() * 400;
                     groundTargets.push(new GroundTarget(x, y, type));
+                }
+            }
+
+            // Create capital ships if needed
+            if (currentMission.capitalShips) {
+                for (let shipConfig of currentMission.capitalShips) {
+                    const ship = new CapitalShip(shipConfig.x, shipConfig.y, shipConfig.type);
+                    ship.heading = shipConfig.heading || 90;
+                    capitalShips.push(ship);
                 }
             }
 
@@ -7775,12 +8432,24 @@
             gameState = 'ORDER';
             currentTurn = 1;
             groundTargets = [];
+            capitalShips = [];
             executionRecording = [];
 
             // Create default aircraft at safe altitude above terrain (1200m)
             spitfire = new Aircraft('Spitfire', 'Spitfire', 400, 500, 1200, 90, true);
             me109 = new Aircraft('Me-109', 'Me-109', 1400, 500, 1200, 270, false);
             aircraft = [spitfire, me109];
+
+            // Add test capital ships for demonstration
+            const testBattleship = new CapitalShip(900, 300, 'battleship');
+            testBattleship.heading = 45;
+            capitalShips.push(testBattleship);
+
+            const testDestroyer = new CapitalShip(700, 600, 'destroyer');
+            testDestroyer.heading = 135;
+            capitalShips.push(testDestroyer);
+
+            console.log('Quick Battle started with test capital ships: 1 Battleship, 1 Destroyer');
 
             // Start game loop
             gameLoop();
@@ -7810,6 +8479,7 @@
             gameState = 'ORDER';
             currentTurn = 1;
             groundTargets = [];
+            capitalShips = [];
             executionRecording = [];
 
             // Create selected aircraft at safe altitude above terrain (1200m)
