@@ -4068,6 +4068,93 @@
             }
         }
 
+        // Ship-launched SAM missile class
+        class ShipSAM extends Missile {
+            constructor(x, y, altitude, target, shipSAMType) {
+                super(x, y, altitude, 0, target, 'sam');
+
+                this.shipSAMType = shipSAMType;
+                this.isShipLaunched = true;
+
+                // Initial vertical launch
+                this.launchPhase = true;
+                this.launchTime = 0;
+                this.launchDuration = 0.8; // Quick initial boost
+
+                // Calculate initial heading toward target
+                if (target) {
+                    const dx = target.x - x;
+                    const dy = target.y - y;
+                    this.heading = (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360;
+                    this.pitch = 60; // Launch at steep angle
+                }
+            }
+
+            update(dt) {
+                if (!this.isActive || this.hasExploded) return;
+
+                this.timeAlive += dt;
+                this.launchTime += dt;
+
+                // Launch phase - initial climb
+                if (this.launchPhase && this.launchTime < this.launchDuration) {
+                    this.pitch = 60 - (this.launchTime / this.launchDuration) * 25;
+                } else {
+                    this.launchPhase = false;
+                }
+
+                // Call parent update
+                super.update(dt);
+            }
+
+            render() {
+                if (this.hasExploded) {
+                    super.render();
+                    return;
+                }
+
+                ctx.save();
+
+                // Smoke trail
+                if (this.motorFuelRemaining > 0) {
+                    ctx.fillStyle = 'rgba(200, 200, 200, 0.5)';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Rocket motor flame
+                    ctx.fillStyle = 'rgba(255, 180, 0, 0.9)';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Missile body
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.heading * Math.PI / 180);
+
+                // Body
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(-2, -8, 4, 16);
+
+                // Nose cone
+                ctx.fillStyle = '#ff3333';
+                ctx.beginPath();
+                ctx.moveTo(0, -8);
+                ctx.lineTo(-2, -5);
+                ctx.lineTo(2, -5);
+                ctx.closePath();
+                ctx.fill();
+
+                // Fins
+                ctx.fillStyle = '#cccccc';
+                ctx.fillRect(-3, 5, 6, 2);
+                ctx.fillRect(-1, 3, 2, 5);
+
+                ctx.restore();
+            }
+        }
+
 
         // Bomb and Rocket projectile classes (Enhancement #8)
         class Bomb {
