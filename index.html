@@ -9745,6 +9745,8 @@
                 return;
             }
             
+            console.log('Starting WW1 Battle with:', ww1AlliedAircraft.length, 'Allied and', ww1CentralAircraft.length, 'Central aircraft');
+            
             document.getElementById('ww1BattleSelector').style.display = 'none';
             document.getElementById('gameContainer').style.display = 'block';
             
@@ -9756,34 +9758,62 @@
             currentTurn = 1;
             groundTargets = [];
             executionRecording = [];
+            aerialUnits = []; // Reset aerial units
+            bombs = [];
+            rockets = [];
+            selectedAircraft = null;
+            ghostAircraft = null;
             
-            // Create WW1 terrain
-            terrain = new WW1Terrain();
+            // Reset camera
+            zoomLevel = 1;
+            panX = 0;
+            panY = 0;
+            
+            try {
+                // Create WW1 terrain
+                terrain = new WW1Terrain();
+                console.log('WW1 Terrain created:', terrain.hills.length, 'hills,', terrain.clouds.length, 'clouds');
+            } catch (e) {
+                console.error('Error creating WW1 terrain:', e);
+                alert('Error creating terrain. Check console for details.');
+                return;
+            }
             
             // Create aircraft
             aircraft = [];
             let aircraftIndex = 0;
             
-            // Add Allied aircraft
-            ww1AlliedAircraft.forEach((ac, index) => {
-                const x = 300 + index * 200;
-                const y = 400 + (index % 2) * 200;
-                const newAircraft = new Aircraft(ac.name, ac.type, x, y, 800, 90, ac.isPlayer);
-                aircraft.push(newAircraft);
-                if (ac.isPlayer) {
-                    selectedAircraft = newAircraft;
-                }
-            });
-            
-            // Add Central Powers aircraft
-            ww1CentralAircraft.forEach((ac, index) => {
-                const x = 1500 + index * 200;
-                const y = 400 + (index % 2) * 200;
-                const newAircraft = new Aircraft(ac.name, ac.type, x, y, 800, 270, false);
-                aircraft.push(newAircraft);
-            });
+            try {
+                // Add Allied aircraft
+                ww1AlliedAircraft.forEach((ac, index) => {
+                    const x = 300 + index * 200;
+                    const y = 400 + (index % 2) * 200;
+                    console.log('Creating Allied aircraft:', ac.type, 'at', x, y);
+                    const newAircraft = new Aircraft(ac.name, ac.type, x, y, 800, 90, ac.isPlayer);
+                    aircraft.push(newAircraft);
+                    if (ac.isPlayer) {
+                        selectedAircraft = newAircraft;
+                    }
+                });
+                
+                // Add Central Powers aircraft
+                ww1CentralAircraft.forEach((ac, index) => {
+                    const x = 1500 + index * 200;
+                    const y = 400 + (index % 2) * 200;
+                    console.log('Creating Central aircraft:', ac.type, 'at', x, y);
+                    const newAircraft = new Aircraft(ac.name, ac.type, x, y, 800, 270, false);
+                    aircraft.push(newAircraft);
+                });
+                
+                console.log('Total aircraft created:', aircraft.length);
+            } catch (e) {
+                console.error('Error creating aircraft:', e);
+                alert('Error creating aircraft. Check console for details.');
+                return;
+            }
             
             // Start game loop
+            console.log('Starting game loop...');
             gameLoop();
         }
 
