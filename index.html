@@ -409,6 +409,10 @@
             <div>⚔️ WW1 BATTLE</div>
             <div class="mode-description">Allied vs Central Powers - Biplane dogfights</div>
         </button>
+        <button class="game-mode-btn" onclick="showScenarioSelector()">
+            <div>📋 SCENARIOS</div>
+            <div class="mode-description">Historical battles and preset scenarios</div>
+        </button>
         <div class="splash-version">v2.0.0</div>
     </div>
 
@@ -706,6 +710,22 @@
                 <div style="text-align: center; margin-top: 30px;">
                     <button class="btn btn-primary" onclick="startWW1Battle()" style="font-size: 18px; padding: 15px 40px;">START WW1 BATTLE</button>
                     <button class="btn" onclick="hideWW1BattleSelector()" style="font-size: 18px; padding: 15px 40px; margin-left: 20px;">BACK</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scenario Selector Panel -->
+        <div id="scenarioSelector" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); display: none; z-index: 1000; overflow-y: auto;">
+            <div style="max-width: 1200px; margin: 0 auto; padding: 40px; color: #fff;">
+                <div class="panel-title" style="font-size: 36px; margin-bottom: 30px;">SCENARIO SELECTOR</div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                    <!-- Scenarios will be populated here -->
+                    <div id="scenarioList"></div>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <button class="btn" onclick="hideScenarioSelector()" style="font-size: 18px; padding: 15px 40px;">BACK</button>
                 </div>
             </div>
         </div>
@@ -9605,6 +9625,260 @@
         function hideWW1BattleSelector() {
             document.getElementById('ww1BattleSelector').style.display = 'none';
             document.getElementById('splashScreen').style.display = 'block';
+        }
+
+        // Scenario database
+        const scenariosDatabase = [
+            // WW2 Scenarios
+            {
+                id: 'battle_of_britain',
+                name: 'Battle of Britain',
+                era: 'WW2',
+                description: 'Spitfire vs Me-109 over the English Channel. Defend Britain!',
+                aircraft: [
+                    { type: 'Spitfire', side: 'allied', isPlayer: true, x: 300, y: 500, altitude: 3000, heading: 90 },
+                    { type: 'Spitfire', side: 'allied', isPlayer: false, x: 400, y: 500, altitude: 3000, heading: 90 },
+                    { type: 'bf109', side: 'axis', isPlayer: false, x: 1500, y: 500, altitude: 3000, heading: 270 },
+                    { type: 'bf109', side: 'axis', isPlayer: false, x: 1600, y: 500, altitude: 3000, heading: 270 }
+                ],
+                terrain: 'WW2'
+            },
+            {
+                id: 'pacific_theater',
+                name: 'Pacific Theater',
+                era: 'WW2',
+                description: 'P-51 Mustang vs Zero over the Pacific. Classic Pacific dogfight.',
+                aircraft: [
+                    { type: 'P-51', side: 'allied', isPlayer: true, x: 300, y: 500, altitude: 2500, heading: 90 },
+                    { type: 'Zero', side: 'axis', isPlayer: false, x: 1500, y: 500, altitude: 2500, heading: 270 },
+                    { type: 'Zero', side: 'axis', isPlayer: false, x: 1600, y: 600, altitude: 2500, heading: 270 }
+                ],
+                terrain: 'WW2'
+            },
+            {
+                id: 'eastern_front',
+                name: 'Eastern Front',
+                era: 'WW2',
+                description: 'Yak-9 vs Fw-190. The brutal Eastern Front air war.',
+                aircraft: [
+                    { type: 'Yak9', side: 'allied', isPlayer: true, x: 300, y: 500, altitude: 2000, heading: 90 },
+                    { type: 'Yak9', side: 'allied', isPlayer: false, x: 400, y: 500, altitude: 2000, heading: 90 },
+                    { type: 'Fw-190', side: 'axis', isPlayer: false, x: 1500, y: 500, altitude: 2000, heading: 270 },
+                    { type: 'Fw-190', side: 'axis', isPlayer: false, x: 1600, y: 500, altitude: 2000, heading: 270 }
+                ],
+                terrain: 'WW2'
+            },
+            {
+                id: 'jet_age',
+                name: 'Jet Age',
+                era: 'WW2',
+                description: 'Me-262 vs P-51. Experience the dawn of the jet age.',
+                aircraft: [
+                    { type: 'P-51', side: 'allied', isPlayer: true, x: 300, y: 500, altitude: 4000, heading: 90 },
+                    { type: 'P-51', side: 'allied', isPlayer: false, x: 400, y: 500, altitude: 4000, heading: 90 },
+                    { type: 'Me-262', side: 'axis', isPlayer: false, x: 1500, y: 500, altitude: 4000, heading: 270 }
+                ],
+                terrain: 'WW2'
+            },
+            {
+                id: 'bomber_escort',
+                name: 'Bomber Escort',
+                era: 'WW2',
+                description: 'Escort B-25 bombers against intercepting Me-109s.',
+                aircraft: [
+                    { type: 'P-51', side: 'allied', isPlayer: true, x: 300, y: 400, altitude: 3500, heading: 90 },
+                    { type: 'P-51', side: 'allied', isPlayer: false, x: 400, y: 400, altitude: 3500, heading: 90 },
+                    { type: 'bf109', side: 'axis', isPlayer: false, x: 1500, y: 500, altitude: 3500, heading: 270 },
+                    { type: 'bf109', side: 'axis', isPlayer: false, x: 1600, y: 500, altitude: 3500, heading: 270 }
+                ],
+                terrain: 'WW2'
+            },
+            // WW1 Scenarios
+            {
+                id: 'fokker_scourge',
+                name: 'Fokker Scourge',
+                era: 'WW1',
+                description: 'Sopwith Camel vs Fokker Dr.I. The legendary triplane duel.',
+                aircraft: [
+                    { type: 'Camel', side: 'allied', isPlayer: true, x: 300, y: 500, altitude: 2000, heading: 90 },
+                    { type: 'Camel', side: 'allied', isPlayer: false, x: 400, y: 500, altitude: 2000, heading: 90 },
+                    { type: 'DrII', side: 'central', isPlayer: false, x: 1500, y: 500, altitude: 2000, heading: 270 },
+                    { type: 'DrII', side: 'central', isPlayer: false, x: 1600, y: 500, altitude: 2000, heading: 270 }
+                ],
+                terrain: 'WW1'
+            },
+            {
+                id: 'red_baron',
+                name: 'Red Baron',
+                era: 'WW1',
+                description: 'Face the legendary Red Baron in his Fokker Dr.I.',
+                aircraft: [
+                    { type: 'SE5', side: 'allied', isPlayer: true, x: 300, y: 500, altitude: 2500, heading: 90 },
+                    { type: 'SE5', side: 'allied', isPlayer: false, x: 400, y: 500, altitude: 2500, heading: 90 },
+                    { type: 'DrII', side: 'central', isPlayer: false, x: 1500, y: 500, altitude: 2500, heading: 270 }
+                ],
+                terrain: 'WW1'
+            },
+            {
+                id: 'balloon_busting',
+                name: 'Balloon Busting',
+                era: 'WW1',
+                description: 'Destroy enemy observation balloons before they spot your troops.',
+                aircraft: [
+                    { type: 'Camel', side: 'allied', isPlayer: true, x: 300, y: 500, altitude: 1500, heading: 90 },
+                    { type: 'Camel', side: 'allied', isPlayer: false, x: 400, y: 500, altitude: 1500, heading: 90 },
+                    { type: 'DVII', side: 'central', isPlayer: false, x: 1500, y: 500, altitude: 1500, heading: 270 }
+                ],
+                terrain: 'WW1',
+                aerialUnits: [
+                    { type: 'balloon', side: 'central', x: 1200, y: 400, altitude: 500 },
+                    { type: 'balloon', side: 'central', x: 1300, y: 600, altitude: 500 }
+                ]
+            },
+            {
+                id: 'ace_duel',
+                name: 'Ace Duel',
+                era: 'WW1',
+                description: 'One-on-one duel between two aces. No wingmen, just skill.',
+                aircraft: [
+                    { type: 'SpadXIII', side: 'allied', isPlayer: true, x: 500, y: 500, altitude: 2000, heading: 90 },
+                    { type: 'DVII', side: 'central', isPlayer: false, x: 1300, y: 500, altitude: 2000, heading: 270 }
+                ],
+                terrain: 'WW1'
+            },
+            {
+                id: 'formation_fight',
+                name: 'Formation Fight',
+                era: 'WW1',
+                description: 'Large formation battle with multiple aircraft on each side.',
+                aircraft: [
+                    { type: 'SE5', side: 'allied', isPlayer: true, x: 200, y: 400, altitude: 2000, heading: 90 },
+                    { type: 'SE5', side: 'allied', isPlayer: false, x: 300, y: 400, altitude: 2000, heading: 90 },
+                    { type: 'Camel', side: 'allied', isPlayer: false, x: 400, y: 500, altitude: 2000, heading: 90 },
+                    { type: 'Camel', side: 'allied', isPlayer: false, x: 500, y: 600, altitude: 2000, heading: 90 },
+                    { type: 'DVII', side: 'central', isPlayer: false, x: 1400, y: 400, altitude: 2000, heading: 270 },
+                    { type: 'DVII', side: 'central', isPlayer: false, x: 1500, y: 400, altitude: 2000, heading: 270 },
+                    { type: 'DrII', side: 'central', isPlayer: false, x: 1600, y: 500, altitude: 2000, heading: 270 },
+                    { type: 'DrII', side: 'central', isPlayer: false, x: 1700, y: 600, altitude: 2000, heading: 270 }
+                ],
+                terrain: 'WW1'
+            }
+        ];
+
+        function showScenarioSelector() {
+            document.getElementById('splashScreen').style.display = 'none';
+            document.getElementById('scenarioSelector').style.display = 'block';
+            populateScenarioList();
+        }
+
+        function hideScenarioSelector() {
+            document.getElementById('scenarioSelector').style.display = 'none';
+            document.getElementById('splashScreen').style.display = 'block';
+        }
+
+        function populateScenarioList() {
+            const scenarioList = document.getElementById('scenarioList');
+            scenarioList.innerHTML = '';
+            
+            scenariosDatabase.forEach((scenario, index) => {
+                const div = document.createElement('div');
+                div.style.cssText = 'background: rgba(30, 30, 50, 0.8); padding: 20px; border-radius: 10px; border: 2px solid #555; cursor: pointer; transition: all 0.3s;';
+                div.onmouseover = function() { this.style.borderColor = '#e94560'; this.style.transform = 'scale(1.02)'; };
+                div.onmouseout = function() { this.style.borderColor = '#555'; this.style.transform = 'scale(1)'; };
+                
+                const eraBadge = scenario.era === 'WW1' ? '⚔️ WW1' : '🛩️ WW2';
+                const eraColor = scenario.era === 'WW1' ? '#ffaa00' : '#0088ff';
+                
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <h3 style="margin: 0; color: #fff; font-size: 20px;">${scenario.name}</h3>
+                        <span style="background: ${eraColor}; padding: 4px 10px; border-radius: 5px; font-size: 12px;">${eraBadge}</span>
+                    </div>
+                    <p style="color: #aaa; margin: 10px 0; font-size: 14px; line-height: 1.4;">${scenario.description}</p>
+                    <div style="color: #888; font-size: 12px; margin-top: 10px;">
+                        <div>Aircraft: ${scenario.aircraft.length}</div>
+                        ${scenario.aerialUnits ? `<div>Aerial Units: ${scenario.aerialUnits.length}</div>` : ''}
+                    </div>
+                    <button class="btn btn-primary" onclick="startScenario('${scenario.id}')" style="width: 100%; margin-top: 15px; padding: 10px;">START SCENARIO</button>
+                `;
+                scenarioList.appendChild(div);
+            });
+        }
+
+        function startScenario(scenarioId) {
+            const scenario = scenariosDatabase.find(s => s.id === scenarioId);
+            if (!scenario) {
+                alert('Scenario not found!');
+                return;
+            }
+            
+            console.log('Starting scenario:', scenario.name);
+            
+            document.getElementById('scenarioSelector').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
+            
+            // Set game era
+            gameEra = scenario.era;
+            
+            // Reset game state
+            gameState = 'ORDER';
+            currentTurn = 1;
+            groundTargets = [];
+            executionRecording = [];
+            aerialUnits = [];
+            bombs = [];
+            rockets = [];
+            selectedAircraft = null;
+            ghostAircraft = null;
+            
+            // Reset camera
+            zoomLevel = 1;
+            panX = 0;
+            panY = 0;
+            
+            try {
+                // Create terrain based on scenario
+                if (scenario.terrain === 'WW1') {
+                    terrain = new WW1Terrain();
+                } else {
+                    terrain = new Terrain();
+                }
+                console.log('Terrain created for scenario');
+            } catch (e) {
+                console.error('Error creating terrain:', e);
+                alert('Error creating terrain. Check console for details.');
+                return;
+            }
+            
+            // Create aerial units if specified
+            if (scenario.aerialUnits) {
+                scenario.aerialUnits.forEach(unit => {
+                    const aerialUnit = new AerialUnit(unit.x, unit.y, unit.altitude, unit.type, unit.side);
+                    aerialUnits.push(aerialUnit);
+                });
+            }
+            
+            // Create aircraft
+            aircraft = [];
+            try {
+                scenario.aircraft.forEach((ac, index) => {
+                    console.log('Creating aircraft:', ac.type, 'at', ac.x, ac.y);
+                    const newAircraft = new Aircraft(ac.name || aircraftDatabase[ac.type]?.name || ac.type, ac.type, ac.x, ac.y, ac.altitude, ac.heading, ac.isPlayer);
+                    aircraft.push(newAircraft);
+                    if (ac.isPlayer) {
+                        selectedAircraft = newAircraft;
+                    }
+                });
+                console.log('Total aircraft created:', aircraft.length);
+            } catch (e) {
+                console.error('Error creating aircraft:', e);
+                alert('Error creating aircraft. Check console for details.');
+                return;
+            }
+            
+            // Start game loop
+            console.log('Starting game loop for scenario...');
+            gameLoop();
         }
 
         function populateWW1AircraftDropdowns() {
