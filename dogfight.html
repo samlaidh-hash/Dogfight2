@@ -2809,6 +2809,7 @@
         }
 
         let groundTargets = [];
+        let aerialUnits = []; // Blimps, balloons, airships
         let bombs = []; // Active bombs
         let rockets = []; // Active rockets (both ground and air-to-air)
 
@@ -3540,6 +3541,343 @@
                         );
                         ctx.restore();
                     }
+                }
+            }
+        }
+
+        // Aerial Unit class - for blimps, balloons, and airships
+        class AerialUnit {
+            constructor(x, y, altitude, type, side = 'neutral') {
+                this.x = x;
+                this.y = y;
+                this.altitude = altitude;
+                this.type = type; // 'balloon', 'blimp', 'airship'
+                this.side = side; // 'allied', 'central', 'neutral'
+                this.isDestroyed = false;
+                this.hasExploded = false;
+                this.explosionTime = 0;
+                
+                // Type-specific properties
+                if (type === 'balloon') {
+                    // Spotting balloon - static, tethered, fragile
+                    this.health = 50;
+                    this.maxHealth = 50;
+                    this.isStatic = true;
+                    this.tetherLength = 200; // meters - altitude range
+                    this.tetherX = x;
+                    this.tetherY = y;
+                    this.tetherZ = 0; // Ground level
+                    this.driftSpeed = 0; // No movement
+                    this.size = 12; // meters radius
+                    this.canCarryBombs = false;
+                    this.canCarryWeapons = false;
+                } else if (type === 'blimp') {
+                    // Blimp - moveable, slow drift, moderate health
+                    this.health = 150;
+                    this.maxHealth = 150;
+                    this.isStatic = false;
+                    this.driftSpeed = 2; // m/s - very slow drift
+                    this.driftDirection = Math.random() * Math.PI * 2; // Random drift direction
+                    this.size = 25; // meters radius
+                    this.canCarryBombs = false;
+                    this.canCarryWeapons = true; // Defensive weapons
+                    this.weaponCooldown = 0;
+                    this.weaponRange = 400;
+                } else if (type === 'airship') {
+                    // Airship - moveable, controlled, high health
+                    this.health = 300 + Math.random() * 200; // 300-500 health
+                    this.maxHealth = this.health;
+                    this.isStatic = false;
+                    this.speed = 8; // m/s - slow but controlled
+                    this.heading = Math.random() * 360; // degrees
+                    this.targetX = x;
+                    this.targetY = y;
+                    this.targetAltitude = altitude;
+                    this.size = 40; // meters radius - large
+                    this.canCarryBombs = true;
+                    this.bombs = 4; // Can carry multiple bombs
+                    this.canCarryWeapons = true; // Defensive weapons
+                    this.weaponCooldown = 0;
+                    this.weaponRange = 500;
+                    this.isAIControlled = true;
+                }
+                
+                // Visual effects
+                this.smokeParticles = [];
+                this.hitEffects = [];
+            }
+
+            update(dt) {
+                if (this.isDestroyed) return;
+
+                // Update movement for non-static units
+                if (!this.isStatic) {
+                    if (this.type === 'blimp') {
+                        // Slow drift movement
+                        this.x += Math.cos(this.driftDirection) * this.driftSpeed * dt;
+                        this.y += Math.sin(this.driftDirection) * this.driftSpeed * dt;
+                        
+                        // Occasional direction change (wind effects)
+                        if (Math.random() < 0.01) { // 1% chance per frame
+                            this.driftDirection += (Math.random() - 0.5) * 0.5; // Slight direction change
+                        }
+                    } else if (this.type === 'airship') {
+                        // Controlled movement towards target
+                        const dx = this.targetX - this.x;
+                        const dy = this.targetY - this.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance > 50) { // Move towards target
+                            const moveDistance = this.speed * dt;
+                            this.x += (dx / distance) * moveDistance;
+                            this.y += (dy / distance) * moveDistance;
+                            
+                            // Update heading
+                            this.heading = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
+                        }
+                        
+                        // Altitude adjustment
+                        const altDiff = this.targetAltitude - this.altitude;
+                        if (Math.abs(altDiff) > 10) {
+                            const climbRate = 2; // m/s
+                            this.altitude += Math.sign(altDiff) * Math.min(Math.abs(altDiff), climbRate * dt);
+                        }
+                    }
+                }
+
+                // Update weapon cooldowns
+                if (this.weaponCooldown > 0) {
+                    this.weaponCooldown -= dt;
+                }
+
+                // Update visual effects
+                this.updateVisualEffects(dt);
+            }
+
+            takeDamage(damage, isIncendiary = false) {
+                if (this.isDestroyed) return;
+
+                // Balloons are especially vulnerable to incendiary ammo
+                if (this.type === 'balloon' && isIncendiary) {
+                    damage *= 3; // Triple damage from incendiary
+                }
+
+                this.health -= damage;
+
+                // Add hit effect
+                this.hitEffects.push({
+                    time: Date.now(),
+                    x: this.x + (Math.random() - 0.5) * this.size,
+                    y: this.y + (Math.random() - 0.5) * this.size
+                });
+
+                if (this.health <= 0) {
+                    this.destroy();
+                }
+            }
+
+            destroy() {
+                if (this.isDestroyed) return;
+                
+                this.isDestroyed = true;
+                this.hasExploded = true;
+                this.explosionTime = Date.now();
+                
+                // Balloons explode dramatically (hydrogen)
+                if (this.type === 'balloon') {
+                    // Create large explosion effect
+                    console.log(`Balloon destroyed with dramatic hydrogen explosion!`);
+                }
+            }
+
+            updateVisualEffects(dt) {
+                // Update smoke particles
+                this.smokeParticles = this.smokeParticles.filter(p => {
+                    p.age += dt;
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
+                    p.alpha -= dt * 0.5;
+                    return p.age < 2 && p.alpha > 0;
+                });
+
+                // Clean up old hit effects
+                const now = Date.now();
+                this.hitEffects = this.hitEffects.filter(effect => now - effect.time < 500);
+            }
+
+            render() {
+                if (this.hasExploded) {
+                    // Render explosion
+                    const elapsed = Date.now() - this.explosionTime;
+                    if (elapsed < 2000) { // 2 second explosion
+                        const progress = elapsed / 2000;
+                        const alpha = 1 - progress;
+                        
+                        if (this.type === 'balloon') {
+                            // Dramatic hydrogen explosion - large fireball
+                            const size = this.size * 2 + progress * this.size * 8;
+                            
+                            // Outer fireball
+                            ctx.fillStyle = `rgba(255, 100, 0, ${alpha * 0.8})`;
+                            ctx.beginPath();
+                            ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+                            ctx.fill();
+                            
+                            // Inner core
+                            ctx.fillStyle = `rgba(255, 255, 100, ${alpha})`;
+                            ctx.beginPath();
+                            ctx.arc(this.x, this.y, size * 0.5, 0, Math.PI * 2);
+                            ctx.fill();
+                        } else {
+                            // Standard explosion for blimps/airships
+                            const size = this.size + progress * this.size * 3;
+                            
+                            ctx.fillStyle = `rgba(255, 150, 0, ${alpha * 0.7})`;
+                            ctx.beginPath();
+                            ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                    return;
+                }
+
+                if (this.isDestroyed) return;
+
+                ctx.save();
+
+                // Render tether line for balloons
+                if (this.type === 'balloon') {
+                    ctx.strokeStyle = '#666666';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([5, 5]); // Dashed line for tether
+                    ctx.beginPath();
+                    ctx.moveTo(this.tetherX, this.tetherY);
+                    ctx.lineTo(this.x, this.y);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+
+                // Render unit body
+                if (this.type === 'balloon') {
+                    // Balloon - simple sphere
+                    const healthPercent = this.health / this.maxHealth;
+                    ctx.fillStyle = healthPercent > 0.5 ? '#cccccc' : '#aa8888'; // Gray, darker when damaged
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#888888';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                } else if (this.type === 'blimp') {
+                    // Blimp - elongated ellipse
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.rotate(this.driftDirection);
+                    const healthPercent = this.health / this.maxHealth;
+                    ctx.fillStyle = healthPercent > 0.5 ? '#dddddd' : '#bb9999';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, this.size * 1.5, this.size, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#999999';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.restore();
+                } else if (this.type === 'airship') {
+                    // Airship - large elongated shape with gondola
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.rotate((this.heading - 90) * Math.PI / 180);
+                    const healthPercent = this.health / this.maxHealth;
+                    ctx.fillStyle = healthPercent > 0.5 ? '#eeeeee' : '#ccaaaa';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, this.size * 2, this.size, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#aaaaaa';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                    
+                    // Gondola (control car)
+                    ctx.fillStyle = '#444444';
+                    ctx.fillRect(-this.size * 0.3, this.size * 0.8, this.size * 0.6, this.size * 0.3);
+                    ctx.restore();
+                }
+
+                // Render smoke if damaged
+                if (this.health < this.maxHealth * 0.5) {
+                    const smokeIntensity = 1 - (this.health / (this.maxHealth * 0.5));
+                    for (let i = 0; i < 3; i++) {
+                        const offset = (Date.now() * 0.001 + i * 2) % (Math.PI * 2);
+                        const smokeX = this.x + Math.cos(offset) * this.size * 0.5;
+                        const smokeY = this.y + Math.sin(offset) * this.size * 0.5;
+                        const smokeSize = 3 + smokeIntensity * 5;
+                        ctx.fillStyle = `rgba(60, 60, 60, ${0.4 * smokeIntensity})`;
+                        ctx.beginPath();
+                        ctx.arc(smokeX, smokeY, smokeSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+                // Render hit effects
+                const now = Date.now();
+                for (let effect of this.hitEffects) {
+                    const age = now - effect.time;
+                    if (age < 500) {
+                        const alpha = 1 - (age / 500);
+                        ctx.fillStyle = `rgba(255, 100, 0, ${alpha})`;
+                        ctx.beginPath();
+                        ctx.arc(effect.x, effect.y, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+                ctx.restore();
+            }
+
+            // AI control for airships
+            updateAI(aircraft, groundTargets) {
+                if (this.type !== 'airship' || !this.isAIControlled) return;
+                if (this.isDestroyed) return;
+
+                // Simple AI: move towards nearest enemy aircraft or ground target
+                let nearestTarget = null;
+                let nearestDistance = Infinity;
+
+                // Check aircraft
+                for (let ac of aircraft) {
+                    if (ac.isDestroyed) continue;
+                    if (ac.era === this.side) continue; // Same side
+                    
+                    const dx = ac.x - this.x;
+                    const dy = ac.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < nearestDistance) {
+                        nearestDistance = distance;
+                        nearestTarget = { x: ac.x, y: ac.y, altitude: ac.altitude, type: 'aircraft' };
+                    }
+                }
+
+                // Check ground targets (for bombing)
+                if (this.canCarryBombs && this.bombs > 0) {
+                    for (let target of groundTargets) {
+                        if (target.isDestroyed) continue;
+                        
+                        const dx = target.x - this.x;
+                        const dy = target.y - this.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < nearestDistance && distance < 2000) {
+                            nearestDistance = distance;
+                            nearestTarget = { x: target.x, y: target.y, altitude: 0, type: 'ground' };
+                        }
+                    }
+                }
+
+                // Update target position
+                if (nearestTarget) {
+                    this.targetX = nearestTarget.x;
+                    this.targetY = nearestTarget.y;
+                    this.targetAltitude = nearestTarget.altitude + 300; // Stay above target
                 }
             }
         }

@@ -405,6 +405,10 @@
             <div>🛩️ CUSTOM BATTLE</div>
             <div class="mode-description">Choose your aircraft and enemy</div>
         </button>
+        <button class="game-mode-btn" onclick="showWW1BattleSelector()">
+            <div>⚔️ WW1 BATTLE</div>
+            <div class="mode-description">Allied vs Central Powers - Biplane dogfights</div>
+        </button>
         <div class="splash-version">v2.0.0</div>
     </div>
 
@@ -661,6 +665,48 @@
             <div style="text-align: center; margin-top: 20px;">
                 <button class="btn btn-primary" onclick="startCustomBattle()">START BATTLE</button>
                 <button class="btn" onclick="hideSplashScreen(); document.getElementById('aircraftSelector').style.display='none';">BACK</button>
+            </div>
+        </div>
+
+        <!-- WW1 Battle Selector Panel -->
+        <div id="ww1BattleSelector" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); display: none; z-index: 1000; overflow-y: auto;">
+            <div style="max-width: 1200px; margin: 0 auto; padding: 40px; color: #fff;">
+                <div class="panel-title" style="font-size: 36px; margin-bottom: 30px;">WW1 BATTLE SETUP</div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
+                    <!-- Allied Powers -->
+                    <div style="background: rgba(0, 100, 200, 0.2); padding: 20px; border-radius: 10px; border: 2px solid #0088ff;">
+                        <h2 style="color: #0088ff; margin-bottom: 15px;">ALLIED POWERS</h2>
+                        <div id="alliedAircraftList" style="margin-bottom: 15px;">
+                            <!-- Aircraft entries will be added here -->
+                        </div>
+                        <div class="setting-row" style="margin-bottom: 10px;">
+                            <select id="alliedAircraftSelect" style="width: 100%; padding: 8px;">
+                                <option value="">Select Aircraft...</option>
+                            </select>
+                        </div>
+                        <button class="btn" onclick="addAlliedAircraft()" style="width: 100%;">ADD AIRCRAFT</button>
+                    </div>
+
+                    <!-- Central Powers -->
+                    <div style="background: rgba(200, 0, 0, 0.2); padding: 20px; border-radius: 10px; border: 2px solid #ff4444;">
+                        <h2 style="color: #ff4444; margin-bottom: 15px;">CENTRAL POWERS</h2>
+                        <div id="centralAircraftList" style="margin-bottom: 15px;">
+                            <!-- Aircraft entries will be added here -->
+                        </div>
+                        <div class="setting-row" style="margin-bottom: 10px;">
+                            <select id="centralAircraftSelect" style="width: 100%; padding: 8px;">
+                                <option value="">Select Aircraft...</option>
+                            </select>
+                        </div>
+                        <button class="btn" onclick="addCentralAircraft()" style="width: 100%;">ADD AIRCRAFT</button>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <button class="btn btn-primary" onclick="startWW1Battle()" style="font-size: 18px; padding: 15px 40px;">START WW1 BATTLE</button>
+                    <button class="btn" onclick="hideWW1BattleSelector()" style="font-size: 18px; padding: 15px 40px; margin-left: 20px;">BACK</button>
+                </div>
             </div>
         </div>
 
@@ -1163,8 +1209,708 @@
                 ],
                 fuelCapacity: 518,
                 fuelConsumption: 0.35, // Very fuel efficient
-                lowDurability: true, // Takes extra damage
+                durability: 1.4, // Fragile - takes extra damage
                 color: '#ff6666'
+            },
+            // ===== WW1 AIRCRAFT =====
+            'Camel': {
+                name: 'Sopwith Camel',
+                nation: 'British',
+                role: 'Fighter',
+                era: 'WW1',
+                isBiplane: true,
+                maxSpeed: 50, // m/s (~113 mph)
+                minSpeed: 15,
+                maxTurnRate: 85, // degrees per second
+                maxClimbRate: 5,
+                maxDiveRate: 20,
+                maxGForce: 4.5,
+                maxAcceleration: 12,
+                maxBraking: 15,
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.7mm Vickers',
+                        count: 2,
+                        ammo: 1000, // 500 rounds per gun
+                        burstSize: 4,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 500,
+                        sound: 'mg',
+                        incendiary: true // Can use incendiary for balloon busting
+                    }
+                ],
+                fuelCapacity: 130,
+                fuelConsumption: 0.4,
+                durability: 1.2,
+                hasRotaryEngine: true, // Enhanced turn in one direction, reduced in other
+                rotaryTurnBonus: 1.15, // 15% better turning in preferred direction
+                rotaryTurnPenalty: 0.85, // 15% worse in opposite direction
+                canCarryRockets: true, // For ground attack and balloon busting
+                rocketCapacity: 8,
+                color: '#0088ff'
+            },
+            'SE5': {
+                name: 'Royal Aircraft Factory S.E.5',
+                nation: 'British',
+                role: 'Fighter',
+                era: 'WW1',
+                isBiplane: true,
+                maxSpeed: 55, // m/s (~138 mph)
+                minSpeed: 18,
+                maxTurnRate: 70,
+                maxClimbRate: 6,
+                maxDiveRate: 25,
+                maxGForce: 4.5,
+                maxAcceleration: 13,
+                maxBraking: 16,
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.7mm Vickers',
+                        count: 1,
+                        ammo: 500,
+                        burstSize: 3,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 500,
+                        sound: 'mg',
+                        mount: 'front'
+                    },
+                    {
+                        type: 'mg',
+                        name: '7.7mm Lewis',
+                        count: 1,
+                        ammo: 500,
+                        burstSize: 3,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 500,
+                        sound: 'mg',
+                        mount: 'top_wing' // Flexible mount on top wing
+                    }
+                ],
+                fuelCapacity: 150,
+                fuelConsumption: 0.42,
+                durability: 1.15,
+                canCarryRockets: true,
+                rocketCapacity: 4,
+                color: '#0099ff'
+            },
+            'DH2': {
+                name: 'Airco DH.2',
+                nation: 'British',
+                role: 'Fighter',
+                era: 'WW1',
+                isBiplane: true,
+                maxSpeed: 45, // m/s (~93 mph)
+                minSpeed: 16,
+                maxTurnRate: 75,
+                maxClimbRate: 4.5,
+                maxDiveRate: 18,
+                maxGForce: 4,
+                maxAcceleration: 11,
+                maxBraking: 14,
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.7mm Lewis',
+                        count: 1,
+                        ammo: 600,
+                        burstSize: 3,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 500,
+                        sound: 'mg',
+                        mount: 'pusher' // Pusher configuration
+                    }
+                ],
+                fuelCapacity: 90,
+                fuelConsumption: 0.38,
+                durability: 1.2,
+                color: '#0077dd'
+            },
+            'Nieuport24': {
+                name: 'Nieuport 24',
+                nation: 'French',
+                role: 'Fighter',
+                era: 'WW1',
+                isBiplane: true,
+                maxSpeed: 52, // m/s (~110 mph)
+                minSpeed: 17,
+                maxTurnRate: 80,
+                maxClimbRate: 5.5,
+                maxDiveRate: 22,
+                maxGForce: 4.5,
+                maxAcceleration: 12,
+                maxBraking: 15,
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.7mm Vickers',
+                        count: 1,
+                        ammo: 600,
+                        burstSize: 3,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 500,
+                        sound: 'mg',
+                        incendiary: true
+                    }
+                ],
+                fuelCapacity: 120,
+                fuelConsumption: 0.4,
+                durability: 1.2,
+                canCarryRockets: true,
+                rocketCapacity: 4,
+                color: '#00aaff'
+            },
+            'SpadXIII': {
+                name: 'Spad S.XIII',
+                nation: 'French',
+                role: 'Fighter',
+                era: 'WW1',
+                isBiplane: true,
+                maxSpeed: 60, // m/s (~135 mph)
+                minSpeed: 18,
+                maxTurnRate: 70,
+                maxClimbRate: 6.5,
+                maxDiveRate: 28,
+                maxGForce: 5,
+                maxAcceleration: 14,
+                maxBraking: 17,
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.7mm Vickers',
+                        count: 2,
+                        ammo: 1000, // 500 rounds per gun
+                        burstSize: 4,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 500,
+                        sound: 'mg',
+                        incendiary: true
+                    }
+                ],
+                fuelCapacity: 200,
+                fuelConsumption: 0.45,
+                durability: 1.2,
+                canCarryRockets: true,
+                rocketCapacity: 6,
+                color: '#00bbff'
+            },
+            'O400': {
+                name: 'Handley Page O/400',
+                nation: 'British',
+                role: 'Bomber',
+                era: 'WW1',
+                isBiplane: true,
+                maxSpeed: 40, // m/s (~85 mph)
+                minSpeed: 20,
+                maxTurnRate: 25,
+                maxClimbRate: 3,
+                maxDiveRate: 15,
+                maxGForce: 3,
+                maxAcceleration: 8,
+                maxBraking: 10,
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.7mm Lewis',
+                        count: 5,
+                        ammo: 2500, // 500 rounds per gun (defensive)
+                        burstSize: 5,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 400,
+                        sound: 'mg',
+                        mount: 'turret' // Defensive positions
+                    }
+                ],
+                fuelCapacity: 900,
+                fuelConsumption: 0.7,
+                durability: 1.25,
+                canCarryBombs: true,
+                bombCapacity: 4, // Can carry multiple small bomblets
+                bombletMode: true, // Drops small bomblets instead of large bombs
+                color: '#0066aa'
+            },
+            'FK8': {
+                name: 'Armstrong Whitworth F.K.8',
+                nation: 'British',
+                role: 'Reconnaissance/Bomber',
+                era: 'WW1',
+                isBiplane: true,
+                maxSpeed: 42, // m/s (~95 mph)
+                minSpeed: 18,
+                maxTurnRate: 55,
+                maxClimbRate: 4,
+                maxDiveRate: 20,
+                maxGForce: 4,
+                maxAcceleration: 10,
+                maxBraking: 12,
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.7mm Vickers',
+                        count: 1,
+                        ammo: 600,
+                        burstSize: 3,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 500,
+                        sound: 'mg',
+                        mount: 'front'
+                    },
+                    {
+                        type: 'mg',
+                        name: '7.7mm Lewis',
+                        count: 1,
+                        ammo: 600,
+                        burstSize: 3,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 500,
+                        sound: 'mg',
+                        mount: 'rear'
+                    }
+                ],
+                fuelCapacity: 200,
+                fuelConsumption: 0.4,
+                durability: 1.25,
+                canCarryBombs: true,
+                bombCapacity: 2,
+                bombletMode: true,
+                canCarryRockets: true,
+                rocketCapacity: 4,
+                color: '#0088cc'
+            },
+            'Salmson2': {
+                name: 'Salmson 2',
+                nation: 'French',
+                role: 'Reconnaissance',
+                era: 'WW1',
+                isBiplane: true,
+                maxSpeed: 44, // m/s (~115 mph)
+                minSpeed: 18,
+                maxTurnRate: 60,
+                maxClimbRate: 4.5,
+                maxDiveRate: 20,
+                maxGForce: 4,
+                maxAcceleration: 11,
+                maxBraking: 13,
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.7mm Vickers',
+                        count: 1,
+                        ammo: 600,
+                        burstSize: 3,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 500,
+                        sound: 'mg',
+                        mount: 'front'
+                    },
+                    {
+                        type: 'mg',
+                        name: '7.7mm Lewis',
+                        count: 1,
+                        ammo: 600,
+                        burstSize: 3,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 500,
+                        sound: 'mg',
+                        mount: 'rear'
+                    }
+                ],
+                fuelCapacity: 150,
+                fuelConsumption: 0.4,
+                durability: 1.3,
+                color: '#0099cc'
+            },
+            'MoraneAI': {
+                name: 'Morane-Saulnier AI',
+                nation: 'French',
+                role: 'Fighter',
+                era: 'WW1',
+                isBiplane: false, // Monoplane
+                maxSpeed: 48, // m/s (~105 mph)
+                minSpeed: 17,
+                maxTurnRate: 75,
+                maxClimbRate: 5,
+                maxDiveRate: 20,
+                maxGForce: 4.5,
+                maxAcceleration: 12,
+                maxBraking: 15,
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.7mm Vickers',
+                        count: 1,
+                        ammo: 600,
+                        burstSize: 3,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 500,
+                        sound: 'mg',
+                        incendiary: true
+                    }
+                ],
+                fuelCapacity: 100,
+                fuelConsumption: 0.38,
+                durability: 1.2,
+                canCarryRockets: true,
+                rocketCapacity: 4,
+                color: '#00aadd'
+            },
+            'BristolF2': {
+                name: 'Bristol F.2 Fighter',
+                nation: 'British',
+                role: 'Fighter/Reconnaissance',
+                era: 'WW1',
+                isBiplane: true,
+                maxSpeed: 52, // m/s (~113 mph)
+                minSpeed: 18,
+                maxTurnRate: 65,
+                maxClimbRate: 5.5,
+                maxDiveRate: 24,
+                maxGForce: 4.5,
+                maxAcceleration: 12,
+                maxBraking: 15,
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.7mm Vickers',
+                        count: 1,
+                        ammo: 600,
+                        burstSize: 3,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 500,
+                        sound: 'mg',
+                        mount: 'front',
+                        incendiary: true
+                    },
+                    {
+                        type: 'mg',
+                        name: '7.7mm Lewis',
+                        count: 1,
+                        ammo: 600,
+                        burstSize: 3,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 500,
+                        sound: 'mg',
+                        mount: 'rear' // Observer's gun
+                    }
+                ],
+                fuelCapacity: 200,
+                fuelConsumption: 0.42,
+                durability: 1.15,
+                canCarryRockets: true,
+                rocketCapacity: 6,
+                color: '#0077bb'
+            },
+            'HanriotHD3': {
+                name: 'Hanriot HD.3',
+                nation: 'French',
+                role: 'Fighter',
+                era: 'WW1',
+                isBiplane: true,
+                maxSpeed: 50, // m/s (~110 mph)
+                minSpeed: 17,
+                maxTurnRate: 72,
+                maxClimbRate: 5.5,
+                maxDiveRate: 22,
+                maxGForce: 4.5,
+                maxAcceleration: 12,
+                maxBraking: 15,
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.7mm Vickers',
+                        count: 2,
+                        ammo: 1000, // 500 rounds per gun
+                        burstSize: 4,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 500,
+                        sound: 'mg',
+                        incendiary: true
+                    }
+                ],
+                fuelCapacity: 120,
+                fuelConsumption: 0.4,
+                durability: 1.2,
+                canCarryRockets: true,
+                rocketCapacity: 4,
+                color: '#00aacc'
+            },
+            'LetordLet5': {
+                name: 'Letord Let.5',
+                nation: 'French',
+                role: 'Bomber/Reconnaissance',
+                era: 'WW1',
+                isBiplane: true,
+                maxSpeed: 40, // m/s (~87 mph)
+                minSpeed: 20,
+                maxTurnRate: 28,
+                maxClimbRate: 3.5,
+                maxDiveRate: 16,
+                maxGForce: 3.5,
+                maxAcceleration: 9,
+                maxBraking: 11,
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.7mm Lewis',
+                        count: 3,
+                        ammo: 1500, // 500 rounds per gun (defensive)
+                        burstSize: 4,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 400,
+                        sound: 'mg',
+                        mount: 'turret'
+                    }
+                ],
+                fuelCapacity: 400,
+                fuelConsumption: 0.5,
+                durability: 1.3,
+                canCarryBombs: true,
+                bombCapacity: 3,
+                bombletMode: true,
+                color: '#006699'
+            },
+            'DrII': { // Note: drii.png is Fokker Dr.II (not Dr.I)
+                name: 'Fokker Dr.II',
+                nation: 'German',
+                role: 'Fighter',
+                era: 'WW1',
+                isBiplane: false, // Triplane
+                maxSpeed: 48, // m/s (~103 mph)
+                minSpeed: 16,
+                maxTurnRate: 88, // Best turn rate - triplane
+                maxClimbRate: 5.5,
+                maxDiveRate: 20,
+                maxGForce: 4.5,
+                maxAcceleration: 12,
+                maxBraking: 15,
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.92mm Spandau',
+                        count: 2,
+                        ammo: 1000, // 500 rounds per gun
+                        burstSize: 4,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 500,
+                        sound: 'mg',
+                        incendiary: true
+                    }
+                ],
+                fuelCapacity: 80,
+                fuelConsumption: 0.38,
+                durability: 1.2,
+                hasRotaryEngine: true,
+                rotaryTurnBonus: 1.2, // 20% better in preferred direction
+                rotaryTurnPenalty: 0.8, // 20% worse in opposite
+                canCarryRockets: true,
+                rocketCapacity: 4,
+                color: '#ff4444'
+            },
+            'DVII': {
+                name: 'Fokker D.VII',
+                nation: 'German',
+                role: 'Fighter',
+                era: 'WW1',
+                isBiplane: true,
+                maxSpeed: 57, // m/s (~124 mph)
+                minSpeed: 18,
+                maxTurnRate: 75,
+                maxClimbRate: 6.5,
+                maxDiveRate: 26,
+                maxGForce: 5,
+                maxAcceleration: 13,
+                maxBraking: 16,
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.92mm Spandau',
+                        count: 2,
+                        ammo: 1000, // 500 rounds per gun
+                        burstSize: 4,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 500,
+                        sound: 'mg',
+                        incendiary: true
+                    }
+                ],
+                fuelCapacity: 76,
+                fuelConsumption: 0.4,
+                durability: 1.15,
+                canCarryRockets: true,
+                rocketCapacity: 6,
+                color: '#ff3333'
+            },
+            'DV': {
+                name: 'Fokker D.V',
+                nation: 'German',
+                role: 'Fighter',
+                era: 'WW1',
+                isBiplane: true,
+                maxSpeed: 46, // m/s (~100 mph)
+                minSpeed: 17,
+                maxTurnRate: 70,
+                maxClimbRate: 5,
+                maxDiveRate: 20,
+                maxGForce: 4.5,
+                maxAcceleration: 12,
+                maxBraking: 15,
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.92mm Spandau',
+                        count: 2,
+                        ammo: 1000,
+                        burstSize: 4,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 500,
+                        sound: 'mg',
+                        incendiary: true
+                    }
+                ],
+                fuelCapacity: 80,
+                fuelConsumption: 0.38,
+                durability: 1.2,
+                canCarryRockets: true,
+                rocketCapacity: 4,
+                color: '#ff5555'
+            },
+            'EIV': {
+                name: 'Fokker E.IV',
+                nation: 'German',
+                role: 'Fighter',
+                era: 'WW1',
+                isBiplane: false, // Monoplane
+                maxSpeed: 44, // m/s (~95 mph)
+                minSpeed: 16,
+                maxTurnRate: 68,
+                maxClimbRate: 4.5,
+                maxDiveRate: 18,
+                maxGForce: 4,
+                maxAcceleration: 11,
+                maxBraking: 14,
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.92mm Spandau',
+                        count: 3, // Early war - 3 guns
+                        ammo: 1500, // 500 rounds per gun
+                        burstSize: 5,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 500,
+                        sound: 'mg',
+                        incendiary: true
+                    }
+                ],
+                fuelCapacity: 70,
+                fuelConsumption: 0.36,
+                durability: 1.2,
+                canCarryRockets: true,
+                rocketCapacity: 4,
+                color: '#ff6666'
+            },
+            'AEGGIV': {
+                name: 'AEG G.IV',
+                nation: 'German',
+                role: 'Bomber',
+                era: 'WW1',
+                isBiplane: true,
+                maxSpeed: 38, // m/s (~82 mph)
+                minSpeed: 20,
+                maxTurnRate: 22,
+                maxClimbRate: 2.5,
+                maxDiveRate: 14,
+                maxGForce: 3,
+                maxAcceleration: 7,
+                maxBraking: 9,
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.92mm Parabellum',
+                        count: 3,
+                        ammo: 1500, // 500 rounds per gun (defensive)
+                        burstSize: 4,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 400,
+                        sound: 'mg',
+                        mount: 'turret'
+                    }
+                ],
+                fuelCapacity: 600,
+                fuelConsumption: 0.6,
+                durability: 1.25,
+                canCarryBombs: true,
+                bombCapacity: 3,
+                bombletMode: true,
+                color: '#cc2222'
+            },
+            'DFWCV': {
+                name: 'DFW C.V',
+                nation: 'German',
+                role: 'Reconnaissance',
+                era: 'WW1',
+                isBiplane: true,
+                maxSpeed: 43, // m/s (~100 mph)
+                minSpeed: 18,
+                maxTurnRate: 58,
+                maxClimbRate: 4.5,
+                maxDiveRate: 20,
+                maxGForce: 4,
+                maxAcceleration: 11,
+                maxBraking: 13,
+                weapons: [
+                    {
+                        type: 'mg',
+                        name: '7.92mm Spandau',
+                        count: 1,
+                        ammo: 600,
+                        burstSize: 3,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 500,
+                        sound: 'mg',
+                        mount: 'front'
+                    },
+                    {
+                        type: 'mg',
+                        name: '7.92mm Parabellum',
+                        count: 1,
+                        ammo: 600,
+                        burstSize: 3,
+                        damage: [2, 4],
+                        rof: 1,
+                        range: 500,
+                        sound: 'mg',
+                        mount: 'rear'
+                    }
+                ],
+                fuelCapacity: 180,
+                fuelConsumption: 0.4,
+                durability: 1.25,
+                canCarryRockets: true,
+                rocketCapacity: 4,
+                color: '#dd3333'
             },
             'Bf-110': {
                 name: 'Messerschmitt Bf 110 C-4',
@@ -2615,6 +3361,7 @@
         }
 
         let groundTargets = [];
+        let aerialUnits = []; // Blimps, balloons, airships
         let bombs = []; // Active bombs
         let rockets = []; // Active rockets (both ground and air-to-air)
 
@@ -2627,27 +3374,69 @@
         // Load aircraft SVG images
         const aircraftImages = {
             spitfire: new Image(),
-            bf109: new Image()
+            bf109: new Image(),
+            // WW1 aircraft images
+            camel: new Image(),
+            se5: new Image(),
+            dh2: new Image(),
+            nieuport24: new Image(),
+            sxiii: new Image(),
+            o400: new Image(),
+            fk8: new Image(),
+            salmson2: new Image(),
+            a1: new Image(),
+            f2: new Image(),
+            hd3: new Image(),
+            let5: new Image(),
+            drii: new Image(),
+            dvii: new Image(),
+            dv: new Image(),
+            eiv: new Image(),
+            aeggiv: new Image(),
+            dfwcv: new Image()
         };
         let imagesLoaded = 0;
-        const totalImages = 2;
+        const totalImages = 2 + 18; // WW2 + WW1
 
-        aircraftImages.spitfire.onload = () => {
+        // Image load handler
+        const onImageLoad = () => {
             imagesLoaded++;
             if (imagesLoaded === totalImages) {
                 console.log('All aircraft images loaded');
             }
         };
-        aircraftImages.bf109.onload = () => {
-            imagesLoaded++;
-            if (imagesLoaded === totalImages) {
-                console.log('All aircraft images loaded');
-            }
-        };
+
+        // Set up load handlers for all images
+        Object.keys(aircraftImages).forEach(key => {
+            aircraftImages[key].onload = onImageLoad;
+            aircraftImages[key].onerror = () => {
+                console.warn(`Failed to load aircraft image: ${key}`);
+                onImageLoad(); // Count as loaded even if failed to prevent blocking
+            };
+        });
 
         // Load aircraft PNG images
         aircraftImages.spitfire.src = 'images/spitfire.png';
         aircraftImages.bf109.src = 'images/me109.png';
+        // Load WW1 aircraft images
+        aircraftImages.camel.src = 'images/camel.png';
+        aircraftImages.se5.src = 'images/se5.png';
+        aircraftImages.dh2.src = 'images/dh2.png';
+        aircraftImages.nieuport24.src = 'images/nieuport24.png';
+        aircraftImages.sxiii.src = 'images/sxiii.png';
+        aircraftImages.o400.src = 'images/o400.png';
+        aircraftImages.fk8.src = 'images/fk8.png';
+        aircraftImages.salmson2.src = 'images/salmson2.png';
+        aircraftImages.a1.src = 'images/a1.png';
+        aircraftImages.f2.src = 'images/f2.png';
+        aircraftImages.hd3.src = 'images/hd3.png';
+        aircraftImages.let5.src = 'images/let5.png';
+        aircraftImages.drii.src = 'images/drii.png';
+        aircraftImages.dvii.src = 'images/dvii.png';
+        aircraftImages.dv.src = 'images/dv.png';
+        aircraftImages.eiv.src = 'images/eiv.png';
+        aircraftImages.aeggiv.src = 'images/aeggiv.png';
+        aircraftImages.dfwcv.src = 'images/dfwcv.png';
 
         // Terrain generation
         class Terrain {
@@ -2930,6 +3719,719 @@
             }
         }
 
+        // WW1 Terrain class - specialized for WW1 era battles
+        class WW1Terrain {
+            constructor() {
+                this.hills = [];
+                this.clouds = [];
+                this.trenches = [];
+                this.villages = [];
+                this.generateHills();
+                this.generateClouds();
+                this.generateTrenches();
+                this.generateVillages();
+            }
+
+            // Generate rounded hills (smooth curves instead of jagged peaks)
+            generateHills() {
+                const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
+                const HILL_HEIGHT = 300; // Lower than mountains
+
+                // Create smooth, rounded hills
+                for (let i = 0; i < 15; i++) {
+                    const centerX = Math.random() * TERRAIN_WIDTH - CANVAS_WIDTH;
+                    const centerY = Math.random() * CANVAS_HEIGHT;
+                    const baseRadius = 80 + Math.random() * 120;
+                    const height = 150 + Math.random() * 150;
+
+                    // Create smooth circular/elliptical hill using bezier curves
+                    const numControlPoints = 8;
+                    const controlPoints = [];
+                    for (let v = 0; v < numControlPoints; v++) {
+                        const angle = (v / numControlPoints) * Math.PI * 2;
+                        const radiusVariation = 0.85 + Math.random() * 0.15; // 85-100% for smoothness
+                        const vx = centerX + Math.cos(angle) * baseRadius * radiusVariation;
+                        const vy = centerY + Math.sin(angle) * baseRadius * radiusVariation;
+                        controlPoints.push({ x: vx, y: vy });
+                    }
+
+                    this.hills.push({
+                        x: centerX,
+                        y: centerY,
+                        radius: baseRadius,
+                        controlPoints: controlPoints,
+                        height: height
+                    });
+                }
+            }
+
+            // Generate enhanced clouds (lower altitude, thicker)
+            generateClouds() {
+                for (let i = 0; i < 15; i++) {
+                    const centerX = Math.random() * CANVAS_WIDTH;
+                    const centerY = Math.random() * CANVAS_HEIGHT;
+                    const baseRadius = 80 + Math.random() * 120;
+
+                    // Create fluffy cloud shape with multiple lobes
+                    const numLobes = 5 + Math.floor(Math.random() * 6); // 5-10 lobes (more than WW2)
+                    const lobes = [];
+
+                    for (let l = 0; l < numLobes; l++) {
+                        const angle = (l / numLobes) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+                        const distance = baseRadius * (0.3 + Math.random() * 0.5);
+                        const lobeSize = baseRadius * (0.4 + Math.random() * 0.4);
+
+                        lobes.push({
+                            x: centerX + Math.cos(angle) * distance,
+                            y: centerY + Math.sin(angle) * distance,
+                            radius: lobeSize
+                        });
+                    }
+
+                    this.clouds.push({
+                        x: centerX,
+                        y: centerY,
+                        radius: baseRadius,
+                        lobes: lobes,
+                        altitude: 200 + Math.random() * 800, // Lower altitude: 200-1000m (vs 300-1800m)
+                        thickness: 150 + Math.random() * 250, // Thicker: 150-400m (vs 100-300m)
+                        opacity: 0.4 + Math.random() * 0.5 // More opaque: 0.4-0.9 (vs 0.3-0.7)
+                    });
+                }
+            }
+
+            // Generate trenches with zigzag patterns and dugouts
+            generateTrenches() {
+                const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
+                const TRENCH_LENGTH = 400 + Math.random() * 600;
+                const TRENCH_WIDTH = 3; // meters wide
+                const ZIGZAG_SEGMENT = 20; // meters per zigzag segment
+
+                // Create multiple trench lines
+                for (let line = 0; line < 3; line++) {
+                    const startX = Math.random() * TERRAIN_WIDTH - CANVAS_WIDTH;
+                    const startY = Math.random() * CANVAS_HEIGHT;
+                    const direction = Math.random() * Math.PI * 2; // Random direction
+
+                    const trenchLine = {
+                        segments: [],
+                        dugouts: [],
+                        health: 100 // Destructible
+                    };
+
+                    // Generate zigzag pattern
+                    let currentX = startX;
+                    let currentY = startY;
+                    let zigzagDirection = 1; // Alternates between -1 and 1
+
+                    const numSegments = Math.floor(TRENCH_LENGTH / ZIGZAG_SEGMENT);
+                    for (let s = 0; s < numSegments; s++) {
+                        const segmentLength = ZIGZAG_SEGMENT + (Math.random() - 0.5) * 5;
+                        const zigzagOffset = zigzagDirection * (5 + Math.random() * 5); // Zigzag width
+
+                        // Perpendicular direction for zigzag
+                        const perpX = -Math.sin(direction) * zigzagOffset;
+                        const perpY = Math.cos(direction) * zigzagOffset;
+
+                        const segmentEndX = currentX + Math.cos(direction) * segmentLength + perpX;
+                        const segmentEndY = currentY + Math.sin(direction) * segmentLength + perpY;
+
+                        trenchLine.segments.push({
+                            startX: currentX,
+                            startY: currentY,
+                            endX: segmentEndX,
+                            endY: segmentEndY,
+                            width: TRENCH_WIDTH
+                        });
+
+                        // Occasionally add a dugout (shelter)
+                        if (Math.random() < 0.15) { // 15% chance per segment
+                            trenchLine.dugouts.push({
+                                x: (currentX + segmentEndX) / 2,
+                                y: (currentY + segmentEndY) / 2,
+                                radius: 8 + Math.random() * 4,
+                                health: 50
+                            });
+                        }
+
+                        currentX = segmentEndX;
+                        currentY = segmentEndY;
+                        zigzagDirection *= -1; // Alternate zigzag direction
+                    }
+
+                    this.trenches.push(trenchLine);
+                }
+            }
+
+            // Generate villages with clusters of destructible buildings
+            generateVillages() {
+                const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
+
+                // Create 4-6 villages
+                for (let v = 0; v < 4 + Math.floor(Math.random() * 3); v++) {
+                    const centerX = Math.random() * TERRAIN_WIDTH - CANVAS_WIDTH;
+                    const centerY = Math.random() * CANVAS_HEIGHT;
+                    const villageRadius = 60 + Math.random() * 80;
+
+                    const village = {
+                        x: centerX,
+                        y: centerY,
+                        radius: villageRadius,
+                        buildings: []
+                    };
+
+                    // Create 5-12 buildings per village
+                    const numBuildings = 5 + Math.floor(Math.random() * 8);
+                    for (let b = 0; b < numBuildings; b++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const distance = Math.random() * villageRadius;
+                        const buildingX = centerX + Math.cos(angle) * distance;
+                        const buildingY = centerY + Math.sin(angle) * distance;
+                        const buildingSize = 4 + Math.random() * 6; // 4-10 meters
+
+                        village.buildings.push({
+                            x: buildingX,
+                            y: buildingY,
+                            width: buildingSize,
+                            height: buildingSize * (1.2 + Math.random() * 0.3), // Slightly taller
+                            health: 30 + Math.random() * 20, // Destructible
+                            destroyed: false
+                        });
+                    }
+
+                    this.villages.push(village);
+                }
+            }
+
+            getHeightAt(x, y) {
+                let maxHeight = 0;
+                // Check hills
+                for (let hill of this.hills) {
+                    const dx = x - hill.x;
+                    const dy = y - hill.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < hill.radius) {
+                        // Smooth falloff for rounded hills
+                        const normalizedDist = dist / hill.radius;
+                        const heightAtPoint = hill.height * (1 - normalizedDist * normalizedDist); // Quadratic falloff
+                        maxHeight = Math.max(maxHeight, heightAtPoint);
+                    }
+                }
+                return maxHeight;
+            }
+
+            // Check if line of sight is blocked by clouds
+            isLineOfSightClear(x1, y1, alt1, x2, y2, alt2) {
+                const samples = 10;
+                for (let i = 0; i <= samples; i++) {
+                    const t = i / samples;
+                    const x = x1 + (x2 - x1) * t;
+                    const y = y1 + (y2 - y1) * t;
+                    const alt = alt1 + (alt2 - alt1) * t;
+
+                    for (let cloud of this.clouds) {
+                        const dx = x - cloud.x;
+                        const dy = y - cloud.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+
+                        if (dist < cloud.radius) {
+                            const cloudBottom = cloud.altitude - cloud.thickness / 2;
+                            const cloudTop = cloud.altitude + cloud.thickness / 2;
+                            if (alt >= cloudBottom && alt <= cloudTop) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                return true;
+            }
+
+            // Check if position is in a trench
+            isInTrench(x, y) {
+                for (let trench of this.trenches) {
+                    if (trench.health <= 0) continue; // Destroyed trench
+                    for (let segment of trench.segments) {
+                        // Check distance to trench segment
+                        const dx = segment.endX - segment.startX;
+                        const dy = segment.endY - segment.startY;
+                        const length = Math.sqrt(dx * dx + dy * dy);
+                        const t = Math.max(0, Math.min(1, ((x - segment.startX) * dx + (y - segment.startY) * dy) / (length * length)));
+                        const projX = segment.startX + t * dx;
+                        const projY = segment.startY + t * dy;
+                        const dist = Math.sqrt((x - projX) * (x - projX) + (y - projY) * (y - projY));
+                        if (dist < segment.width * 2) { // Within trench width
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            render() {
+                // Render rounded hills with smooth curves
+                for (let hill of this.hills) {
+                    const intensity = hill.height / 300;
+
+                    ctx.save();
+                    ctx.beginPath();
+
+                    // Draw smooth rounded hill using bezier curves
+                    if (hill.controlPoints.length > 0) {
+                        ctx.moveTo(hill.controlPoints[0].x, hill.controlPoints[0].y);
+                        for (let i = 0; i < hill.controlPoints.length; i++) {
+                            const p1 = hill.controlPoints[i];
+                            const p2 = hill.controlPoints[(i + 1) % hill.controlPoints.length];
+                            const p3 = hill.controlPoints[(i + 2) % hill.controlPoints.length];
+                            // Use quadratic bezier for smooth curves
+                            const cpX = p2.x;
+                            const cpY = p2.y;
+                            ctx.quadraticCurveTo(cpX, cpY, (p2.x + p3.x) / 2, (p2.y + p3.y) / 2);
+                        }
+                        ctx.closePath();
+                    }
+
+                    // Smooth gradient for rounded appearance
+                    const gradient = ctx.createRadialGradient(
+                        hill.x, hill.y, 0,
+                        hill.x, hill.y, hill.radius
+                    );
+                    gradient.addColorStop(0, `rgba(80, 60, 40, ${intensity * 0.6})`);
+                    gradient.addColorStop(0.5, `rgba(100, 80, 60, ${intensity * 0.4})`);
+                    gradient.addColorStop(1, 'rgba(120, 100, 80, 0)');
+
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+
+                    // Subtle outline
+                    ctx.strokeStyle = `rgba(60, 50, 40, ${intensity * 0.3})`;
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // Render enhanced clouds (thicker, lower altitude)
+                for (let cloud of this.clouds) {
+                    for (let lobe of cloud.lobes) {
+                        const gradient = ctx.createRadialGradient(
+                            lobe.x, lobe.y, 0,
+                            lobe.x, lobe.y, lobe.radius
+                        );
+                        gradient.addColorStop(0, `rgba(255, 255, 255, ${cloud.opacity * 0.95})`);
+                        gradient.addColorStop(0.5, `rgba(240, 245, 250, ${cloud.opacity * 0.7})`);
+                        gradient.addColorStop(1, 'rgba(220, 230, 245, 0)');
+
+                        ctx.fillStyle = gradient;
+                        ctx.beginPath();
+                        ctx.arc(lobe.x, lobe.y, lobe.radius, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    const centerGradient = ctx.createRadialGradient(
+                        cloud.x, cloud.y, 0,
+                        cloud.x, cloud.y, cloud.radius * 0.6
+                    );
+                    centerGradient.addColorStop(0, `rgba(255, 255, 255, ${cloud.opacity})`);
+                    centerGradient.addColorStop(0.7, `rgba(245, 248, 252, ${cloud.opacity * 0.6})`);
+                    centerGradient.addColorStop(1, 'rgba(230, 235, 245, 0)');
+
+                    ctx.fillStyle = centerGradient;
+                    ctx.beginPath();
+                    ctx.arc(cloud.x, cloud.y, cloud.radius * 0.6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Render trenches
+                for (let trench of this.trenches) {
+                    if (trench.health <= 0) continue; // Skip destroyed trenches
+
+                    ctx.save();
+                    ctx.strokeStyle = '#4a3a2a';
+                    ctx.lineWidth = trench.segments[0]?.width || 3;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+
+                    for (let segment of trench.segments) {
+                        ctx.beginPath();
+                        ctx.moveTo(segment.startX, segment.startY);
+                        ctx.lineTo(segment.endX, segment.endY);
+                        ctx.stroke();
+                    }
+
+                    // Render dugouts
+                    for (let dugout of trench.dugouts) {
+                        if (dugout.health <= 0) continue;
+                        ctx.fillStyle = '#3a2a1a';
+                        ctx.beginPath();
+                        ctx.arc(dugout.x, dugout.y, dugout.radius, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.restore();
+                }
+
+                // Render villages
+                for (let village of this.villages) {
+                    for (let building of village.buildings) {
+                        if (building.destroyed) continue;
+
+                        ctx.save();
+                        ctx.fillStyle = building.health > 15 ? '#8b7355' : '#6b5a45'; // Darker when damaged
+                        ctx.fillRect(
+                            building.x - building.width / 2,
+                            building.y - building.height / 2,
+                            building.width,
+                            building.height
+                        );
+                        ctx.strokeStyle = '#5a4a3a';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(
+                            building.x - building.width / 2,
+                            building.y - building.height / 2,
+                            building.width,
+                            building.height
+                        );
+                        ctx.restore();
+                    }
+                }
+            }
+        }
+
+        // Aerial Unit class - for blimps, balloons, and airships
+        class AerialUnit {
+            constructor(x, y, altitude, type, side = 'neutral') {
+                this.x = x;
+                this.y = y;
+                this.altitude = altitude;
+                this.type = type; // 'balloon', 'blimp', 'airship'
+                this.side = side; // 'allied', 'central', 'neutral'
+                this.isDestroyed = false;
+                this.hasExploded = false;
+                this.explosionTime = 0;
+                
+                // Type-specific properties
+                if (type === 'balloon') {
+                    // Spotting balloon - static, tethered, fragile
+                    this.health = 50;
+                    this.maxHealth = 50;
+                    this.isStatic = true;
+                    this.tetherLength = 200; // meters - altitude range
+                    this.tetherX = x;
+                    this.tetherY = y;
+                    this.tetherZ = 0; // Ground level
+                    this.driftSpeed = 0; // No movement
+                    this.size = 12; // meters radius
+                    this.canCarryBombs = false;
+                    this.canCarryWeapons = false;
+                } else if (type === 'blimp') {
+                    // Blimp - moveable, slow drift, moderate health
+                    this.health = 150;
+                    this.maxHealth = 150;
+                    this.isStatic = false;
+                    this.driftSpeed = 2; // m/s - very slow drift
+                    this.driftDirection = Math.random() * Math.PI * 2; // Random drift direction
+                    this.size = 25; // meters radius
+                    this.canCarryBombs = false;
+                    this.canCarryWeapons = true; // Defensive weapons
+                    this.weaponCooldown = 0;
+                    this.weaponRange = 400;
+                } else if (type === 'airship') {
+                    // Airship - moveable, controlled, high health
+                    this.health = 300 + Math.random() * 200; // 300-500 health
+                    this.maxHealth = this.health;
+                    this.isStatic = false;
+                    this.speed = 8; // m/s - slow but controlled
+                    this.heading = Math.random() * 360; // degrees
+                    this.targetX = x;
+                    this.targetY = y;
+                    this.targetAltitude = altitude;
+                    this.size = 40; // meters radius - large
+                    this.canCarryBombs = true;
+                    this.bombs = 4; // Can carry multiple bombs
+                    this.canCarryWeapons = true; // Defensive weapons
+                    this.weaponCooldown = 0;
+                    this.weaponRange = 500;
+                    this.isAIControlled = true;
+                }
+                
+                // Visual effects
+                this.smokeParticles = [];
+                this.hitEffects = [];
+            }
+
+            update(dt) {
+                if (this.isDestroyed) return;
+
+                // Update movement for non-static units
+                if (!this.isStatic) {
+                    if (this.type === 'blimp') {
+                        // Slow drift movement
+                        this.x += Math.cos(this.driftDirection) * this.driftSpeed * dt;
+                        this.y += Math.sin(this.driftDirection) * this.driftSpeed * dt;
+                        
+                        // Occasional direction change (wind effects)
+                        if (Math.random() < 0.01) { // 1% chance per frame
+                            this.driftDirection += (Math.random() - 0.5) * 0.5; // Slight direction change
+                        }
+                    } else if (this.type === 'airship') {
+                        // Controlled movement towards target
+                        const dx = this.targetX - this.x;
+                        const dy = this.targetY - this.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance > 50) { // Move towards target
+                            const moveDistance = this.speed * dt;
+                            this.x += (dx / distance) * moveDistance;
+                            this.y += (dy / distance) * moveDistance;
+                            
+                            // Update heading
+                            this.heading = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
+                        }
+                        
+                        // Altitude adjustment
+                        const altDiff = this.targetAltitude - this.altitude;
+                        if (Math.abs(altDiff) > 10) {
+                            const climbRate = 2; // m/s
+                            this.altitude += Math.sign(altDiff) * Math.min(Math.abs(altDiff), climbRate * dt);
+                        }
+                    }
+                }
+
+                // Update weapon cooldowns
+                if (this.weaponCooldown > 0) {
+                    this.weaponCooldown -= dt;
+                }
+
+                // Update visual effects
+                this.updateVisualEffects(dt);
+            }
+
+            takeDamage(damage, isIncendiary = false) {
+                if (this.isDestroyed) return;
+
+                // Balloons are especially vulnerable to incendiary ammo
+                if (this.type === 'balloon' && isIncendiary) {
+                    damage *= 3; // Triple damage from incendiary
+                }
+
+                this.health -= damage;
+
+                // Add hit effect
+                this.hitEffects.push({
+                    time: Date.now(),
+                    x: this.x + (Math.random() - 0.5) * this.size,
+                    y: this.y + (Math.random() - 0.5) * this.size
+                });
+
+                if (this.health <= 0) {
+                    this.destroy();
+                }
+            }
+
+            destroy() {
+                if (this.isDestroyed) return;
+                
+                this.isDestroyed = true;
+                this.hasExploded = true;
+                this.explosionTime = Date.now();
+                
+                // Balloons explode dramatically (hydrogen)
+                if (this.type === 'balloon') {
+                    // Create large explosion effect
+                    console.log(`Balloon destroyed with dramatic hydrogen explosion!`);
+                }
+            }
+
+            updateVisualEffects(dt) {
+                // Update smoke particles
+                this.smokeParticles = this.smokeParticles.filter(p => {
+                    p.age += dt;
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
+                    p.alpha -= dt * 0.5;
+                    return p.age < 2 && p.alpha > 0;
+                });
+
+                // Clean up old hit effects
+                const now = Date.now();
+                this.hitEffects = this.hitEffects.filter(effect => now - effect.time < 500);
+            }
+
+            render() {
+                if (this.hasExploded) {
+                    // Render explosion
+                    const elapsed = Date.now() - this.explosionTime;
+                    if (elapsed < 2000) { // 2 second explosion
+                        const progress = elapsed / 2000;
+                        const alpha = 1 - progress;
+                        
+                        if (this.type === 'balloon') {
+                            // Dramatic hydrogen explosion - large fireball
+                            const size = this.size * 2 + progress * this.size * 8;
+                            
+                            // Outer fireball
+                            ctx.fillStyle = `rgba(255, 100, 0, ${alpha * 0.8})`;
+                            ctx.beginPath();
+                            ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+                            ctx.fill();
+                            
+                            // Inner core
+                            ctx.fillStyle = `rgba(255, 255, 100, ${alpha})`;
+                            ctx.beginPath();
+                            ctx.arc(this.x, this.y, size * 0.5, 0, Math.PI * 2);
+                            ctx.fill();
+                        } else {
+                            // Standard explosion for blimps/airships
+                            const size = this.size + progress * this.size * 3;
+                            
+                            ctx.fillStyle = `rgba(255, 150, 0, ${alpha * 0.7})`;
+                            ctx.beginPath();
+                            ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                    return;
+                }
+
+                if (this.isDestroyed) return;
+
+                ctx.save();
+
+                // Render tether line for balloons
+                if (this.type === 'balloon') {
+                    ctx.strokeStyle = '#666666';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([5, 5]); // Dashed line for tether
+                    ctx.beginPath();
+                    ctx.moveTo(this.tetherX, this.tetherY);
+                    ctx.lineTo(this.x, this.y);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+
+                // Render unit body
+                if (this.type === 'balloon') {
+                    // Balloon - simple sphere
+                    const healthPercent = this.health / this.maxHealth;
+                    ctx.fillStyle = healthPercent > 0.5 ? '#cccccc' : '#aa8888'; // Gray, darker when damaged
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#888888';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                } else if (this.type === 'blimp') {
+                    // Blimp - elongated ellipse
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.rotate(this.driftDirection);
+                    const healthPercent = this.health / this.maxHealth;
+                    ctx.fillStyle = healthPercent > 0.5 ? '#dddddd' : '#bb9999';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, this.size * 1.5, this.size, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#999999';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.restore();
+                } else if (this.type === 'airship') {
+                    // Airship - large elongated shape with gondola
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.rotate((this.heading - 90) * Math.PI / 180);
+                    const healthPercent = this.health / this.maxHealth;
+                    ctx.fillStyle = healthPercent > 0.5 ? '#eeeeee' : '#ccaaaa';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, this.size * 2, this.size, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#aaaaaa';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                    
+                    // Gondola (control car)
+                    ctx.fillStyle = '#444444';
+                    ctx.fillRect(-this.size * 0.3, this.size * 0.8, this.size * 0.6, this.size * 0.3);
+                    ctx.restore();
+                }
+
+                // Render smoke if damaged
+                if (this.health < this.maxHealth * 0.5) {
+                    const smokeIntensity = 1 - (this.health / (this.maxHealth * 0.5));
+                    for (let i = 0; i < 3; i++) {
+                        const offset = (Date.now() * 0.001 + i * 2) % (Math.PI * 2);
+                        const smokeX = this.x + Math.cos(offset) * this.size * 0.5;
+                        const smokeY = this.y + Math.sin(offset) * this.size * 0.5;
+                        const smokeSize = 3 + smokeIntensity * 5;
+                        ctx.fillStyle = `rgba(60, 60, 60, ${0.4 * smokeIntensity})`;
+                        ctx.beginPath();
+                        ctx.arc(smokeX, smokeY, smokeSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+                // Render hit effects
+                const now = Date.now();
+                for (let effect of this.hitEffects) {
+                    const age = now - effect.time;
+                    if (age < 500) {
+                        const alpha = 1 - (age / 500);
+                        ctx.fillStyle = `rgba(255, 100, 0, ${alpha})`;
+                        ctx.beginPath();
+                        ctx.arc(effect.x, effect.y, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+                ctx.restore();
+            }
+
+            // AI control for airships
+            updateAI(aircraft, groundTargets) {
+                if (this.type !== 'airship' || !this.isAIControlled) return;
+                if (this.isDestroyed) return;
+
+                // Simple AI: move towards nearest enemy aircraft or ground target
+                let nearestTarget = null;
+                let nearestDistance = Infinity;
+
+                // Check aircraft
+                for (let ac of aircraft) {
+                    if (ac.isDestroyed) continue;
+                    if (ac.era === this.side) continue; // Same side
+                    
+                    const dx = ac.x - this.x;
+                    const dy = ac.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < nearestDistance) {
+                        nearestDistance = distance;
+                        nearestTarget = { x: ac.x, y: ac.y, altitude: ac.altitude, type: 'aircraft' };
+                    }
+                }
+
+                // Check ground targets (for bombing)
+                if (this.canCarryBombs && this.bombs > 0) {
+                    for (let target of groundTargets) {
+                        if (target.isDestroyed) continue;
+                        
+                        const dx = target.x - this.x;
+                        const dy = target.y - this.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < nearestDistance && distance < 2000) {
+                            nearestDistance = distance;
+                            nearestTarget = { x: target.x, y: target.y, altitude: 0, type: 'ground' };
+                        }
+                    }
+                }
+
+                // Update target position
+                if (nearestTarget) {
+                    this.targetX = nearestTarget.x;
+                    this.targetY = nearestTarget.y;
+                    this.targetAltitude = nearestTarget.altitude + 300; // Stay above target
+                }
+            }
+        }
+
         // Aircraft class
         class Aircraft {
             constructor(name, type, x, y, altitude, heading, isPlayer = false) {
@@ -2961,6 +4463,8 @@
                 this.fullName = specs.name;
                 this.nation = specs.nation;
                 this.role = specs.role;
+                this.era = specs.era || 'WW2';
+                this.isBiplane = specs.isBiplane || false;
                 this.maxSpeed = specs.maxSpeed;
                 this.minSpeed = specs.minSpeed;
                 this.maxTurnRate = specs.maxTurnRate;
@@ -2971,7 +4475,12 @@
                 this.maxBraking = specs.maxBraking;
                 this.aircraftColor = specs.color;
                 this.isJet = specs.isJet || false;
-                this.lowDurability = specs.lowDurability || false;
+                // Rotary engine properties (for WW1 aircraft)
+                this.hasRotaryEngine = specs.hasRotaryEngine || false;
+                this.rotaryTurnBonus = specs.rotaryTurnBonus || 1.0;
+                this.rotaryTurnPenalty = specs.rotaryTurnPenalty || 1.0;
+                this.rotaryPreferredDirection = 1; // 1 = right turn, -1 = left turn (Camel rotates clockwise)
+                this.durability = specs.durability || 1.0;
 
                 // Weapons from database - support both single weapon and mixed armament
                 const weaponsData = specs.weapons;
@@ -3192,8 +4701,38 @@
                     }
                 }
 
-                // Get the appropriate SVG image
-                const img = this.type === 'Spitfire' ? aircraftImages.spitfire : aircraftImages.bf109;
+                // Get the appropriate image (PNG for WW1, SVG for WW2)
+                let img = null;
+                if (this.era === 'WW1') {
+                    // Map WW1 aircraft types to image filenames
+                    const ww1ImageMap = {
+                        'Camel': 'camel',
+                        'SE5': 'se5',
+                        'DH2': 'dh2',
+                        'Nieuport24': 'nieuport24',
+                        'SpadXIII': 'sxiii',
+                        'O400': 'o400',
+                        'FK8': 'fk8',
+                        'Salmson2': 'salmson2',
+                        'MoraneAI': 'a1',
+                        'BristolF2': 'f2',
+                        'HanriotHD3': 'hd3',
+                        'LetordLet5': 'let5',
+                        'DrII': 'drii',
+                        'DVII': 'dvii',
+                        'DV': 'dv',
+                        'EIV': 'eiv',
+                        'AEGGIV': 'aeggiv',
+                        'DFWCV': 'dfwcv'
+                    };
+                    const imageName = ww1ImageMap[this.type];
+                    if (imageName && aircraftImages[imageName]) {
+                        img = aircraftImages[imageName];
+                    }
+                } else {
+                    // WW2 aircraft (legacy)
+                    img = this.type === 'Spitfire' ? aircraftImages.spitfire : aircraftImages.bf109;
+                }
                 const useImage = img && img.complete && img.naturalWidth > 0;
 
                 if (useImage) {
@@ -3698,6 +5237,20 @@
                     // Apply system damage penalties
                     const controlPenalty = 1 - (this.systemDamage.controls * 0.5); // Up to 50% turn rate loss
                     maxTurnRatePerSec = maxTurnRatePerSec * controlPenalty;
+
+                    // Apply rotary engine modifiers (WW1 aircraft)
+                    if (this.hasRotaryEngine) {
+                        // Determine turn direction: positive headingDiff = right turn, negative = left turn
+                        const turnDirection = headingDiff > 0 ? 1 : -1;
+                        // Rotary engines have preferred direction (usually right turn for clockwise rotation)
+                        if (turnDirection === this.rotaryPreferredDirection) {
+                            // Enhanced turn in preferred direction
+                            maxTurnRatePerSec *= this.rotaryTurnBonus;
+                        } else {
+                            // Reduced turn in opposite direction
+                            maxTurnRatePerSec *= this.rotaryTurnPenalty;
+                        }
+                    }
 
                     const maxTurnThisStep = maxTurnRatePerSec * TIME_STEP;
 
@@ -4983,7 +6536,8 @@
         }
 
         // Initialize game
-        let terrain = new Terrain();
+        let terrain = new Terrain(); // Default to WW2 terrain
+        let gameEra = 'WW2'; // Track current game era
         let spitfire = null;
         let me109 = null;
         let aircraft = [];
@@ -7215,8 +8769,8 @@
             me109 = new Aircraft('Enemy', 'Me-109', 1400, 500, 500, 270, false);
             aircraft = [spitfire, me109];
 
-            // Reset terrain
-            terrain = new Terrain();
+            // Reset terrain based on game era
+            terrain = gameEra === 'WW1' ? new WW1Terrain() : new Terrain();
 
             // Apply weather
             applyWeather(gameSettings.weather);
@@ -7969,11 +9523,17 @@
         function startQuickBattle() {
             hideSplashScreen();
 
+            // Set game era to WW2
+            gameEra = 'WW2';
+
             // Reset game state
             gameState = 'ORDER';
             currentTurn = 1;
             groundTargets = [];
             executionRecording = [];
+
+            // Create WW2 terrain
+            terrain = new Terrain();
 
             // Create default aircraft at safe altitude above terrain (1200m)
             spitfire = new Aircraft('Spitfire', 'Spitfire', 400, 500, 1200, 90, true);
@@ -8000,6 +9560,9 @@
             document.getElementById('aircraftSelector').style.display = 'none';
             document.getElementById('gameContainer').style.display = 'block';
 
+            // Set game era to WW2
+            gameEra = 'WW2';
+
             // Get selected aircraft
             const playerType = document.getElementById('playerAircraftSelect').value;
             const enemyType = document.getElementById('enemyAircraftSelect').value;
@@ -8010,11 +9573,216 @@
             groundTargets = [];
             executionRecording = [];
 
+            // Create WW2 terrain
+            terrain = new Terrain();
+
             // Create selected aircraft at safe altitude above terrain (1200m)
             spitfire = new Aircraft('Player', playerType, 400, 500, 1200, 90, true);
             me109 = new Aircraft('Enemy', enemyType, 1400, 500, 1200, 270, false);
             aircraft = [spitfire, me109];
 
+            // Start game loop
+            gameLoop();
+        }
+
+        // WW1 Battle Selector Functions
+        let ww1AlliedAircraft = [];
+        let ww1CentralAircraft = [];
+
+        function showWW1BattleSelector() {
+            document.getElementById('splashScreen').style.display = 'none';
+            document.getElementById('ww1BattleSelector').style.display = 'block';
+            
+            // Populate aircraft dropdowns with WW1 aircraft only
+            populateWW1AircraftDropdowns();
+            
+            // Clear previous selections
+            ww1AlliedAircraft = [];
+            ww1CentralAircraft = [];
+            updateAircraftLists();
+        }
+
+        function hideWW1BattleSelector() {
+            document.getElementById('ww1BattleSelector').style.display = 'none';
+            document.getElementById('splashScreen').style.display = 'block';
+        }
+
+        function populateWW1AircraftDropdowns() {
+            const alliedSelect = document.getElementById('alliedAircraftSelect');
+            const centralSelect = document.getElementById('centralAircraftSelect');
+            
+            // Clear existing options (except first)
+            alliedSelect.innerHTML = '<option value="">Select Aircraft...</option>';
+            centralSelect.innerHTML = '<option value="">Select Aircraft...</option>';
+            
+            // Filter WW1 aircraft by side
+            const alliedAircraft = [
+                { type: 'Camel', name: 'Sopwith Camel' },
+                { type: 'SE5', name: 'Royal Aircraft Factory S.E.5' },
+                { type: 'DH2', name: 'Airco DH.2' },
+                { type: 'Nieuport24', name: 'Nieuport 24' },
+                { type: 'SpadXIII', name: 'Spad S.XIII' },
+                { type: 'O400', name: 'Handley Page O/400' },
+                { type: 'FK8', name: 'Armstrong Whitworth F.K.8' },
+                { type: 'Salmson2', name: 'Salmson 2' },
+                { type: 'MoraneAI', name: 'Morane-Saulnier AI' },
+                { type: 'BristolF2', name: 'Bristol F.2 Fighter' },
+                { type: 'HanriotHD3', name: 'Hanriot HD.3' },
+                { type: 'LetordLet5', name: 'Letord Let.5' }
+            ];
+            
+            const centralAircraft = [
+                { type: 'DrII', name: 'Fokker Dr.II' },
+                { type: 'DVII', name: 'Fokker D.VII' },
+                { type: 'DV', name: 'Fokker D.V' },
+                { type: 'EIV', name: 'Fokker E.IV' },
+                { type: 'AEGGIV', name: 'AEG G.IV' },
+                { type: 'DFWCV', name: 'DFW C.V' }
+            ];
+            
+            // Populate dropdowns
+            alliedAircraft.forEach(ac => {
+                const option = document.createElement('option');
+                option.value = ac.type;
+                option.textContent = ac.name;
+                alliedSelect.appendChild(option);
+            });
+            
+            centralAircraft.forEach(ac => {
+                const option = document.createElement('option');
+                option.value = ac.type;
+                option.textContent = ac.name;
+                centralSelect.appendChild(option);
+            });
+        }
+
+        function addAlliedAircraft() {
+            const select = document.getElementById('alliedAircraftSelect');
+            const type = select.value;
+            if (!type) return;
+            
+            const specs = aircraftDatabase[type];
+            if (!specs) return;
+            
+            ww1AlliedAircraft.push({
+                type: type,
+                name: specs.name,
+                isPlayer: ww1AlliedAircraft.length === 0 // First aircraft is player
+            });
+            
+            updateAircraftLists();
+            select.value = ''; // Reset selection
+        }
+
+        function addCentralAircraft() {
+            const select = document.getElementById('centralAircraftSelect');
+            const type = select.value;
+            if (!type) return;
+            
+            const specs = aircraftDatabase[type];
+            if (!specs) return;
+            
+            ww1CentralAircraft.push({
+                type: type,
+                name: specs.name,
+                isPlayer: false // Central Powers are AI
+            });
+            
+            updateAircraftLists();
+            select.value = ''; // Reset selection
+        }
+
+        function removeAircraft(side, index) {
+            if (side === 'allied') {
+                ww1AlliedAircraft.splice(index, 1);
+            } else {
+                ww1CentralAircraft.splice(index, 1);
+            }
+            updateAircraftLists();
+        }
+
+        function updateAircraftLists() {
+            const alliedList = document.getElementById('alliedAircraftList');
+            const centralList = document.getElementById('centralAircraftList');
+            
+            // Clear lists
+            alliedList.innerHTML = '';
+            centralList.innerHTML = '';
+            
+            // Render Allied aircraft
+            ww1AlliedAircraft.forEach((ac, index) => {
+                const div = document.createElement('div');
+                div.style.cssText = 'background: rgba(0, 150, 255, 0.2); padding: 10px; margin-bottom: 10px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;';
+                div.innerHTML = `
+                    <div>
+                        <strong>${ac.name}</strong>
+                        <div style="font-size: 12px; color: #aaa;">${ac.isPlayer ? '👤 Human' : '🤖 AI'}</div>
+                    </div>
+                    <button class="btn" onclick="removeAircraft('allied', ${index})" style="padding: 5px 10px; font-size: 12px;">Remove</button>
+                `;
+                alliedList.appendChild(div);
+            });
+            
+            // Render Central aircraft
+            ww1CentralAircraft.forEach((ac, index) => {
+                const div = document.createElement('div');
+                div.style.cssText = 'background: rgba(255, 100, 100, 0.2); padding: 10px; margin-bottom: 10px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;';
+                div.innerHTML = `
+                    <div>
+                        <strong>${ac.name}</strong>
+                        <div style="font-size: 12px; color: #aaa;">🤖 AI</div>
+                    </div>
+                    <button class="btn" onclick="removeAircraft('central', ${index})" style="padding: 5px 10px; font-size: 12px;">Remove</button>
+                `;
+                centralList.appendChild(div);
+            });
+        }
+
+        function startWW1Battle() {
+            // Validate at least one aircraft per side
+            if (ww1AlliedAircraft.length === 0 || ww1CentralAircraft.length === 0) {
+                alert('Please add at least one aircraft to each side!');
+                return;
+            }
+            
+            document.getElementById('ww1BattleSelector').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
+            
+            // Set game era to WW1
+            gameEra = 'WW1';
+            
+            // Reset game state
+            gameState = 'ORDER';
+            currentTurn = 1;
+            groundTargets = [];
+            executionRecording = [];
+            
+            // Create WW1 terrain
+            terrain = new WW1Terrain();
+            
+            // Create aircraft
+            aircraft = [];
+            let aircraftIndex = 0;
+            
+            // Add Allied aircraft
+            ww1AlliedAircraft.forEach((ac, index) => {
+                const x = 300 + index * 200;
+                const y = 400 + (index % 2) * 200;
+                const newAircraft = new Aircraft(ac.name, ac.type, x, y, 800, 90, ac.isPlayer);
+                aircraft.push(newAircraft);
+                if (ac.isPlayer) {
+                    selectedAircraft = newAircraft;
+                }
+            });
+            
+            // Add Central Powers aircraft
+            ww1CentralAircraft.forEach((ac, index) => {
+                const x = 1500 + index * 200;
+                const y = 400 + (index % 2) * 200;
+                const newAircraft = new Aircraft(ac.name, ac.type, x, y, 800, 270, false);
+                aircraft.push(newAircraft);
+            });
+            
             // Start game loop
             gameLoop();
         }
