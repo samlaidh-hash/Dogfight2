@@ -9667,7 +9667,7 @@
             ww1AlliedAircraft.push({
                 type: type,
                 name: specs.name,
-                isPlayer: ww1AlliedAircraft.length === 0 // First aircraft is player
+                isPlayer: false // Default to AI, user can toggle
             });
             
             updateAircraftLists();
@@ -9685,7 +9685,7 @@
             ww1CentralAircraft.push({
                 type: type,
                 name: specs.name,
-                isPlayer: false // Central Powers are AI
+                isPlayer: false // Default to AI, user can toggle
             });
             
             updateAircraftLists();
@@ -9714,11 +9714,18 @@
                 const div = document.createElement('div');
                 div.style.cssText = 'background: rgba(0, 150, 255, 0.2); padding: 10px; margin-bottom: 10px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;';
                 div.innerHTML = `
-                    <div>
+                    <div style="flex: 1;">
                         <strong>${ac.name}</strong>
-                        <div style="font-size: 12px; color: #aaa;">${ac.isPlayer ? '👤 Human' : '🤖 AI'}</div>
+                        <div style="font-size: 12px; color: #aaa; margin-top: 4px;">
+                            ${ac.isPlayer ? '👤 Player Controlled' : '🤖 AI Controlled'}
+                        </div>
                     </div>
-                    <button class="btn" onclick="removeAircraft('allied', ${index})" style="padding: 5px 10px; font-size: 12px;">Remove</button>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button class="btn" onclick="toggleAircraftControl('allied', ${index})" style="padding: 5px 15px; font-size: 12px; background: ${ac.isPlayer ? '#00aa00' : '#666'};">
+                            ${ac.isPlayer ? '👤 Player' : '🤖 AI'}
+                        </button>
+                        <button class="btn" onclick="removeAircraft('allied', ${index})" style="padding: 5px 10px; font-size: 12px; background: #aa0000;">Remove</button>
+                    </div>
                 `;
                 alliedList.appendChild(div);
             });
@@ -9728,14 +9735,34 @@
                 const div = document.createElement('div');
                 div.style.cssText = 'background: rgba(255, 100, 100, 0.2); padding: 10px; margin-bottom: 10px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;';
                 div.innerHTML = `
-                    <div>
+                    <div style="flex: 1;">
                         <strong>${ac.name}</strong>
-                        <div style="font-size: 12px; color: #aaa;">🤖 AI</div>
+                        <div style="font-size: 12px; color: #aaa; margin-top: 4px;">
+                            ${ac.isPlayer ? '👤 Player Controlled' : '🤖 AI Controlled'}
+                        </div>
                     </div>
-                    <button class="btn" onclick="removeAircraft('central', ${index})" style="padding: 5px 10px; font-size: 12px;">Remove</button>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button class="btn" onclick="toggleAircraftControl('central', ${index})" style="padding: 5px 15px; font-size: 12px; background: ${ac.isPlayer ? '#00aa00' : '#666'};">
+                            ${ac.isPlayer ? '👤 Player' : '🤖 AI'}
+                        </button>
+                        <button class="btn" onclick="removeAircraft('central', ${index})" style="padding: 5px 10px; font-size: 12px; background: #aa0000;">Remove</button>
+                    </div>
                 `;
                 centralList.appendChild(div);
             });
+        }
+        
+        function toggleAircraftControl(side, index) {
+            if (side === 'allied') {
+                if (ww1AlliedAircraft[index]) {
+                    ww1AlliedAircraft[index].isPlayer = !ww1AlliedAircraft[index].isPlayer;
+                }
+            } else {
+                if (ww1CentralAircraft[index]) {
+                    ww1CentralAircraft[index].isPlayer = !ww1CentralAircraft[index].isPlayer;
+                }
+            }
+            updateAircraftLists();
         }
 
         function startWW1Battle() {
