@@ -913,6 +913,7 @@
                 ],
                 fuelCapacity: 386, // liters
                 fuelConsumption: 0.5, // liters per second at cruise
+                emptyWeight: 2400, // kg - aircraft empty weight
                 color: '#0099ff'
             },
             'Me-109': {
@@ -954,6 +955,7 @@
                 ],
                 fuelCapacity: 400,
                 fuelConsumption: 0.55,
+                emptyWeight: 2700, // kg - Bf 109 G-6 empty weight
                 color: '#ff4444'
             },
             'P-51': {
@@ -971,6 +973,7 @@
                 weapons: { type: 'hmg', count: 6, ammo: 1880, burstSize: 6, damage: [3, 6], rof: 2 },
                 fuelCapacity: 730, // Excellent range
                 fuelConsumption: 0.45,
+                emptyWeight: 3200, // kg - P-51D empty weight
                 color: '#00aaff'
             },
             'P-47': {
@@ -992,6 +995,7 @@
                 canCarryRockets: true,
                 durability: 0.85, // Very rugged and well-protected
                 heavyArmour: true, // Famous for absorbing damage
+                emptyWeight: 4500, // kg - P-47D empty weight (heavy fighter)
                 color: '#0077cc'
             },
             'Hurricane': {
@@ -1032,6 +1036,7 @@
                 fuelCapacity: 386,
                 fuelConsumption: 0.5,
                 canCarryRockets: true, // Mk IID "Tank Buster" variant
+                emptyWeight: 2500, // kg - Hurricane empty weight
                 color: '#0088dd'
             },
             'P-40': {
@@ -1050,6 +1055,7 @@
                 fuelCapacity: 568,
                 fuelConsumption: 0.52,
                 canCarryBombs: true, // Limited ground attack capability
+                emptyWeight: 2800, // kg - P-40 empty weight
                 color: '#00aa88'
             },
             'Fw-190': {
@@ -1091,6 +1097,7 @@
                 fuelConsumption: 0.58,
                 canCarryBombs: true, // Jabo variants
                 canCarryRockets: true,
+                emptyWeight: 3200, // kg - Fw 190 A-8 empty weight
                 color: '#ff3333'
             },
             'Me-262': {
@@ -1109,6 +1116,7 @@
                 fuelCapacity: 2570, // High fuel consumption
                 fuelConsumption: 2.5, // Jets burn fuel fast!
                 isJet: true,
+                emptyWeight: 3800, // kg - Me 262 empty weight (early jet)
                 color: '#cc0000'
             },
             'Zero': {
@@ -1149,6 +1157,7 @@
                 fuelCapacity: 518,
                 fuelConsumption: 0.35, // Very fuel efficient
                 durability: 1.4, // Fragile - takes extra damage
+                emptyWeight: 1680, // kg - Zero empty weight (very light)
                 color: '#ff6666'
             },
             'Bf-110': {
@@ -1198,6 +1207,7 @@
                     accuracy: 0.5,
                     rof: 2
                 },
+                emptyWeight: 5200, // kg - Bf 110 empty weight (heavy twin-engine)
                 color: '#dd3333'
             },
             'Ju-87': {
@@ -1236,6 +1246,7 @@
                     accuracy: 0.55,
                     rof: 2
                 },
+                emptyWeight: 3900, // kg - Ju 87 Stuka empty weight
                 color: '#aa3333'
             },
             'Ju-88': {
@@ -1273,6 +1284,7 @@
                     accuracy: 0.6,
                     rof: 2
                 },
+                emptyWeight: 5600, // kg - Ju 88 empty weight (twin-engine bomber)
                 color: '#993333'
             },
             'He-111': {
@@ -1310,6 +1322,7 @@
                     accuracy: 0.55,
                     rof: 2
                 },
+                emptyWeight: 6900, // kg - He 111 empty weight (medium bomber)
                 color: '#883333'
             },
             'Typhoon': {
@@ -1339,6 +1352,7 @@
                 fuelConsumption: 0.65,
                 canCarryBombs: true,
                 canCarryRockets: true, // Famous for rocket attacks
+                emptyWeight: 4000, // kg - Typhoon empty weight
                 color: '#0099dd'
             },
             'Tempest': {
@@ -1368,6 +1382,7 @@
                 fuelConsumption: 0.68,
                 canCarryBombs: true,
                 canCarryRockets: true,
+                emptyWeight: 4100, // kg - Tempest empty weight
                 color: '#00aaee'
             },
             'Il-2': {
@@ -1421,9 +1436,208 @@
                     accuracy: 0.6,
                     rof: 2
                 },
+                emptyWeight: 4360, // kg - Il-2 empty weight (heavily armoured)
                 color: '#cc6600'
             }
         };
+
+        // Performance Calculator - Calculates loadout impact on aircraft performance
+        class PerformanceCalculator {
+            /**
+             * Calculate speed penalty based on weight
+             * @param {number} totalWeight - Current total weight in kg
+             * @param {number} emptyWeight - Aircraft empty weight in kg
+             * @param {number} maxSpeed - Base maximum speed in m/s
+             * @returns {number} Modified max speed
+             */
+            static calculateSpeedPenalty(totalWeight, emptyWeight, maxSpeed) {
+                const addedWeight = Math.max(0, totalWeight - emptyWeight);
+                const speedMultiplier = 1 - (addedWeight / emptyWeight * 0.3);
+                return maxSpeed * Math.max(0.7, speedMultiplier); // At least 70% of base speed
+            }
+
+            /**
+             * Calculate acceleration penalty based on weight
+             * @param {number} totalWeight - Current total weight in kg
+             * @param {number} emptyWeight - Aircraft empty weight in kg
+             * @param {number} baseAcceleration - Base acceleration value
+             * @returns {number} Modified acceleration
+             */
+            static calculateAccelerationPenalty(totalWeight, emptyWeight, baseAcceleration) {
+                const weightRatio = totalWeight / emptyWeight;
+                const accelerationMultiplier = 1 / weightRatio; // Inverse relationship
+                return baseAcceleration * Math.max(0.6, accelerationMultiplier);
+            }
+
+            /**
+             * Calculate braking penalty based on weight
+             * @param {number} totalWeight - Current total weight in kg
+             * @param {number} emptyWeight - Aircraft empty weight in kg
+             * @param {number} baseBraking - Base braking value
+             * @returns {number} Modified braking
+             */
+            static calculateBrakingPenalty(totalWeight, emptyWeight, baseBraking) {
+                const weightRatio = totalWeight / emptyWeight;
+                const brakingMultiplier = 1 / Math.sqrt(weightRatio); // Less severe than acceleration
+                return baseBraking * Math.max(0.65, brakingMultiplier);
+            }
+
+            /**
+             * Calculate climb rate penalty based on weight
+             * @param {number} totalWeight - Current total weight in kg
+             * @param {number} emptyWeight - Aircraft empty weight in kg
+             * @param {number} maxClimbRate - Base climb rate in m/s
+             * @returns {number} Modified climb rate
+             */
+            static calculateClimbPenalty(totalWeight, emptyWeight, maxClimbRate) {
+                const addedWeight = Math.max(0, totalWeight - emptyWeight);
+                const climbMultiplier = 1 - (addedWeight / emptyWeight * 0.4); // More severe impact
+                return maxClimbRate * Math.max(0.5, climbMultiplier); // At least 50% climb rate
+            }
+
+            /**
+             * Calculate turn rate penalty based on weight (inertia)
+             * @param {number} totalWeight - Current total weight in kg
+             * @param {number} emptyWeight - Aircraft empty weight in kg
+             * @param {number} maxTurnRate - Base turn rate in deg/s
+             * @returns {number} Modified turn rate
+             */
+            static calculateTurnPenalty(totalWeight, emptyWeight, maxTurnRate) {
+                const weightRatio = totalWeight / emptyWeight;
+                const turnMultiplier = 1 / Math.sqrt(weightRatio); // Inertia effect
+                return maxTurnRate * Math.max(0.65, turnMultiplier);
+            }
+
+            /**
+             * Calculate G-force tolerance penalty based on weight
+             * @param {number} totalWeight - Current total weight in kg
+             * @param {number} emptyWeight - Aircraft empty weight in kg
+             * @param {number} maxGForce - Base max G-force
+             * @returns {number} Modified max G-force
+             */
+            static calculateGTolerance(totalWeight, emptyWeight, maxGForce) {
+                const weightRatio = totalWeight / emptyWeight;
+                const gMultiplier = 1 / (weightRatio * 0.5 + 0.5); // Progressive penalty
+                return maxGForce * Math.max(0.7, gMultiplier);
+            }
+
+            /**
+             * Calculate drag penalty from external stores
+             * @param {number} totalDrag - Sum of drag coefficients from all stores
+             * @returns {number} Drag multiplier (>1 means slower)
+             */
+            static calculateDragPenalty(totalDrag) {
+                return 1 + (totalDrag * 0.15);
+            }
+
+            /**
+             * Calculate asymmetric turn effect from unbalanced loadout
+             * @param {number} leftWeight - Weight on left wing in kg
+             * @param {number} rightWeight - Weight on right wing in kg
+             * @param {number} totalWeight - Total weight in kg
+             * @param {number} maxTurnRate - Base turn rate
+             * @returns {object} Turn rate penalties for left and right
+             */
+            static calculateAsymmetricEffect(leftWeight, rightWeight, totalWeight, maxTurnRate) {
+                if (totalWeight === 0) {
+                    return { left: maxTurnRate, right: maxTurnRate, asymmetryPenalty: 0 };
+                }
+
+                const weightDifference = Math.abs(leftWeight - rightWeight);
+                const asymmetryPenalty = weightDifference / totalWeight * 0.2;
+
+                // The side with more weight turns slower
+                const leftPenalty = leftWeight > rightWeight ? asymmetryPenalty : 0;
+                const rightPenalty = rightWeight > leftWeight ? asymmetryPenalty : 0;
+
+                return {
+                    left: maxTurnRate * (1 - leftPenalty),
+                    right: maxTurnRate * (1 - rightPenalty),
+                    asymmetryPenalty: asymmetryPenalty
+                };
+            }
+
+            /**
+             * Calculate roll penalty from asymmetric weight
+             * @param {number} asymmetricWeight - Difference in weight between wings
+             * @param {number} baseRollRate - Base roll rate (default 1.0)
+             * @returns {number} Roll rate multiplier
+             */
+            static calculateRollPenalty(asymmetricWeight, baseRollRate = 1.0) {
+                const rollPenalty = Math.min(0.4, asymmetricWeight / 1000 * 0.3); // Max 40% penalty
+                return baseRollRate * (1 - rollPenalty);
+            }
+
+            /**
+             * Calculate performance impact summary from complete loadout
+             * @param {object} aircraft - Aircraft object with specs
+             * @param {array} hardpoints - Array of hardpoint objects with mounted stores
+             * @returns {object} Complete performance modifiers
+             */
+            static calculateLoadoutImpact(aircraft, hardpoints = []) {
+                const emptyWeight = aircraft.emptyWeight || aircraft.baseEmptyWeight || 2400;
+
+                // Calculate total weight from stores
+                let storeWeight = 0;
+                let totalDrag = 0;
+                let leftWeight = 0;
+                let rightWeight = 0;
+
+                hardpoints.forEach(hp => {
+                    if (hp.mounted) {
+                        const store = hp.mounted;
+                        const weight = store.weight || 0;
+                        storeWeight += weight;
+                        totalDrag += store.dragCoefficient || 0;
+
+                        // Track wing asymmetry
+                        if (hp.position === 'left' || hp.position === 'leftWing') {
+                            leftWeight += weight;
+                        } else if (hp.position === 'right' || hp.position === 'rightWing') {
+                            rightWeight += weight;
+                        }
+                    }
+                });
+
+                // Add fuel weight (assuming fuel density ~0.8 kg/liter)
+                const fuelWeight = aircraft.fuel * 0.8;
+                const totalWeight = emptyWeight + storeWeight + fuelWeight;
+
+                // Calculate all penalties
+                const dragMultiplier = this.calculateDragPenalty(totalDrag);
+                const asymmetric = this.calculateAsymmetricEffect(leftWeight, rightWeight, storeWeight, aircraft.baseMaxTurnRate || aircraft.maxTurnRate);
+
+                return {
+                    // Weight impacts
+                    maxSpeed: this.calculateSpeedPenalty(totalWeight, emptyWeight, aircraft.baseMaxSpeed || aircraft.maxSpeed) / dragMultiplier,
+                    maxAcceleration: this.calculateAccelerationPenalty(totalWeight, emptyWeight, aircraft.baseMaxAcceleration || aircraft.maxAcceleration),
+                    maxBraking: this.calculateBrakingPenalty(totalWeight, emptyWeight, aircraft.baseMaxBraking || aircraft.maxBraking),
+                    maxClimbRate: this.calculateClimbPenalty(totalWeight, emptyWeight, aircraft.baseMaxClimbRate || aircraft.maxClimbRate),
+                    maxTurnRate: this.calculateTurnPenalty(totalWeight, emptyWeight, aircraft.baseMaxTurnRate || aircraft.maxTurnRate),
+                    maxGForce: this.calculateGTolerance(totalWeight, emptyWeight, aircraft.baseMaxGForce || aircraft.maxGForce),
+
+                    // Drag and asymmetric impacts
+                    dragMultiplier: dragMultiplier,
+                    asymmetricTurnLeft: asymmetric.left,
+                    asymmetricTurnRight: asymmetric.right,
+                    asymmetryPenalty: asymmetric.asymmetryPenalty,
+                    rollRate: this.calculateRollPenalty(Math.abs(leftWeight - rightWeight)),
+
+                    // Weight details
+                    emptyWeight: emptyWeight,
+                    storeWeight: storeWeight,
+                    fuelWeight: fuelWeight,
+                    totalWeight: totalWeight,
+                    leftWeight: leftWeight,
+                    rightWeight: rightWeight,
+
+                    // Percentage impacts for UI
+                    speedPenalty: ((1 - (this.calculateSpeedPenalty(totalWeight, emptyWeight, aircraft.baseMaxSpeed || aircraft.maxSpeed) / dragMultiplier) / (aircraft.baseMaxSpeed || aircraft.maxSpeed)) * 100).toFixed(1),
+                    climbPenalty: ((1 - this.calculateClimbPenalty(totalWeight, emptyWeight, aircraft.baseMaxClimbRate || aircraft.maxClimbRate) / (aircraft.baseMaxClimbRate || aircraft.maxClimbRate)) * 100).toFixed(1),
+                    turnPenalty: ((1 - this.calculateTurnPenalty(totalWeight, emptyWeight, aircraft.baseMaxTurnRate || aircraft.maxTurnRate) / (aircraft.baseMaxTurnRate || aircraft.maxTurnRate)) * 100).toFixed(1)
+                };
+            }
+        }
 
         // Weather effects
         let weatherState = {
@@ -2573,6 +2787,225 @@
                     controls: 0,  // 0-1, reduces turn rate
                     weapons: 0    // 0-1, reduces accuracy and fire rate
                 };
+
+                // Weight and performance system
+                this.emptyWeight = specs.emptyWeight || 2400; // kg - aircraft empty weight
+                this.currentWeight = this.emptyWeight + (this.fuel * 0.8); // Start with fuel weight
+                this.dragFactor = 0; // Additional drag from external stores
+
+                // Store base performance values (unmodified by loadout)
+                this.baseMaxSpeed = this.maxSpeed;
+                this.baseMaxTurnRate = this.maxTurnRate;
+                this.baseMaxClimbRate = this.maxClimbRate;
+                this.baseMaxGForce = this.maxGForce;
+                this.baseMaxAcceleration = this.maxAcceleration;
+                this.baseMaxBraking = this.maxBraking;
+
+                // Hardpoints for loadout system (will be populated by other agents)
+                this.hardpoints = [];
+
+                // Performance impact tracking
+                this.performanceImpact = {
+                    speedPenalty: 0,
+                    climbPenalty: 0,
+                    turnPenalty: 0,
+                    gPenalty: 0,
+                    asymmetryPenalty: 0
+                };
+            }
+
+            /**
+             * Update aircraft performance based on current loadout
+             * Called when stores are mounted/jettisoned or fuel changes significantly
+             */
+            updatePerformance() {
+                // Calculate loadout impact
+                const impact = PerformanceCalculator.calculateLoadoutImpact(this, this.hardpoints);
+
+                // Update current weight
+                this.currentWeight = impact.totalWeight;
+
+                // Apply performance modifiers
+                this.maxSpeed = impact.maxSpeed;
+                this.maxAcceleration = impact.maxAcceleration;
+                this.maxBraking = impact.maxBraking;
+                this.maxClimbRate = impact.maxClimbRate;
+                this.maxTurnRate = impact.maxTurnRate;
+                this.maxGForce = impact.maxGForce;
+
+                // Store impact data for UI display
+                this.performanceImpact = {
+                    speedPenalty: parseFloat(impact.speedPenalty),
+                    climbPenalty: parseFloat(impact.climbPenalty),
+                    turnPenalty: parseFloat(impact.turnPenalty),
+                    gPenalty: ((1 - impact.maxGForce / this.baseMaxGForce) * 100).toFixed(1),
+                    asymmetryPenalty: impact.asymmetryPenalty,
+                    dragMultiplier: impact.dragMultiplier,
+                    asymmetricTurnLeft: impact.asymmetricTurnLeft,
+                    asymmetricTurnRight: impact.asymmetricTurnRight,
+                    rollRate: impact.rollRate,
+                    totalWeight: impact.totalWeight,
+                    storeWeight: impact.storeWeight,
+                    fuelWeight: impact.fuelWeight,
+                    leftWeight: impact.leftWeight,
+                    rightWeight: impact.rightWeight
+                };
+            }
+
+            /**
+             * Update weight when fuel changes
+             * Called during flight as fuel is consumed
+             */
+            updateFuelWeight() {
+                const newFuelWeight = this.fuel * 0.8; // kg
+                const oldTotalWeight = this.currentWeight;
+
+                // Update current weight with new fuel weight
+                // Keep store weight constant, only change fuel
+                const storeWeight = this.performanceImpact.storeWeight || 0;
+                this.currentWeight = this.emptyWeight + storeWeight + newFuelWeight;
+
+                // Recalculate performance if weight changed significantly (>5%)
+                if (Math.abs(this.currentWeight - oldTotalWeight) / oldTotalWeight > 0.05) {
+                    this.updatePerformance();
+                }
+            }
+
+            /**
+             * Jettison stores (bombs, fuel tanks, etc.) to improve performance
+             * @param {string} storeType - Type of store to jettison ('bombs', 'rockets', 'fueltanks', 'all')
+             */
+            jettisonStores(storeType = 'all') {
+                let jettisoned = false;
+
+                this.hardpoints.forEach(hp => {
+                    if (hp.mounted) {
+                        const store = hp.mounted;
+                        let shouldJettison = false;
+
+                        if (storeType === 'all') {
+                            shouldJettison = store.canJettison !== false;
+                        } else if (storeType === 'bombs' && store.type === 'bomb') {
+                            shouldJettison = true;
+                        } else if (storeType === 'rockets' && store.type === 'rocket') {
+                            shouldJettison = true;
+                        } else if (storeType === 'fueltanks' && store.type === 'fueltank') {
+                            shouldJettison = true;
+                        }
+
+                        if (shouldJettison) {
+                            hp.mounted = null;
+                            jettisoned = true;
+                        }
+                    }
+                });
+
+                // Update performance if anything was jettisoned
+                if (jettisoned) {
+                    this.updatePerformance();
+                }
+
+                return jettisoned;
+            }
+
+            /**
+             * Get performance status color for UI
+             * @returns {string} Color code (green/yellow/red)
+             */
+            getPerformanceStatusColor() {
+                const avgPenalty = (
+                    parseFloat(this.performanceImpact.speedPenalty) +
+                    parseFloat(this.performanceImpact.climbPenalty) +
+                    parseFloat(this.performanceImpact.turnPenalty)
+                ) / 3;
+
+                if (avgPenalty < 5) return '#00ff00'; // Green - clean configuration
+                if (avgPenalty < 15) return '#ffff00'; // Yellow - moderate load
+                return '#ff4444'; // Red - heavy load
+            }
+
+            /**
+             * Draw performance impact indicators on canvas
+             * @param {CanvasRenderingContext2D} ctx - Canvas context
+             * @param {boolean} showDetails - Whether to show detailed breakdown
+             */
+            drawPerformanceIndicators(ctx, showDetails = false) {
+                // Only show if there's a penalty
+                const avgPenalty = (
+                    parseFloat(this.performanceImpact.speedPenalty || 0) +
+                    parseFloat(this.performanceImpact.climbPenalty || 0) +
+                    parseFloat(this.performanceImpact.turnPenalty || 0)
+                ) / 3;
+
+                if (avgPenalty < 1) return; // No significant penalty, don't show
+
+                const color = this.getPerformanceStatusColor();
+
+                ctx.save();
+                ctx.font = 'bold 10px Courier New';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+
+                // Draw performance status indicator near aircraft
+                const offsetX = 35;
+                const offsetY = -25;
+
+                // Background for readability
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                const boxWidth = showDetails ? 140 : 60;
+                const boxHeight = showDetails ? 55 : 12;
+                ctx.fillRect(this.x + offsetX - 2, this.y + offsetY - 2, boxWidth, boxHeight);
+
+                // Performance status text
+                ctx.fillStyle = color;
+                if (showDetails) {
+                    ctx.fillText(`LOADOUT:`, this.x + offsetX, this.y + offsetY);
+                    ctx.font = '9px Courier New';
+                    ctx.fillStyle = '#ffaaaa';
+                    ctx.fillText(`Speed: -${this.performanceImpact.speedPenalty}%`, this.x + offsetX, this.y + offsetY + 12);
+                    ctx.fillText(`Climb: -${this.performanceImpact.climbPenalty}%`, this.x + offsetX, this.y + offsetY + 23);
+                    ctx.fillText(`Turn: -${this.performanceImpact.turnPenalty}%`, this.x + offsetX, this.y + offsetY + 34);
+                    if (this.performanceImpact.asymmetryPenalty > 0.05) {
+                        ctx.fillStyle = '#ff6666';
+                        ctx.fillText(`⚠ ASYMMETRIC`, this.x + offsetX, this.y + offsetY + 45);
+                    }
+                } else {
+                    ctx.fillText(`-${avgPenalty.toFixed(1)}%`, this.x + offsetX, this.y + offsetY);
+                }
+
+                ctx.restore();
+            }
+
+            /**
+             * Get performance summary text for UI panel
+             * @returns {string} HTML formatted performance summary
+             */
+            getPerformanceSummaryHTML() {
+                const color = this.getPerformanceStatusColor();
+                const avgPenalty = (
+                    parseFloat(this.performanceImpact.speedPenalty || 0) +
+                    parseFloat(this.performanceImpact.climbPenalty || 0) +
+                    parseFloat(this.performanceImpact.turnPenalty || 0)
+                ) / 3;
+
+                if (avgPenalty < 1) {
+                    return `<div style="color: ${color};">Loadout: Clean</div>`;
+                }
+
+                let html = `<div style="color: ${color}; font-weight: bold;">Loadout Impact:</div>`;
+                html += `<div style="font-size: 10px; margin-left: 10px;">`;
+                html += `Speed: <span style="color: #ffaaaa;">-${this.performanceImpact.speedPenalty}%</span><br>`;
+                html += `Climb: <span style="color: #ffaaaa;">-${this.performanceImpact.climbPenalty}%</span><br>`;
+                html += `Turn: <span style="color: #ffaaaa;">-${this.performanceImpact.turnPenalty}%</span><br>`;
+
+                if (this.performanceImpact.asymmetryPenalty > 0.05) {
+                    html += `<span style="color: #ff6666;">⚠ Asymmetric load</span><br>`;
+                }
+
+                html += `Weight: ${Math.round(this.performanceImpact.totalWeight || this.currentWeight)} kg`;
+                html += `</div>`;
+
+                return html;
             }
 
             getScaleForAltitude() {
@@ -5468,6 +5901,12 @@
             // Render aircraft
             for (let plane of aircraft) {
                 plane.renderSVG();
+
+                // Draw performance indicators if there's a loadout penalty
+                if (!plane.isDestroyed) {
+                    const showDetails = plane === selectedAircraft; // Show details for selected aircraft
+                    plane.drawPerformanceIndicators(ctx, showDetails);
+                }
             }
 
             // Render firing cones/reticles (show weapon range and arc)
