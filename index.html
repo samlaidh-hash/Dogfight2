@@ -2614,9 +2614,389 @@
             }
         }
 
+        // Advanced guided missile class with proportional navigation
+        class Missile {
+            constructor(x, y, altitude, heading, target, missileType = 'heat-seeking') {
+                this.x = x;
+                this.y = y;
+                this.altitude = altitude;
+                this.heading = heading;
+                this.pitch = 0; // For 3D flight
+
+                // Missile type: 'heat-seeking', 'radar-guided', 'optical'
+                this.type = missileType;
+
+                // Performance characteristics
+                this.maxSpeed = 400; // m/s - much faster than rockets
+                this.acceleration = 100; // m/s²
+                this.currentSpeed = 100; // Start slower, accelerate
+                this.maxTurnRate = 180; // degrees per second - very agile
+                this.maxG = 25; // Can pull extreme Gs
+
+                // Motor and fuel
+                this.motorBurnTime = 3.0; // seconds
+                this.motorFuelRemaining = this.motorBurnTime;
+                this.hasMotor = true;
+
+                // Guidance
+                this.target = target;
+                this.isLocked = (target && !target.isDestroyed);
+                this.guidanceUpdateInterval = 0.05; // Update guidance every 50ms
+                this.timeSinceGuidanceUpdate = 0;
+                this.lockStrength = 1.0; // 0-1, affected by countermeasures
+
+                // Navigation
+                this.velocityX = 0;
+                this.velocityY = 0;
+                this.velocityZ = 0;
+                this.updateVelocity();
+
+                // Damage and explosion
+                this.damage = 50; // Higher than rockets
+                this.explosionRadius = 20;
+                this.proximityFuseRange = 10;
+                this.hasExploded = false;
+                this.explosionTime = 0;
+
+                // Status
+                this.isActive = true;
+                this.maxRange = 8000; // meters
+                this.distanceTraveled = 0;
+                this.timeAlive = 0;
+                this.maxLifetime = 20; // seconds
+
+                // Countermeasure susceptibility
+                this.chaffSusceptibility = (this.type === 'radar-guided') ? 0.7 : 0.0;
+                this.flareSusceptibility = (this.type === 'heat-seeking') ? 0.8 : 0.0;
+            }
+
+            updateVelocity() {
+                const headingRad = this.heading * Math.PI / 180;
+                const pitchRad = this.pitch * Math.PI / 180;
+
+                this.velocityX = this.currentSpeed * Math.sin(headingRad) * Math.cos(pitchRad);
+                this.velocityY = -this.currentSpeed * Math.cos(headingRad) * Math.cos(pitchRad);
+                this.velocityZ = this.currentSpeed * Math.sin(pitchRad);
+            }
+
+            // Proportional navigation guidance algorithm
+            proportionalNavigation(dt) {
+                if (!this.target || this.target.isDestroyed || !this.isLocked) {
+                    // Lost lock, continue ballistic
+                    return;
+                }
+
+                // Calculate relative position
+                const dx = this.target.x - this.x;
+                const dy = this.target.y - this.y;
+                const dz = this.target.altitude - this.altitude;
+                const range = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                // Check if target is out of range or lock is broken
+                if (range > this.maxRange || this.lockStrength < 0.3) {
+                    this.isLocked = false;
+                    return;
+                }
+
+                // Line-of-sight (LOS) vector
+                const losX = dx / range;
+                const losY = dy / range;
+                const losZ = dz / range;
+
+                // Target velocity
+                const targetVelX = this.target.speed * Math.sin(this.target.heading * Math.PI / 180);
+                const targetVelY = -this.target.speed * Math.cos(this.target.heading * Math.PI / 180);
+                const targetVelZ = 0; // Simplified, could add climb rate
+
+                // Missile velocity
+                const missileVelX = this.velocityX;
+                const missileVelY = this.velocityY;
+                const missileVelZ = this.velocityZ;
+
+                // Closing velocity (how fast we're approaching target)
+                const closingVel = (targetVelX - missileVelX) * losX +
+                                 (targetVelY - missileVelY) * losY +
+                                 (targetVelZ - missileVelZ) * losZ;
+
+                // LOS rate (how fast the line of sight is rotating)
+                const losRateX = (targetVelX - missileVelX) / range - losX * closingVel / range;
+                const losRateY = (targetVelY - missileVelY) / range - losY * closingVel / range;
+                const losRateZ = (targetVelZ - missileVelZ) / range - losZ * closingVel / range;
+
+                // Proportional navigation constant (typically 3-5)
+                const N = 4;
+
+                // Commanded acceleration perpendicular to LOS
+                const accelX = N * closingVel * losRateX;
+                const accelY = N * closingVel * losRateY;
+                const accelZ = N * closingVel * losRateZ;
+
+                // Convert acceleration to heading and pitch changes
+                const currentVelMag = this.currentSpeed;
+                if (currentVelMag > 0) {
+                    // Desired velocity direction
+                    const desiredVelX = missileVelX + accelX * dt;
+                    const desiredVelY = missileVelY + accelY * dt;
+                    const desiredVelZ = missileVelZ + accelZ * dt;
+
+                    // Calculate desired heading and pitch
+                    const desiredHeading = Math.atan2(desiredVelX, -desiredVelY) * 180 / Math.PI;
+                    const horizontalDist = Math.sqrt(desiredVelX * desiredVelX + desiredVelY * desiredVelY);
+                    const desiredPitch = Math.atan2(desiredVelZ, horizontalDist) * 180 / Math.PI;
+
+                    // Apply turn rate limits
+                    let headingDiff = desiredHeading - this.heading;
+                    while (headingDiff > 180) headingDiff -= 360;
+                    while (headingDiff < -180) headingDiff += 360;
+
+                    const maxTurnThisFrame = this.maxTurnRate * dt;
+                    headingDiff = Math.max(-maxTurnThisFrame, Math.min(maxTurnThisFrame, headingDiff));
+
+                    this.heading += headingDiff;
+                    while (this.heading < 0) this.heading += 360;
+                    while (this.heading >= 360) this.heading -= 360;
+
+                    // Apply pitch limits
+                    let pitchDiff = desiredPitch - this.pitch;
+                    pitchDiff = Math.max(-maxTurnThisFrame, Math.min(maxTurnThisFrame, pitchDiff));
+                    this.pitch += pitchDiff;
+                    this.pitch = Math.max(-89, Math.min(89, this.pitch)); // Limit pitch
+                }
+            }
+
+            checkCountermeasures() {
+                // Check for nearby chaff or flares
+                // This would integrate with a countermeasures system
+                // For now, simplified: random chance of losing lock near target
+                if (this.target && !this.target.isDestroyed) {
+                    const dx = this.target.x - this.x;
+                    const dy = this.target.y - this.y;
+                    const dz = this.target.altitude - this.altitude;
+                    const range = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    // If very close and target is maneuvering hard, slight chance of losing lock
+                    if (range < 500 && this.target.currentGForce > 5) {
+                        this.lockStrength *= 0.98; // Gradual lock degradation
+                    }
+                }
+            }
+
+            update(dt) {
+                if (!this.isActive || this.hasExploded) return;
+
+                this.timeAlive += dt;
+
+                // Check lifetime
+                if (this.timeAlive > this.maxLifetime) {
+                    this.isActive = false;
+                    return;
+                }
+
+                // Update motor
+                if (this.hasMotor && this.motorFuelRemaining > 0) {
+                    this.motorFuelRemaining -= dt;
+                    // Accelerate while motor is burning
+                    this.currentSpeed = Math.min(this.maxSpeed, this.currentSpeed + this.acceleration * dt);
+                } else {
+                    // Coast or slow down slightly due to drag
+                    this.currentSpeed = Math.max(50, this.currentSpeed - 10 * dt);
+                }
+
+                // Update guidance
+                this.timeSinceGuidanceUpdate += dt;
+                if (this.timeSinceGuidanceUpdate >= this.guidanceUpdateInterval) {
+                    this.proportionalNavigation(this.timeSinceGuidanceUpdate);
+                    this.checkCountermeasures();
+                    this.timeSinceGuidanceUpdate = 0;
+                }
+
+                // Update velocity based on current heading and pitch
+                this.updateVelocity();
+
+                // Update position
+                const deltaX = this.velocityX * dt;
+                const deltaY = this.velocityY * dt;
+                const deltaZ = this.velocityZ * dt;
+
+                this.x += deltaX;
+                this.y += deltaY;
+                this.altitude += deltaZ;
+
+                this.distanceTraveled += Math.sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ);
+
+                // Check max range
+                if (this.distanceTraveled > this.maxRange) {
+                    this.isActive = false;
+                    return;
+                }
+
+                // Check ground impact
+                const terrainHeight = terrain.getHeightAt(this.x, this.y);
+                if (this.altitude <= terrainHeight + 5) {
+                    this.explode();
+                    return;
+                }
+
+                // Check proximity to aircraft
+                for (let target of aircraft) {
+                    if (target.isDestroyed) continue;
+                    const dx = target.x - this.x;
+                    const dy = target.y - this.y;
+                    const dz = target.altitude - this.altitude;
+                    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    // Proximity fuse
+                    if (distance < this.proximityFuseRange) {
+                        this.explode();
+                        return;
+                    }
+                }
+            }
+
+            explode() {
+                if (this.hasExploded) return;
+                this.hasExploded = true;
+                this.explosionTime = Date.now();
+                this.isActive = false;
+
+                // Damage aircraft in radius
+                for (let target of aircraft) {
+                    if (target.isDestroyed) continue;
+                    const dx = target.x - this.x;
+                    const dy = target.y - this.y;
+                    const dz = target.altitude - this.altitude;
+                    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    if (distance < this.explosionRadius * 2) {
+                        const damageFalloff = 1 - (distance / (this.explosionRadius * 2));
+                        const actualDamage = this.damage * (0.4 + 0.6 * damageFalloff);
+
+                        if (typeof applyComponentDamage === 'function') {
+                            applyComponentDamage(target, actualDamage);
+                        } else {
+                            target.damage += actualDamage;
+                        }
+
+                        console.log(`Missile hit ${target.name} for ${actualDamage.toFixed(1)} damage`);
+
+                        target.hitEffects.push({
+                            x: target.x,
+                            y: target.y,
+                            type: 'missile',
+                            time: Date.now(),
+                            duration: 600
+                        });
+
+                        if (target.damage >= 100 && !target.isDestroyed) {
+                            target.isDestroyed = true;
+                            console.log(`💥 ${target.name} DESTROYED by missile!`);
+                        }
+                    }
+                }
+            }
+
+            render() {
+                if (this.hasExploded) {
+                    // Render explosion (larger than rocket)
+                    const elapsed = Date.now() - this.explosionTime;
+                    if (elapsed < 800) {
+                        const progress = elapsed / 800;
+                        const alpha = 1 - progress;
+                        const size = 15 + progress * 35;
+
+                        // Orange explosion
+                        ctx.fillStyle = `rgba(255, 100, 0, ${alpha * 0.9})`;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Yellow core
+                        if (progress < 0.5) {
+                            ctx.fillStyle = `rgba(255, 255, 100, ${alpha})`;
+                            ctx.beginPath();
+                            ctx.arc(this.x, this.y, size * 0.4, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+
+                        // White flash
+                        if (progress < 0.2) {
+                            ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.6})`;
+                            ctx.beginPath();
+                            ctx.arc(this.x, this.y, size * 0.2, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                } else if (this.isActive) {
+                    // Render missile
+                    const angle = this.heading * Math.PI / 180;
+
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.rotate(angle);
+
+                    // Missile body (sleeker than rocket)
+                    ctx.fillStyle = '#aaaaaa';
+                    ctx.fillRect(-2.5, -10, 5, 20);
+
+                    // Nose cone
+                    ctx.fillStyle = '#999999';
+                    ctx.beginPath();
+                    ctx.moveTo(-2.5, -10);
+                    ctx.lineTo(0, -14);
+                    ctx.lineTo(2.5, -10);
+                    ctx.fill();
+
+                    // Fins (4 fins)
+                    ctx.fillStyle = '#777777';
+                    // Fin 1
+                    ctx.beginPath();
+                    ctx.moveTo(-5, 10);
+                    ctx.lineTo(-2.5, 6);
+                    ctx.lineTo(-2.5, 10);
+                    ctx.fill();
+                    // Fin 2
+                    ctx.beginPath();
+                    ctx.moveTo(5, 10);
+                    ctx.lineTo(2.5, 6);
+                    ctx.lineTo(2.5, 10);
+                    ctx.fill();
+
+                    // Motor exhaust (if motor is burning)
+                    if (this.hasMotor && this.motorFuelRemaining > 0) {
+                        const exhaustLength = 12 + Math.random() * 4;
+                        ctx.fillStyle = '#ffcc00';
+                        ctx.beginPath();
+                        ctx.moveTo(-2, 10);
+                        ctx.lineTo(0, 10 + exhaustLength);
+                        ctx.lineTo(2, 10);
+                        ctx.fill();
+
+                        // Inner bright exhaust
+                        ctx.fillStyle = '#ffffff';
+                        ctx.beginPath();
+                        ctx.moveTo(-1, 10);
+                        ctx.lineTo(0, 10 + exhaustLength * 0.5);
+                        ctx.lineTo(1, 10);
+                        ctx.fill();
+                    }
+
+                    // Smoke trail if coasting
+                    if (!this.hasMotor || this.motorFuelRemaining <= 0) {
+                        ctx.fillStyle = 'rgba(100, 100, 100, 0.3)';
+                        ctx.beginPath();
+                        ctx.arc(0, 12, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    ctx.restore();
+                }
+            }
+        }
+
         let groundTargets = [];
         let bombs = []; // Active bombs
         let rockets = []; // Active rockets (both ground and air-to-air)
+        let missiles = []; // Active guided missiles
 
         // Canvas setup
         const canvas = document.getElementById('gameCanvas');
@@ -3046,6 +3426,21 @@
                 this.rocketMode = 'ground'; // 'air' or 'ground' - toggle rocket targeting mode
                 this.bombCooldown = 0; // Cooldown between bomb drops
                 this.rocketCooldown = 0; // Cooldown between rocket launches
+
+                // Missile system (Advanced weapons enhancement)
+                this.canCarryMissiles = specs.canCarryMissiles || false;
+                this.missiles = this.canCarryMissiles ? (specs.missileCapacity || 4) : 0;
+                this.maxMissiles = this.missiles;
+                this.missileType = specs.missileType || 'heat-seeking'; // 'heat-seeking', 'radar-guided', 'optical'
+                this.missileCooldown = 0; // Cooldown between missile launches
+
+                // Lock-on system
+                this.lockTarget = null; // Currently locked target
+                this.lockProgress = 0; // 0-1, time to achieve lock
+                this.lockTime = specs.lockOnTime || 2.0; // seconds to achieve lock
+                this.lockRange = specs.maxLockRange || 5000; // meters
+                this.isLocked = false; // Lock achieved
+                this.lockTone = false; // Audio cue for lock
 
                 // Component damage system (Enhancement #4)
                 this.damage = 0;
@@ -4793,6 +5188,114 @@
                 const rocket = new RocketAA(this.x, this.y, this.altitude, this.heading, target);
                 rockets.push(rocket);
                 console.log(`${this.name} launched air-to-air rocket! ${this.rockets} remaining`);
+                return true;
+            }
+
+            // Update lock-on progress (called every frame)
+            updateLockOn(dt) {
+                if (!this.canCarryMissiles) return;
+
+                // If we have a lock target, update lock progress
+                if (this.lockTarget && !this.lockTarget.isDestroyed) {
+                    const dx = this.lockTarget.x - this.x;
+                    const dy = this.lockTarget.y - this.y;
+                    const dz = this.lockTarget.altitude - this.altitude;
+                    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    // Check if target is in lock range and in front
+                    const angleToTarget = Math.atan2(dx, -dy) * 180 / Math.PI;
+                    let angleDiff = angleToTarget - this.heading;
+                    while (angleDiff > 180) angleDiff -= 360;
+                    while (angleDiff < -180) angleDiff += 360;
+
+                    // Within lock cone (30 degrees) and range
+                    if (Math.abs(angleDiff) < 30 && distance < this.lockRange) {
+                        // Build lock
+                        this.lockProgress += dt / this.lockTime;
+                        if (this.lockProgress >= 1.0) {
+                            this.lockProgress = 1.0;
+                            this.isLocked = true;
+                            this.lockTone = true;
+                        }
+                    } else {
+                        // Losing lock - break faster than building
+                        this.lockProgress -= dt * 2;
+                        if (this.lockProgress <= 0) {
+                            this.breakLock();
+                        }
+                    }
+                } else {
+                    // No target, reset lock
+                    if (this.lockProgress > 0) {
+                        this.lockProgress -= dt * 2;
+                        if (this.lockProgress <= 0) {
+                            this.breakLock();
+                        }
+                    }
+                }
+            }
+
+            // Attempt to lock onto a target
+            attemptLock(target) {
+                if (!this.canCarryMissiles) {
+                    console.log(`${this.name} cannot carry missiles!`);
+                    return false;
+                }
+
+                if (target.isDestroyed) {
+                    console.log(`Cannot lock destroyed target!`);
+                    return false;
+                }
+
+                this.lockTarget = target;
+                this.lockProgress = 0;
+                this.isLocked = false;
+                this.lockTone = false;
+                console.log(`${this.name} attempting lock on ${target.name}...`);
+                return true;
+            }
+
+            // Break current lock
+            breakLock() {
+                this.lockTarget = null;
+                this.lockProgress = 0;
+                this.isLocked = false;
+                this.lockTone = false;
+            }
+
+            // Launch guided missile
+            launchMissile() {
+                if (!this.canCarryMissiles) {
+                    console.log(`${this.name} cannot carry missiles!`);
+                    return false;
+                }
+
+                if (this.missiles <= 0) {
+                    console.log(`${this.name} has no missiles left!`);
+                    return false;
+                }
+
+                if (!this.isLocked || !this.lockTarget) {
+                    console.log(`${this.name} must achieve lock before firing missile!`);
+                    return false;
+                }
+
+                this.missiles--;
+                const missile = new Missile(
+                    this.x,
+                    this.y,
+                    this.altitude,
+                    this.heading,
+                    this.lockTarget,
+                    this.missileType
+                );
+                missiles.push(missile);
+                console.log(`${this.name} launched ${this.missileType} missile! ${this.missiles} remaining`);
+
+                // Break lock after launch (Fox 2 / Fox 3 - fire and forget)
+                // Comment this line if you want to maintain lock after launch
+                this.breakLock();
+
                 return true;
             }
 
