@@ -2436,6 +2436,22 @@
                     this.altitude = terrainHeight;
                     this.explode();
                 }
+
+                // Check direct hit on aerial units (balloons, blimps, airships)
+                for (let unit of aerialUnits) {
+                    if (unit.isDestroyed || unit.hasExploded) continue;
+                    const dx = unit.x - this.x;
+                    const dy = unit.y - this.y;
+                    const dz = unit.altitude - this.altitude;
+                    const distance2D = Math.sqrt(dx * dx + dy * dy);
+                    const distance3D = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    // Check if bomb is close enough to hit (within unit's collision radius)
+                    if (distance3D < unit.size) {
+                        this.explode();
+                        return;
+                    }
+                }
             }
 
             explode() {
@@ -2456,6 +2472,23 @@
                         const actualDamage = this.damage * damageFalloff;
                         target.takeDamage(actualDamage);
                         console.log(`Bomb hit ${target.type} for ${actualDamage.toFixed(1)} damage at ${distance.toFixed(1)}m`);
+                    }
+                }
+
+                // Damage aerial units in radius
+                for (let unit of aerialUnits) {
+                    if (unit.isDestroyed || unit.hasExploded) continue;
+                    const dx = unit.x - this.x;
+                    const dy = unit.y - this.y;
+                    const dz = unit.altitude - this.altitude;
+                    const distance2D = Math.sqrt(dx * dx + dy * dy);
+                    const distance3D = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    if (distance3D < this.explosionRadius) {
+                        const damageFalloff = 1 - (distance3D / this.explosionRadius);
+                        const actualDamage = this.damage * damageFalloff;
+                        unit.takeDamage(actualDamage, false); // Bombs are not incendiary
+                        console.log(`Bomb hit ${unit.name} for ${actualDamage.toFixed(1)} damage at ${distance3D.toFixed(1)}m`);
                     }
                 }
             }
@@ -2554,6 +2587,22 @@
                         return;
                     }
                 }
+
+                // Check direct hit on aerial units (balloons, blimps, airships)
+                for (let unit of aerialUnits) {
+                    if (unit.isDestroyed || unit.hasExploded) continue;
+                    const dx = unit.x - this.x;
+                    const dy = unit.y - this.y;
+                    const dz = unit.altitude - this.altitude;
+                    const distance2D = Math.sqrt(dx * dx + dy * dy);
+                    const distance3D = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    // Check if rocket is close enough to hit (within unit's collision radius)
+                    if (distance3D < unit.size) {
+                        this.explode();
+                        return;
+                    }
+                }
             }
 
             explode() {
@@ -2574,6 +2623,25 @@
                         const actualDamage = this.damage * (0.5 + 0.5 * damageFalloff); // 50-100% damage
                         target.takeDamage(actualDamage);
                         console.log(`Rocket hit ${target.type} for ${actualDamage.toFixed(1)} damage at ${distance.toFixed(1)}m`);
+                    }
+                }
+
+                // Damage aerial units in radius (rockets can be incendiary for balloon busting)
+                for (let unit of aerialUnits) {
+                    if (unit.isDestroyed || unit.hasExploded) continue;
+                    const dx = unit.x - this.x;
+                    const dy = unit.y - this.y;
+                    const dz = unit.altitude - this.altitude;
+                    const distance2D = Math.sqrt(dx * dx + dy * dy);
+                    const distance3D = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    if (distance3D < this.explosionRadius) {
+                        const damageFalloff = 1 - (distance3D / this.explosionRadius);
+                        const actualDamage = this.damage * (0.5 + 0.5 * damageFalloff);
+                        // Rockets can be incendiary (for WW1 balloon busting)
+                        const isIncendiary = this.incendiary || false;
+                        unit.takeDamage(actualDamage, isIncendiary);
+                        console.log(`Rocket hit ${unit.name} for ${actualDamage.toFixed(1)} damage at ${distance3D.toFixed(1)}m`);
                     }
                 }
             }
@@ -2881,7 +2949,7 @@
         aircraftImages.f2.src = 'images/f2.png';
         aircraftImages.hd3.src = 'images/hd3.png';
         aircraftImages.let5.src = 'images/let5.png';
-        aircraftImages.drii.src = 'images/drii.png';
+        aircraftImages.drii.src = 'images/dri.png';
         aircraftImages.dvii.src = 'images/dvii.png';
         aircraftImages.dv.src = 'images/dv.png';
         aircraftImages.eiv.src = 'images/eiv.png';
@@ -3562,6 +3630,7 @@
                     // Spotting balloon - static, tethered, fragile
                     this.health = 50;
                     this.maxHealth = 50;
+                    this.durability = 1.5; // Fragile - takes more damage
                     this.isStatic = true;
                     this.tetherLength = 200; // meters - altitude range
                     this.tetherX = x;
@@ -3575,6 +3644,7 @@
                     // Blimp - moveable, slow drift, moderate health
                     this.health = 150;
                     this.maxHealth = 150;
+                    this.durability = 1.2; // Somewhat fragile
                     this.isStatic = false;
                     this.driftSpeed = 2; // m/s - very slow drift
                     this.driftDirection = Math.random() * Math.PI * 2; // Random drift direction
@@ -3587,6 +3657,7 @@
                     // Airship - moveable, controlled, high health
                     this.health = 300 + Math.random() * 200; // 300-500 health
                     this.maxHealth = this.health;
+                    this.durability = 0.8; // More durable than balloons/blimps
                     this.isStatic = false;
                     this.speed = 8; // m/s - slow but controlled
                     this.heading = Math.random() * 360; // degrees
@@ -3600,6 +3671,13 @@
                     this.weaponCooldown = 0;
                     this.weaponRange = 500;
                     this.isAIControlled = true;
+                    // Defensive weapons for airships
+                    this.defensiveWeapons = {
+                        range: 500,
+                        damage: [3, 6],
+                        accuracy: 0.3, // Lower accuracy than aircraft
+                        rateOfFire: 2 // seconds between bursts
+                    };
                 }
                 
                 // Visual effects
@@ -6738,6 +6816,236 @@
                 }
             }
 
+            // Aircraft vs Aerial Units combat (balloons, blimps, airships)
+            for (let shooter of aircraft) {
+                if (shooter.isDestroyed) continue;
+                if (shooter.ammunition <= 0) continue;
+                if (shooter.firingCooldown > 0) continue;
+
+                for (let unit of aerialUnits) {
+                    if (unit.isDestroyed || unit.hasExploded) continue;
+
+                    const dx = unit.x - shooter.x;
+                    const dy = unit.y - shooter.y;
+                    const dz = unit.altitude - shooter.altitude;
+                    const distance2D = Math.sqrt(dx * dx + dy * dy);
+                    const distance3D = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    // Get shooter's flight heading
+                    let shooterFlightHeading = shooter.heading;
+                    if (shooter.slipAngle !== 0) {
+                        shooterFlightHeading = (shooter.heading - shooter.slipAngle + 360) % 360;
+                    }
+
+                    const angleToTarget = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
+                    let angleDiff = angleToTarget - shooterFlightHeading;
+                    if (angleDiff > 180) angleDiff -= 360;
+                    if (angleDiff < -180) angleDiff += 360;
+                    const signedAngleDiff = angleDiff;
+                    angleDiff = Math.abs(angleDiff);
+
+                    // Calculate maximum weapon range
+                    let maxWeaponRange = 400;
+                    if (shooter.hasMixedArmament && shooter.weaponGroups) {
+                        maxWeaponRange = Math.max(...shooter.weaponGroups.map(w => w.range || 400));
+                    } else if (shooter.weaponRange) {
+                        maxWeaponRange = shooter.weaponRange;
+                    }
+
+                    // Check if any weapon can engage
+                    let canEngageTarget = false;
+                    if (shooter.hasMixedArmament && shooter.weaponGroups) {
+                        for (let weaponGroup of shooter.weaponGroups) {
+                            if (weaponGroup.ammunition <= 0) continue;
+                            const mount = weaponGroup.mount || 'front';
+
+                            if (mount === 'front' && angleDiff < 20) {
+                                canEngageTarget = true;
+                                break;
+                            } else if (mount === 'rear' && angleDiff > 160) {
+                                canEngageTarget = true;
+                                break;
+                            } else if (mount === 'turret') {
+                                canEngageTarget = true;
+                                break;
+                            }
+                        }
+                    } else {
+                        canEngageTarget = angleDiff < 20;
+                    }
+
+                    // Check altitude difference (aerial units are at specific altitudes)
+                    const altitudeDiff = Math.abs(dz);
+                    if (altitudeDiff > 1000) continue; // Too far vertically
+
+                    // Check if target can be engaged and is in range
+                    if (canEngageTarget && distance3D < maxWeaponRange) {
+                        // Check line of sight
+                        const losBlocked = !terrain.isLineOfSightClear(
+                            shooter.x, shooter.y, shooter.altitude,
+                            unit.x, unit.y, unit.altitude
+                        );
+
+                        if (losBlocked) continue;
+
+                        // Calculate hit chance (aerial units are large, slow targets)
+                        let effectiveGunnerySkill = shooter.gunnerySkill * (1 - shooter.gForcePenalty);
+                        let hitChance = effectiveGunnerySkill * 0.8; // Higher base chance vs large targets
+                        hitChance *= Math.max(0.2, 1 - distance3D / maxWeaponRange);
+                        hitChance *= Math.max(0.5, 1 - altitudeDiff / 500);
+
+                        // Balloons are easier to hit, airships are harder
+                        if (unit.type === 'balloon') {
+                            hitChance *= 1.2; // Very large, stationary target
+                        } else if (unit.type === 'airship') {
+                            hitChance *= 0.9; // Large but moving
+                        }
+
+                        shooter.timeOnTarget += 0.1;
+
+                        // Fire if chance exceeds threshold
+                        if (hitChance >= shooter.fireThreshold * 0.7) { // Lower threshold for large targets
+                            shooter.isFiring = true;
+
+                            // Handle mixed armament vs single weapon
+                            if (shooter.hasMixedArmament) {
+                                for (let weaponGroup of shooter.weaponGroups) {
+                                    if (weaponGroup.ammunition <= 0) continue;
+                                    if (weaponGroup.firingCooldown > 0) {
+                                        weaponGroup.firingCooldown--;
+                                        continue;
+                                    }
+
+                                    const mount = weaponGroup.mount || 'front';
+                                    let inArc = false;
+
+                                    if (mount === 'front') {
+                                        inArc = angleDiff < 15;
+                                    } else if (mount === 'rear') {
+                                        inArc = angleDiff > 165;
+                                    } else if (mount === 'turret') {
+                                        inArc = true;
+                                    }
+
+                                    if (!inArc) continue;
+
+                                    // Fire this weapon group
+                                    weaponGroup.ammunition -= weaponGroup.ammoPerBurst;
+                                    weaponGroup.firingCooldown = weaponGroup.rateOfFire;
+                                    shooter.ammunition -= weaponGroup.ammoPerBurst;
+
+                                    // Calculate damage
+                                    const damageMin = weaponGroup.damage[0];
+                                    const damageMax = weaponGroup.damage[1];
+                                    let damageAmount = damageMin + Math.random() * (damageMax - damageMin);
+
+                                    // Incendiary ammo bonus vs balloons
+                                    if (weaponGroup.incendiary && unit.type === 'balloon') {
+                                        damageAmount *= 2.0; // Double damage from incendiary
+                                    }
+
+                                    // Apply durability multiplier
+                                    damageAmount *= unit.durability;
+
+                                    // Apply damage to unit
+                                    unit.takeDamage(damageAmount, weaponGroup.incendiary || false);
+
+                                    // Visual effect
+                                    unit.hitEffects.push({
+                                        x: unit.x + (Math.random() - 0.5) * 20,
+                                        y: unit.y + (Math.random() - 0.5) * 20,
+                                        type: weaponGroup.type === 'cannon' ? 'cannon' : 'mg',
+                                        time: Date.now(),
+                                        duration: weaponGroup.type === 'cannon' ? 300 : 150
+                                    });
+
+                                    console.log(`${shooter.name} HIT ${unit.name}! Damage: ${damageAmount.toFixed(1)}`);
+                                }
+                            } else {
+                                // Single weapon type
+                                if (Math.random() < hitChance) {
+                                    shooter.ammunition -= shooter.ammoPerBurst || 1;
+                                    shooter.firingCooldown = shooter.rateOfFire || 10;
+
+                                    const damageMin = shooter.weaponDamage[0];
+                                    const damageMax = shooter.weaponDamage[1];
+                                    let damageAmount = damageMin + Math.random() * (damageMax - damageMin);
+
+                                    // Incendiary bonus (if weapon has it)
+                                    if (shooter.weaponType === 'mg' && shooter.incendiary && unit.type === 'balloon') {
+                                        damageAmount *= 2.0;
+                                    }
+
+                                    damageAmount *= unit.durability;
+                                    unit.takeDamage(damageAmount, shooter.incendiary || false);
+
+                                    unit.hitEffects.push({
+                                        x: unit.x + (Math.random() - 0.5) * 20,
+                                        y: unit.y + (Math.random() - 0.5) * 20,
+                                        type: shooter.weaponType === 'cannon' ? 'cannon' : 'mg',
+                                        time: Date.now(),
+                                        duration: shooter.weaponType === 'cannon' ? 300 : 150
+                                    });
+
+                                    console.log(`${shooter.name} HIT ${unit.name}! Damage: ${damageAmount.toFixed(1)}`);
+                                }
+                            }
+                        } else {
+                            shooter.timeOnTarget = Math.max(0, shooter.timeOnTarget - 0.05);
+                        }
+                    }
+                }
+            }
+
+            // Aerial units (airships) can fire at aircraft
+            for (let unit of aerialUnits) {
+                if (unit.isDestroyed || unit.hasExploded) continue;
+                if (unit.type !== 'airship' || !unit.defensiveWeapons) continue;
+
+                for (let target of aircraft) {
+                    if (target.isDestroyed) continue;
+
+                    const dx = target.x - unit.x;
+                    const dy = target.y - unit.y;
+                    const dz = target.altitude - unit.altitude;
+                    const distance3D = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    if (distance3D > unit.defensiveWeapons.range) continue;
+
+                    const altitudeDiff = Math.abs(dz);
+                    if (altitudeDiff > 800) continue;
+
+                    // Airship defensive weapons have lower accuracy
+                    const hitChance = unit.defensiveWeapons.accuracy * (1 - distance3D / unit.defensiveWeapons.range) * 0.3;
+
+                    if (Math.random() < hitChance) {
+                        const damageMin = unit.defensiveWeapons.damage[0];
+                        const damageMax = unit.defensiveWeapons.damage[1];
+                        let damageAmount = damageMin + Math.random() * (damageMax - damageMin);
+
+                        damageAmount *= target.durability;
+                        applyComponentDamage(target, damageAmount);
+                        target.lastHitBy = `${unit.name} (defensive guns)`;
+                        target.lastHitTime = Date.now();
+
+                        target.hitEffects.push({
+                            x: target.x,
+                            y: target.y,
+                            type: 'mg',
+                            time: Date.now(),
+                            duration: 200
+                        });
+
+                        console.log(`${unit.name} defensive guns HIT ${target.name}! Damage: ${damageAmount.toFixed(1)}`);
+
+                        if (target.damage >= 100 && !target.isDestroyed) {
+                            target.isDestroyed = true;
+                            console.log(`💥 ${target.name} DESTROYED by ${unit.name}'s defensive guns!`);
+                        }
+                    }
+                }
+            }
+
             // Quick Win #3: AA Guns fire at aircraft
             for (let target of groundTargets) {
                 if (target.isAAGun && !target.isDestroyed) {
@@ -7015,6 +7323,11 @@
                     console.warn('[RENDER] Ghost exists but path missing or empty!',
                                 'Path length:', ghostAircraft.aircraft.flightPath?.length);
                 }
+            }
+
+            // Render aerial units (balloons, blimps, airships)
+            for (let unit of aerialUnits) {
+                unit.render();
             }
 
             // Render aircraft
@@ -8375,6 +8688,23 @@
                     }
                 }
 
+                // Update aerial units
+                for (let unit of aerialUnits) {
+                    unit.update(dt);
+                    // Update AI for airships
+                    if (unit.type === 'airship' && unit.isAIControlled) {
+                        unit.updateAI(aircraft, groundTargets);
+                    }
+                }
+                // Remove destroyed aerial units after explosion animation
+                aerialUnits = aerialUnits.filter(unit => {
+                    if (unit.hasExploded) {
+                        const elapsed = Date.now() - unit.explosionTime;
+                        return elapsed < 2000; // Keep for 2 seconds of explosion animation
+                    }
+                    return !unit.isDestroyed;
+                });
+
                 // Process combat
                 processCombat();
 
@@ -8687,6 +9017,28 @@
             for (let target of groundTargets) {
                 if (!target.isDestroyed) {
                     minimapCtx.fillRect(target.x * scaleX - 2, target.y * scaleY - 2, 4, 4);
+                }
+            }
+
+            // Draw aerial units (balloons, blimps, airships)
+            for (let unit of aerialUnits) {
+                if (!unit.isDestroyed && !unit.hasExploded) {
+                    if (unit.type === 'balloon') {
+                        minimapCtx.fillStyle = 'rgba(255, 200, 100, 0.9)'; // Yellow for balloons
+                        minimapCtx.beginPath();
+                        minimapCtx.arc(unit.x * scaleX, unit.y * scaleY, 4, 0, Math.PI * 2);
+                        minimapCtx.fill();
+                    } else if (unit.type === 'blimp') {
+                        minimapCtx.fillStyle = 'rgba(150, 200, 255, 0.9)'; // Light blue for blimps
+                        minimapCtx.beginPath();
+                        minimapCtx.arc(unit.x * scaleX, unit.y * scaleY, 5, 0, Math.PI * 2);
+                        minimapCtx.fill();
+                    } else if (unit.type === 'airship') {
+                        minimapCtx.fillStyle = 'rgba(200, 150, 200, 0.9)'; // Purple for airships
+                        minimapCtx.beginPath();
+                        minimapCtx.arc(unit.x * scaleX, unit.y * scaleY, 6, 0, Math.PI * 2);
+                        minimapCtx.fill();
+                    }
                 }
             }
 
