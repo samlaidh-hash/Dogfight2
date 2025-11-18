@@ -8002,6 +8002,192 @@
             }
         }
 
+        // Renegade Legion Fighter Missile - LRM, SRM, and Torpedoes
+        class FighterMissile {
+            constructor(x, y, shooter, target, missileType = 'srm') {
+                this.x = x;
+                this.y = y;
+                this.shooter = shooter;
+                this.target = target;
+                this.missileType = missileType; // 'lrm', 'srm', or 'torpedo'
+                this.heading = shooter.heading;
+                this.vx = 0;
+                this.vy = 0;
+                this.speed = 0;
+                this.isActive = true;
+                this.hasExploded = false;
+                this.motorTime = 0;
+                this.lockTime = 0;
+                this.isLocked = false;
+
+                // Set missile characteristics based on type
+                if (missileType === 'lrm') {
+                    // Long Range Missile
+                    this.maxTurnRate = 180; // deg/sec
+                    this.acceleration = 30 * 9.81; // 30G in m/s²
+                    this.motorBurnTime = 20; // seconds
+                    this.lockOnTime = 2.5; // medium lock-on time
+                    this.damage = 60; // heavy damage
+                    this.maxSpeed = this.acceleration * this.motorBurnTime; // Realistic max speed
+                    this.proximityFuseRange = 15;
+                } else if (missileType === 'srm') {
+                    // Short Range Missile
+                    this.maxTurnRate = 240; // deg/sec
+                    this.acceleration = 60 * 9.81; // 60G in m/s²
+                    this.motorBurnTime = 5; // seconds
+                    this.lockOnTime = 1.0; // fast lock-on time
+                    this.damage = 35; // medium damage
+                    this.maxSpeed = this.acceleration * this.motorBurnTime;
+                    this.proximityFuseRange = 12;
+                } else if (missileType === 'torpedo') {
+                    // Torpedo (anti-ship)
+                    this.maxTurnRate = 90; // deg/sec
+                    this.acceleration = 20 * 9.81; // 20G in m/s²
+                    this.motorBurnTime = 20; // seconds
+                    this.lockOnTime = 4.0; // very slow lock-on time
+                    this.damage = 120; // 50% of ship missile damage - very high
+                    this.maxSpeed = this.acceleration * this.motorBurnTime;
+                    this.proximityFuseRange = 20;
+                }
+
+                // Start with shooter's velocity
+                const shooterVelX = shooter.speed * Math.sin(shooter.heading * Math.PI / 180);
+                const shooterVelY = -shooter.speed * Math.cos(shooter.heading * Math.PI / 180);
+                this.vx = shooterVelX;
+                this.vy = shooterVelY;
+                this.speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+            }
+
+            update(dt) {
+                if (!this.isActive || this.hasExploded) return;
+
+                this.motorTime += dt;
+                this.lockTime += dt;
+
+                // Lock-on delay
+                if (this.lockTime >= this.lockOnTime) {
+                    this.isLocked = true;
+                }
+
+                // Motor burn phase
+                if (this.motorTime < this.motorBurnTime) {
+                    this.speed = Math.min(this.maxSpeed, this.speed + this.acceleration * dt);
+                } else {
+                    // Coasting phase - gradual slowdown
+                    this.speed = Math.max(this.maxSpeed * 0.5, this.speed - 50 * dt);
+                }
+
+                // Guidance (only if locked on)
+                if (this.isLocked && this.target && !this.target.isDestroyed) {
+                    // Calculate angle to target
+                    const dx = this.target.x - this.x;
+                    const dy = this.target.y - this.y;
+                    const angleToTarget = Math.atan2(dx, -dy) * 180 / Math.PI;
+
+                    // Current heading
+                    let currentHeading = Math.atan2(this.vx, -this.vy) * 180 / Math.PI;
+
+                    // Calculate angle difference
+                    let angleDiff = angleToTarget - currentHeading;
+                    while (angleDiff > 180) angleDiff -= 360;
+                    while (angleDiff < -180) angleDiff += 360;
+
+                    // Apply turn rate limit
+                    const maxTurn = this.maxTurnRate * dt;
+                    if (Math.abs(angleDiff) > maxTurn) {
+                        angleDiff = angleDiff > 0 ? maxTurn : -maxTurn;
+                    }
+
+                    // Update heading
+                    currentHeading += angleDiff;
+                    this.heading = currentHeading;
+
+                    // Update velocity vector
+                    this.vx = this.speed * Math.sin(currentHeading * Math.PI / 180);
+                    this.vy = -this.speed * Math.cos(currentHeading * Math.PI / 180);
+                } else {
+                    // No target or not locked - fly straight
+                    const currentHeading = Math.atan2(this.vx, -this.vy) * 180 / Math.PI;
+                    this.heading = currentHeading;
+                }
+
+                // Update position
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+
+                // Check for proximity hit
+                if (this.isLocked && this.target && !this.target.isDestroyed) {
+                    const dx = this.target.x - this.x;
+                    const dy = this.target.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < this.proximityFuseRange) {
+                        this.explode();
+                        return true; // Signal hit
+                    }
+                }
+
+                // Timeout after motor burn + 10 seconds coast
+                if (this.motorTime > this.motorBurnTime + 10) {
+                    this.isActive = false;
+                }
+
+                return false;
+            }
+
+            explode() {
+                this.hasExploded = true;
+                this.isActive = false;
+            }
+
+            render() {
+                if (!this.isActive || this.hasExploded) return;
+
+                ctx.save();
+
+                // Missile body
+                const bodyColor = this.motorTime < this.motorBurnTime ? '#ffcc00' : '#888888';
+                ctx.fillStyle = bodyColor;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Motor plume during burn
+                if (this.motorTime < this.motorBurnTime) {
+                    const plumeLength = 12;
+                    const heading = Math.atan2(this.vx, -this.vy);
+                    const gradient = ctx.createLinearGradient(
+                        this.x, this.y,
+                        this.x - Math.sin(heading) * plumeLength,
+                        this.y + Math.cos(heading) * plumeLength
+                    );
+                    gradient.addColorStop(0, 'rgba(255, 220, 100, 0.9)');
+                    gradient.addColorStop(1, 'rgba(255, 120, 0, 0)');
+
+                    ctx.strokeStyle = gradient;
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(
+                        this.x - Math.sin(heading) * plumeLength,
+                        this.y + Math.cos(heading) * plumeLength
+                    );
+                    ctx.stroke();
+                }
+
+                // Lock indicator (if not locked yet)
+                if (!this.isLocked) {
+                    ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 8, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                ctx.restore();
+            }
+        }
+
         class RocketAA {
             constructor(x, y, altitude, heading, target) {
                 this.x = x;
@@ -12995,9 +13181,45 @@
                                     } else if (weaponGroup.type === 'particle_beam') {
                                         // Particle Beams: Most effective at close range, both accuracy and damage fall off
                                         shouldFireThisWeapon = distance < (weaponGroup.range * 0.85);
+                                    } else if (weaponGroup.type === 'missile_hardpoint') {
+                                        // Missiles: Fire at medium-long range with clear shot
+                                        shouldFireThisWeapon = distance > 300 && distance < weaponGroup.range && hitChance > 0.2;
                                     }
 
                                     if (!shouldFireThisWeapon) continue;
+
+                                    // Handle missile launching separately
+                                    if (weaponGroup.type === 'missile_hardpoint' && weaponGroup.guided) {
+                                        // Initialize missile array if needed
+                                        if (!shooter.fighterMissiles) {
+                                            shooter.fighterMissiles = [];
+                                        }
+
+                                        // Determine missile type based on fighter faction/loadout
+                                        let missileType = 'srm'; // Default to SRM
+                                        if (weaponGroup.name && weaponGroup.name.toLowerCase().includes('torpedo')) {
+                                            missileType = 'torpedo';
+                                        } else if (weaponGroup.name && weaponGroup.name.toLowerCase().includes('lrm')) {
+                                            missileType = 'lrm';
+                                        } else if (distance > 2000) {
+                                            missileType = 'lrm'; // Use LRM at long range
+                                        } else if (target.type && (target.type.includes('Ship') || target.type.includes('Cruiser'))) {
+                                            missileType = 'torpedo'; // Use torpedoes against capital ships
+                                        }
+
+                                        // Launch missile
+                                        const missile = new FighterMissile(shooter.x, shooter.y, shooter, target, missileType);
+                                        shooter.fighterMissiles.push(missile);
+
+                                        // Consume ammo and set cooldown
+                                        weaponGroup.ammunition -= 1;
+                                        shooter.ammunition -= 1;
+                                        weaponGroup.firingCooldown = weaponGroup.rateOfFire * 2; // Longer cooldown for missiles
+                                        weaponsFired.push(weaponGroup.name + ` (${missileType.toUpperCase()})`);
+
+                                        console.log(`${shooter.name} launched ${missileType.toUpperCase()} at ${target.name}!`);
+                                        continue; // Skip normal weapon firing logic
+                                    }
 
                                     // Fire this weapon group
                                     // Energy weapons (lasers, particle beams) don't consume ammo
@@ -14530,6 +14752,15 @@
                 missile.render();
             }
 
+            // Render fighter-launched missiles
+            for (let plane of aircraft) {
+                if (plane.fighterMissiles) {
+                    for (let missile of plane.fighterMissiles) {
+                        missile.render();
+                    }
+                }
+            }
+
             // Render ghost if in order mode
             if (ghostAircraft) {
                 ghostAircraft.aircraft.renderSVG(true, ghostAircraft.state);
@@ -15859,6 +16090,42 @@
                         missiles.splice(i, 1);
                     } else if (!missiles[i].isActive && !missiles[i].hasExploded) {
                         missiles.splice(i, 1);
+                    }
+                }
+
+                // Update fighter-launched missiles
+                for (let plane of aircraft) {
+                    if (!plane.fighterMissiles) continue;
+
+                    for (let i = plane.fighterMissiles.length - 1; i >= 0; i--) {
+                        const missile = plane.fighterMissiles[i];
+                        const hit = missile.update(dt);
+
+                        // Apply damage if missile hit
+                        if (hit && missile.target && !missile.target.isDestroyed) {
+                            let damageAmount = missile.damage;
+
+                            // Apply durability multiplier
+                            damageAmount *= missile.target.durability;
+
+                            // Apply damage
+                            applyComponentDamage(missile.target, damageAmount);
+                            missile.target.lastHitBy = plane.name;
+                            missile.target.lastHitTime = Date.now();
+
+                            console.log(`${missile.missileType.toUpperCase()} HIT! ${missile.target.name} took ${damageAmount.toFixed(1)} damage`);
+
+                            // Check for destruction
+                            if (missile.target.damage >= 100 && !missile.target.isDestroyed) {
+                                missile.target.isDestroyed = true;
+                                console.log(`💥 ${missile.target.name} DESTROYED by ${plane.name}'s ${missile.missileType.toUpperCase()}!`);
+                            }
+                        }
+
+                        // Remove inactive missiles
+                        if (!missile.isActive) {
+                            plane.fighterMissiles.splice(i, 1);
+                        }
                     }
                 }
 
