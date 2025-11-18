@@ -3147,6 +3147,63 @@
             }
         };
 
+        // Hardpoint configurations for aircraft
+        const hardpointConfigs = {
+            'P-47': [
+                { position: 'centerline', capacity: 450, typesAccepted: ['bomb', 'fuel_tank'], visualOffset: { x: 0, y: 0 }, stationNumber: 1 },
+                { position: 'left_wing_inner', capacity: 250, typesAccepted: ['bomb', 'rocket_pod'], visualOffset: { x: -12, y: 2 }, stationNumber: 2 },
+                { position: 'right_wing_inner', capacity: 250, typesAccepted: ['bomb', 'rocket_pod'], visualOffset: { x: 12, y: 2 }, stationNumber: 3 }
+            ],
+            'Me-262': [
+                { position: 'fuselage_left', capacity: 250, typesAccepted: ['bomb', 'rocket_pod'], visualOffset: { x: -8, y: -5 }, stationNumber: 1 },
+                { position: 'fuselage_right', capacity: 250, typesAccepted: ['bomb', 'rocket_pod'], visualOffset: { x: 8, y: -5 }, stationNumber: 2 }
+            ],
+            'Spitfire': [
+                { position: 'centerline', capacity: 225, typesAccepted: ['bomb'], visualOffset: { x: 0, y: 0 }, stationNumber: 1 },
+                { position: 'left_wing', capacity: 110, typesAccepted: ['bomb'], visualOffset: { x: -10, y: 3 }, stationNumber: 2 },
+                { position: 'right_wing', capacity: 110, typesAccepted: ['bomb'], visualOffset: { x: 10, y: 3 }, stationNumber: 3 }
+            ],
+            'Fw-190': [
+                { position: 'centerline', capacity: 250, typesAccepted: ['bomb', 'fuel_tank'], visualOffset: { x: 0, y: 0 }, stationNumber: 1 },
+                { position: 'left_wing_inner', capacity: 200, typesAccepted: ['bomb', 'rocket_pod'], visualOffset: { x: -10, y: 2 }, stationNumber: 2 },
+                { position: 'right_wing_inner', capacity: 200, typesAccepted: ['bomb', 'rocket_pod'], visualOffset: { x: 10, y: 2 }, stationNumber: 3 },
+                { position: 'left_wing_outer', capacity: 50, typesAccepted: ['rocket_pod'], visualOffset: { x: -18, y: 4 }, stationNumber: 4 },
+                { position: 'right_wing_outer', capacity: 50, typesAccepted: ['rocket_pod'], visualOffset: { x: 18, y: 4 }, stationNumber: 5 }
+            ],
+            'P-51': [
+                { position: 'left_wing_inner', capacity: 450, typesAccepted: ['bomb', 'fuel_tank'], visualOffset: { x: -12, y: 2 }, stationNumber: 1 },
+                { position: 'right_wing_inner', capacity: 450, typesAccepted: ['bomb', 'fuel_tank'], visualOffset: { x: 12, y: 2 }, stationNumber: 2 }
+            ],
+            'Typhoon': [
+                { position: 'centerline', capacity: 450, typesAccepted: ['bomb', 'fuel_tank'], visualOffset: { x: 0, y: 0 }, stationNumber: 1 },
+                { position: 'left_wing_inner', capacity: 225, typesAccepted: ['bomb', 'rocket_pod'], visualOffset: { x: -12, y: 3 }, stationNumber: 2 },
+                { position: 'right_wing_inner', capacity: 225, typesAccepted: ['bomb', 'rocket_pod'], visualOffset: { x: 12, y: 3 }, stationNumber: 3 },
+                { position: 'left_wing_outer', capacity: 110, typesAccepted: ['rocket_pod'], visualOffset: { x: -20, y: 5 }, stationNumber: 4 },
+                { position: 'right_wing_outer', capacity: 110, typesAccepted: ['rocket_pod'], visualOffset: { x: 20, y: 5 }, stationNumber: 5 }
+            ],
+            'Ju-87': [
+                { position: 'centerline', capacity: 500, typesAccepted: ['bomb'], canJettison: false, visualOffset: { x: 0, y: 0 }, stationNumber: 1 },
+                { position: 'left_wing_inner', capacity: 250, typesAccepted: ['bomb'], visualOffset: { x: -12, y: 2 }, stationNumber: 2 },
+                { position: 'right_wing_inner', capacity: 250, typesAccepted: ['bomb'], visualOffset: { x: 12, y: 2 }, stationNumber: 3 },
+                { position: 'left_wing_outer', capacity: 50, typesAccepted: ['bomb'], visualOffset: { x: -18, y: 4 }, stationNumber: 4 },
+                { position: 'right_wing_outer', capacity: 50, typesAccepted: ['bomb'], visualOffset: { x: 18, y: 4 }, stationNumber: 5 }
+            ],
+            'P-38': [
+                { position: 'centerline', capacity: 900, typesAccepted: ['bomb', 'fuel_tank'], visualOffset: { x: 0, y: 0 }, stationNumber: 1 },
+                { position: 'left_nacelle_inner', capacity: 450, typesAccepted: ['bomb', 'rocket_pod'], visualOffset: { x: -12, y: -2 }, stationNumber: 2 },
+                { position: 'right_nacelle_inner', capacity: 450, typesAccepted: ['bomb', 'rocket_pod'], visualOffset: { x: 12, y: -2 }, stationNumber: 3 },
+                { position: 'left_nacelle_outer', capacity: 225, typesAccepted: ['rocket_pod'], visualOffset: { x: -15, y: 0 }, stationNumber: 4 },
+                { position: 'right_nacelle_outer', capacity: 225, typesAccepted: ['rocket_pod'], visualOffset: { x: 15, y: 0 }, stationNumber: 5 }
+            ],
+            'Tempest': [
+                { position: 'centerline', capacity: 450, typesAccepted: ['bomb', 'fuel_tank'], visualOffset: { x: 0, y: 0 }, stationNumber: 1 },
+                { position: 'left_wing_inner', capacity: 225, typesAccepted: ['bomb', 'rocket_pod'], visualOffset: { x: -12, y: 3 }, stationNumber: 2 },
+                { position: 'right_wing_inner', capacity: 225, typesAccepted: ['bomb', 'rocket_pod'], visualOffset: { x: 12, y: 3 }, stationNumber: 3 },
+                { position: 'left_wing_outer', capacity: 110, typesAccepted: ['rocket_pod'], visualOffset: { x: -20, y: 5 }, stationNumber: 4 },
+                { position: 'right_wing_outer', capacity: 110, typesAccepted: ['rocket_pod'], visualOffset: { x: 20, y: 5 }, stationNumber: 5 }
+            ]
+        };
+
         // Weather effects
         let weatherState = {
             windSpeed: 0,
@@ -3375,6 +3432,77 @@
                 } else {
                     return { hit: false, target: target };
                 }
+            }
+        }
+
+        // Hardpoint and Store classes - Unified weapon mounting system
+        class Hardpoint {
+            constructor(config) {
+                this.position = config.position; // 'centerline', 'left_wing_inner', 'right_wing_outer', etc.
+                this.capacity = config.capacity; // Weight limit in kg
+                this.typesAccepted = config.typesAccepted || ['bomb', 'missile', 'rocket_pod', 'fuel_tank', 'gun_pod'];
+                this.currentStore = config.currentStore || null; // What's currently mounted
+                this.pylonType = config.pylonType || 'single'; // 'single', 'dual', 'triple'
+                this.canJettison = config.canJettison !== false; // Default true
+                this.dragCoefficient = config.dragCoefficient || 0.02; // Drag per store
+                this.visualOffset = config.visualOffset || { x: 0, y: 0 }; // Rendering position
+                this.stationNumber = config.stationNumber || 0; // For identification
+            }
+
+            // Check if a store type can be mounted
+            canMount(storeType) {
+                return this.typesAccepted.includes(storeType);
+            }
+
+            // Mount a store
+            mount(store) {
+                if (!this.canMount(store.type)) {
+                    console.log(`Cannot mount ${store.type} on ${this.position} hardpoint (accepts: ${this.typesAccepted.join(', ')})`);
+                    return false;
+                }
+                if (store.weight > this.capacity) {
+                    console.log(`Store too heavy (${store.weight}kg) for hardpoint capacity (${this.capacity}kg)`);
+                    return false;
+                }
+                this.currentStore = store;
+                return true;
+            }
+
+            // Jettison the store
+            jettison() {
+                if (!this.canJettison) {
+                    console.log(`${this.position} hardpoint cannot jettison`);
+                    return null;
+                }
+                const store = this.currentStore;
+                this.currentStore = null;
+                return store;
+            }
+
+            // Get weight of mounted store
+            getWeight() {
+                return this.currentStore ? this.currentStore.weight : 0;
+            }
+
+            // Get drag of mounted store
+            getDrag() {
+                return this.currentStore ? this.dragCoefficient * this.currentStore.dragFactor : 0;
+            }
+
+            // Check if empty
+            isEmpty() {
+                return this.currentStore === null;
+            }
+        }
+
+        // Store class - represents weapons/equipment that can be mounted
+        class Store {
+            constructor(type, name, weight, dragFactor = 1.0) {
+                this.type = type; // 'bomb', 'missile', 'rocket_pod', 'fuel_tank', 'gun_pod'
+                this.name = name;
+                this.weight = weight; // kg
+                this.dragFactor = dragFactor; // Multiplier for drag
+                this.quantity = type === 'rocket_pod' ? 7 : 1; // Rockets have multiple rounds
             }
         }
 
@@ -6392,6 +6520,41 @@
                 this.bombCooldown = 0; // Cooldown between bomb drops
                 this.rocketCooldown = 0; // Cooldown between rocket launches
 
+                // Hardpoint system - unified weapon mounting
+                this.hardpoints = [];
+                this.hasAutoJettisoned = false; // Track if auto-jettison has occurred during high-G
+                const hardpointConfig = hardpointConfigs[type];
+                if (hardpointConfig) {
+                    // Initialize hardpoints from configuration
+                    this.hardpoints = hardpointConfig.map(config => new Hardpoint(config));
+
+                    // Load default stores based on aircraft capabilities
+                    // This provides backward compatibility with existing bomb/rocket system
+                    if (this.canCarryBombs && this.bombs > 0) {
+                        // Mount bombs on available hardpoints
+                        let bombsToMount = this.bombs;
+                        for (let hp of this.hardpoints) {
+                            if (bombsToMount > 0 && hp.canMount('bomb')) {
+                                const bombWeight = 110; // kg - standard 250lb bomb
+                                hp.mount(new Store('bomb', '250lb GP', bombWeight, 1.2));
+                                bombsToMount--;
+                            }
+                        }
+                    }
+                    if (this.canCarryRockets && this.rockets > 0) {
+                        // Mount rocket pods on available hardpoints
+                        let rocketsRemaining = this.rockets;
+                        for (let hp of this.hardpoints) {
+                            if (rocketsRemaining > 0 && hp.canMount('rocket_pod')) {
+                                const rocketPodWeight = 35; // kg - 7-round rocket pod
+                                hp.mount(new Store('rocket_pod', '7x Rockets', rocketPodWeight, 1.5));
+                                rocketsRemaining -= 7;
+                                if (rocketsRemaining < 0) rocketsRemaining = 0;
+                            }
+                        }
+                    }
+                }
+
                 // Missile system (Advanced weapons enhancement)
                 this.canCarryMissiles = specs.canCarryMissiles || false;
                 this.missiles = this.canCarryMissiles ? (specs.missileCapacity || 4) : 0;
@@ -6486,6 +6649,88 @@
                     controls: 0,  // 0-1, reduces turn rate
                     weapons: 0    // 0-1, reduces accuracy and fire rate
                 };
+            }
+
+            // Hardpoint management methods
+            mountStore(hardpointIndex, store) {
+                if (hardpointIndex < 0 || hardpointIndex >= this.hardpoints.length) {
+                    console.log(`Invalid hardpoint index: ${hardpointIndex}`);
+                    return false;
+                }
+                return this.hardpoints[hardpointIndex].mount(store);
+            }
+
+            jettisonStore(hardpointIndex) {
+                if (hardpointIndex < 0 || hardpointIndex >= this.hardpoints.length) {
+                    console.log(`Invalid hardpoint index: ${hardpointIndex}`);
+                    return null;
+                }
+                const store = this.hardpoints[hardpointIndex].jettison();
+                if (store) {
+                    console.log(`${this.name} jettisoned ${store.name} from ${this.hardpoints[hardpointIndex].position}`);
+                }
+                return store;
+            }
+
+            jettisonAllStores() {
+                let count = 0;
+                for (let hp of this.hardpoints) {
+                    if (!hp.isEmpty() && hp.canJettison) {
+                        hp.jettison();
+                        count++;
+                    }
+                }
+                if (count > 0) {
+                    console.log(`${this.name} jettisoned all stores (${count} items)`);
+                }
+                return count;
+            }
+
+            getTotalWeight() {
+                let weight = 0;
+                for (let hp of this.hardpoints) {
+                    weight += hp.getWeight();
+                }
+                return weight;
+            }
+
+            getTotalDrag() {
+                let drag = 0;
+                for (let hp of this.hardpoints) {
+                    drag += hp.getDrag();
+                }
+                return drag;
+            }
+
+            getAsymmetricWeight() {
+                let leftWeight = 0;
+                let rightWeight = 0;
+                for (let hp of this.hardpoints) {
+                    const pos = hp.position.toLowerCase();
+                    if (pos.includes('left')) {
+                        leftWeight += hp.getWeight();
+                    } else if (pos.includes('right')) {
+                        rightWeight += hp.getWeight();
+                    }
+                }
+                return Math.abs(leftWeight - rightWeight);
+            }
+
+            canMountStore(hardpointIndex, storeType) {
+                if (hardpointIndex < 0 || hardpointIndex >= this.hardpoints.length) {
+                    return false;
+                }
+                return this.hardpoints[hardpointIndex].canMount(storeType);
+            }
+
+            getHardpointStatus() {
+                return this.hardpoints.map((hp, idx) => ({
+                    index: idx,
+                    position: hp.position,
+                    capacity: hp.capacity,
+                    store: hp.currentStore ? hp.currentStore.name : 'Empty',
+                    weight: hp.getWeight()
+                }));
             }
 
             getScaleForAltitude() {
@@ -7030,6 +7275,83 @@
                     ctx.beginPath();
                     ctx.arc(0, 0, 35, 0, Math.PI * 2);
                     ctx.stroke();
+                }
+
+                // Draw hardpoints and mounted stores
+                if (!isGhost && this.hardpoints.length > 0) {
+                    for (let hp of this.hardpoints) {
+                        const offset = hp.visualOffset;
+
+                        // Draw hardpoint pylon (small mount point)
+                        ctx.fillStyle = '#666666';
+                        ctx.beginPath();
+                        ctx.arc(offset.x, offset.y, 1.5, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Draw mounted store if present
+                        if (hp.currentStore) {
+                            const store = hp.currentStore;
+
+                            // Different shapes and colors for different store types
+                            if (store.type === 'bomb') {
+                                // Bomb: dark gray teardrop shape
+                                ctx.fillStyle = '#444444';
+                                ctx.strokeStyle = '#222222';
+                                ctx.lineWidth = 0.5;
+                                ctx.beginPath();
+                                ctx.ellipse(offset.x, offset.y, 2, 4, 0, 0, Math.PI * 2);
+                                ctx.fill();
+                                ctx.stroke();
+                            } else if (store.type === 'rocket_pod') {
+                                // Rocket pod: red/orange rectangles
+                                ctx.fillStyle = '#ff6600';
+                                ctx.strokeStyle = '#cc3300';
+                                ctx.lineWidth = 0.5;
+                                ctx.fillRect(offset.x - 1.5, offset.y - 3, 3, 6);
+                                ctx.strokeRect(offset.x - 1.5, offset.y - 3, 3, 6);
+                                // Small rockets visible
+                                ctx.fillStyle = '#ffaa00';
+                                for (let i = 0; i < 3; i++) {
+                                    ctx.fillRect(offset.x - 0.5, offset.y - 2 + i * 2, 1, 1);
+                                }
+                            } else if (store.type === 'fuel_tank') {
+                                // Fuel tank: light gray cylinder
+                                ctx.fillStyle = '#888888';
+                                ctx.strokeStyle = '#666666';
+                                ctx.lineWidth = 0.5;
+                                ctx.beginPath();
+                                ctx.ellipse(offset.x, offset.y, 2.5, 5, 0, 0, Math.PI * 2);
+                                ctx.fill();
+                                ctx.stroke();
+                            } else if (store.type === 'missile') {
+                                // Missile: white/silver with fins
+                                ctx.fillStyle = '#cccccc';
+                                ctx.strokeStyle = '#999999';
+                                ctx.lineWidth = 0.5;
+                                ctx.fillRect(offset.x - 1, offset.y - 4, 2, 8);
+                                ctx.strokeRect(offset.x - 1, offset.y - 4, 2, 8);
+                                // Fins
+                                ctx.fillStyle = '#999999';
+                                ctx.beginPath();
+                                ctx.moveTo(offset.x - 1, offset.y + 2);
+                                ctx.lineTo(offset.x - 2, offset.y + 4);
+                                ctx.lineTo(offset.x, offset.y + 4);
+                                ctx.fill();
+                                ctx.beginPath();
+                                ctx.moveTo(offset.x + 1, offset.y + 2);
+                                ctx.lineTo(offset.x + 2, offset.y + 4);
+                                ctx.lineTo(offset.x, offset.y + 4);
+                                ctx.fill();
+                            } else if (store.type === 'gun_pod') {
+                                // Gun pod: dark cylindrical shape
+                                ctx.fillStyle = '#333333';
+                                ctx.strokeStyle = '#111111';
+                                ctx.lineWidth = 0.5;
+                                ctx.fillRect(offset.x - 1.5, offset.y - 4, 3, 8);
+                                ctx.strokeRect(offset.x - 1.5, offset.y - 4, 3, 8);
+                            }
+                        }
+                    }
                 }
 
                 ctx.restore();
@@ -8268,6 +8590,28 @@
                     // Apply damage for stressful maneuvers
                     if (this.currentGForce > this.maxGForce * 0.85) {
                         this.damage += 0.1; // Gradual damage from high G
+                    }
+
+                    // Emergency jettison during extreme G-forces (optional automatic)
+                    // Aircraft automatically jettison stores when exceeding safe G-limits
+                    if (this.currentGForce > this.maxGForce * 0.95 && this.hardpoints.length > 0) {
+                        let autoJettisonCount = 0;
+                        for (let hp of this.hardpoints) {
+                            if (!hp.isEmpty() && hp.canJettison) {
+                                // Only jettison once per high-G event (not continuously)
+                                if (!this.hasAutoJettisoned) {
+                                    hp.jettison();
+                                    autoJettisonCount++;
+                                }
+                            }
+                        }
+                        if (autoJettisonCount > 0 && !this.hasAutoJettisoned) {
+                            console.log(`[AUTO-JETTISON] ${this.name} auto-jettisoned ${autoJettisonCount} stores due to extreme G-force (${this.currentGForce.toFixed(1)}G)`);
+                            this.hasAutoJettisoned = true;
+                        }
+                    } else if (this.currentGForce < this.maxGForce * 0.8) {
+                        // Reset auto-jettison flag when G-forces return to normal
+                        this.hasAutoJettisoned = false;
                     }
                 } else {
                     // Fallback to old linear interpolation if no path (shouldn't happen)
@@ -10628,6 +10972,22 @@
                         flares.push(flare);
 
                         console.log(`[COUNTERMEASURE] ${plane.name} dispensed flare! Remaining: ${plane.flares}`);
+                    }
+                }
+                return;
+            }
+
+            // Emergency jettison - works during EXECUTION phase
+            if (e.key.toLowerCase() === 'x' && gameState === 'EXECUTION') {
+                // Jettison all stores from player aircraft
+                for (let plane of aircraft) {
+                    if (plane.isPlayer && !plane.isDestroyed && plane.hardpoints.length > 0) {
+                        const jettisonCount = plane.jettisonAllStores();
+                        if (jettisonCount > 0) {
+                            // Show visual feedback
+                            console.log(`[EMERGENCY JETTISON] ${plane.name} jettisoned ${jettisonCount} stores!`);
+                            // Note: Visual falling stores could be added by other agents
+                        }
                     }
                 }
                 return;
