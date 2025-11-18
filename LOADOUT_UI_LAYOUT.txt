@@ -1,0 +1,310 @@
+================================================================================
+LOADOUT SYSTEM - UI LAYOUT DIAGRAM
+================================================================================
+
+PRE-MISSION LOADOUT SCREEN (#loadoutPanel)
+┌────────────────────────────────────────────────────────────────────────────┐
+│                        AIRCRAFT LOADOUT                                    │
+│                        Supermarine Spitfire                                │
+├──────────────────┬─────────────────────────────┬───────────────────────────┤
+│                  │                             │                           │
+│  PERFORMANCE     │     AIRCRAFT DISPLAY        │    AVAILABLE STORES       │
+│  IMPACT          │                             │                           │
+│                  │    ┌───────────────────┐    │  ┌─────────────────────┐ │
+│ Max Speed        │    │                   │    │  │ Air-to-Air          │ │
+│ ████████░░ 85%   │    │     ╔═══╗         │    │  ├─────────────────────┤ │
+│                  │    │     ║   ║         │    │  │ 🚀 AIM-9 Sidewinder │ │
+│ Turn Rate        │    │ ◉───╫───╫───◉     │    │  │    85kg | 15% drag  │ │
+│ ██████░░░░ 65%   │    │     ║   ║         │    │  │                     │ │
+│                  │    │     ╚═╤═╝         │    │  │ 🚀 AIM-7 Sparrow    │ │
+│ Climb Rate       │    │       ◉           │    │  │    230kg | 25% drag │ │
+│ ███████░░░ 72%   │    │       │           │    │  └─────────────────────┘ │
+│                  │    │      ◉ ◉          │    │                           │
+│ Acceleration     │    │                   │    │  ┌─────────────────────┐ │
+│ ████████░░ 80%   │    └───────────────────┘    │  │ Air-to-Ground       │ │
+│                  │                             │  ├─────────────────────┤ │
+│ ⚠️ WARNING       │  Click hardpoint ◉ to       │  │ 💣 250lb GP Bomb    │ │
+│ Heavy loadout    │  select, then choose        │  │    113kg | 20% drag │ │
+│ will impact      │  store from right →         │  │                     │ │
+│ performance!     │                             │  │ 💣 500lb GP Bomb    │ │
+│                  │  Total Weight: 850 kg       │  │    227kg | 30% drag │ │
+│                  │                             │  └─────────────────────┘ │
+│                  │  ┌──────────────────────┐   │                           │
+│                  │  │  QUICK LOADOUTS      │   │  ┌─────────────────────┐ │
+│                  │  ├──────────────────────┤   │  │ SEAD                │ │
+│                  │  │ [Air-to-Air]         │   │  ├─────────────────────┤ │
+│                  │  │ [Ground Attack]      │   │  │ ⚡ AGM-45 Shrike     │ │
+│                  │  │ [Long Range]         │   │  └─────────────────────┘ │
+│                  │  │ [SEAD] [Clean]       │   │                           │
+│                  │  └──────────────────────┘   │  ┌─────────────────────┐ │
+│                  │                             │  │ Fuel                │ │
+│                  │  ☑ Symmetric Loading       │  ├─────────────────────┤ │
+│                  │                             │  │ ⛽ 150gal Fuel Tank  │ │
+│                  │                             │  │    567kg | 35% drag │ │
+│                  │                             │  └─────────────────────┘ │
+└──────────────────┴─────────────────────────────┴───────────────────────────┘
+│                   [HELP]        [START MISSION]                            │
+└────────────────────────────────────────────────────────────────────────────┘
+
+Legend:
+  ◉ = Hardpoint (clickable circle)
+  ◉ (green border) = Empty hardpoint
+  🚀 (orange border) = Mounted hardpoint with store icon
+  ◉ (red glow) = Selected hardpoint
+
+
+================================================================================
+
+IN-GAME HUD LOADOUT DISPLAY (#hudLoadout)
+                                                     ┌─────────────────────────┐
+                                                     │       LOADOUT           │
+                                                     ├─────────────────────────┤
+                                                     │ 🚀 AIM-9 Sidewinder  4/4│ ← Selected (red glow)
+                                                     ├─────────────────────────┤
+                                                     │ 💣 500lb GP Bomb     2/2│
+                                                     ├─────────────────────────┤
+                                                     │ 🎯 Hydra 70 Pod    19/19│
+                                                     ├─────────────────────────┤
+                                                     │ ⛽ 150gal Tank      1/1 │ ← Grayed (not weapon)
+                                                     └─────────────────────────┘
+                                                     Press Z to cycle weapons
+
+Position: Bottom-right corner of screen
+Status Colors:
+  - Green count (>30% remaining)
+  - Yellow count (10-30% remaining)
+  - Red count (0% - depleted)
+
+
+================================================================================
+
+TUTORIAL OVERLAY (#loadoutTutorial)
+┌────────────────────────────────────────────────────────────────────────────┐
+│                      LOADOUT SYSTEM GUIDE                                  │
+│                                                                            │
+│  ┌──────────────────────────────────────────────────────────────────────┐ │
+│  │ OVERVIEW                                                             │ │
+│  │ Configure your aircraft's weapons and equipment before each mission. │ │
+│  │ Your loadout affects both your combat capability and aircraft       │ │
+│  │ performance.                                                         │ │
+│  └──────────────────────────────────────────────────────────────────────┘ │
+│                                                                            │
+│  ┌──────────────────────────────────────────────────────────────────────┐ │
+│  │ HOW TO USE                                                           │ │
+│  │ • Click a hardpoint (circle on aircraft) to select it               │ │
+│  │ • Choose a store from the right panel to mount it                   │ │
+│  │ • Compatible stores are highlighted; incompatible ones are grayed   │ │
+│  │ • Use Symmetric Loading to auto-mirror left/right pylons            │ │
+│  │ • Click Quick Loadouts for pre-configured setups                    │ │
+│  └──────────────────────────────────────────────────────────────────────┘ │
+│                                                                            │
+│  ┌──────────────────────────────────────────────────────────────────────┐ │
+│  │ PERFORMANCE IMPACT                                                   │ │
+│  │ External stores add weight and drag, reducing performance:          │ │
+│  │ • Green bars (80-100%): Minimal impact                              │ │
+│  │ • Yellow bars (60-79%): Moderate degradation                        │ │
+│  │ • Red bars (<60%): Significant penalty                              │ │
+│  └──────────────────────────────────────────────────────────────────────┘ │
+│                                                                            │
+│  ┌──────────────────────────────────────────────────────────────────────┐ │
+│  │ IN-GAME WEAPON SELECTION                                            │ │
+│  │  [Z]  Cycle through mounted weapons                                 │ │
+│  │  [M]  Fire selected air-to-air missile                              │ │
+│  │  [N]  Drop selected bomb                                            │ │
+│  │  [K]  Fire selected rocket                                          │ │
+│  └──────────────────────────────────────────────────────────────────────┘ │
+│                                                                            │
+│                              [GOT IT]                                      │
+└────────────────────────────────────────────────────────────────────────────┘
+
+Position: Full-screen overlay (centered)
+Display: On first use, or manual via HELP button
+
+
+================================================================================
+
+HARDPOINT STATES VISUAL GUIDE
+────────────────────────────
+
+Empty Hardpoint:              Selected Empty:           Mounted Hardpoint:
+     ╔═══╗                        ╔═══╗                     ╔═══╗
+     ║   ║                        ║   ║                     ║ 🚀 ║
+     ╚═══╝                        ╚═══╝                     ╚═══╝
+  Green border                Red border + glow          Orange border
+  Blue background            Red background               Orange background
+
+Selected Mounted:             Incompatible Store:        Compatible Store:
+     ╔═══╗                    ┌───────────────┐          ┌───────────────┐
+     ║ 💣 ║                    │ 🚀 Store Name │          │ 🚀 Store Name │
+     ╚═══╝                    │   Grayed out  │          │  Highlighted  │
+  Red border + glow            └───────────────┘          └───────────────┘
+  Red background               40% opacity                Green hover glow
+
+
+================================================================================
+
+RESPONSIVE LAYOUT BREAKPOINTS
+──────────────────────────────
+
+Desktop (1400px+):
+┌──────────────────────────────────────────────┐
+│  [280px]  │  [Flexible]  │  [280px]          │
+│  Perf     │   Aircraft   │  Stores           │
+└──────────────────────────────────────────────┘
+
+Tablet (800-1399px):
+┌──────────────────────────────────────────────┐
+│  [200px]  │  [Flexible]  │  [200px]          │
+│  Perf     │   Aircraft   │  Stores           │
+└──────────────────────────────────────────────┘
+
+Mobile (<800px):
+┌──────────────────────┐
+│     Aircraft         │
+├──────────────────────┤
+│     Performance      │
+├──────────────────────┤
+│     Stores           │
+└──────────────────────┘
+
+
+================================================================================
+
+COLOR PALETTE
+─────────────
+
+Primary Colors:
+  Background:      #000000 (rgba(0,0,0,0.95))
+  Primary Accent:  #e94560 (Red - danger, selected)
+  Secondary:       #0f3460 (Dark Blue - borders, panels)
+  Success:         #0f9d58 (Green - normal, compatible)
+  Warning:         #f39c12 (Orange - mounted, caution)
+  Text Primary:    #eee (Light gray)
+  Text Secondary:  #ccc (Medium gray)
+  Text Tertiary:   #888 (Dark gray)
+
+Performance Bars:
+  Good (80-100%):      Linear gradient #0f9d58 → #88ff88 (Green)
+  Moderate (60-79%):   Linear gradient #f39c12 → #ffcc77 (Orange)
+  Degraded (<60%):     Linear gradient #e94560 → #ff8877 (Red)
+
+
+================================================================================
+
+INTERACTIVE STATES
+──────────────────
+
+Buttons:
+  Normal:    background #0f3460, border #0f3460
+  Hover:     background #1a4d7a, transform scale(1.05)
+  Active:    background #0a2540
+  Primary:   background #e94560 (red)
+
+Hardpoints:
+  Normal:    background rgba(15,52,96,0.8), border #0f9d58 (green)
+  Hover:     background rgba(15,157,88,0.5), transform scale(1.2), glow
+  Selected:  background rgba(233,69,96,0.8), border #e94560 (red), glow
+  Mounted:   background rgba(243,156,18,0.5), border #f39c12 (orange)
+
+Stores:
+  Normal:       background rgba(0,0,0,0.4), border #0f3460
+  Hover:        background rgba(15,157,88,0.3), border #0f9d58, translateX(5px)
+  Selected:     background rgba(233,69,96,0.3), border #e94560
+  Incompatible: opacity 0.4, cursor not-allowed
+
+
+================================================================================
+
+DIMENSIONS AND SPACING
+──────────────────────
+
+Panel:
+  Max Width:     1400px
+  Viewport:      90% width
+  Max Height:    90vh
+  Padding:       30px
+  Border:        2px
+  Border Radius: 10px
+
+Grid:
+  Columns:       280px 1fr 280px
+  Gap:           30px
+
+Performance Bars:
+  Height:        20px
+  Border Radius: 10px
+  Padding Right: 8px (for text)
+
+Hardpoints:
+  Size:          32px × 32px
+  Border:        2px
+  Border Radius: 50% (circle)
+
+Store Items:
+  Padding:       10px
+  Margin:        8px bottom
+  Border:        1px
+  Border Radius: 5px
+
+
+================================================================================
+
+ANIMATION TIMINGS
+─────────────────
+
+Transitions:
+  Standard:      0.2s ease
+  Slow:          0.3s ease
+  Performance:   0.3s ease (bars)
+
+Hover Effects:
+  Transform:     0.2s
+  Color:         0.2s
+  Shadow:        0.2s
+
+Keyframes:
+  Blink:         0.5s infinite (warning text)
+
+
+================================================================================
+
+Z-INDEX LAYERS
+──────────────
+
+Layer Stack (bottom to top):
+  1  - Game canvas
+  50 - Minimap, energy diagram
+  75 - HUD loadout display
+  100 - UI panels (aircraft, controls)
+  150 - Top buttons (restart, pause, settings)
+  200 - Execute button
+  1000 - Modal panels (loadout, settings, briefing)
+  2000 - Overlays (splash screen, tutorial, player switch)
+
+
+================================================================================
+
+ACCESSIBILITY FEATURES
+──────────────────────
+
+Keyboard:
+  ✓ All interactive elements keyboard accessible
+  ✓ Tab navigation supported
+  ✓ Enter/Space activate buttons
+  ✓ Escape closes modals
+
+Visual:
+  ✓ High contrast ratios (WCAG AA compliant)
+  ✓ Clear hover states
+  ✓ Visual feedback for all actions
+  ✓ Color not sole indicator (icons + text)
+
+Screen Readers:
+  ✓ Semantic HTML structure
+  ✓ Title attributes on interactive elements
+  ✓ Alt text for icons (emoji fallback)
+
+
+================================================================================
+End of Layout Documentation
+================================================================================
