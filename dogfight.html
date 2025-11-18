@@ -12807,6 +12807,13 @@
                 return;
             }
 
+            // Check if this is a Renegade Legion fighter - use faction-specific AI
+            if (aiAircraft.category === 'Renegade Legion' && aiAircraft.faction) {
+                applyRenegadeLegionAI(aiAircraft);
+                aiAircraft.hasOrders = true;
+                return;
+            }
+
             // Find target (closest enemy aircraft)
             let target = null;
             let minDist = Infinity;
@@ -17008,6 +17015,162 @@
 
             // Show command notification
             console.log(`Wingman Command: ${command.toUpperCase().replace('_', ' ')}`);
+        }
+
+        function applyRenegadeLegionAI(fighter) {
+            // Find target (closest enemy)
+            let target = null;
+            let minDist = Infinity;
+
+            // Target both aircraft and capital ships
+            for (let plane of aircraft) {
+                if ((plane.faction && plane.faction === fighter.faction) || plane.isDestroyed) continue;
+                const dx = plane.x - fighter.x;
+                const dy = plane.y - fighter.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < minDist) {
+                    minDist = dist;
+                    target = plane;
+                }
+            }
+
+            // Also consider capital ships as targets
+            for (let ship of capitalShips) {
+                if (ship.faction === fighter.faction || ship.isDestroyed) continue;
+                const dx = ship.x - fighter.x;
+                const dy = ship.y - fighter.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < minDist) {
+                    minDist = dist;
+                    target = ship;
+                }
+            }
+
+            if (!target) {
+                // No target - patrol
+                const patrolX = fighter.x + (Math.random() - 0.5) * 400;
+                const patrolY = fighter.y + (Math.random() - 0.5) * 400;
+                fighter.lockOrders(
+                    Math.max(50, Math.min(CANVAS_WIDTH - 50, patrolX)),
+                    Math.max(50, Math.min(CANVAS_HEIGHT - 50, patrolY)),
+                    0, // Space combat - altitude 0
+                    fighter.heading,
+                    0
+                );
+                return;
+            }
+
+            // Calculate approach
+            const dx = target.x - fighter.x;
+            const dy = target.y - fighter.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const angleToTarget = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
+
+            let targetX, targetY, targetHeading;
+            let throttle = 1.0;
+
+            // Faction-specific behaviors
+            if (fighter.faction === 'tog') {
+                // TOG: Aggressive high-speed slashing attacks, missile-focused
+                console.log(`${fighter.name} AI: TOG Aggressive Slash Attack`);
+
+                if (distance > 1000) {
+                    // Approach at high speed
+                    targetX = target.x;
+                    targetY = target.y;
+                    targetHeading = angleToTarget;
+                    throttle = 1.0; // Maximum speed
+                } else if (distance > 400) {
+                    // Slashing attack - pass close and fire missiles
+                    const slashAngle = angleToTarget + (Math.random() > 0.5 ? 30 : -30);
+                    const slashDist = 300;
+                    targetX = target.x + Math.cos((slashAngle - 90) * Math.PI / 180) * slashDist;
+                    targetY = target.y + Math.sin((slashAngle - 90) * Math.PI / 180) * slashDist;
+                    targetHeading = angleToTarget;
+                    throttle = 1.0; // High speed for slashing
+                } else {
+                    // Close range - disengage and reposition for another pass
+                    const escapeAngle = (angleToTarget + 180) % 360;
+                    const escapeDist = 800;
+                    targetX = fighter.x + Math.cos((escapeAngle - 90) * Math.PI / 180) * escapeDist;
+                    targetY = fighter.y + Math.sin((escapeAngle - 90) * Math.PI / 180) * escapeDist;
+                    targetHeading = escapeAngle;
+                    throttle = 1.0; // High speed escape
+                }
+
+            } else if (fighter.name && fighter.name.includes('Petal')) {
+                // KessRith: Tank role, close-in laser combat
+                console.log(`${fighter.name} AI: KessRith Tank - Close Combat`);
+
+                if (distance > 600) {
+                    // Close the distance - fly straight at target
+                    targetX = target.x;
+                    targetY = target.y;
+                    targetHeading = angleToTarget;
+                    throttle = 0.8; // Slower approach (KessRith are slower)
+                } else {
+                    // Stay at close range - orbit for laser fire
+                    const orbitAngle = angleToTarget + 90;
+                    const orbitDist = 400;
+                    targetX = target.x + Math.cos((orbitAngle - 90) * Math.PI / 180) * orbitDist;
+                    targetY = target.y + Math.sin((orbitAngle - 90) * Math.PI / 180) * orbitDist;
+                    targetHeading = angleToTarget; // Always face target
+                    throttle = 0.6; // Moderate speed for sustained fire
+                }
+
+            } else {
+                // Commonwealth: Defensive formations, balanced tactics
+                console.log(`${fighter.name} AI: Commonwealth Balanced Tactics`);
+
+                if (distance > 800) {
+                    // Approach cautiously
+                    const approachDist = 600;
+                    targetX = target.x - Math.cos((angleToTarget - 90) * Math.PI / 180) * approachDist;
+                    targetY = target.y - Math.sin((angleToTarget - 90) * Math.PI / 180) * approachDist;
+                    targetHeading = angleToTarget;
+                    throttle = 0.8;
+                } else {
+                    // Maintain optimal firing range - circle at medium range
+                    const circleAngle = angleToTarget + 45;
+                    const circleDist = 600;
+                    targetX = target.x + Math.cos((circleAngle - 90) * Math.PI / 180) * circleDist;
+                    targetY = target.y + Math.sin((circleAngle - 90) * Math.PI / 180) * circleDist;
+                    targetHeading = angleToTarget;
+                    throttle = 0.7; // Moderate speed for accuracy
+                }
+            }
+
+            // Set throttle
+            fighter.throttle = throttle;
+
+            // Constrain to canvas
+            targetX = Math.max(50, Math.min(CANVAS_WIDTH - 50, targetX));
+            targetY = Math.max(50, Math.min(CANVAS_HEIGHT - 50, targetY));
+
+            // Validate maneuver (space fighters don't have altitude constraints)
+            const validation = fighter.calculateManeuverValidation(targetX, targetY, 0, targetHeading, 0);
+
+            if (validation.state !== 'illegal') {
+                fighter.lockOrders(
+                    validation.finalX,
+                    validation.finalY,
+                    0, // Space combat
+                    validation.finalFlightHeading,
+                    0
+                );
+            } else {
+                // Fallback: continue forward
+                const fallbackDist = 300;
+                const fallbackX = fighter.x + Math.cos((fighter.heading - 90) * Math.PI / 180) * fallbackDist;
+                const fallbackY = fighter.y + Math.sin((fighter.heading - 90) * Math.PI / 180) * fallbackDist;
+                fighter.lockOrders(
+                    Math.max(50, Math.min(CANVAS_WIDTH - 50, fallbackX)),
+                    Math.max(50, Math.min(CANVAS_HEIGHT - 50, fallbackY)),
+                    0,
+                    fighter.heading,
+                    0
+                );
+            }
         }
 
         function applyWingmanAI(wingman) {
