@@ -12824,6 +12824,68 @@
                 }
             }
 
+            // === POWER MANAGEMENT: Capital Ship vs Capital Ship Laser Combat ===
+            for (let ship of capitalShips) {
+                if (ship.isDestroyed || ship.isSinking) continue;
+
+                const laserHits = ship.fireLaserWeapons(capitalShips, dt);
+                for (let hit of laserHits) {
+                    if (hit.target.isDestroyed) continue;
+
+                    let damage = hit.damage;
+
+                    // Check if target's shields are active (flickering on)
+                    const targetShields = hit.target.powerManagement.shields;
+                    if (targetShields.flickerState && targetShields.currentFlicker > 0) {
+                        // Shields block laser/missile damage completely when ON
+                        if (hit.weaponType === 'missile') {
+                            console.log(`${hit.target.type} shields BLOCKED ${ship.type} ${hit.weaponType}!`);
+                            // Add shield arc visual
+                            const dx = hit.sourceX - hit.target.x;
+                            const dy = hit.sourceY - hit.target.y;
+                            const impactAngle = Math.atan2(dx, -dy) * 180 / Math.PI;
+                            targetShields.shieldArcs.push({
+                                x: hit.target.x + dx * 0.1,
+                                y: hit.target.y + dy * 0.1,
+                                angle: impactAngle,
+                                time: Date.now()
+                            });
+                            continue; // Blocked completely
+                        } else {
+                            // Laser blocked
+                            console.log(`${hit.target.type} shields BLOCKED ${ship.type} ${hit.bankName}!`);
+                            // Add shield arc visual
+                            const dx = hit.sourceX - hit.target.x;
+                            const dy = hit.sourceY - hit.target.y;
+                            const impactAngle = Math.atan2(dx, -dy) * 180 / Math.PI;
+                            targetShields.shieldArcs.push({
+                                x: hit.target.x + dx * 0.1,
+                                y: hit.target.y + dy * 0.1,
+                                angle: impactAngle,
+                                time: Date.now()
+                            });
+                            continue; // Blocked completely
+                        }
+                    }
+
+                    // Apply damage to target ship
+                    hit.target.takeDamage(damage, hit.sourceX, hit.sourceY);
+                    console.log(`${ship.type} ${hit.bankName || hit.weaponType} HIT ${hit.target.type}! Damage: ${damage.toFixed(1)}`);
+
+                    // Store laser beam visual (for rendering)
+                    if (!window.laserBeams) window.laserBeams = [];
+                    window.laserBeams.push({
+                        fromX: hit.sourceX,
+                        fromY: hit.sourceY,
+                        toX: hit.target.x,
+                        toY: hit.target.y,
+                        color: hit.color,
+                        time: Date.now(),
+                        duration: 100 // 100ms laser beam visual
+                    });
+                }
+            }
+
             // Automatic ground attack weapons (bombs and rockets)
             processGroundAttackWeapons();
         }
@@ -13592,6 +13654,70 @@
                 ship.render();
             }
 
+            // === POWER MANAGEMENT: Render Laser Beams ===
+            if (window.laserBeams) {
+                const now = Date.now();
+                ctx.save();
+                for (let beam of window.laserBeams) {
+                    const age = now - beam.time;
+                    if (age < beam.duration) {
+                        const alpha = 1 - (age / beam.duration);
+                        ctx.strokeStyle = beam.color.replace(/[\d.]+\)$/, `${alpha * 0.9})`);
+                        ctx.lineWidth = 4;
+                        ctx.shadowColor = beam.color;
+                        ctx.shadowBlur = 15;
+                        ctx.beginPath();
+                        ctx.moveTo(beam.fromX, beam.fromY);
+                        ctx.lineTo(beam.toX, beam.toY);
+                        ctx.stroke();
+
+                        // Draw impact flash at target
+                        ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.8})`;
+                        ctx.beginPath();
+                        ctx.arc(beam.toX, beam.toY, 8, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+                ctx.restore();
+
+                // Clean up old beams
+                window.laserBeams = window.laserBeams.filter(b => now - b.time < b.duration);
+            }
+
+            // Render capital ship missiles
+            for (let ship of capitalShips) {
+                if (ship.activeMissiles) {
+                    ctx.save();
+                    for (let missile of ship.activeMissiles) {
+                        // Draw missile
+                        ctx.fillStyle = 'rgba(255, 200, 0, 0.9)';
+                        ctx.beginPath();
+                        ctx.arc(missile.x, missile.y, 3, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Draw exhaust trail
+                        const dx = missile.targetX - missile.x;
+                        const dy = missile.targetY - missile.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        const trailLength = 15;
+                        const trailX = missile.x - (dx / dist) * trailLength;
+                        const trailY = missile.y - (dy / dist) * trailLength;
+
+                        const gradient = ctx.createLinearGradient(missile.x, missile.y, trailX, trailY);
+                        gradient.addColorStop(0, 'rgba(255, 150, 0, 0.8)');
+                        gradient.addColorStop(1, 'rgba(255, 50, 0, 0)');
+
+                        ctx.strokeStyle = gradient;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(missile.x, missile.y);
+                        ctx.lineTo(trailX, trailY);
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+                }
+            }
+
             // Render bombs and rockets (Enhancement #8)
             for (let bomb of bombs) {
                 bomb.render();
@@ -14008,6 +14134,133 @@
             panel.innerHTML = panelHTML;
         }
 
+        // Power Allocation Modal for Capital Ships
+        function openPowerAllocationModal(ship) {
+            const modal = document.getElementById('powerAllocationModal');
+            const title = document.getElementById('powerModalTitle');
+
+            title.textContent = `POWER ALLOCATION - ${ship.type.toUpperCase()}`;
+
+            // Populate shields radio buttons
+            const shieldsContainer = document.getElementById('shieldsPowerOptions');
+            shieldsContainer.innerHTML = '';
+            for (let opt of ship.powerManagement.shields.options) {
+                const isDisabled = !canSetPowerLevel(ship, 'shields', opt.level);
+                const isSelected = ship.powerManagement.shields.level === opt.level;
+                const label = document.createElement('label');
+                label.style.cssText = `display: flex; align-items: center; cursor: ${isDisabled ? 'not-allowed' : 'pointer'}; opacity: ${isDisabled ? '0.4' : '1'};`;
+                label.innerHTML = `
+                    <input type="radio" name="shields" value="${opt.level}"
+                           ${isSelected ? 'checked' : ''}
+                           ${isDisabled ? 'disabled' : ''}
+                           style="margin-right: 8px;">
+                    <span style="color: ${isSelected ? '#4a9eff' : '#ccc'};">${opt.name}</span>
+                `;
+                if (!isDisabled) {
+                    label.querySelector('input').addEventListener('change', () => {
+                        if (ship.setPowerLevel('shields', opt.level)) {
+                            openPowerAllocationModal(ship); // Refresh modal
+                        }
+                    });
+                }
+                shieldsContainer.appendChild(label);
+            }
+
+            // Populate engines radio buttons
+            const enginesContainer = document.getElementById('enginesPowerOptions');
+            enginesContainer.innerHTML = '';
+            for (let opt of ship.powerManagement.engines.options) {
+                const isDisabled = !canSetPowerLevel(ship, 'engines', opt.level);
+                const isSelected = ship.powerManagement.engines.level === opt.level;
+                const label = document.createElement('label');
+                label.style.cssText = `display: flex; align-items: center; cursor: ${isDisabled ? 'not-allowed' : 'pointer'}; opacity: ${isDisabled ? '0.4' : '1'};`;
+                label.innerHTML = `
+                    <input type="radio" name="engines" value="${opt.level}"
+                           ${isSelected ? 'checked' : ''}
+                           ${isDisabled ? 'disabled' : ''}
+                           style="margin-right: 8px;">
+                    <span style="color: ${isSelected ? '#4a9eff' : '#ccc'};">${opt.name}</span>
+                `;
+                if (!isDisabled) {
+                    label.querySelector('input').addEventListener('change', () => {
+                        if (ship.setPowerLevel('engines', opt.level)) {
+                            openPowerAllocationModal(ship); // Refresh modal
+                        }
+                    });
+                }
+                enginesContainer.appendChild(label);
+            }
+
+            // Populate weapons radio buttons
+            const weaponsContainer = document.getElementById('weaponsPowerOptions');
+            weaponsContainer.innerHTML = '';
+            for (let opt of ship.powerManagement.weapons.options) {
+                const isDisabled = !canSetPowerLevel(ship, 'weapons', opt.level);
+                const isSelected = ship.powerManagement.weapons.level === opt.level;
+
+                // Get display name based on level and toggle state
+                let displayName = opt.name;
+                if (opt.level === 2) {
+                    const toggle = ship.powerManagement.weapons.level2Toggle;
+                    displayName = toggle === 0 ? 'Broadside and Chasers' : 'Spinal Mount and Chasers';
+                } else if (opt.level === 3) {
+                    const toggle = ship.powerManagement.weapons.level3Toggle;
+                    displayName = toggle === 0 ? 'Both Broadsides and Chasers' : 'Spinal Mount, Broadside and Chasers';
+                }
+
+                const label = document.createElement('label');
+                label.style.cssText = `display: flex; align-items: center; cursor: ${isDisabled ? 'not-allowed' : 'pointer'}; opacity: ${isDisabled ? '0.4' : '1'};`;
+
+                // Add click-to-toggle indicator for levels 2 and 3
+                const toggleIndicator = (opt.level === 2 || opt.level === 3) && isSelected ? ' <span style="color: #ff8800;">[Click to toggle]</span>' : '';
+
+                label.innerHTML = `
+                    <input type="radio" name="weapons" value="${opt.level}"
+                           ${isSelected ? 'checked' : ''}
+                           ${isDisabled ? 'disabled' : ''}
+                           style="margin-right: 8px;">
+                    <span style="color: ${isSelected ? '#4a9eff' : '#ccc'};">${displayName}${toggleIndicator}</span>
+                `;
+
+                if (!isDisabled) {
+                    label.querySelector('input').addEventListener('change', () => {
+                        if (ship.setPowerLevel('weapons', opt.level)) {
+                            openPowerAllocationModal(ship); // Refresh modal
+                        }
+                    });
+
+                    // Add click handler for toggle (on already selected levels 2 or 3)
+                    if ((opt.level === 2 || opt.level === 3) && isSelected) {
+                        label.addEventListener('click', (e) => {
+                            if (e.target.tagName !== 'INPUT') {
+                                ship.toggleWeaponMode(opt.level);
+                                openPowerAllocationModal(ship); // Refresh modal
+                            }
+                        });
+                    }
+                }
+                weaponsContainer.appendChild(label);
+            }
+
+            // Update thrust displays
+            document.getElementById('thrustDisplay').textContent = `${ship.orderedThrust >= 0 ? '+' : ''}${ship.orderedThrust} G`;
+            document.getElementById('realThrustDisplay').textContent = `${ship.currentThrust >= 0 ? '+' : ''}${ship.currentThrust.toFixed(1)} G`;
+            document.getElementById('exhaustDisplay').textContent = `${ship.orderedExhaustFacing}°`;
+
+            // Show modal
+            modal.style.display = 'block';
+        }
+
+        function canSetPowerLevel(ship, group, newLevel) {
+            const current = ship.powerManagement;
+            const currentDeviation = (current.shields.level - 2) + (current.engines.level - 2) + (current.weapons.level - 2);
+            const groupCurrentLevel = current[group].level;
+            const levelChange = newLevel - groupCurrentLevel;
+            const newDeviation = currentDeviation + levelChange;
+
+            return newDeviation === 0;
+        }
+
         let lastScreenX = 0;
         let lastScreenY = 0;
 
@@ -14057,7 +14310,35 @@
                 lastPanX = e.clientX - rect.left;
                 lastPanY = e.clientY - rect.top;
                 canvas.style.cursor = 'grabbing';
+            } else if (e.button === 2 && gameState === 'ORDER') { // Right mouse button - priority targeting
+                e.preventDefault();
+
+                const rect = canvas.getBoundingClientRect();
+                const screenX = e.clientX - rect.left;
+                const screenY = e.clientY - rect.top;
+                const canvasCoords = screenToCanvas(screenX, screenY);
+                const clickX = canvasCoords.x;
+                const clickY = canvasCoords.y;
+
+                // Check if right-clicking on an enemy ship while a capital ship is selected
+                if (selectedCapitalShip) {
+                    for (let ship of capitalShips) {
+                        if (ship !== selectedCapitalShip && ship.isClicked(clickX, clickY) && !ship.isDestroyed) {
+                            selectedCapitalShip.priorityTarget = ship;
+                            console.log(`${selectedCapitalShip.type}: Priority target set to ${ship.type}`);
+                            return;
+                        }
+                    }
+                    // Clear priority target if clicking empty space
+                    selectedCapitalShip.priorityTarget = null;
+                    console.log(`${selectedCapitalShip.type}: Priority target cleared`);
+                }
             }
+        });
+
+        // Prevent context menu on right-click
+        canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
         });
 
         // Mouse up - stop panning
@@ -14208,6 +14489,36 @@
                         // Calculate initial path to current mouse position
                         updateGhost(); // Update ghost immediately
                         console.log('[AIRCRAFT SELECT] Ghost initialized with path length:', selectedAircraft.flightPath?.length);
+                    }
+                    return;
+                }
+            }
+
+            // Check if clicking on a capital ship
+            for (let ship of capitalShips) {
+                if (ship.isClicked(clickX, clickY)) {
+                    console.log('Clicked on capital ship:', ship.type);
+
+                    if (ship.isDestroyed) continue; // Can't control destroyed ships
+
+                    // If clicking the same ship while modal is open, close modal and lock orders
+                    if (selectedCapitalShip === ship && document.getElementById('powerAllocationModal').style.display !== 'none') {
+                        console.log('Locking capital ship orders');
+                        ship.lockOrders();
+                        selectedCapitalShip = null;
+                        document.getElementById('powerAllocationModal').style.display = 'none';
+                    } else if (ship.hasOrders) {
+                        // Unlock orders and open modal
+                        console.log('Unlocking capital ship orders');
+                        ship.unlockOrders();
+                        selectedCapitalShip = ship;
+                        openPowerAllocationModal(ship);
+                    } else {
+                        // Select ship and open modal
+                        console.log('Selecting capital ship');
+                        selectedCapitalShip = ship;
+                        ship.inManeuverMode = true;
+                        openPowerAllocationModal(ship);
                     }
                     return;
                 }
@@ -14373,6 +14684,57 @@
                 return;
             }
 
+            // Capital Ship Controls (when modal is open)
+            if (selectedCapitalShip && document.getElementById('powerAllocationModal').style.display !== 'none') {
+                const ship = selectedCapitalShip;
+                const key = e.key.toLowerCase();
+
+                switch(key) {
+                    case 'escape':
+                        // Close modal and lock orders
+                        ship.lockOrders();
+                        selectedCapitalShip = null;
+                        document.getElementById('powerAllocationModal').style.display = 'none';
+                        return;
+                    case 'w':
+                        // Increase thrust (max +4G from engines, limited by engine power level)
+                        const maxThrust = ship.powerManagement.engines.currentGForce;
+                        ship.orderedThrust = Math.min(maxThrust, ship.orderedThrust + 1);
+                        ship.currentThrust = ship.orderedThrust * Math.cos((ship.orderedExhaustFacing - 180) * Math.PI / 180);
+                        openPowerAllocationModal(ship); // Refresh display
+                        console.log(`${ship.type}: Thrust increased to ${ship.orderedThrust}G`);
+                        return;
+                    case 's':
+                        // Decrease thrust (min -2G from engines)
+                        const minThrust = ship.powerManagement.engines.level === 1 ? -2 : 0;
+                        ship.orderedThrust = Math.max(minThrust, ship.orderedThrust - 1);
+                        ship.currentThrust = ship.orderedThrust * Math.cos((ship.orderedExhaustFacing - 180) * Math.PI / 180);
+                        openPowerAllocationModal(ship); // Refresh display
+                        console.log(`${ship.type}: Thrust decreased to ${ship.orderedThrust}G`);
+                        return;
+                    case 'a':
+                        // Rotate ship left (pivot)
+                        ship.orderedEndHeading = (ship.heading - 15 + 360) % 360;
+                        console.log(`${ship.type}: Pivot left to ${ship.orderedEndHeading.toFixed(0)}°`);
+                        return;
+                    case 'd':
+                        // Rotate ship right (pivot)
+                        ship.orderedEndHeading = (ship.heading + 15) % 360;
+                        console.log(`${ship.type}: Pivot right to ${ship.orderedEndHeading.toFixed(0)}°`);
+                        return;
+                    case 'q':
+                        // Pitch down
+                        ship.orderedPitch = Math.max(-90, ship.orderedPitch - 15);
+                        console.log(`${ship.type}: Pitch ${ship.orderedPitch}°`);
+                        return;
+                    case 'e':
+                        // Pitch up
+                        ship.orderedPitch = Math.min(90, ship.orderedPitch + 15);
+                        console.log(`${ship.type}: Pitch ${ship.orderedPitch}°`);
+                        return;
+                }
+            }
+
             if (!selectedAircraft || !ghostAircraft) return;
 
             switch(e.key.toLowerCase()) {
@@ -14519,11 +14881,21 @@
         canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
 
-            // Always zoom in/out with mouse wheel
-            if (e.deltaY < 0) {
-                zoomLevel = Math.min(3.0, zoomLevel * 1.1); // Max 3x zoom
+            // If capital ship modal is open, change exhaust facing instead of zoom
+            if (selectedCapitalShip && document.getElementById('powerAllocationModal').style.display !== 'none') {
+                const ship = selectedCapitalShip;
+                const delta = e.deltaY < 0 ? 15 : -15; // Scroll up = rotate exhaust clockwise
+                ship.orderedExhaustFacing = (ship.orderedExhaustFacing + delta + 360) % 360;
+                ship.currentThrust = ship.orderedThrust * Math.cos((ship.orderedExhaustFacing - 180) * Math.PI / 180);
+                openPowerAllocationModal(ship); // Refresh display
+                console.log(`${ship.type}: Exhaust facing ${ship.orderedExhaustFacing}°`);
             } else {
-                zoomLevel = Math.max(0.5, zoomLevel / 1.1); // Min 0.5x zoom
+                // Always zoom in/out with mouse wheel
+                if (e.deltaY < 0) {
+                    zoomLevel = Math.min(3.0, zoomLevel * 1.1); // Max 3x zoom
+                } else {
+                    zoomLevel = Math.max(0.5, zoomLevel / 1.1); // Min 0.5x zoom
+                }
             }
         });
 
