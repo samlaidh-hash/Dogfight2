@@ -680,106 +680,88 @@
         </div>
 
         <!-- Aircraft Selector Panel -->
-        <!-- Year Selector Panel -->
+        <!-- Generation Selector Panel -->
         <div id="generationSelector" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); display: none; z-index: 1000; overflow-y: auto;">
-            <div style="max-width: 900px; margin: 0 auto; padding: 40px; color: #fff;">
-                <div class="panel-title" style="font-size: 36px; margin-bottom: 20px;">SELECT SCENARIO YEAR</div>
+            <div style="max-width: 1000px; margin: 0 auto; padding: 40px; color: #fff;">
+                <div class="panel-title" style="font-size: 36px; margin-bottom: 20px;">SELECT GENERATION / ERA</div>
                 <p style="text-align: center; font-size: 16px; color: #aaa; margin-bottom: 40px;">
-                    Choose a year to see aircraft that were in service during that period. Use the Historical Accuracy toggle to filter aircraft.
+                    Choose an aviation era to filter available aircraft. You'll have access to aircraft from your selected generation and all earlier generations.
                 </p>
 
-                <!-- Historical Accuracy Toggle -->
-                <div style="text-align: center; margin-bottom: 30px; padding: 15px; background: rgba(255, 165, 0, 0.15); border: 2px solid rgba(255, 165, 0, 0.4); border-radius: 10px;">
-                    <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 12px; font-size: 18px; color: #ffa500;">
-                        <input type="checkbox" id="yearHistoricalAccuracyToggle" checked onchange="updateYearHistoricalAccuracy()" style="width: 22px; height: 22px; cursor: pointer;">
-                        <span style="font-weight: bold;">Historical Accuracy Mode</span>
-                    </label>
-                    <div id="historicalAccuracyStatus" style="font-size: 14px; color: #0f0; margin-top: 8px; font-weight: bold;">
-                        ON - Only aircraft in service during selected year will be shown
-                    </div>
-                </div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;">
+                    <!-- Gen 1: Pre-WW1 -->
+                    <button class="generation-btn" onclick="selectGeneration(1)" style="background: linear-gradient(135deg, #654321, #8B4513); padding: 20px; border: 2px solid #8B4513; border-radius: 10px; color: white; cursor: pointer; transition: all 0.3s;">
+                        <div style="font-size: 20px; font-weight: bold; margin-bottom: 8px;">Gen 1</div>
+                        <div style="font-size: 14px; opacity: 0.9;">Pre-WW1</div>
+                        <div style="font-size: 12px; opacity: 0.7;">1903-1914</div>
+                    </button>
 
-                <!-- Year Slider -->
-                <div style="margin-bottom: 40px;">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <div id="selectedYearDisplay" style="font-size: 48px; font-weight: bold; color: #e94560; margin-bottom: 10px;">1940</div>
-                        <div id="selectedYearEra" style="font-size: 18px; color: #aaa;">World War II</div>
-                    </div>
+                    <!-- Gen 2: WW1 -->
+                    <button class="generation-btn" onclick="selectGeneration(2)" style="background: linear-gradient(135deg, #2d4a2b, #4a7c59); padding: 20px; border: 2px solid #4a7c59; border-radius: 10px; color: white; cursor: pointer; transition: all 0.3s;">
+                        <div style="font-size: 20px; font-weight: bold; margin-bottom: 8px;">Gen 2</div>
+                        <div style="font-size: 14px; opacity: 0.9;">WW1</div>
+                        <div style="font-size: 12px; opacity: 0.7;">1914-1918</div>
+                    </button>
 
-                    <div style="position: relative; padding: 0 20px;">
-                        <input type="range" id="yearSlider" min="1914" max="2024" value="1940" step="1"
-                            style="width: 100%; height: 8px; background: linear-gradient(to right, #654321, #4a7c59, #8b7355, #2563eb, #dc2626, #7c3aed); border-radius: 5px; outline: none; cursor: pointer;"
-                            oninput="updateYearDisplay(this.value)">
+                    <!-- Gen 3: Interwar -->
+                    <button class="generation-btn" onclick="selectGeneration(3)" style="background: linear-gradient(135deg, #5d4e37, #8b7355); padding: 20px; border: 2px solid #8b7355; border-radius: 10px; color: white; cursor: pointer; transition: all 0.3s;">
+                        <div style="font-size: 20px; font-weight: bold; margin-bottom: 8px;">Gen 3</div>
+                        <div style="font-size: 14px; opacity: 0.9;">Interwar</div>
+                        <div style="font-size: 12px; opacity: 0.7;">1918-1939</div>
+                    </button>
 
-                        <!-- Decade markers -->
-                        <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 11px; color: #888;">
-                            <span>1914</span>
-                            <span>1920</span>
-                            <span>1930</span>
-                            <span>1940</span>
-                            <span>1950</span>
-                            <span>1960</span>
-                            <span>1970</span>
-                            <span>1980</span>
-                            <span>1990</span>
-                            <span>2000</span>
-                            <span>2010</span>
-                            <span>2024</span>
-                        </div>
-                    </div>
-                </div>
+                    <!-- Gen 4: WW2 -->
+                    <button class="generation-btn" onclick="selectGeneration(4)" style="background: linear-gradient(135deg, #1a4d8f, #2563eb); padding: 20px; border: 2px solid #2563eb; border-radius: 10px; color: white; cursor: pointer; transition: all 0.3s;">
+                        <div style="font-size: 20px; font-weight: bold; margin-bottom: 8px;">Gen 4</div>
+                        <div style="font-size: 14px; opacity: 0.9;">WW2</div>
+                        <div style="font-size: 12px; opacity: 0.7;">1939-1945</div>
+                    </button>
 
-                <!-- Quick Era Selection Buttons -->
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px;">
-                    <button onclick="setYearQuick(1917)" style="background: linear-gradient(135deg, #2d4a2b, #4a7c59); padding: 15px; border: 2px solid #4a7c59; border-radius: 8px; color: white; cursor: pointer; transition: all 0.3s; font-size: 14px;">
-                        <div style="font-weight: bold;">WW1</div>
-                        <div style="font-size: 12px; opacity: 0.8;">1914-1918</div>
+                    <!-- Gen 5: Early Jet Age -->
+                    <button class="generation-btn" onclick="selectGeneration(5)" style="background: linear-gradient(135deg, #7c2d12, #dc2626); padding: 20px; border: 2px solid #dc2626; border-radius: 10px; color: white; cursor: pointer; transition: all 0.3s;">
+                        <div style="font-size: 20px; font-weight: bold; margin-bottom: 8px;">Gen 5</div>
+                        <div style="font-size: 14px; opacity: 0.9;">Early Jet Age</div>
+                        <div style="font-size: 12px; opacity: 0.7;">1945-1955</div>
                     </button>
-                    <button onclick="setYearQuick(1935)" style="background: linear-gradient(135deg, #5d4e37, #8b7355); padding: 15px; border: 2px solid #8b7355; border-radius: 8px; color: white; cursor: pointer; transition: all 0.3s; font-size: 14px;">
-                        <div style="font-weight: bold;">Interwar</div>
-                        <div style="font-size: 12px; opacity: 0.8;">1918-1939</div>
+
+                    <!-- Gen 6: Cold War Early -->
+                    <button class="generation-btn" onclick="selectGeneration(6)" style="background: linear-gradient(135deg, #4c1d95, #7c3aed); padding: 20px; border: 2px solid #7c3aed; border-radius: 10px; color: white; cursor: pointer; transition: all 0.3s;">
+                        <div style="font-size: 20px; font-weight: bold; margin-bottom: 8px;">Gen 6</div>
+                        <div style="font-size: 14px; opacity: 0.9;">Cold War Early</div>
+                        <div style="font-size: 12px; opacity: 0.7;">1955-1970</div>
                     </button>
-                    <button onclick="setYearQuick(1943)" style="background: linear-gradient(135deg, #1a4d8f, #2563eb); padding: 15px; border: 2px solid #2563eb; border-radius: 8px; color: white; cursor: pointer; transition: all 0.3s; font-size: 14px;">
-                        <div style="font-weight: bold;">WW2</div>
-                        <div style="font-size: 12px; opacity: 0.8;">1939-1945</div>
+
+                    <!-- Gen 7: Cold War Late -->
+                    <button class="generation-btn" onclick="selectGeneration(7)" style="background: linear-gradient(135deg, #831843, #db2777); padding: 20px; border: 2px solid #db2777; border-radius: 10px; color: white; cursor: pointer; transition: all 0.3s;">
+                        <div style="font-size: 20px; font-weight: bold; margin-bottom: 8px;">Gen 7</div>
+                        <div style="font-size: 14px; opacity: 0.9;">Cold War Late</div>
+                        <div style="font-size: 12px; opacity: 0.7;">1970-1991</div>
                     </button>
-                    <button onclick="setYearQuick(1950)" style="background: linear-gradient(135deg, #7c2d12, #dc2626); padding: 15px; border: 2px solid #dc2626; border-radius: 8px; color: white; cursor: pointer; transition: all 0.3s; font-size: 14px;">
-                        <div style="font-weight: bold;">Early Jets</div>
-                        <div style="font-size: 12px; opacity: 0.8;">1945-1960</div>
+
+                    <!-- Gen 8: Modern -->
+                    <button class="generation-btn" onclick="selectGeneration(8)" style="background: linear-gradient(135deg, #134e4a, #14b8a6); padding: 20px; border: 2px solid #14b8a6; border-radius: 10px; color: white; cursor: pointer; transition: all 0.3s;">
+                        <div style="font-size: 20px; font-weight: bold; margin-bottom: 8px;">Gen 8</div>
+                        <div style="font-size: 14px; opacity: 0.9;">Modern</div>
+                        <div style="font-size: 12px; opacity: 0.7;">1991-2010</div>
                     </button>
-                    <button onclick="setYearQuick(1970)" style="background: linear-gradient(135deg, #4c1d95, #7c3aed); padding: 15px; border: 2px solid #7c3aed; border-radius: 8px; color: white; cursor: pointer; transition: all 0.3s; font-size: 14px;">
-                        <div style="font-weight: bold;">Cold War</div>
-                        <div style="font-size: 12px; opacity: 0.8;">1960-1991</div>
-                    </button>
-                    <button onclick="setYearQuick(2010)" style="background: linear-gradient(135deg, #134e4a, #14b8a6); padding: 15px; border: 2px solid #14b8a6; border-radius: 8px; color: white; cursor: pointer; transition: all 0.3s; font-size: 14px;">
-                        <div style="font-weight: bold;">Modern</div>
-                        <div style="font-size: 12px; opacity: 0.8;">1991-2024</div>
+
+                    <!-- Gen 9: 5th Gen -->
+                    <button class="generation-btn" onclick="selectGeneration(9)" style="background: linear-gradient(135deg, #0f172a, #475569); padding: 20px; border: 2px solid #475569; border-radius: 10px; color: white; cursor: pointer; transition: all 0.3s;">
+                        <div style="font-size: 20px; font-weight: bold; margin-bottom: 8px;">Gen 9</div>
+                        <div style="font-size: 14px; opacity: 0.9;">5th Gen</div>
+                        <div style="font-size: 12px; opacity: 0.7;">2010+</div>
                     </button>
                 </div>
 
-                <div style="text-align: center; margin-top: 30px; display: flex; gap: 20px; justify-content: center;">
-                    <button class="btn" onclick="hideGenerationSelector()" style="font-size: 18px; padding: 15px 40px; background: #555;">BACK</button>
-                    <button class="btn" onclick="confirmYearSelection()" style="font-size: 18px; padding: 15px 40px; background: #e94560;">SELECT AIRCRAFT</button>
+                <div style="text-align: center; margin-top: 30px;">
+                    <button class="btn" onclick="hideGenerationSelector()" style="font-size: 18px; padding: 15px 40px;">BACK</button>
                 </div>
             </div>
-        </div>
         </div>
 
         <div id="aircraftSelector">
             <div class="panel-title">AIRCRAFT SELECTION</div>
             <div id="generationInfo" style="text-align: center; margin-bottom: 20px; padding: 10px; background: rgba(100, 150, 255, 0.2); border-radius: 8px; color: #aaf;"></div>
-
-            <!-- Historical Accuracy Toggle -->
-            <div style="text-align: center; margin-bottom: 20px; padding: 10px; background: rgba(255, 165, 0, 0.1); border: 1px solid rgba(255, 165, 0, 0.3); border-radius: 8px;">
-                <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 10px; font-size: 16px; color: #ffa500;">
-                    <input type="checkbox" id="historicalAccuracyToggle" onchange="toggleHistoricalAccuracy()" style="width: 20px; height: 20px; cursor: pointer;">
-                    <span>Historical Accuracy Mode</span>
-                </label>
-                <div style="font-size: 12px; color: #aaa; margin-top: 5px;">
-                    Filter weapons by service dates for the selected era
-                </div>
-            </div>
-
             <div class="setting-row">
                 <span class="setting-label">Your Aircraft:</span>
                 <select id="playerAircraftSelect">
@@ -837,7 +819,7 @@
 
                 <!-- Unavailable Weapons Display -->
                 <div id="unavailableWeaponsSection" style="margin-top: 15px; display: none;">
-                    <div style="font-size: 14px; color: #888; margin-bottom: 8px;">Unavailable Weapons (Generation or Service Date Restricted):</div>
+                    <div style="font-size: 14px; color: #888; margin-bottom: 8px;">Unavailable Weapons (Generation Restricted):</div>
                     <div id="unavailableWeaponsList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
                         <!-- Unavailable weapons will be populated here -->
                     </div>
@@ -1156,9 +1138,7 @@
                 name: 'Supermarine Spitfire Mk Vb',
                 nation: 'British',
                 role: 'Fighter',
-                firstYear: 1936,
-                lastYear: 1954,
-                sizeMultiplier: 1.00, // Wingspan: 11.23m (baseline)
+                generation: 4, // WW2 propeller aircraft
                 maxSpeed: 170, // m/s (~605 km/h)
                 minSpeed: 30,
                 maxTurnRate: 72, // degrees per second
@@ -1194,16 +1174,13 @@
                 ],
                 fuelCapacity: 386, // liters
                 fuelConsumption: 0.5, // liters per second at cruise
-                emptyWeight: 2400, // kg - aircraft empty weight
                 color: '#0099ff'
             },
             'Me-109': {
                 name: 'Messerschmitt Bf 109 G-6',
                 nation: 'German',
                 role: 'Fighter',
-                firstYear: 1937,
-                lastYear: 1965,
-                sizeMultiplier: 0.88, // Wingspan: 9.92m
+                generation: 4, // WW2 propeller aircraft
                 maxSpeed: 175,
                 minSpeed: 30,
                 maxTurnRate: 64,
@@ -1239,16 +1216,13 @@
                 ],
                 fuelCapacity: 400,
                 fuelConsumption: 0.55,
-                emptyWeight: 2700, // kg - Bf 109 G-6 empty weight
                 color: '#ff4444'
             },
             'P-51': {
                 name: 'North American P-51D Mustang',
                 nation: 'American',
                 role: 'Fighter/Escort',
-                firstYear: 1942,
-                lastYear: 1984,
-                sizeMultiplier: 1.00, // Wingspan: 11.28m
+                generation: 4, // WW2 propeller aircraft
                 maxSpeed: 180, // m/s (~650 km/h)
                 minSpeed: 28,
                 maxTurnRate: 68,
@@ -1260,16 +1234,13 @@
                 weapons: { type: 'hmg', count: 6, ammo: 1880, burstSize: 6, damage: [3, 6], rof: 2 },
                 fuelCapacity: 730, // Excellent range
                 fuelConsumption: 0.45,
-                emptyWeight: 3200, // kg - P-51D empty weight
                 color: '#00aaff'
             },
             'P-47': {
                 name: 'Republic P-47D Thunderbolt',
                 nation: 'American',
                 role: 'Fighter-Bomber',
-                firstYear: 1942,
-                lastYear: 1955,
-                sizeMultiplier: 1.11, // Wingspan: 12.43m
+                generation: 4, // WW2 propeller aircraft
                 maxSpeed: 173,
                 minSpeed: 32,
                 maxTurnRate: 58, // Heavy, less maneuverable
@@ -1285,16 +1256,13 @@
                 canCarryRockets: true,
                 durability: 0.85, // Very rugged and well-protected
                 heavyArmour: true, // Famous for absorbing damage
-                emptyWeight: 4500, // kg - P-47D empty weight (heavy fighter)
                 color: '#0077cc'
             },
             'Hurricane': {
                 name: 'Hawker Hurricane Mk IIB',
                 nation: 'British',
                 role: 'Fighter',
-                firstYear: 1937,
-                lastYear: 1950,
-                sizeMultiplier: 1.09, // Wingspan: 12.2m
+                generation: 4, // WW2 propeller aircraft
                 maxSpeed: 165,
                 minSpeed: 31,
                 maxTurnRate: 70,
@@ -1329,16 +1297,13 @@
                 fuelCapacity: 386,
                 fuelConsumption: 0.5,
                 canCarryRockets: true, // Mk IID "Tank Buster" variant
-                emptyWeight: 2500, // kg - Hurricane empty weight
                 color: '#0088dd'
             },
             'P-40': {
                 name: 'Curtiss P-40 Warhawk',
                 nation: 'American',
                 role: 'Fighter',
-                firstYear: 1939,
-                lastYear: 1958,
-                sizeMultiplier: 1.01, // Wingspan: 11.36m
+                generation: 4, // WW2 propeller aircraft
                 maxSpeed: 168,
                 minSpeed: 30,
                 maxTurnRate: 66,
@@ -1351,16 +1316,13 @@
                 fuelCapacity: 568,
                 fuelConsumption: 0.52,
                 canCarryBombs: true, // Limited ground attack capability
-                emptyWeight: 2800, // kg - P-40 empty weight
                 color: '#00aa88'
             },
             'Fw-190': {
                 name: 'Focke-Wulf Fw 190 A-8',
                 nation: 'German',
                 role: 'Fighter-Bomber',
-                firstYear: 1941,
-                lastYear: 1945,
-                sizeMultiplier: 0.93, // Wingspan: 10.5m
+                generation: 4, // WW2 propeller aircraft
                 maxSpeed: 178,
                 minSpeed: 32,
                 maxTurnRate: 62,
@@ -1396,16 +1358,13 @@
                 fuelConsumption: 0.58,
                 canCarryBombs: true, // Jabo variants
                 canCarryRockets: true,
-                emptyWeight: 3200, // kg - Fw 190 A-8 empty weight
                 color: '#ff3333'
             },
             'Me-262': {
                 name: 'Messerschmitt Me 262 Schwalbe',
                 nation: 'German',
                 role: 'Jet Fighter',
-                firstYear: 1944,
-                lastYear: 1951,
-                sizeMultiplier: 1.11, // Wingspan: 12.5m
+                generation: 5, // WW2 jet fighter
                 maxSpeed: 240, // m/s (~870 km/h) - MUCH faster!
                 minSpeed: 50, // Jets have higher stall speeds
                 maxTurnRate: 48, // Poor turn rate
@@ -1418,16 +1377,13 @@
                 fuelCapacity: 2570, // High fuel consumption
                 fuelConsumption: 2.5, // Jets burn fuel fast!
                 isJet: true,
-                emptyWeight: 3800, // kg - Me 262 empty weight (early jet)
                 color: '#cc0000'
             },
             'Zero': {
                 name: 'Mitsubishi A6M5 Zero',
                 nation: 'Japanese',
                 role: 'Fighter',
-                firstYear: 1940,
-                lastYear: 1945,
-                sizeMultiplier: 1.07, // Wingspan: 12m
+                generation: 4, // WW2 propeller aircraft
                 maxSpeed: 166,
                 minSpeed: 26, // Excellent slow-speed handling
                 maxTurnRate: 80, // BEST turn rate!
@@ -1462,7 +1418,6 @@
                 fuelCapacity: 518,
                 fuelConsumption: 0.35, // Very fuel efficient
                 durability: 1.4, // Fragile - takes extra damage
-                emptyWeight: 1680, // kg - Zero empty weight (very light)
                 color: '#ff6666'
             },
             // ===== WW1 AIRCRAFT =====
@@ -1470,9 +1425,7 @@
                 name: 'Sopwith Camel',
                 nation: 'British',
                 role: 'Fighter',
-                firstYear: 1917,
-                lastYear: 1920,
-                sizeMultiplier: 0.76, // Wingspan: 8.5m
+                generation: 3, // Advanced WW1
                 era: 'WW1',
                 isBiplane: true,
                 maxSpeed: 50, // m/s (~113 mph)
@@ -1511,9 +1464,7 @@
                 name: 'Royal Aircraft Factory S.E.5',
                 nation: 'British',
                 role: 'Fighter',
-                firstYear: 1917,
-                lastYear: 1927,
-                sizeMultiplier: 0.72, // Wingspan: 8.11m
+                generation: 3, // Advanced WW1
                 era: 'WW1',
                 isBiplane: true,
                 maxSpeed: 55, // m/s (~138 mph)
@@ -1561,9 +1512,7 @@
                 name: 'Airco DH.2',
                 nation: 'British',
                 role: 'Fighter',
-                firstYear: 1916,
-                lastYear: 1918,
-                sizeMultiplier: 0.76, // Wingspan: 8.53m
+                generation: 2, // Early WW1
                 era: 'WW1',
                 isBiplane: true,
                 maxSpeed: 45, // m/s (~93 mph)
@@ -1597,9 +1546,7 @@
                 name: 'Nieuport 24',
                 nation: 'French',
                 role: 'Fighter',
-                firstYear: 1917,
-                lastYear: 1919,
-                sizeMultiplier: 0.73, // Wingspan: 8.21m
+                generation: 3, // Advanced WW1
                 era: 'WW1',
                 isBiplane: true,
                 maxSpeed: 52, // m/s (~110 mph)
@@ -1635,9 +1582,7 @@
                 name: 'Spad S.XIII',
                 nation: 'French',
                 role: 'Fighter',
-                firstYear: 1917,
-                lastYear: 1923,
-                sizeMultiplier: 0.72, // Wingspan: 8.08m
+                generation: 3, // Advanced WW1
                 era: 'WW1',
                 isBiplane: true,
                 maxSpeed: 60, // m/s (~135 mph)
@@ -1673,9 +1618,7 @@
                 name: 'Handley Page O/400',
                 nation: 'British',
                 role: 'Bomber',
-                firstYear: 1918,
-                lastYear: 1920,
-                sizeMultiplier: 2.71, // Wingspan: 30.48m
+                generation: 2, // Early WW1
                 era: 'WW1',
                 isBiplane: true,
                 maxSpeed: 40, // m/s (~85 mph)
@@ -1712,9 +1655,7 @@
                 name: 'Armstrong Whitworth F.K.8',
                 nation: 'British',
                 role: 'Reconnaissance/Bomber',
-                firstYear: 1916,
-                lastYear: 1918,
-                sizeMultiplier: 1.19, // Wingspan: 13.31m
+                generation: 2, // Early WW1
                 era: 'WW1',
                 isBiplane: true,
                 maxSpeed: 42, // m/s (~95 mph)
@@ -1765,9 +1706,7 @@
                 name: 'Salmson 2',
                 nation: 'French',
                 role: 'Reconnaissance',
-                firstYear: 1918,
-                lastYear: 1920,
-                sizeMultiplier: 1.05, // Wingspan: 11.75m
+                generation: 3, // Advanced WW1
                 era: 'WW1',
                 isBiplane: true,
                 maxSpeed: 44, // m/s (~115 mph)
@@ -1813,9 +1752,7 @@
                 name: 'Morane-Saulnier AI',
                 nation: 'French',
                 role: 'Fighter',
-                firstYear: 1916,
-                lastYear: 1918,
-                sizeMultiplier: 0.76, // Wingspan: 8.51m
+                generation: 2, // Early WW1
                 era: 'WW1',
                 isBiplane: false, // Monoplane
                 maxSpeed: 48, // m/s (~105 mph)
@@ -1851,9 +1788,7 @@
                 name: 'Bristol F.2 Fighter',
                 nation: 'British',
                 role: 'Fighter/Reconnaissance',
-                firstYear: 1917,
-                lastYear: 1932,
-                sizeMultiplier: 1.07, // Wingspan: 11.96m
+                generation: 3, // Advanced WW1
                 era: 'WW1',
                 isBiplane: true,
                 maxSpeed: 52, // m/s (~113 mph)
@@ -1902,9 +1837,7 @@
                 name: 'Hanriot HD.3',
                 nation: 'French',
                 role: 'Fighter',
-                firstYear: 1917,
-                lastYear: 1919,
-                sizeMultiplier: 0.80, // Wingspan: ~9m
+                generation: 2, // Early WW1
                 era: 'WW1',
                 isBiplane: true,
                 maxSpeed: 50, // m/s (~110 mph)
@@ -1940,9 +1873,7 @@
                 name: 'Letord Let.5',
                 nation: 'French',
                 role: 'Bomber/Reconnaissance',
-                firstYear: 1917,
-                lastYear: 1919,
-                sizeMultiplier: 1.61, // Wingspan: 18.05m
+                generation: 2, // Early WW1
                 era: 'WW1',
                 isBiplane: true,
                 maxSpeed: 40, // m/s (~87 mph)
@@ -1979,9 +1910,7 @@
                 name: 'Fokker Dr.II',
                 nation: 'German',
                 role: 'Fighter',
-                firstYear: 1917,
-                lastYear: 1918,
-                sizeMultiplier: 0.64, // Wingspan: 7.19m
+                generation: 3, // Advanced WW1
                 era: 'WW1',
                 isBiplane: false, // Triplane
                 maxSpeed: 48, // m/s (~103 mph)
@@ -2020,9 +1949,7 @@
                 name: 'Fokker D.VII',
                 nation: 'German',
                 role: 'Fighter',
-                firstYear: 1918,
-                lastYear: 1930,
-                sizeMultiplier: 0.79, // Wingspan: 8.9m
+                generation: 3, // Advanced WW1
                 era: 'WW1',
                 isBiplane: true,
                 maxSpeed: 57, // m/s (~124 mph)
@@ -2058,9 +1985,7 @@
                 name: 'Fokker D.V',
                 nation: 'German',
                 role: 'Fighter',
-                firstYear: 1916,
-                lastYear: 1917,
-                sizeMultiplier: 0.78, // Wingspan: 8.75m
+                generation: 2, // Early WW1
                 era: 'WW1',
                 isBiplane: true,
                 maxSpeed: 46, // m/s (~100 mph)
@@ -2096,9 +2021,7 @@
                 name: 'Fokker E.IV',
                 nation: 'German',
                 role: 'Fighter',
-                firstYear: 1915,
-                lastYear: 1916,
-                sizeMultiplier: 0.89, // Wingspan: 10m
+                generation: 2, // Early WW1
                 era: 'WW1',
                 isBiplane: false, // Monoplane
                 maxSpeed: 44, // m/s (~95 mph)
@@ -2134,9 +2057,7 @@
                 name: 'AEG G.IV',
                 nation: 'German',
                 role: 'Bomber',
-                firstYear: 1916,
-                lastYear: 1918,
-                sizeMultiplier: 1.64, // Wingspan: 18.4m
+                generation: 2, // Early WW1
                 era: 'WW1',
                 isBiplane: true,
                 maxSpeed: 38, // m/s (~82 mph)
@@ -2173,9 +2094,7 @@
                 name: 'DFW C.V',
                 nation: 'German',
                 role: 'Reconnaissance',
-                firstYear: 1916,
-                lastYear: 1918,
-                sizeMultiplier: 1.18, // Wingspan: 13.27m
+                generation: 2, // Early WW1
                 era: 'WW1',
                 isBiplane: true,
                 maxSpeed: 43, // m/s (~100 mph)
@@ -2223,9 +2142,7 @@
                 name: 'Messerschmitt Bf 110 C-4',
                 nation: 'German',
                 role: 'Heavy Fighter/Ground Attack',
-                firstYear: 1937,
-                lastYear: 1945,
-                sizeMultiplier: 1.45, // Wingspan: 16.27m
+                generation: 4, // WW2 propeller aircraft
                 maxSpeed: 170, // m/s (~560 km/h)
                 minSpeed: 35, // Heavy, higher stall speed
                 maxTurnRate: 48, // Poor turn rate (heavy twin-engine)
@@ -2269,16 +2186,13 @@
                     accuracy: 0.5,
                     rof: 2
                 },
-                emptyWeight: 5200, // kg - Bf 110 empty weight (heavy twin-engine)
                 color: '#dd3333'
             },
             'Ju-87': {
                 name: 'Junkers Ju 87 D-5 Stuka',
                 nation: 'German',
                 role: 'Dive Bomber',
-                firstYear: 1936,
-                lastYear: 1945,
-                sizeMultiplier: 1.23, // Wingspan: 13.8m
+                generation: 4, // WW2 propeller aircraft
                 maxSpeed: 135, // m/s (~410 km/h) - Slow!
                 minSpeed: 28,
                 maxTurnRate: 45, // Poor maneuverability
@@ -2311,16 +2225,13 @@
                     accuracy: 0.55,
                     rof: 2
                 },
-                emptyWeight: 3900, // kg - Ju 87 Stuka empty weight
                 color: '#aa3333'
             },
             'Ju-88': {
                 name: 'Junkers Ju 88 A-4',
                 nation: 'German',
                 role: 'Medium Bomber',
-                firstYear: 1939,
-                lastYear: 1951,
-                sizeMultiplier: 1.78, // Wingspan: 20m
+                generation: 4, // WW2 propeller aircraft
                 maxSpeed: 150, // m/s (~470 km/h)
                 minSpeed: 32,
                 maxTurnRate: 42, // Poor turn (bomber)
@@ -2352,16 +2263,13 @@
                     accuracy: 0.6,
                     rof: 2
                 },
-                emptyWeight: 5600, // kg - Ju 88 empty weight (twin-engine bomber)
                 color: '#993333'
             },
             'He-111': {
                 name: 'Heinkel He 111 H-6',
                 nation: 'German',
                 role: 'Medium Bomber',
-                firstYear: 1935,
-                lastYear: 1958,
-                sizeMultiplier: 2.01, // Wingspan: 22.6m
+                generation: 4, // WW2 propeller aircraft
                 maxSpeed: 140, // m/s (~440 km/h)
                 minSpeed: 30,
                 maxTurnRate: 38, // Very poor turn
@@ -2393,16 +2301,13 @@
                     accuracy: 0.55,
                     rof: 2
                 },
-                emptyWeight: 6900, // kg - He 111 empty weight (medium bomber)
                 color: '#883333'
             },
             'Typhoon': {
                 name: 'Hawker Typhoon Mk IB',
                 nation: 'British',
                 role: 'Fighter-Bomber/Ground Attack',
-                firstYear: 1941,
-                lastYear: 1945,
-                sizeMultiplier: 1.13, // Wingspan: 12.7m
+                generation: 4, // WW2 propeller aircraft
                 maxSpeed: 178, // m/s (~652 km/h)
                 minSpeed: 33,
                 maxTurnRate: 55, // Heavy, poor turn
@@ -2426,16 +2331,13 @@
                 fuelConsumption: 0.65,
                 canCarryBombs: true,
                 canCarryRockets: true, // Famous for rocket attacks
-                emptyWeight: 4000, // kg - Typhoon empty weight
                 color: '#0099dd'
             },
             'Tempest': {
                 name: 'Hawker Tempest Mk V',
                 nation: 'British',
                 role: 'Fighter-Bomber',
-                firstYear: 1944,
-                lastYear: 1951,
-                sizeMultiplier: 1.11, // Wingspan: 12.5m
+                generation: 4, // WW2 propeller aircraft
                 maxSpeed: 190, // m/s (~700 km/h) - Very fast!
                 minSpeed: 30,
                 maxTurnRate: 62,
@@ -2459,16 +2361,13 @@
                 fuelConsumption: 0.68,
                 canCarryBombs: true,
                 canCarryRockets: true,
-                emptyWeight: 4100, // kg - Tempest empty weight
                 color: '#00aaee'
             },
             'Il-2': {
                 name: 'Ilyushin Il-2 Sturmovik',
                 nation: 'Soviet',
                 role: 'Ground Attack',
-                firstYear: 1941,
-                lastYear: 1954,
-                sizeMultiplier: 1.30, // Wingspan: 14.6m
+                generation: 4, // WW2 propeller aircraft
                 maxSpeed: 140, // m/s (~414 km/h)
                 minSpeed: 30,
                 maxTurnRate: 50, // Heavy, poor maneuverability
@@ -2516,7 +2415,6 @@
                     accuracy: 0.6,
                     rof: 2
                 },
-                emptyWeight: 4360, // kg - Il-2 empty weight (heavily armoured)
                 color: '#cc6600'
             },
             // ===== ADDITIONAL PRIORITY AIRCRAFT =====
@@ -2527,9 +2425,7 @@
                 era: 'WW1',
                 firstFlight: 1917,
                 isBiplane: false, // Triplane
-                firstYear: 1917,
-                lastYear: 1918,
-                sizeMultiplier: 0.64, // Wingspan: 7.19m
+                generation: 2, // Gen 2 - WW1
                 maxSpeed: 53, // m/s (~115 mph / 185 km/h)
                 minSpeed: 15,
                 maxTurnRate: 90, // EXCEPTIONAL turn rate - best of WW1
@@ -2570,9 +2466,7 @@
                 role: 'Fighter-Bomber/Night Fighter',
                 era: 'WW2',
                 firstFlight: 1940,
-                firstYear: 1941,
-                lastYear: 1963,
-                sizeMultiplier: 1.47, // Wingspan: 16.51m
+                generation: 4, // Gen 4 - WW2
                 maxSpeed: 185, // m/s (~670 km/h / 415 mph)
                 minSpeed: 34,
                 maxTurnRate: 58,
@@ -2623,9 +2517,7 @@
                 role: 'Fighter/Heavy Fighter',
                 era: 'WW2',
                 firstFlight: 1939,
-                firstYear: 1941,
-                lastYear: 1965,
-                sizeMultiplier: 1.41, // Wingspan: 15.85m
+                generation: 4, // Gen 4 - WW2
                 maxSpeed: 185, // m/s (~666 km/h / 414 mph)
                 minSpeed: 36, // Heavy, higher stall speed
                 maxTurnRate: 52, // Heavy, poor turn
@@ -2676,9 +2568,7 @@
                 role: 'Fighter',
                 era: 'WW2',
                 firstFlight: 1942,
-                firstYear: 1942,
-                lastYear: 1948,
-                sizeMultiplier: 0.86, // Wingspan: 9.7m
+                generation: 4, // Gen 4 - WW2
                 maxSpeed: 175, // m/s (~599 km/h / 372 mph)
                 minSpeed: 29,
                 maxTurnRate: 72, // Excellent maneuverability
@@ -2729,9 +2619,7 @@
                 role: 'Fighter',
                 era: 'Interwar/Early WW2',
                 firstFlight: 1933,
-                firstYear: 1934,
-                lastYear: 1943,
-                sizeMultiplier: 0.80, // Wingspan: 9m
+                generation: 3, // Gen 3 - Interwar period
                 maxSpeed: 155, // m/s (~525 km/h / 326 mph)
                 minSpeed: 28,
                 maxTurnRate: 75, // Very maneuverable
@@ -2775,720 +2663,7 @@
                 durability: 1.2,
                 specialCapability: 'First modern monoplane fighter - Highly maneuverable "Rata"',
                 color: '#dd5500'
-            },
-            'Yak-7': {
-                name: 'Yakovlev Yak-7B',
-                nation: 'Soviet',
-                role: 'Fighter',
-                era: 'WW2',
-                generation: 4,
-                firstYear: 1941,
-                lastYear: 1943,
-                sizeMultiplier: 0.89, // Wingspan: 10.0m
-                maxSpeed: 165, // m/s (~594 km/h / 369 mph)
-                minSpeed: 30,
-                maxTurnRate: 70,
-                maxClimbRate: 14,
-                maxDiveRate: 32,
-                maxGForce: 7,
-                maxAcceleration: 15,
-                maxBraking: 18,
-                serviceCeiling: 10500, // meters
-                weapons: [
-                    {
-                        type: 'cannon',
-                        name: '20mm ShVAK',
-                        count: 1,
-                        ammo: 120,
-                        burstSize: 2,
-                        damage: [7, 14],
-                        rof: 3,
-                        range: 800,
-                        sound: 'cannon'
-                    },
-                    {
-                        type: 'hmg',
-                        name: '12.7mm UBS',
-                        count: 1,
-                        ammo: 200,
-                        burstSize: 3,
-                        damage: [4, 7],
-                        rof: 2,
-                        range: 600,
-                        sound: 'hmg'
-                    }
-                ],
-                fuelCapacity: 320,
-                fuelConsumption: 0.5,
-                canCarryBombs: true,
-                bombCapacity: 2,
-                canCarryRockets: true,
-                rocketCapacity: 6,
-                durability: 1.15,
-                specialCapability: 'Trainer-turned-fighter - Stable handling and reliable',
-                color: '#cc4400'
-            },
-            'Yak-1': {
-                name: 'Yakovlev Yak-1',
-                nation: 'Soviet',
-                role: 'Fighter',
-                era: 'WW2',
-                generation: 4,
-                firstYear: 1940,
-                lastYear: 1944,
-                sizeMultiplier: 0.89, // Wingspan: 10.0m
-                maxSpeed: 172, // m/s (~619 km/h / 385 mph)
-                minSpeed: 29,
-                maxTurnRate: 78,
-                maxClimbRate: 15,
-                maxDiveRate: 30,
-                maxGForce: 6.5,
-                maxAcceleration: 14,
-                maxBraking: 17,
-                serviceCeiling: 10050, // meters
-                weapons: [
-                    {
-                        type: 'cannon',
-                        name: '20mm ShVAK',
-                        count: 1,
-                        ammo: 120,
-                        burstSize: 2,
-                        damage: [7, 14],
-                        rof: 3,
-                        range: 800,
-                        sound: 'cannon'
-                    },
-                    {
-                        type: 'hmg',
-                        name: '12.7mm UBS',
-                        count: 1,
-                        ammo: 200,
-                        burstSize: 3,
-                        damage: [4, 7],
-                        rof: 2,
-                        range: 600,
-                        sound: 'hmg'
-                    }
-                ],
-                fuelCapacity: 320,
-                fuelConsumption: 0.48,
-                canCarryBombs: true,
-                bombCapacity: 2,
-                durability: 1.15,
-                specialCapability: 'First Yak fighter - Lightweight and maneuverable',
-                color: '#dd4400'
-            },
-            'Ta-152': {
-                name: 'Focke-Wulf Ta 152 H-1',
-                nation: 'German',
-                role: 'High-Altitude Fighter',
-                era: 'Late WW2',
-                generation: 4,
-                firstYear: 1945,
-                lastYear: 1945,
-                sizeMultiplier: 1.29, // Wingspan: 14.44m
-                maxSpeed: 210, // m/s (~756 km/h / 470 mph at altitude)
-                minSpeed: 32,
-                maxTurnRate: 58,
-                maxClimbRate: 18,
-                maxDiveRate: 45,
-                maxGForce: 7.5,
-                maxAcceleration: 19,
-                maxBraking: 17,
-                serviceCeiling: 15100, // meters - exceptional high altitude performance
-                weapons: [
-                    {
-                        type: 'cannon',
-                        name: '30mm MK 108',
-                        count: 1,
-                        ammo: 90,
-                        burstSize: 2,
-                        damage: [12, 24],
-                        rof: 4,
-                        range: 600,
-                        sound: 'cannon'
-                    },
-                    {
-                        type: 'cannon',
-                        name: '20mm MG 151/20',
-                        count: 2,
-                        ammo: 350,
-                        burstSize: 4,
-                        damage: [7, 14],
-                        rof: 3,
-                        range: 800,
-                        sound: 'cannon'
-                    }
-                ],
-                fuelCapacity: 595,
-                fuelConsumption: 0.65,
-                durability: 1.0,
-                specialCapability: 'Elite high-altitude interceptor - Exceptional performance above 9000m',
-                color: '#ff2222'
-            },
-            'P-39': {
-                name: 'Bell P-39 Airacobra',
-                nation: 'American',
-                role: 'Fighter',
-                era: 'WW2',
-                generation: 4,
-                firstYear: 1941,
-                lastYear: 1945,
-                sizeMultiplier: 0.92, // Wingspan: 10.36m
-                maxSpeed: 169, // m/s (~608 km/h / 378 mph)
-                minSpeed: 28,
-                maxTurnRate: 70,
-                maxClimbRate: 11, // Poor high-altitude performance
-                maxDiveRate: 36,
-                maxGForce: 7,
-                maxAcceleration: 15,
-                maxBraking: 19,
-                serviceCeiling: 10700, // meters
-                weapons: [
-                    {
-                        type: 'cannon',
-                        name: '37mm M4',
-                        count: 1,
-                        ammo: 30, // Limited ammo
-                        burstSize: 1,
-                        damage: [20, 40], // Devastating against ground targets
-                        rof: 5,
-                        range: 500,
-                        sound: 'cannon'
-                    },
-                    {
-                        type: 'hmg',
-                        name: '.50 cal Browning',
-                        count: 4,
-                        ammo: 1000,
-                        burstSize: 4,
-                        damage: [3, 6],
-                        rof: 2,
-                        range: 600,
-                        sound: 'hmg'
-                    }
-                ],
-                fuelCapacity: 454,
-                fuelConsumption: 0.52,
-                canCarryBombs: true,
-                bombCapacity: 1,
-                durability: 1.1,
-                specialCapability: 'Mid-engine design with devastating 37mm cannon',
-                color: '#0088cc'
-            },
-            'MiG-3': {
-                name: 'Mikoyan-Gurevich MiG-3',
-                nation: 'Soviet',
-                role: 'High-Altitude Fighter',
-                era: 'WW2',
-                generation: 4,
-                firstYear: 1940,
-                lastYear: 1945,
-                sizeMultiplier: 0.91, // Wingspan: 10.2m
-                maxSpeed: 182, // m/s (~655 km/h / 407 mph)
-                minSpeed: 32,
-                maxTurnRate: 55, // Poor low-altitude maneuverability
-                maxClimbRate: 16,
-                maxDiveRate: 38,
-                maxGForce: 6.5,
-                maxAcceleration: 16,
-                maxBraking: 16,
-                serviceCeiling: 12000, // meters - excellent high altitude
-                weapons: [
-                    {
-                        type: 'hmg',
-                        name: '12.7mm UBS',
-                        count: 1,
-                        ammo: 300,
-                        burstSize: 3,
-                        damage: [4, 7],
-                        rof: 2,
-                        range: 600,
-                        sound: 'hmg'
-                    },
-                    {
-                        type: 'mg',
-                        name: '7.62mm ShKAS',
-                        count: 2,
-                        ammo: 1500,
-                        burstSize: 4,
-                        damage: [2, 4],
-                        rof: 1,
-                        range: 500,
-                        sound: 'mg'
-                    }
-                ],
-                fuelCapacity: 463,
-                fuelConsumption: 0.58,
-                canCarryRockets: true,
-                rocketCapacity: 6,
-                durability: 1.1,
-                specialCapability: 'High-altitude specialist - Fast but lightly armed',
-                color: '#dd3300'
-            },
-            'Me-410': {
-                name: 'Messerschmitt Me 410 Hornisse',
-                nation: 'German',
-                role: 'Heavy Fighter/Bomber Destroyer',
-                era: 'WW2',
-                generation: 4,
-                firstYear: 1943,
-                lastYear: 1945,
-                sizeMultiplier: 1.46, // Wingspan: 16.35m
-                maxSpeed: 174, // m/s (~626 km/h / 389 mph)
-                minSpeed: 35,
-                maxTurnRate: 45, // Heavy, poor maneuverability
-                maxClimbRate: 11,
-                maxDiveRate: 38,
-                maxGForce: 6,
-                maxAcceleration: 16,
-                maxBraking: 14,
-                serviceCeiling: 10000, // meters
-                weapons: [
-                    {
-                        type: 'cannon',
-                        name: '20mm MG 151/20',
-                        count: 2,
-                        ammo: 350,
-                        burstSize: 4,
-                        damage: [7, 14],
-                        rof: 3,
-                        range: 800,
-                        sound: 'cannon'
-                    },
-                    {
-                        type: 'hmg',
-                        name: '13mm MG 131',
-                        count: 2,
-                        ammo: 500,
-                        burstSize: 4,
-                        damage: [3, 6],
-                        rof: 2,
-                        range: 600,
-                        sound: 'hmg'
-                    }
-                ],
-                fuelCapacity: 1820,
-                fuelConsumption: 0.85,
-                canCarryBombs: true,
-                bombCapacity: 4,
-                canCarryRockets: true,
-                rocketCapacity: 4,
-                durability: 0.9,
-                specialCapability: 'Heavy twin-engine bomber destroyer - Can mount 50mm BK 5 cannon',
-                isTwinEngine: true,
-                color: '#ff4444'
-            },
-            'MC.202': {
-                name: 'Macchi C.202 Folgore',
-                nation: 'Italian',
-                role: 'Fighter',
-                era: 'WW2',
-                generation: 4,
-                firstYear: 1941,
-                lastYear: 1943,
-                sizeMultiplier: 0.94, // Wingspan: 10.58m
-                maxSpeed: 167, // m/s (~601 km/h / 373 mph)
-                minSpeed: 28,
-                maxTurnRate: 75,
-                maxClimbRate: 17,
-                maxDiveRate: 35,
-                maxGForce: 7,
-                maxAcceleration: 16,
-                maxBraking: 18,
-                serviceCeiling: 11500, // meters
-                weapons: [
-                    {
-                        type: 'hmg',
-                        name: '12.7mm Breda-SAFAT',
-                        count: 2,
-                        ammo: 720,
-                        burstSize: 4,
-                        damage: [3, 6],
-                        rof: 2,
-                        range: 600,
-                        sound: 'hmg'
-                    }
-                ],
-                fuelCapacity: 430,
-                fuelConsumption: 0.48,
-                durability: 1.15,
-                specialCapability: 'Italian thoroughbred - Excellent handling and speed',
-                color: '#00aa00'
-            },
-            'Ju-52': {
-                name: 'Junkers Ju 52/3m',
-                nation: 'German',
-                role: 'Transport/Bomber',
-                era: 'Interwar/WW2',
-                generation: 3,
-                firstYear: 1932,
-                lastYear: 1952,
-                sizeMultiplier: 2.60, // Wingspan: 29.19m
-                maxSpeed: 82, // m/s (~295 km/h / 183 mph)
-                minSpeed: 25,
-                maxTurnRate: 25, // Very slow turning
-                maxClimbRate: 4,
-                maxDiveRate: 15,
-                maxGForce: 3.5,
-                maxAcceleration: 6,
-                maxBraking: 10,
-                serviceCeiling: 5900, // meters
-                weapons: [
-                    {
-                        type: 'mg',
-                        name: '7.92mm MG 15',
-                        count: 3, // Defensive guns
-                        ammo: 3000,
-                        burstSize: 3,
-                        damage: [2, 4],
-                        rof: 1,
-                        range: 400,
-                        sound: 'mg',
-                        defensive: true
-                    }
-                ],
-                fuelCapacity: 2400,
-                fuelConsumption: 0.7,
-                canCarryBombs: true,
-                bombCapacity: 6,
-                durability: 0.7,
-                specialCapability: 'Legendary "Iron Annie" transport - Can paradrop troops',
-                isTransport: true,
-                isTwinEngine: true,
-                color: '#888888'
-            },
-            'IAR-80': {
-                name: 'IAR 80A',
-                nation: 'Romanian',
-                role: 'Fighter',
-                era: 'WW2',
-                generation: 4,
-                firstYear: 1941,
-                lastYear: 1945,
-                sizeMultiplier: 0.94, // Wingspan: 10.52m
-                maxSpeed: 142, // m/s (~511 km/h / 318 mph)
-                minSpeed: 28,
-                maxTurnRate: 68,
-                maxClimbRate: 13,
-                maxDiveRate: 32,
-                maxGForce: 7,
-                maxAcceleration: 14,
-                maxBraking: 17,
-                serviceCeiling: 10500, // meters
-                weapons: [
-                    {
-                        type: 'hmg',
-                        name: '13.2mm FN Browning',
-                        count: 2,
-                        ammo: 600,
-                        burstSize: 4,
-                        damage: [3, 6],
-                        rof: 2,
-                        range: 600,
-                        sound: 'hmg'
-                    },
-                    {
-                        type: 'mg',
-                        name: '7.92mm FN Browning',
-                        count: 4,
-                        ammo: 2000,
-                        burstSize: 4,
-                        damage: [2, 4],
-                        rof: 1,
-                        range: 500,
-                        sound: 'mg'
-                    }
-                ],
-                fuelCapacity: 400,
-                fuelConsumption: 0.5,
-                canCarryBombs: true,
-                bombCapacity: 2,
-                durability: 1.1,
-                specialCapability: 'Romanian indigenous fighter - Sturdy and reliable',
-                color: '#ffcc00'
-            },
-            'Hs-129': {
-                name: 'Henschel Hs 129 B-2',
-                nation: 'German',
-                role: 'Ground Attack',
-                era: 'WW2',
-                generation: 4,
-                firstYear: 1942,
-                lastYear: 1945,
-                sizeMultiplier: 1.26, // Wingspan: 14.20m
-                maxSpeed: 113, // m/s (~407 km/h / 253 mph)
-                minSpeed: 30,
-                maxTurnRate: 40, // Heavy, poor maneuverability
-                maxClimbRate: 7,
-                maxDiveRate: 25,
-                maxGForce: 5,
-                maxAcceleration: 10,
-                maxBraking: 14,
-                serviceCeiling: 9000, // meters
-                weapons: [
-                    {
-                        type: 'cannon',
-                        name: '30mm MK 103',
-                        count: 1,
-                        ammo: 100,
-                        burstSize: 2,
-                        damage: [15, 30], // Devastating anti-tank weapon
-                        rof: 4,
-                        range: 600,
-                        sound: 'cannon',
-                        antiTank: true
-                    },
-                    {
-                        type: 'cannon',
-                        name: '20mm MG 151/20',
-                        count: 2,
-                        ammo: 250,
-                        burstSize: 4,
-                        damage: [7, 14],
-                        rof: 3,
-                        range: 800,
-                        sound: 'cannon'
-                    },
-                    {
-                        type: 'mg',
-                        name: '7.92mm MG 17',
-                        count: 2,
-                        ammo: 1000,
-                        burstSize: 4,
-                        damage: [2, 4],
-                        rof: 1,
-                        range: 500,
-                        sound: 'mg'
-                    }
-                ],
-                fuelCapacity: 600,
-                fuelConsumption: 0.65,
-                canCarryBombs: true,
-                bombCapacity: 4,
-                canCarryRockets: true,
-                rocketCapacity: 4,
-                durability: 0.75, // Heavily armored cockpit
-                heavyArmour: true,
-                specialCapability: 'Dedicated tank buster - Heavily armored cockpit, devastating 30mm cannon',
-                isTwinEngine: true,
-                color: '#aa4444'
-            },
-            'B-26': {
-                name: 'Martin B-26 Marauder',
-                nation: 'American',
-                role: 'Medium Bomber',
-                era: 'WW2',
-                generation: 4,
-                firstYear: 1941,
-                lastYear: 1947,
-                sizeMultiplier: 1.93, // Wingspan: 21.64m
-                maxSpeed: 141, // m/s (~507 km/h / 315 mph)
-                minSpeed: 35, // High wing loading, high stall speed
-                maxTurnRate: 35,
-                maxClimbRate: 8,
-                maxDiveRate: 30,
-                maxGForce: 4.5,
-                maxAcceleration: 11,
-                maxBraking: 12,
-                serviceCeiling: 6400, // meters
-                weapons: [
-                    {
-                        type: 'hmg',
-                        name: '.50 cal Browning',
-                        count: 12, // Multiple defensive positions
-                        ammo: 4800,
-                        burstSize: 6,
-                        damage: [3, 6],
-                        rof: 2,
-                        range: 600,
-                        sound: 'hmg',
-                        defensive: true
-                    }
-                ],
-                fuelCapacity: 3065,
-                fuelConsumption: 1.2,
-                canCarryBombs: true,
-                bombCapacity: 12,
-                durability: 0.8,
-                specialCapability: '"Widowmaker" turned reliable - Heavy defensive armament',
-                isTwinEngine: true,
-                isBomber: true,
-                color: '#0066aa'
-            },
-            'B-25': {
-                name: 'North American B-25 Mitchell',
-                nation: 'American',
-                role: 'Medium Bomber',
-                era: 'WW2',
-                generation: 4,
-                firstYear: 1941,
-                lastYear: 1979,
-                sizeMultiplier: 1.84, // Wingspan: 20.60m
-                maxSpeed: 138, // m/s (~497 km/h / 309 mph)
-                minSpeed: 32,
-                maxTurnRate: 38,
-                maxClimbRate: 7,
-                maxDiveRate: 28,
-                maxGForce: 4.5,
-                maxAcceleration: 10,
-                maxBraking: 13,
-                serviceCeiling: 7500, // meters
-                weapons: [
-                    {
-                        type: 'hmg',
-                        name: '.50 cal Browning',
-                        count: 14, // Strafer variant had massive forward firepower
-                        ammo: 5600,
-                        burstSize: 8,
-                        damage: [3, 6],
-                        rof: 2,
-                        range: 600,
-                        sound: 'hmg'
-                    }
-                ],
-                fuelCapacity: 2618,
-                fuelConsumption: 1.0,
-                canCarryBombs: true,
-                bombCapacity: 12,
-                canCarryRockets: true,
-                rocketCapacity: 8,
-                durability: 0.85,
-                specialCapability: 'Doolittle Raid legend - Versatile bomber/strafer',
-                isTwinEngine: true,
-                isBomber: true,
-                color: '#0077bb'
-            },
-            'Pe-2': {
-                name: 'Petlyakov Pe-2',
-                nation: 'Soviet',
-                role: 'Dive Bomber',
-                era: 'WW2',
-                generation: 4,
-                firstYear: 1941,
-                lastYear: 1945,
-                sizeMultiplier: 1.53, // Wingspan: 17.16m
-                maxSpeed: 156, // m/s (~561 km/h / 349 mph)
-                minSpeed: 32,
-                maxTurnRate: 50,
-                maxClimbRate: 10,
-                maxDiveRate: 42, // Excellent dive performance
-                maxGForce: 6,
-                maxAcceleration: 12,
-                maxBraking: 16,
-                serviceCeiling: 8800, // meters
-                weapons: [
-                    {
-                        type: 'hmg',
-                        name: '12.7mm UBT',
-                        count: 1,
-                        ammo: 150,
-                        burstSize: 3,
-                        damage: [4, 7],
-                        rof: 2,
-                        range: 600,
-                        sound: 'hmg'
-                    },
-                    {
-                        type: 'mg',
-                        name: '7.62mm ShKAS',
-                        count: 3,
-                        ammo: 2250,
-                        burstSize: 6,
-                        damage: [2, 4],
-                        rof: 1,
-                        range: 500,
-                        sound: 'mg',
-                        defensive: true
-                    }
-                ],
-                fuelCapacity: 1100,
-                fuelConsumption: 0.9,
-                canCarryBombs: true,
-                bombCapacity: 10,
-                durability: 0.9,
-                specialCapability: 'Fast twin-engine dive bomber - Excellent speed and versatility',
-                isTwinEngine: true,
-                isBomber: true,
-                color: '#cc3300'
-            },
-            'J-5': {
-                name: 'Svenska Aero Jaktfalken J-5',
-                nation: 'Swedish',
-                role: 'Fighter',
-                era: 'Interwar',
-                generation: 3,
-                firstYear: 1930,
-                lastYear: 1933,
-                sizeMultiplier: 0.89, // Wingspan: 10.0m
-                maxSpeed: 85, // m/s (~306 km/h / 190 mph)
-                minSpeed: 20,
-                maxTurnRate: 65,
-                maxClimbRate: 8,
-                maxDiveRate: 22,
-                maxGForce: 5,
-                maxAcceleration: 10,
-                maxBraking: 14,
-                serviceCeiling: 7500, // meters
-                isBiplane: true,
-                weapons: [
-                    {
-                        type: 'mg',
-                        name: '8mm Swedish m/22',
-                        count: 2,
-                        ammo: 1000,
-                        burstSize: 4,
-                        damage: [2, 4],
-                        rof: 1,
-                        range: 500,
-                        sound: 'mg'
-                    }
-                ],
-                fuelCapacity: 180,
-                fuelConsumption: 0.35,
-                durability: 1.2,
-                specialCapability: 'Swedish lightweight fighter - Compact and agile',
-                color: '#4488ff'
-            },
-            'T-34': {
-                name: 'Beechcraft T-34 Mentor',
-                nation: 'American',
-                role: 'Trainer',
-                era: 'Post-WW2',
-                generation: 5,
-                firstYear: 1948,
-                lastYear: 2025,
-                sizeMultiplier: 0.91, // Wingspan: 10.16m
-                maxSpeed: 83, // m/s (~299 km/h / 186 mph)
-                minSpeed: 22,
-                maxTurnRate: 40,
-                maxClimbRate: 7,
-                maxDiveRate: 20,
-                maxGForce: 5,
-                maxAcceleration: 9,
-                maxBraking: 12,
-                serviceCeiling: 9150, // meters
-                weapons: [
-                    {
-                        type: 'mg',
-                        name: '.30 cal M1919',
-                        count: 2,
-                        ammo: 500,
-                        burstSize: 4,
-                        damage: [2, 4],
-                        rof: 1,
-                        range: 400,
-                        sound: 'mg'
-                    }
-                ],
-                fuelCapacity: 227,
-                fuelConsumption: 0.35,
-                canCarryBombs: true,
-                bombCapacity: 2,
-                durability: 1.1,
-                specialCapability: 'Classic military trainer - Stable, forgiving, and long-serving',
-                isTrainer: true,
-                color: '#0088cc'
+            }
             }
         };
 
@@ -3663,214 +2838,7 @@
             if (weapon.requiresJet && !aircraft.isJet) {
                 return 'This weapon requires a jet aircraft';
             }
-
-            // Check service dates if historical accuracy is enabled
-            if (historicalAccuracyEnabled && weapon.firstYear && weapon.lastYear) {
-                if (scenarioYear < weapon.firstYear) {
-                    return `Not available until ${weapon.firstYear} (scenario year: ${scenarioYear})`;
-                }
-                if (scenarioYear > weapon.lastYear) {
-                    return `Out of service after ${weapon.lastYear} (scenario year: ${scenarioYear})`;
-                }
-            }
-
             return 'Compatible';
-        // Performance Calculator - Calculates loadout impact on aircraft performance
-        class PerformanceCalculator {
-            /**
-             * Calculate speed penalty based on weight
-             * @param {number} totalWeight - Current total weight in kg
-             * @param {number} emptyWeight - Aircraft empty weight in kg
-             * @param {number} maxSpeed - Base maximum speed in m/s
-             * @returns {number} Modified max speed
-             */
-            static calculateSpeedPenalty(totalWeight, emptyWeight, maxSpeed) {
-                const addedWeight = Math.max(0, totalWeight - emptyWeight);
-                const speedMultiplier = 1 - (addedWeight / emptyWeight * 0.3);
-                return maxSpeed * Math.max(0.7, speedMultiplier); // At least 70% of base speed
-            }
-
-            /**
-             * Calculate acceleration penalty based on weight
-             * @param {number} totalWeight - Current total weight in kg
-             * @param {number} emptyWeight - Aircraft empty weight in kg
-             * @param {number} baseAcceleration - Base acceleration value
-             * @returns {number} Modified acceleration
-             */
-            static calculateAccelerationPenalty(totalWeight, emptyWeight, baseAcceleration) {
-                const weightRatio = totalWeight / emptyWeight;
-                const accelerationMultiplier = 1 / weightRatio; // Inverse relationship
-                return baseAcceleration * Math.max(0.6, accelerationMultiplier);
-            }
-
-            /**
-             * Calculate braking penalty based on weight
-             * @param {number} totalWeight - Current total weight in kg
-             * @param {number} emptyWeight - Aircraft empty weight in kg
-             * @param {number} baseBraking - Base braking value
-             * @returns {number} Modified braking
-             */
-            static calculateBrakingPenalty(totalWeight, emptyWeight, baseBraking) {
-                const weightRatio = totalWeight / emptyWeight;
-                const brakingMultiplier = 1 / Math.sqrt(weightRatio); // Less severe than acceleration
-                return baseBraking * Math.max(0.65, brakingMultiplier);
-            }
-
-            /**
-             * Calculate climb rate penalty based on weight
-             * @param {number} totalWeight - Current total weight in kg
-             * @param {number} emptyWeight - Aircraft empty weight in kg
-             * @param {number} maxClimbRate - Base climb rate in m/s
-             * @returns {number} Modified climb rate
-             */
-            static calculateClimbPenalty(totalWeight, emptyWeight, maxClimbRate) {
-                const addedWeight = Math.max(0, totalWeight - emptyWeight);
-                const climbMultiplier = 1 - (addedWeight / emptyWeight * 0.4); // More severe impact
-                return maxClimbRate * Math.max(0.5, climbMultiplier); // At least 50% climb rate
-            }
-
-            /**
-             * Calculate turn rate penalty based on weight (inertia)
-             * @param {number} totalWeight - Current total weight in kg
-             * @param {number} emptyWeight - Aircraft empty weight in kg
-             * @param {number} maxTurnRate - Base turn rate in deg/s
-             * @returns {number} Modified turn rate
-             */
-            static calculateTurnPenalty(totalWeight, emptyWeight, maxTurnRate) {
-                const weightRatio = totalWeight / emptyWeight;
-                const turnMultiplier = 1 / Math.sqrt(weightRatio); // Inertia effect
-                return maxTurnRate * Math.max(0.65, turnMultiplier);
-            }
-
-            /**
-             * Calculate G-force tolerance penalty based on weight
-             * @param {number} totalWeight - Current total weight in kg
-             * @param {number} emptyWeight - Aircraft empty weight in kg
-             * @param {number} maxGForce - Base max G-force
-             * @returns {number} Modified max G-force
-             */
-            static calculateGTolerance(totalWeight, emptyWeight, maxGForce) {
-                const weightRatio = totalWeight / emptyWeight;
-                const gMultiplier = 1 / (weightRatio * 0.5 + 0.5); // Progressive penalty
-                return maxGForce * Math.max(0.7, gMultiplier);
-            }
-
-            /**
-             * Calculate drag penalty from external stores
-             * @param {number} totalDrag - Sum of drag coefficients from all stores
-             * @returns {number} Drag multiplier (>1 means slower)
-             */
-            static calculateDragPenalty(totalDrag) {
-                return 1 + (totalDrag * 0.15);
-            }
-
-            /**
-             * Calculate asymmetric turn effect from unbalanced loadout
-             * @param {number} leftWeight - Weight on left wing in kg
-             * @param {number} rightWeight - Weight on right wing in kg
-             * @param {number} totalWeight - Total weight in kg
-             * @param {number} maxTurnRate - Base turn rate
-             * @returns {object} Turn rate penalties for left and right
-             */
-            static calculateAsymmetricEffect(leftWeight, rightWeight, totalWeight, maxTurnRate) {
-                if (totalWeight === 0) {
-                    return { left: maxTurnRate, right: maxTurnRate, asymmetryPenalty: 0 };
-                }
-
-                const weightDifference = Math.abs(leftWeight - rightWeight);
-                const asymmetryPenalty = weightDifference / totalWeight * 0.2;
-
-                // The side with more weight turns slower
-                const leftPenalty = leftWeight > rightWeight ? asymmetryPenalty : 0;
-                const rightPenalty = rightWeight > leftWeight ? asymmetryPenalty : 0;
-
-                return {
-                    left: maxTurnRate * (1 - leftPenalty),
-                    right: maxTurnRate * (1 - rightPenalty),
-                    asymmetryPenalty: asymmetryPenalty
-                };
-            }
-
-            /**
-             * Calculate roll penalty from asymmetric weight
-             * @param {number} asymmetricWeight - Difference in weight between wings
-             * @param {number} baseRollRate - Base roll rate (default 1.0)
-             * @returns {number} Roll rate multiplier
-             */
-            static calculateRollPenalty(asymmetricWeight, baseRollRate = 1.0) {
-                const rollPenalty = Math.min(0.4, asymmetricWeight / 1000 * 0.3); // Max 40% penalty
-                return baseRollRate * (1 - rollPenalty);
-            }
-
-            /**
-             * Calculate performance impact summary from complete loadout
-             * @param {object} aircraft - Aircraft object with specs
-             * @param {array} hardpoints - Array of hardpoint objects with mounted stores
-             * @returns {object} Complete performance modifiers
-             */
-            static calculateLoadoutImpact(aircraft, hardpoints = []) {
-                const emptyWeight = aircraft.emptyWeight || aircraft.baseEmptyWeight || 2400;
-
-                // Calculate total weight from stores
-                let storeWeight = 0;
-                let totalDrag = 0;
-                let leftWeight = 0;
-                let rightWeight = 0;
-
-                hardpoints.forEach(hp => {
-                    if (hp.mounted) {
-                        const store = hp.mounted;
-                        const weight = store.weight || 0;
-                        storeWeight += weight;
-                        totalDrag += store.dragCoefficient || 0;
-
-                        // Track wing asymmetry
-                        if (hp.position === 'left' || hp.position === 'leftWing') {
-                            leftWeight += weight;
-                        } else if (hp.position === 'right' || hp.position === 'rightWing') {
-                            rightWeight += weight;
-                        }
-                    }
-                });
-
-                // Add fuel weight (assuming fuel density ~0.8 kg/liter)
-                const fuelWeight = aircraft.fuel * 0.8;
-                const totalWeight = emptyWeight + storeWeight + fuelWeight;
-
-                // Calculate all penalties
-                const dragMultiplier = this.calculateDragPenalty(totalDrag);
-                const asymmetric = this.calculateAsymmetricEffect(leftWeight, rightWeight, storeWeight, aircraft.baseMaxTurnRate || aircraft.maxTurnRate);
-
-                return {
-                    // Weight impacts
-                    maxSpeed: this.calculateSpeedPenalty(totalWeight, emptyWeight, aircraft.baseMaxSpeed || aircraft.maxSpeed) / dragMultiplier,
-                    maxAcceleration: this.calculateAccelerationPenalty(totalWeight, emptyWeight, aircraft.baseMaxAcceleration || aircraft.maxAcceleration),
-                    maxBraking: this.calculateBrakingPenalty(totalWeight, emptyWeight, aircraft.baseMaxBraking || aircraft.maxBraking),
-                    maxClimbRate: this.calculateClimbPenalty(totalWeight, emptyWeight, aircraft.baseMaxClimbRate || aircraft.maxClimbRate),
-                    maxTurnRate: this.calculateTurnPenalty(totalWeight, emptyWeight, aircraft.baseMaxTurnRate || aircraft.maxTurnRate),
-                    maxGForce: this.calculateGTolerance(totalWeight, emptyWeight, aircraft.baseMaxGForce || aircraft.maxGForce),
-
-                    // Drag and asymmetric impacts
-                    dragMultiplier: dragMultiplier,
-                    asymmetricTurnLeft: asymmetric.left,
-                    asymmetricTurnRight: asymmetric.right,
-                    asymmetryPenalty: asymmetric.asymmetryPenalty,
-                    rollRate: this.calculateRollPenalty(Math.abs(leftWeight - rightWeight)),
-
-                    // Weight details
-                    emptyWeight: emptyWeight,
-                    storeWeight: storeWeight,
-                    fuelWeight: fuelWeight,
-                    totalWeight: totalWeight,
-                    leftWeight: leftWeight,
-                    rightWeight: rightWeight,
-
-                    // Percentage impacts for UI
-                    speedPenalty: ((1 - (this.calculateSpeedPenalty(totalWeight, emptyWeight, aircraft.baseMaxSpeed || aircraft.maxSpeed) / dragMultiplier) / (aircraft.baseMaxSpeed || aircraft.maxSpeed)) * 100).toFixed(1),
-                    climbPenalty: ((1 - this.calculateClimbPenalty(totalWeight, emptyWeight, aircraft.baseMaxClimbRate || aircraft.maxClimbRate) / (aircraft.baseMaxClimbRate || aircraft.maxClimbRate)) * 100).toFixed(1),
-                    turnPenalty: ((1 - this.calculateTurnPenalty(totalWeight, emptyWeight, aircraft.baseMaxTurnRate || aircraft.maxTurnRate) / (aircraft.baseMaxTurnRate || aircraft.maxTurnRate)) * 100).toFixed(1)
-                };
-            }
         }
 
         // Weather effects
@@ -5431,43 +4399,8 @@
 
         // Load aircraft SVG images
         const aircraftImages = {
-            // WW2+ aircraft images
             spitfire: new Image(),
             bf109: new Image(),
-            p51: new Image(),
-            p47: new Image(),
-            p40: new Image(),
-            hurricane: new Image(),
-            fw190: new Image(),
-            me262: new Image(),
-            zero: new Image(),
-            bf110: new Image(),
-            ju87: new Image(),
-            ju88: new Image(),
-            he111: new Image(),
-            tempest: new Image(),
-            typhoon: new Image(),
-            mosquito: new Image(),
-            p38: new Image(),
-            yak9: new Image(),
-            i16: new Image(),
-            il2: new Image(),
-            // 15 new aircraft
-            yak7: new Image(),
-            yak1: new Image(),
-            ta152: new Image(),
-            p39: new Image(),
-            mig3: new Image(),
-            me410: new Image(),
-            mc202: new Image(),
-            ju52: new Image(),
-            iar80: new Image(),
-            hs129: new Image(),
-            b26: new Image(),
-            b25: new Image(),
-            pe2: new Image(),
-            j5: new Image(),
-            ant35: new Image(),
             // WW1 aircraft images
             camel: new Image(),
             se5: new Image(),
@@ -5486,11 +4419,10 @@
             dv: new Image(),
             eiv: new Image(),
             aeggiv: new Image(),
-            dfwcv: new Image(),
-            dri: new Image()
+            dfwcv: new Image()
         };
         let imagesLoaded = 0;
-        const totalImages = Object.keys(aircraftImages).length;
+        const totalImages = 2 + 18 + 5; // WW2 + WW1 + Additional Priority // WW2 + WW1
 
         // Image load handler
         const onImageLoad = () => {
@@ -5532,45 +4464,20 @@
         aircraftImages.dv.src = 'images/dv.png';
         aircraftImages.eiv.src = 'images/eiv.png';
         aircraftImages.aeggiv.src = 'images/aeggiv.png';
+,
+            // Additional priority aircraft images
+            dri: new Image(),
+            mosquito: new Image(),
+            p38: new Image(),
+            yak9: new Image(),
+            i16: new Image()
         aircraftImages.dfwcv.src = 'images/dfwcv.png';
+        // Load additional priority aircraft images
         aircraftImages.dri.src = 'images/dri.png';
-
-        // Load WW2+ aircraft images
-        aircraftImages.p51.src = 'images/p51.png';
-        aircraftImages.p47.src = 'images/p47.png';
-        aircraftImages.p40.src = 'images/p40.png';
-        aircraftImages.hurricane.src = 'images/hurricane.png';
-        aircraftImages.fw190.src = 'images/fw190.png';
-        aircraftImages.me262.src = 'images/me262.png';
-        aircraftImages.zero.src = 'images/zero.png';
-        aircraftImages.bf110.src = 'images/bf110.png';
-        aircraftImages.ju87.src = 'images/ju87.png';
-        aircraftImages.ju88.src = 'images/ju88.png';
-        aircraftImages.he111.src = 'images/he111.png';
-        aircraftImages.tempest.src = 'images/tempest.png';
-        aircraftImages.typhoon.src = 'images/typhoon.png';
         aircraftImages.mosquito.src = 'images/mosquito.png';
         aircraftImages.p38.src = 'images/p38.png';
         aircraftImages.yak9.src = 'images/Yak9.png';
         aircraftImages.i16.src = 'images/i16.png';
-        aircraftImages.il2.src = 'images/il2.png';
-
-        // Load 15 new aircraft images
-        aircraftImages.yak7.src = 'images/yak7.png';
-        aircraftImages.yak1.src = 'images/yak1.png';
-        aircraftImages.ta152.src = 'images/ta152.png';
-        aircraftImages.p39.src = 'images/p39.png';
-        aircraftImages.mig3.src = 'images/mig3.png';
-        aircraftImages.me410.src = 'images/me410.png';
-        aircraftImages.mc202.src = 'images/mc202.png';
-        aircraftImages.ju52.src = 'images/ju52.png';
-        aircraftImages.iar80.src = 'images/iar80.png';
-        aircraftImages.hs129.src = 'images/hs129.png';
-        aircraftImages.b26.src = 'images/b26.png';
-        aircraftImages.b25.src = 'images/b25.png';
-        aircraftImages.pe2.src = 'images/Pe2.png';
-        aircraftImages.j5.src = 'images/ja5.png';
-        aircraftImages.ant35.src = 'images/t34.png';
 
         // Terrain generation
         class Terrain {
@@ -7421,225 +6328,6 @@
                     controls: 0,  // 0-1, reduces turn rate
                     weapons: 0    // 0-1, reduces accuracy and fire rate
                 };
-
-                // Weight and performance system
-                this.emptyWeight = specs.emptyWeight || 2400; // kg - aircraft empty weight
-                this.currentWeight = this.emptyWeight + (this.fuel * 0.8); // Start with fuel weight
-                this.dragFactor = 0; // Additional drag from external stores
-
-                // Store base performance values (unmodified by loadout)
-                this.baseMaxSpeed = this.maxSpeed;
-                this.baseMaxTurnRate = this.maxTurnRate;
-                this.baseMaxClimbRate = this.maxClimbRate;
-                this.baseMaxGForce = this.maxGForce;
-                this.baseMaxAcceleration = this.maxAcceleration;
-                this.baseMaxBraking = this.maxBraking;
-
-                // Hardpoints for loadout system (will be populated by other agents)
-                this.hardpoints = [];
-
-                // Performance impact tracking
-                this.performanceImpact = {
-                    speedPenalty: 0,
-                    climbPenalty: 0,
-                    turnPenalty: 0,
-                    gPenalty: 0,
-                    asymmetryPenalty: 0
-                };
-            }
-
-            /**
-             * Update aircraft performance based on current loadout
-             * Called when stores are mounted/jettisoned or fuel changes significantly
-             */
-            updatePerformance() {
-                // Calculate loadout impact
-                const impact = PerformanceCalculator.calculateLoadoutImpact(this, this.hardpoints);
-
-                // Update current weight
-                this.currentWeight = impact.totalWeight;
-
-                // Apply performance modifiers
-                this.maxSpeed = impact.maxSpeed;
-                this.maxAcceleration = impact.maxAcceleration;
-                this.maxBraking = impact.maxBraking;
-                this.maxClimbRate = impact.maxClimbRate;
-                this.maxTurnRate = impact.maxTurnRate;
-                this.maxGForce = impact.maxGForce;
-
-                // Store impact data for UI display
-                this.performanceImpact = {
-                    speedPenalty: parseFloat(impact.speedPenalty),
-                    climbPenalty: parseFloat(impact.climbPenalty),
-                    turnPenalty: parseFloat(impact.turnPenalty),
-                    gPenalty: ((1 - impact.maxGForce / this.baseMaxGForce) * 100).toFixed(1),
-                    asymmetryPenalty: impact.asymmetryPenalty,
-                    dragMultiplier: impact.dragMultiplier,
-                    asymmetricTurnLeft: impact.asymmetricTurnLeft,
-                    asymmetricTurnRight: impact.asymmetricTurnRight,
-                    rollRate: impact.rollRate,
-                    totalWeight: impact.totalWeight,
-                    storeWeight: impact.storeWeight,
-                    fuelWeight: impact.fuelWeight,
-                    leftWeight: impact.leftWeight,
-                    rightWeight: impact.rightWeight
-                };
-            }
-
-            /**
-             * Update weight when fuel changes
-             * Called during flight as fuel is consumed
-             */
-            updateFuelWeight() {
-                const newFuelWeight = this.fuel * 0.8; // kg
-                const oldTotalWeight = this.currentWeight;
-
-                // Update current weight with new fuel weight
-                // Keep store weight constant, only change fuel
-                const storeWeight = this.performanceImpact.storeWeight || 0;
-                this.currentWeight = this.emptyWeight + storeWeight + newFuelWeight;
-
-                // Recalculate performance if weight changed significantly (>5%)
-                if (Math.abs(this.currentWeight - oldTotalWeight) / oldTotalWeight > 0.05) {
-                    this.updatePerformance();
-                }
-            }
-
-            /**
-             * Jettison stores (bombs, fuel tanks, etc.) to improve performance
-             * @param {string} storeType - Type of store to jettison ('bombs', 'rockets', 'fueltanks', 'all')
-             */
-            jettisonStores(storeType = 'all') {
-                let jettisoned = false;
-
-                this.hardpoints.forEach(hp => {
-                    if (hp.mounted) {
-                        const store = hp.mounted;
-                        let shouldJettison = false;
-
-                        if (storeType === 'all') {
-                            shouldJettison = store.canJettison !== false;
-                        } else if (storeType === 'bombs' && store.type === 'bomb') {
-                            shouldJettison = true;
-                        } else if (storeType === 'rockets' && store.type === 'rocket') {
-                            shouldJettison = true;
-                        } else if (storeType === 'fueltanks' && store.type === 'fueltank') {
-                            shouldJettison = true;
-                        }
-
-                        if (shouldJettison) {
-                            hp.mounted = null;
-                            jettisoned = true;
-                        }
-                    }
-                });
-
-                // Update performance if anything was jettisoned
-                if (jettisoned) {
-                    this.updatePerformance();
-                }
-
-                return jettisoned;
-            }
-
-            /**
-             * Get performance status color for UI
-             * @returns {string} Color code (green/yellow/red)
-             */
-            getPerformanceStatusColor() {
-                const avgPenalty = (
-                    parseFloat(this.performanceImpact.speedPenalty) +
-                    parseFloat(this.performanceImpact.climbPenalty) +
-                    parseFloat(this.performanceImpact.turnPenalty)
-                ) / 3;
-
-                if (avgPenalty < 5) return '#00ff00'; // Green - clean configuration
-                if (avgPenalty < 15) return '#ffff00'; // Yellow - moderate load
-                return '#ff4444'; // Red - heavy load
-            }
-
-            /**
-             * Draw performance impact indicators on canvas
-             * @param {CanvasRenderingContext2D} ctx - Canvas context
-             * @param {boolean} showDetails - Whether to show detailed breakdown
-             */
-            drawPerformanceIndicators(ctx, showDetails = false) {
-                // Only show if there's a penalty
-                const avgPenalty = (
-                    parseFloat(this.performanceImpact.speedPenalty || 0) +
-                    parseFloat(this.performanceImpact.climbPenalty || 0) +
-                    parseFloat(this.performanceImpact.turnPenalty || 0)
-                ) / 3;
-
-                if (avgPenalty < 1) return; // No significant penalty, don't show
-
-                const color = this.getPerformanceStatusColor();
-
-                ctx.save();
-                ctx.font = 'bold 10px Courier New';
-                ctx.textAlign = 'left';
-                ctx.textBaseline = 'top';
-
-                // Draw performance status indicator near aircraft
-                const offsetX = 35;
-                const offsetY = -25;
-
-                // Background for readability
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-                const boxWidth = showDetails ? 140 : 60;
-                const boxHeight = showDetails ? 55 : 12;
-                ctx.fillRect(this.x + offsetX - 2, this.y + offsetY - 2, boxWidth, boxHeight);
-
-                // Performance status text
-                ctx.fillStyle = color;
-                if (showDetails) {
-                    ctx.fillText(`LOADOUT:`, this.x + offsetX, this.y + offsetY);
-                    ctx.font = '9px Courier New';
-                    ctx.fillStyle = '#ffaaaa';
-                    ctx.fillText(`Speed: -${this.performanceImpact.speedPenalty}%`, this.x + offsetX, this.y + offsetY + 12);
-                    ctx.fillText(`Climb: -${this.performanceImpact.climbPenalty}%`, this.x + offsetX, this.y + offsetY + 23);
-                    ctx.fillText(`Turn: -${this.performanceImpact.turnPenalty}%`, this.x + offsetX, this.y + offsetY + 34);
-                    if (this.performanceImpact.asymmetryPenalty > 0.05) {
-                        ctx.fillStyle = '#ff6666';
-                        ctx.fillText(`⚠ ASYMMETRIC`, this.x + offsetX, this.y + offsetY + 45);
-                    }
-                } else {
-                    ctx.fillText(`-${avgPenalty.toFixed(1)}%`, this.x + offsetX, this.y + offsetY);
-                }
-
-                ctx.restore();
-            }
-
-            /**
-             * Get performance summary text for UI panel
-             * @returns {string} HTML formatted performance summary
-             */
-            getPerformanceSummaryHTML() {
-                const color = this.getPerformanceStatusColor();
-                const avgPenalty = (
-                    parseFloat(this.performanceImpact.speedPenalty || 0) +
-                    parseFloat(this.performanceImpact.climbPenalty || 0) +
-                    parseFloat(this.performanceImpact.turnPenalty || 0)
-                ) / 3;
-
-                if (avgPenalty < 1) {
-                    return `<div style="color: ${color};">Loadout: Clean</div>`;
-                }
-
-                let html = `<div style="color: ${color}; font-weight: bold;">Loadout Impact:</div>`;
-                html += `<div style="font-size: 10px; margin-left: 10px;">`;
-                html += `Speed: <span style="color: #ffaaaa;">-${this.performanceImpact.speedPenalty}%</span><br>`;
-                html += `Climb: <span style="color: #ffaaaa;">-${this.performanceImpact.climbPenalty}%</span><br>`;
-                html += `Turn: <span style="color: #ffaaaa;">-${this.performanceImpact.turnPenalty}%</span><br>`;
-
-                if (this.performanceImpact.asymmetryPenalty > 0.05) {
-                    html += `<span style="color: #ff6666;">⚠ Asymmetric load</span><br>`;
-                }
-
-                html += `Weight: ${Math.round(this.performanceImpact.totalWeight || this.currentWeight)} kg`;
-                html += `</div>`;
-
-                return html;
             }
 
             getScaleForAltitude() {
@@ -7745,59 +6433,17 @@
                         img = aircraftImages[imageName];
                     }
                 } else {
-                    // WW2+ aircraft image mapping
-                    const aircraftImageMap = {
-                        'Spitfire': 'spitfire',
-                        'Me-109': 'bf109',
-                        'P-51': 'p51',
-                        'P-47': 'p47',
-                        'P-40': 'p40',
-                        'Hurricane': 'hurricane',
-                        'Fw-190': 'fw190',
-                        'Me-262': 'me262',
-                        'Zero': 'zero',
-                        'Bf-110': 'bf110',
-                        'Ju-87': 'ju87',
-                        'Ju-88': 'ju88',
-                        'He-111': 'he111',
-                        'Tempest': 'tempest',
-                        'Typhoon': 'typhoon',
-                        'Mosquito': 'mosquito',
-                        'P-38': 'p38',
-                        'Yak9': 'yak9',
-                        'I-16': 'i16',
-                        'IL-2': 'il2',
-                        'Yak-7': 'yak7',
-                        'Yak-1': 'yak1',
-                        'Ta-152': 'ta152',
-                        'P-39': 'p39',
-                        'MiG-3': 'mig3',
-                        'Me-410': 'me410',
-                        'MC.202': 'mc202',
-                        'Ju-52': 'ju52',
-                        'IAR-80': 'iar80',
-                        'Hs-129': 'hs129',
-                        'B-26': 'b26',
-                        'B-25': 'b25',
-                        'Pe-2': 'pe2',
-                        'J-5': 'j5',
-                        'T-34': 'ant35'
-                    };
-                    const imageName = aircraftImageMap[this.type];
-                    if (imageName && aircraftImages[imageName]) {
-                        img = aircraftImages[imageName];
-                    }
+                    // WW2 aircraft (legacy)
+                    img = this.type === 'Spitfire' ? aircraftImages.spitfire : aircraftImages.bf109;
                 }
                 const useImage = img && img.complete && img.naturalWidth > 0;
 
                 if (useImage) {
                     // Draw the aircraft SVG image centered with transparency
-                    // Scale to match real dimensions based on actual wingspan
-                    // At 1 pixel ≈ 1 meter scale, use 15 pixels base for visibility
-                    const baseSize = 15;
-                    const sizeMultiplier = aircraftDatabase[this.type]?.sizeMultiplier || 1.0;
-                    const imgWidth = baseSize * sizeMultiplier;
-                    const imgHeight = baseSize * sizeMultiplier;
+                    // Scale to match real dimensions: Spitfire is ~9.2m long, Bf 109 is ~9m
+                    // At 1 pixel ≈ 1 meter scale, use 15 pixels for visibility
+                    const imgWidth = 15;
+                    const imgHeight = 15;
 
                     // Create offscreen canvas to process the image
                     const offscreenCanvas = document.createElement('canvas');
@@ -10941,12 +9587,6 @@
             // Render aircraft
             for (let plane of aircraft) {
                 plane.renderSVG();
-
-                // Draw performance indicators if there's a loadout penalty
-                if (!plane.isDestroyed) {
-                    const showDetails = plane === selectedAircraft; // Show details for selected aircraft
-                    plane.drawPerformanceIndicators(ctx, showDetails);
-                }
             }
 
             // Render firing cones/reticles (show weapon range and arc)
@@ -13306,79 +11946,12 @@
             }, 1000);
         }
 
-        // Year-based aircraft selection
-        let selectedYear = 1940;
-        let historicalAccuracyMode = true;
-
-        // Load historical accuracy preference from localStorage
-        function loadHistoricalAccuracyPreference() {
-            const saved = localStorage.getItem('historicalAccuracyMode');
-            if (saved !== null) {
-                historicalAccuracyMode = saved === 'true';
-                const toggle = document.getElementById('yearHistoricalAccuracyToggle');
-                if (toggle) toggle.checked = historicalAccuracyMode;
-                updateHistoricalAccuracyStatus();
-            }
-        }
-
-        function saveHistoricalAccuracyPreference() {
-            localStorage.setItem('historicalAccuracyMode', historicalAccuracyMode);
-        }
-
-        function updateYearHistoricalAccuracy() {
-            const toggle = document.getElementById('yearHistoricalAccuracyToggle');
-            historicalAccuracyMode = toggle.checked;
-            saveHistoricalAccuracyPreference();
-            updateHistoricalAccuracyStatus();
-        }
-
-        function updateHistoricalAccuracyStatus() {
-            const statusDiv = document.getElementById('historicalAccuracyStatus');
-            if (statusDiv) {
-                if (historicalAccuracyMode) {
-                    statusDiv.textContent = 'ON - Only aircraft in service during selected year will be shown';
-                    statusDiv.style.color = '#0f0';
-                } else {
-                    statusDiv.textContent = 'OFF - All aircraft available regardless of year';
-                    statusDiv.style.color = '#f80';
-                }
-            }
-        }
-
-        function updateYearDisplay(year) {
-            selectedYear = parseInt(year);
-            document.getElementById('selectedYearDisplay').textContent = year;
-            document.getElementById('yearSlider').value = year;
-
-            // Update era description
-            let era = '';
-            if (year >= 1914 && year <= 1918) era = 'World War I';
-            else if (year > 1918 && year < 1939) era = 'Interwar Period';
-            else if (year >= 1939 && year <= 1945) era = 'World War II';
-            else if (year > 1945 && year <= 1960) era = 'Early Jet Age';
-            else if (year > 1960 && year <= 1991) era = 'Cold War';
-            else if (year > 1991) era = 'Modern Era';
-            else era = 'Pre-WW1 Era';
-
-            document.getElementById('selectedYearEra').textContent = era;
-        }
-
-        function setYearQuick(year) {
-            updateYearDisplay(year);
-        }
-
-        function confirmYearSelection() {
-            document.getElementById('generationSelector').style.display = 'none';
-            populateAircraftByYear(selectedYear);
-            document.getElementById('aircraftSelector').style.display = 'block';
-            initializeLoadoutDisplay();
-        }
+        // Generation-based aircraft selection
+        let selectedGeneration = null;
 
         function showGenerationSelector() {
             document.getElementById('splashScreen').style.display = 'none';
             document.getElementById('generationSelector').style.display = 'block';
-            loadHistoricalAccuracyPreference();
-            updateYearDisplay(selectedYear);
         }
 
         function hideGenerationSelector() {
@@ -13387,94 +11960,98 @@
         }
 
         function selectGeneration(generation) {
-            // Legacy function - convert generation to year
-            const genYearMap = {
-                1: 1910, 2: 1917, 3: 1935, 4: 1943, 5: 1950,
-                6: 1965, 7: 1980, 8: 2000, 9: 2015
-            };
-            selectedYear = genYearMap[generation] || 1943;
-            confirmYearSelection();
+            selectedGeneration = generation;
+            document.getElementById('generationSelector').style.display = 'none';
+            populateAircraftByGeneration(generation);
+            document.getElementById('aircraftSelector').style.display = 'block';
+            // Initialize loadout display
+            initializeLoadoutDisplay();
         }
 
-        function populateAircraftByYear(scenarioYear) {
-            const playerSelect = document.getElementById('playerAircraftSelect');
-            const enemySelect = document.getElementById('enemyAircraftSelect');
 
-            // Clear existing options
-            playerSelect.innerHTML = '';
-            enemySelect.innerHTML = '';
+        // Function to update loadout display based on selected aircraft
+        function updateLoadoutDisplay(aircraftType) {
+            const aircraft = aircraftDatabase[aircraftType];
+            if (!aircraft) return;
 
-            // Get all aircraft
-            const availableAircraft = [];
-            for (const [key, aircraft] of Object.entries(aircraftDatabase)) {
-                const firstYear = aircraft.firstYear || 1914;
-                const lastYear = aircraft.lastYear || 2024;
+            // Update generation info
+            const genInfo = document.getElementById('generationInfo');
+            if (genInfo) {
+                const genName = aircraft.generation === 2 ? 'Gen 2: Early WW1' :
+                                aircraft.generation === 3 ? 'Gen 3: Advanced WW1' :
+                                aircraft.generation === 4 ? 'Gen 4: WW2' :
+                                aircraft.generation === 5 ? 'Gen 5: Early Jets' :
+                                `Gen ${aircraft.generation}`;
+                genInfo.innerHTML = `<strong>${aircraft.name}</strong><br/>${genName}`;
+            }
 
-                // Check if aircraft is in service during scenario year
-                const inService = firstYear <= scenarioYear && scenarioYear <= lastYear;
+            // Get available and unavailable weapons
+            const availableWeapons = [];
+            const unavailableWeapons = [];
 
-                // Add to list if: historical mode OFF OR aircraft in service
-                if (!historicalAccuracyMode || inService) {
-                    const proximity = Math.abs(firstYear - scenarioYear);
-                    availableAircraft.push({
-                        key,
-                        aircraft,
-                        firstYear,
-                        lastYear,
-                        proximity,
-                        inService
+            for (const [weaponType, weaponData] of Object.entries(weaponDatabase)) {
+                if (isWeaponCompatible(aircraftType, weaponType)) {
+                    availableWeapons.push({ type: weaponType, ...weaponData });
+                } else {
+                    unavailableWeapons.push({ 
+                        type: weaponType, 
+                        ...weaponData,
+                        reason: getWeaponRestrictionReason(aircraftType, weaponType)
                     });
                 }
             }
 
-            // Sort by proximity (closest firstYear to scenarioYear at top)
-            availableAircraft.sort((a, b) => {
-                // In service aircraft come first
-                if (a.inService !== b.inService) return a.inService ? -1 : 1;
-                // Then sort by proximity
-                if (a.proximity !== b.proximity) return a.proximity - b.proximity;
-                // Then by name
-                return a.aircraft.name.localeCompare(b.aircraft.name);
-            });
-
-            // Populate dropdowns
-            availableAircraft.forEach(({ key, aircraft, firstYear, lastYear, inService }) => {
-                const yearBadge = `[${firstYear}-${lastYear}]`;
-                const displayName = yearBadge + ' ' + aircraft.name;
-                const style = inService ? '' : 'color: #888; font-style: italic;';
-
-                // Player aircraft dropdown
-                const playerOption = document.createElement('option');
-                playerOption.value = key;
-                playerOption.textContent = displayName;
-                playerOption.style.cssText = style;
-                playerSelect.appendChild(playerOption);
-
-                // Enemy aircraft dropdown
-                const enemyOption = document.createElement('option');
-                enemyOption.value = key;
-                enemyOption.textContent = displayName;
-                enemyOption.style.cssText = style;
-                enemySelect.appendChild(enemyOption);
-            });
-
-            // Select first aircraft as default for player, second for enemy
-            if (availableAircraft.length > 0) {
-                playerSelect.selectedIndex = 0;
-                enemySelect.selectedIndex = availableAircraft.length > 1 ? 1 : 0;
+            // Populate available weapons
+            const availableList = document.getElementById('availableWeaponsList');
+            if (availableList) {
+                availableList.innerHTML = availableWeapons.map(weapon => `
+                    <div style="padding: 10px; background: rgba(0, 255, 0, 0.1); border: 1px solid #0f0; border-radius: 5px;">
+                        <div style="font-weight: bold; color: #0f0; margin-bottom: 5px;">${weapon.name}</div>
+                        <div style="font-size: 11px; color: #aaa;">${weapon.description}</div>
+                        <div style="font-size: 10px; color: #888; margin-top: 5px;">Gen ${weapon.generation}+</div>
+                    </div>
+                `).join('');
             }
 
-            // Update year info display
-            const genInfo = document.getElementById('generationInfo');
-            if (genInfo) {
-                const modeText = historicalAccuracyMode ? 'Historical Mode ON' : 'All Aircraft (Historical Mode OFF)';
-                genInfo.innerHTML = `<strong>Scenario Year: ${scenarioYear}</strong><br>` +
-                                   `<span style="font-size: 14px; color: ${historicalAccuracyMode ? '#0f0' : '#f80'};">${modeText}</span><br>` +
-                                   `<span style="font-size: 14px; opacity: 0.8;">Showing ${availableAircraft.length} aircraft</span>`;
+            // Populate unavailable weapons
+            const unavailableList = document.getElementById('unavailableWeaponsList');
+            const unavailableSection = document.getElementById('unavailableWeaponsSection');
+            if (unavailableList && unavailableSection) {
+                if (unavailableWeapons.length > 0) {
+                    unavailableSection.style.display = 'block';
+                    unavailableList.innerHTML = unavailableWeapons.map(weapon => `
+                        <div style="padding: 10px; background: rgba(255, 0, 0, 0.1); border: 1px solid #f00; border-radius: 5px; opacity: 0.5;" title="${weapon.reason}">
+                            <div style="font-weight: bold; color: #f00; margin-bottom: 5px;">${weapon.name}</div>
+                            <div style="font-size: 11px; color: #aaa;">${weapon.description}</div>
+                            <div style="font-size: 10px; color: #f00; margin-top: 5px;">${weapon.reason}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    unavailableSection.style.display = 'none';
+                }
             }
         }
 
-        // Legacy function for compatibility
+        // Add event listeners to aircraft selectors
+        function initializeLoadoutDisplay() {
+            const playerSelect = document.getElementById('playerAircraftSelect');
+            const enemySelect = document.getElementById('enemyAircraftSelect');
+
+            if (playerSelect) {
+                // Remove old listeners if they exist
+                playerSelect.removeEventListener('change', handlePlayerAircraftChange);
+                playerSelect.addEventListener('change', handlePlayerAircraftChange);
+                // Initialize with current selection
+                if (playerSelect.value) {
+                    updateLoadoutDisplay(playerSelect.value);
+                }
+            }
+        }
+
+        function handlePlayerAircraftChange(event) {
+            updateLoadoutDisplay(event.target.value);
+        }
+
         function populateAircraftByGeneration(maxGeneration) {
             const playerSelect = document.getElementById('playerAircraftSelect');
             const enemySelect = document.getElementById('enemyAircraftSelect');
@@ -13632,8 +12209,7 @@
                     { type: 'bf109', side: 'axis', isPlayer: false, x: 1500, y: 500, altitude: 3000, heading: 270 },
                     { type: 'bf109', side: 'axis', isPlayer: false, x: 1600, y: 500, altitude: 3000, heading: 270 }
                 ],
-                year: 1940,
-                terrain: 'auto'
+                terrain: 'WW2'
             },
             {
                 id: 'pacific_theater',
@@ -13645,8 +12221,7 @@
                     { type: 'Zero', side: 'axis', isPlayer: false, x: 1500, y: 500, altitude: 2500, heading: 270 },
                     { type: 'Zero', side: 'axis', isPlayer: false, x: 1600, y: 600, altitude: 2500, heading: 270 }
                 ],
-                year: 1944,
-                terrain: 'auto'
+                terrain: 'WW2'
             },
             {
                 id: 'eastern_front',
@@ -13659,8 +12234,7 @@
                     { type: 'Fw-190', side: 'axis', isPlayer: false, x: 1500, y: 500, altitude: 2000, heading: 270 },
                     { type: 'Fw-190', side: 'axis', isPlayer: false, x: 1600, y: 500, altitude: 2000, heading: 270 }
                 ],
-                year: 1943,
-                terrain: 'auto'
+                terrain: 'WW2'
             },
             {
                 id: 'jet_age',
@@ -13672,8 +12246,7 @@
                     { type: 'P-51', side: 'allied', isPlayer: false, x: 400, y: 500, altitude: 4000, heading: 90 },
                     { type: 'Me-262', side: 'axis', isPlayer: false, x: 1500, y: 500, altitude: 4000, heading: 270 }
                 ],
-                year: 1945,
-                terrain: 'auto'
+                terrain: 'WW2'
             },
             {
                 id: 'bomber_escort',
@@ -13686,8 +12259,7 @@
                     { type: 'bf109', side: 'axis', isPlayer: false, x: 1500, y: 500, altitude: 3500, heading: 270 },
                     { type: 'bf109', side: 'axis', isPlayer: false, x: 1600, y: 500, altitude: 3500, heading: 270 }
                 ],
-                year: 1944,
-                terrain: 'auto'
+                terrain: 'WW2'
             },
             // WW1 Scenarios
             {
@@ -13701,8 +12273,7 @@
                     { type: 'DrII', side: 'central', isPlayer: false, x: 1500, y: 500, altitude: 2000, heading: 270 },
                     { type: 'DrII', side: 'central', isPlayer: false, x: 1600, y: 500, altitude: 2000, heading: 270 }
                 ],
-                year: 1917,
-                terrain: 'auto'
+                terrain: 'WW1'
             },
             {
                 id: 'red_baron',
@@ -13714,8 +12285,7 @@
                     { type: 'SE5', side: 'allied', isPlayer: false, x: 400, y: 500, altitude: 2500, heading: 90 },
                     { type: 'DrII', side: 'central', isPlayer: false, x: 1500, y: 500, altitude: 2500, heading: 270 }
                 ],
-                year: 1918,
-                terrain: 'auto'
+                terrain: 'WW1'
             },
             {
                 id: 'balloon_busting',
@@ -13727,8 +12297,7 @@
                     { type: 'Camel', side: 'allied', isPlayer: false, x: 400, y: 500, altitude: 1500, heading: 90 },
                     { type: 'DVII', side: 'central', isPlayer: false, x: 1500, y: 500, altitude: 1500, heading: 270 }
                 ],
-                year: 1917,
-                terrain: 'auto',
+                terrain: 'WW1',
                 aerialUnits: [
                     { type: 'balloon', side: 'central', x: 1200, y: 400, altitude: 500 },
                     { type: 'balloon', side: 'central', x: 1300, y: 600, altitude: 500 }
@@ -13743,8 +12312,7 @@
                     { type: 'SpadXIII', side: 'allied', isPlayer: true, x: 500, y: 500, altitude: 2000, heading: 90 },
                     { type: 'DVII', side: 'central', isPlayer: false, x: 1300, y: 500, altitude: 2000, heading: 270 }
                 ],
-                year: 1918,
-                terrain: 'auto'
+                terrain: 'WW1'
             },
             {
                 id: 'formation_fight',
@@ -13761,8 +12329,7 @@
                     { type: 'DrII', side: 'central', isPlayer: false, x: 1600, y: 500, altitude: 2000, heading: 270 },
                     { type: 'DrII', side: 'central', isPlayer: false, x: 1700, y: 600, altitude: 2000, heading: 270 }
                 ],
-                year: 1917,
-                terrain: 'auto'
+                terrain: 'WW1'
             },
             // Vietnam War Scenarios
             {
@@ -13776,8 +12343,7 @@
                     { type: 'MiG-21', side: 'axis', isPlayer: false, x: 1500, y: 500, altitude: 3000, heading: 270 },
                     { type: 'MiG-21', side: 'axis', isPlayer: false, x: 1600, y: 500, altitude: 3000, heading: 270 }
                 ],
-                year: 1967,
-                terrain: 'auto'
+                terrain: 'Vietnam'
             },
             {
                 id: 'arc_light',
@@ -13791,8 +12357,7 @@
                     { type: 'MiG-17', side: 'axis', isPlayer: false, x: 1400, y: 500, altitude: 3000, heading: 270 },
                     { type: 'MiG-21', side: 'axis', isPlayer: false, x: 1500, y: 500, altitude: 3500, heading: 270 }
                 ],
-                year: 1972,
-                terrain: 'auto'
+                terrain: 'Vietnam'
             },
             {
                 id: 'linebacker_ii',
@@ -13807,8 +12372,7 @@
                     { type: 'MiG-17', side: 'axis', isPlayer: false, x: 1500, y: 500, altitude: 3500, heading: 270 },
                     { type: 'MiG-21', side: 'axis', isPlayer: false, x: 1600, y: 500, altitude: 4000, heading: 270 }
                 ],
-                year: 1972,
-                terrain: 'auto'
+                terrain: 'Vietnam'
             },
             {
                 id: 'river_valley_run',
@@ -13821,8 +12385,7 @@
                     { type: 'F-4', side: 'allied', isPlayer: false, x: 500, y: 500, altitude: 1000, heading: 90 },
                     { type: 'MiG-17', side: 'axis', isPlayer: false, x: 1500, y: 500, altitude: 2000, heading: 270 }
                 ],
-                year: 1968,
-                terrain: 'auto'
+                terrain: 'Vietnam'
             }
         ];
 
@@ -13887,9 +12450,6 @@
             
             // Set game era
             gameEra = scenario.era;
-
-            // Set scenario year for aircraft filtering
-            selectedYear = scenario.year || 1940;
             
             // Reset game state
             gameState = 'ORDER';
@@ -13909,26 +12469,13 @@
             panY = 0;
             
             try {
-                // Create terrain based on scenario year
-                if (scenario.terrain && scenario.terrain !== 'auto') {
-                    // Use specified terrain if provided
-                    if (scenario.terrain === 'WW1') {
-                        terrain = new WW1Terrain();
-                    } else if (scenario.terrain === 'Vietnam') {
-                        terrain = new VietnamTerrain();
-                    } else {
-                        terrain = new Terrain(); // WW2
-                    }
+                // Create terrain based on scenario
+                if (scenario.terrain === 'WW1') {
+                    terrain = new WW1Terrain();
+                } else if (scenario.terrain === 'Vietnam') {
+                    terrain = new VietnamTerrain();
                 } else {
-                    // Auto-select terrain based on year
-                    const year = scenario.year || 1940;
-                    if (year >= 1914 && year <= 1920) {
-                        terrain = new WW1Terrain();
-                    } else if (year >= 1960 && year <= 1975) {
-                        terrain = new VietnamTerrain();
-                    } else {
-                        terrain = new Terrain(); // WW2/Default
-                    }
+                    terrain = new Terrain(); // WW2
                 }
                 console.log('Terrain created for scenario');
             } catch (e) {
