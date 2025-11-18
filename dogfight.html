@@ -645,6 +645,14 @@
                 </div>
             </div>
 
+            <!-- Fighter Hangar Section -->
+            <div id="fighterHangarSection" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #4a9eff;">
+                <div style="text-align: center; font-weight: bold; color: #88ccff; margin-bottom: 10px;">FIGHTER HANGAR</div>
+                <div id="fighterHangarContent">
+                    <!-- Fighter hangar content will be populated here -->
+                </div>
+            </div>
+
             <div style="margin-top: 20px; text-align: center; font-size: 12px; color: #aaa;">
                 Click on ship or press ESC to close
             </div>
@@ -3740,6 +3748,389 @@
                     effectiveness: 0.75
                 },
                 color: '#3366ff'
+            },
+
+            //==============================================================================
+            // RENEGADE LEGION INTERCEPTORS - Space Fighters
+            //==============================================================================
+
+            // === TOG (Terran Overlord Government) Fighters ===
+
+            'Fighter-Gladius': {
+                name: 'Gladius Heavy Strike Fighter',
+                nation: 'TOG',
+                faction: 'tog',
+                category: 'Renegade Legion',
+                role: 'Heavy Strike Fighter',
+                crew: 2,
+                sizeMultiplier: 1.40,
+                maxSpeed: 600, // 6G accel = ~60 m/s sustained
+                minSpeed: 0, // No minimum speed in space
+                maxTurnRate: 95, // deg/sec
+                maxClimbRate: 60, // 6G vertical
+                maxDiveRate: 60,
+                maxGForce: 10,
+                maxAcceleration: 60, // 6G
+                maxBraking: 60,
+                serviceCeiling: 999999, // No altitude limit
+                weapons: [
+                    { type: 'particle_beam', name: 'EPC-18', count: 2, damage: [18, 36], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'mass_driver', name: 'MDC-10 Turret', count: 2, ammo: 400, damage: [10, 20], rof: 3, range: 1000, sound: 'hmg' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 5, ammo: 15, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999, // Fusion reactor
+                fuelConsumption: 0,
+                emptyWeight: 210000, // 210 tons
+                armor: 530, // 190 shields + 340 armor
+                durability: 0.9, // TOG fighters less armored
+                specialCapability: 'Two-seat heavy striker with turret weapons and 5 missile hardpoints',
+                color: '#cc3333' // TOG red
+            },
+
+            'Fighter-Lancea': {
+                name: 'Lancea Light Interceptor',
+                nation: 'TOG',
+                faction: 'tog',
+                category: 'Renegade Legion',
+                role: 'Reconnaissance/Interceptor',
+                crew: 1,
+                sizeMultiplier: 0.70,
+                maxSpeed: 1100, // 11G exceptional speed
+                minSpeed: 0,
+                maxTurnRate: 140, // Highest agility
+                maxClimbRate: 110,
+                maxDiveRate: 110,
+                maxGForce: 14,
+                maxAcceleration: 110, // 11G
+                maxBraking: 110,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'laser', name: '5/1 Laser Cannon', count: 2, damage: [5, 10], rof: 2, range: 1500, sound: 'laser' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 3, ammo: 9, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 71000, // 71 tons
+                armor: 300, // 140 shields + 160 armor
+                durability: 0.9,
+                specialCapability: 'Fastest TOG fighter - 11G acceleration for hit-and-run tactics',
+                color: '#cc3333'
+            },
+
+            'Fighter-Martiobarbulus': {
+                name: 'Martiobarbulus Heavy Multi-Role',
+                nation: 'TOG',
+                faction: 'tog',
+                category: 'Renegade Legion',
+                role: 'Heavy Multi-Role Fighter',
+                crew: 1,
+                sizeMultiplier: 1.35,
+                maxSpeed: 600, // 6G
+                minSpeed: 0,
+                maxTurnRate: 90, // Least maneuverable
+                maxClimbRate: 60,
+                maxDiveRate: 60,
+                maxGForce: 10,
+                maxAcceleration: 60, // 6G
+                maxBraking: 60,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'mass_driver', name: 'MDC-10', count: 2, ammo: 400, damage: [10, 20], rof: 3, range: 1000, sound: 'hmg' },
+                    { type: 'laser', name: '7.5/3 Laser Cannon', count: 2, damage: [8, 16], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 1, ammo: 3, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 193000, // 193 tons
+                armor: 370, // 150 shields + 220 armor
+                durability: 0.9,
+                specialCapability: 'Jack-of-all-trades design with balanced energy/kinetic weapons',
+                color: '#cc3333'
+            },
+
+            'Fighter-Pilum': {
+                name: 'Pilum Medium Space Superiority',
+                nation: 'TOG',
+                faction: 'tog',
+                category: 'Renegade Legion',
+                role: 'Space Superiority Fighter',
+                crew: 1,
+                sizeMultiplier: 1.10,
+                maxSpeed: 700, // 7G
+                minSpeed: 0,
+                maxTurnRate: 110,
+                maxClimbRate: 70,
+                maxDiveRate: 70,
+                maxGForce: 11,
+                maxAcceleration: 70, // 7G
+                maxBraking: 70,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'mass_driver', name: 'MDC-8', count: 2, ammo: 400, damage: [8, 16], rof: 3, range: 1000, sound: 'hmg' },
+                    { type: 'laser', name: '7.5/3 Laser Cannon', count: 2, damage: [8, 16], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 1, ammo: 3, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 148000, // 148 tons
+                armor: 420, // 140 shields + 280 armor - excellent armor
+                durability: 0.9,
+                specialCapability: 'Reliable workhorse designed to counter KessRith fighters',
+                color: '#cc3333'
+            },
+
+            'Fighter-Spiculum': {
+                name: 'Spiculum Premier Medium Fighter',
+                nation: 'TOG',
+                faction: 'tog',
+                category: 'Renegade Legion',
+                role: 'Medium Strike Fighter',
+                crew: 1,
+                sizeMultiplier: 1.05,
+                maxSpeed: 800, // 8G
+                minSpeed: 0,
+                maxTurnRate: 120,
+                maxClimbRate: 80,
+                maxDiveRate: 80,
+                maxGForce: 12,
+                maxAcceleration: 80, // 8G
+                maxBraking: 80,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'laser', name: '7.5/4 Laser Cannon', count: 2, damage: [7, 14], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 3, ammo: 9, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 127000, // 127 tons
+                armor: 540, // 180 shields + 360 armor - best armor-to-weight ratio
+                durability: 0.9,
+                specialCapability: 'Premier TOG medium fighter with molecular-bonded armor and Promethium engines',
+                color: '#cc3333'
+            },
+
+            'Fighter-Verutum': {
+                name: 'Verutum Light Fighter',
+                nation: 'TOG',
+                faction: 'tog',
+                category: 'Renegade Legion',
+                role: 'Light Fighter',
+                crew: 1,
+                sizeMultiplier: 0.85,
+                maxSpeed: 600, // 6G (older design)
+                minSpeed: 0,
+                maxTurnRate: 125,
+                maxClimbRate: 60,
+                maxDiveRate: 60,
+                maxGForce: 10,
+                maxAcceleration: 60, // 6G
+                maxBraking: 60,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'particle_beam', name: 'EPC-14', count: 1, damage: [14, 28], rof: 2, range: 1800, sound: 'laser' },
+                    { type: 'particle_beam', name: 'NPC-16', count: 1, damage: [16, 32], rof: 2, range: 1800, sound: 'laser' },
+                    { type: 'laser', name: '5/1 Laser Cannon', count: 2, damage: [5, 10], rof: 2, range: 1500, sound: 'laser' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 1, ammo: 3, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 99000, // 99 tons
+                armor: 380, // 160 shields + 220 armor
+                durability: 0.9,
+                specialCapability: 'Older design with armor-penetrating particle weapons still effective',
+                color: '#cc3333'
+            },
+
+            // === COMMONWEALTH Fighters ===
+
+            'Fighter-Avenger': {
+                name: 'Avenger Heavy Fighter',
+                nation: 'Commonwealth',
+                faction: 'commonwealth',
+                category: 'Renegade Legion',
+                role: 'Space Superiority Fighter',
+                crew: 1,
+                sizeMultiplier: 1.25,
+                maxSpeed: 700, // 7G
+                minSpeed: 0,
+                maxTurnRate: 100,
+                maxClimbRate: 70,
+                maxDiveRate: 70,
+                maxGForce: 11,
+                maxAcceleration: 70, // 7G
+                maxBraking: 70,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'particle_beam', name: 'EPC-18', count: 1, damage: [18, 36], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'laser', name: '5/4 Laser Cannon', count: 2, damage: [6, 12], rof: 2, range: 1800, sound: 'laser' },
+                    { type: 'mass_driver', name: 'MDC-8', count: 2, ammo: 400, damage: [8, 16], rof: 3, range: 1000, sound: 'hmg' }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 175000, // 175 tons
+                armor: 390, // Bow 100+50, Sides 60+40, Stern 100+40
+                durability: 0.75, // Commonwealth standard
+                specialCapability: 'Captured TOG design modified by Commonwealth - reliable dogfighter',
+                color: '#3399ff' // Commonwealth blue
+            },
+
+            'Fighter-Cheetah': {
+                name: 'Cheetah Light Reconnaissance',
+                nation: 'Commonwealth',
+                faction: 'commonwealth',
+                category: 'Renegade Legion',
+                role: 'Reconnaissance/Interceptor',
+                crew: 1,
+                sizeMultiplier: 0.65,
+                maxSpeed: 1000, // 10G exceptional speed
+                minSpeed: 0,
+                maxTurnRate: 140, // Highest maneuverability
+                maxClimbRate: 100,
+                maxDiveRate: 100,
+                maxGForce: 14,
+                maxAcceleration: 100, // 10G
+                maxBraking: 100,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'laser', name: '5/1 Laser Cannon', count: 2, damage: [5, 10], rof: 2, range: 1500, sound: 'laser' },
+                    { type: 'particle_beam', name: 'EPC-9', count: 2, damage: [9, 18], rof: 2, range: 1500, sound: 'laser' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 1, ammo: 3, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 73000, // 73 tons
+                armor: 210, // Paper-thin armor
+                durability: 0.75,
+                specialCapability: "Commonwealth's finest light fighter - exceptional speed and agility",
+                color: '#3399ff'
+            },
+
+            'Fighter-Guardian': {
+                name: 'Guardian Point-Defense Fighter',
+                nation: 'Commonwealth',
+                faction: 'commonwealth',
+                category: 'Renegade Legion',
+                role: 'Point Defense',
+                crew: 1,
+                sizeMultiplier: 0.90,
+                maxSpeed: 400, // 4G painfully slow
+                minSpeed: 0,
+                maxTurnRate: 90, // Lowest maneuverability
+                maxClimbRate: 40,
+                maxDiveRate: 40,
+                maxGForce: 8,
+                maxAcceleration: 40, // 4G
+                maxBraking: 40,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'particle_beam', name: 'EPC-18', count: 2, damage: [18, 36], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'laser', name: '5/2 Laser Cannon', count: 2, damage: [5, 10], rof: 2, range: 1600, sound: 'laser' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 1, ammo: 3, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 106000, // 106 tons
+                armor: 380, // Exceptional armor for light class
+                durability: 0.75,
+                specialCapability: 'Slow but heavily armed - designed for installation point defense',
+                color: '#3399ff'
+            },
+
+            'Fighter-Penetrator': {
+                name: 'Penetrator Medium Strike Fighter',
+                nation: 'Commonwealth',
+                faction: 'commonwealth',
+                category: 'Renegade Legion',
+                role: 'Strike Fighter',
+                crew: 1,
+                sizeMultiplier: 1.08,
+                maxSpeed: 700, // 7G
+                minSpeed: 0,
+                maxTurnRate: 115,
+                maxClimbRate: 70,
+                maxDiveRate: 70,
+                maxGForce: 11,
+                maxAcceleration: 70, // 7G
+                maxBraking: 70,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'particle_beam', name: 'NPC-16', count: 2, damage: [16, 32], rof: 2, range: 1800, sound: 'laser' },
+                    { type: 'particle_beam', name: 'EPC-14', count: 2, damage: [14, 28], rof: 2, range: 1800, sound: 'laser' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 1, ammo: 3, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 139000, // 139 tons
+                armor: 340, // Thin side armor, heavy front/rear
+                durability: 0.75,
+                specialCapability: 'Atmospheric-capable strike fighter for high-speed raids',
+                color: '#3399ff'
+            },
+
+            'Fighter-Space Gull': {
+                name: 'Space Gull Medium Fighter',
+                nation: 'Commonwealth',
+                faction: 'commonwealth',
+                category: 'Renegade Legion',
+                role: 'Deep Space Patrol',
+                crew: 1,
+                sizeMultiplier: 1.00,
+                maxSpeed: 600, // 6G
+                minSpeed: 0,
+                maxTurnRate: 105,
+                maxClimbRate: 60,
+                maxDiveRate: 60,
+                maxGForce: 10,
+                maxAcceleration: 60, // 6G
+                maxBraking: 60,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'particle_beam', name: 'EPC-14', count: 2, damage: [14, 28], rof: 2, range: 1800, sound: 'laser' },
+                    { type: 'mass_driver', name: 'MDC-8', count: 2, ammo: 400, damage: [8, 16], rof: 3, range: 1000, sound: 'hmg' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 1, ammo: 3, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 126000, // 126 tons
+                armor: 330, // Moderate armor
+                durability: 0.75,
+                specialCapability: 'Deep space operations only - no atmospheric capability',
+                color: '#3399ff'
+            },
+
+            // === KESSRITH Fighter (Commonwealth Allied) ===
+
+            'Fighter-Fluttering Petal': {
+                name: "Na'Ctka Moquka (Fluttering Petal)",
+                nation: 'KessRith',
+                faction: 'commonwealth', // Allied with Commonwealth
+                category: 'Renegade Legion',
+                role: 'Heavy Strike Fighter',
+                crew: 2,
+                sizeMultiplier: 1.45,
+                maxSpeed: 500, // 5G lower acceleration
+                minSpeed: 0,
+                maxTurnRate: 100,
+                maxClimbRate: 50,
+                maxDiveRate: 50,
+                maxGForce: 10,
+                maxAcceleration: 50, // 5G
+                maxBraking: 50,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'laser', name: '7.5/5 Heavy Laser', count: 2, damage: [9, 18], rof: 2, range: 2500, sound: 'laser' },
+                    { type: 'laser', name: '5/5 Medium Laser Turret', count: 2, damage: [6, 12], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'laser', name: '5/4 Light Laser Turret', count: 2, damage: [5, 10], rof: 2, range: 1800, sound: 'laser' },
+                    { type: 'mass_driver', name: 'MDC-8', count: 2, ammo: 400, damage: [8, 16], rof: 3, range: 1000, sound: 'hmg' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 2, ammo: 6, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 245000, // 245 tons - heaviest fighter
+                armor: 660, // 260 shields + 400 armor - 50% more than others
+                durability: 0.50, // KessRith heavy armor - takes 50% less damage
+                specialCapability: 'KessRith heavy fighter - laser-focused with rear gunner, exceptional armor',
+                color: '#9966ff' // Purple for KessRith
             }
         };
 
@@ -4399,7 +4790,8 @@
                             { x: -8, y: 80, type: 'phalanx', range: 1500, rateOfFire: 0.015, damage: 35, accuracy: 0.85, name: 'Phalanx CIWS' },
                             { x: 8, y: 80, type: 'phalanx', range: 1500, rateOfFire: 0.015, damage: 35, accuracy: 0.85, name: 'Phalanx CIWS' }
                         ],
-                        compartments: 12
+                        compartments: 12,
+                        fighterComplement: [] // Battleships don't carry fighters
                     },
                     'carrier': {
                         length: 250,
@@ -4431,7 +4823,13 @@
                             { x: 12, y: 30, type: 'phalanx', range: 1500, rateOfFire: 0.015, damage: 35, accuracy: 0.85, name: 'Phalanx CIWS' },
                             { x: 12, y: 90, type: 'phalanx', range: 1500, rateOfFire: 0.015, damage: 35, accuracy: 0.85, name: 'Phalanx CIWS' }
                         ],
-                        compartments: 10
+                        compartments: 10,
+                        fighterComplement: [
+                            // Carriers have large fighter complements
+                            { type: 'Fighter-Cheetah', count: 6 },
+                            { type: 'Fighter-Avenger', count: 4 },
+                            { type: 'Fighter-Penetrator', count: 2 }
+                        ]
                     },
                     'destroyer': {
                         length: 115,
@@ -4456,7 +4854,11 @@
                             { x: -4, y: -40, type: 'goalkeeper', range: 1500, rateOfFire: 0.014, damage: 38, accuracy: 0.87, name: 'Goalkeeper CIWS' },
                             { x: 4, y: -40, type: 'goalkeeper', range: 1500, rateOfFire: 0.014, damage: 38, accuracy: 0.87, name: 'Goalkeeper CIWS' }
                         ],
-                        compartments: 6
+                        compartments: 6,
+                        fighterComplement: [
+                            // Destroyers carry a small fighter complement
+                            { type: 'Fighter-Cheetah', count: 2 }
+                        ]
                     },
                     'cruiser': {
                         length: 180,
@@ -4487,7 +4889,12 @@
                             { x: -7, y: 70, type: 'type730', range: 2500, rateOfFire: 0.010, damage: 40, accuracy: 0.88, name: 'Type 730 CIWS' },
                             { x: 7, y: 70, type: 'type730', range: 2500, rateOfFire: 0.010, damage: 40, accuracy: 0.88, name: 'Type 730 CIWS' }
                         ],
-                        compartments: 8
+                        compartments: 8,
+                        fighterComplement: [
+                            // Cruisers carry a moderate fighter complement
+                            { type: 'Fighter-Cheetah', count: 3 },
+                            { type: 'Fighter-Avenger', count: 2 }
+                        ]
                     },
                     'battlecruiser': {
                         length: 225,
@@ -4518,7 +4925,13 @@
                             { x: -7, y: 75, type: 'phalanx', range: 1500, rateOfFire: 0.015, damage: 35, accuracy: 0.85, name: 'Phalanx CIWS' },
                             { x: 7, y: 75, type: 'phalanx', range: 1500, rateOfFire: 0.015, damage: 35, accuracy: 0.85, name: 'Phalanx CIWS' }
                         ],
-                        compartments: 10
+                        compartments: 10,
+                        fighterComplement: [
+                            // Battlecruisers carry a moderate fighter complement
+                            { type: 'Fighter-Cheetah', count: 4 },
+                            { type: 'Fighter-Avenger', count: 3 },
+                            { type: 'Fighter-Guardian', count: 1 }
+                        ]
                     }
                 };
 
@@ -4615,6 +5028,9 @@
 
                 // === POWER MANAGEMENT SYSTEM ===
                 this.initializePowerManagement();
+
+                // === FIGHTER HANGAR SYSTEM ===
+                this.initializeFighterHangar(spec.fighterComplement || []);
 
                 // === MANEUVER MODE ===
                 this.inManeuverMode = false;
@@ -4951,6 +5367,101 @@
                 this.updateActiveWeapons();
             }
 
+            initializeFighterHangar(fighterComplement) {
+                // Initialize fighter hangar with complement
+                this.fighterHangar = {
+                    complement: [], // Array of {type, count, deployed, available}
+                    deployed: [], // Array of deployed fighter objects
+                    autoDeployEnabled: false,
+                    launchCooldown: 0,
+                    launchRate: 2.0 // Seconds between launches
+                };
+
+                // Initialize fighter complement
+                fighterComplement.forEach(entry => {
+                    this.fighterHangar.complement.push({
+                        type: entry.type,
+                        maxCount: entry.count,
+                        available: entry.count,
+                        deployed: 0
+                    });
+                });
+            }
+
+            launchFighter(fighterType) {
+                // Find the fighter type in complement
+                const fighterEntry = this.fighterHangar.complement.find(f => f.type === fighterType);
+
+                if (!fighterEntry || fighterEntry.available <= 0) {
+                    console.log(`No ${fighterType} available to launch!`);
+                    return null;
+                }
+
+                // Check cooldown
+                if (this.fighterHangar.launchCooldown > 0) {
+                    console.log(`Launch bay cooling down, wait ${this.fighterHangar.launchCooldown.toFixed(1)}s`);
+                    return null;
+                }
+
+                // Create fighter aircraft
+                const fighterData = aircraftDatabase[fighterType];
+                if (!fighterData) {
+                    console.log(`Fighter type ${fighterType} not found in database!`);
+                    return null;
+                }
+
+                // Launch position: slightly ahead of the ship
+                const headingRad = this.heading * Math.PI / 180;
+                const launchOffsetX = Math.sin(headingRad) * (this.length * 0.6);
+                const launchOffsetY = -Math.cos(headingRad) * (this.length * 0.6);
+
+                const launchX = this.x + launchOffsetX;
+                const launchY = this.y + launchOffsetY;
+
+                // Determine fighter faction based on ship faction
+                let fighterFaction = this.faction;
+                let fighterSide = this.faction === 'commonwealth' ? 'commonwealth' : 'tog';
+
+                // Create fighter name
+                const fighterName = `${fighterType.replace('Fighter-', '')} ${fighterEntry.deployed + 1}`;
+
+                // Create the fighter
+                const fighter = new Aircraft(fighterName, fighterType, launchX, launchY, 0, this.heading, false);
+                fighter.faction = fighterFaction;
+                fighter.side = fighterSide;
+                fighter.parentShip = this;
+
+                // Add to aircraft list
+                aircraft.push(fighter);
+
+                // Update complement tracking
+                fighterEntry.available--;
+                fighterEntry.deployed++;
+                this.fighterHangar.deployed.push(fighter);
+
+                // Set cooldown
+                this.fighterHangar.launchCooldown = this.fighterHangar.launchRate;
+
+                console.log(`Launched ${fighterName} from ${this.type}!`);
+                return fighter;
+            }
+
+            recoverFighter(fighter) {
+                // Remove from deployed list
+                const index = this.fighterHangar.deployed.indexOf(fighter);
+                if (index !== -1) {
+                    this.fighterHangar.deployed.splice(index, 1);
+                }
+
+                // Find fighter type and restore to complement
+                const fighterEntry = this.fighterHangar.complement.find(f => f.type === fighter.type);
+                if (fighterEntry) {
+                    fighterEntry.available++;
+                    fighterEntry.deployed--;
+                    console.log(`${fighter.name} recovered to ${this.type} hangar`);
+                }
+            }
+
             updateActiveWeapons() {
                 const weaponLevel = this.powerManagement.weapons.level;
                 const level2Toggle = this.powerManagement.weapons.level2Toggle;
@@ -5102,6 +5613,11 @@
                 // === POWER MANAGEMENT: MISSILE TIMER ===
                 if (this.missileTimer > 0) {
                     this.missileTimer -= dt;
+                }
+
+                // === FIGHTER HANGAR: LAUNCH COOLDOWN ===
+                if (this.fighterHangar && this.fighterHangar.launchCooldown > 0) {
+                    this.fighterHangar.launchCooldown = Math.max(0, this.fighterHangar.launchCooldown - dt);
                 }
 
                 // Update damage effects
@@ -7615,6 +8131,192 @@
                     ctx.fillText(this.homeOnJamMode ? 'HOJ' : 'BT', this.x + 5, this.y - 5);
                 }
                 
+                ctx.restore();
+            }
+        }
+
+        // Renegade Legion Fighter Missile - LRM, SRM, and Torpedoes
+        class FighterMissile {
+            constructor(x, y, shooter, target, missileType = 'srm') {
+                this.x = x;
+                this.y = y;
+                this.shooter = shooter;
+                this.target = target;
+                this.missileType = missileType; // 'lrm', 'srm', or 'torpedo'
+                this.heading = shooter.heading;
+                this.vx = 0;
+                this.vy = 0;
+                this.speed = 0;
+                this.isActive = true;
+                this.hasExploded = false;
+                this.motorTime = 0;
+                this.lockTime = 0;
+                this.isLocked = false;
+
+                // Set missile characteristics based on type
+                if (missileType === 'lrm') {
+                    // Long Range Missile
+                    this.maxTurnRate = 180; // deg/sec
+                    this.acceleration = 30 * 9.81; // 30G in m/s²
+                    this.motorBurnTime = 20; // seconds
+                    this.lockOnTime = 2.5; // medium lock-on time
+                    this.damage = 60; // heavy damage
+                    this.maxSpeed = this.acceleration * this.motorBurnTime; // Realistic max speed
+                    this.proximityFuseRange = 15;
+                } else if (missileType === 'srm') {
+                    // Short Range Missile
+                    this.maxTurnRate = 240; // deg/sec
+                    this.acceleration = 60 * 9.81; // 60G in m/s²
+                    this.motorBurnTime = 5; // seconds
+                    this.lockOnTime = 1.0; // fast lock-on time
+                    this.damage = 35; // medium damage
+                    this.maxSpeed = this.acceleration * this.motorBurnTime;
+                    this.proximityFuseRange = 12;
+                } else if (missileType === 'torpedo') {
+                    // Torpedo (anti-ship)
+                    this.maxTurnRate = 90; // deg/sec
+                    this.acceleration = 20 * 9.81; // 20G in m/s²
+                    this.motorBurnTime = 20; // seconds
+                    this.lockOnTime = 4.0; // very slow lock-on time
+                    this.damage = 120; // 50% of ship missile damage - very high
+                    this.maxSpeed = this.acceleration * this.motorBurnTime;
+                    this.proximityFuseRange = 20;
+                }
+
+                // Start with shooter's velocity
+                const shooterVelX = shooter.speed * Math.sin(shooter.heading * Math.PI / 180);
+                const shooterVelY = -shooter.speed * Math.cos(shooter.heading * Math.PI / 180);
+                this.vx = shooterVelX;
+                this.vy = shooterVelY;
+                this.speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+            }
+
+            update(dt) {
+                if (!this.isActive || this.hasExploded) return;
+
+                this.motorTime += dt;
+                this.lockTime += dt;
+
+                // Lock-on delay
+                if (this.lockTime >= this.lockOnTime) {
+                    this.isLocked = true;
+                }
+
+                // Motor burn phase
+                if (this.motorTime < this.motorBurnTime) {
+                    this.speed = Math.min(this.maxSpeed, this.speed + this.acceleration * dt);
+                } else {
+                    // Coasting phase - gradual slowdown
+                    this.speed = Math.max(this.maxSpeed * 0.5, this.speed - 50 * dt);
+                }
+
+                // Guidance (only if locked on)
+                if (this.isLocked && this.target && !this.target.isDestroyed) {
+                    // Calculate angle to target
+                    const dx = this.target.x - this.x;
+                    const dy = this.target.y - this.y;
+                    const angleToTarget = Math.atan2(dx, -dy) * 180 / Math.PI;
+
+                    // Current heading
+                    let currentHeading = Math.atan2(this.vx, -this.vy) * 180 / Math.PI;
+
+                    // Calculate angle difference
+                    let angleDiff = angleToTarget - currentHeading;
+                    while (angleDiff > 180) angleDiff -= 360;
+                    while (angleDiff < -180) angleDiff += 360;
+
+                    // Apply turn rate limit
+                    const maxTurn = this.maxTurnRate * dt;
+                    if (Math.abs(angleDiff) > maxTurn) {
+                        angleDiff = angleDiff > 0 ? maxTurn : -maxTurn;
+                    }
+
+                    // Update heading
+                    currentHeading += angleDiff;
+                    this.heading = currentHeading;
+
+                    // Update velocity vector
+                    this.vx = this.speed * Math.sin(currentHeading * Math.PI / 180);
+                    this.vy = -this.speed * Math.cos(currentHeading * Math.PI / 180);
+                } else {
+                    // No target or not locked - fly straight
+                    const currentHeading = Math.atan2(this.vx, -this.vy) * 180 / Math.PI;
+                    this.heading = currentHeading;
+                }
+
+                // Update position
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+
+                // Check for proximity hit
+                if (this.isLocked && this.target && !this.target.isDestroyed) {
+                    const dx = this.target.x - this.x;
+                    const dy = this.target.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < this.proximityFuseRange) {
+                        this.explode();
+                        return true; // Signal hit
+                    }
+                }
+
+                // Timeout after motor burn + 10 seconds coast
+                if (this.motorTime > this.motorBurnTime + 10) {
+                    this.isActive = false;
+                }
+
+                return false;
+            }
+
+            explode() {
+                this.hasExploded = true;
+                this.isActive = false;
+            }
+
+            render() {
+                if (!this.isActive || this.hasExploded) return;
+
+                ctx.save();
+
+                // Missile body
+                const bodyColor = this.motorTime < this.motorBurnTime ? '#ffcc00' : '#888888';
+                ctx.fillStyle = bodyColor;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Motor plume during burn
+                if (this.motorTime < this.motorBurnTime) {
+                    const plumeLength = 12;
+                    const heading = Math.atan2(this.vx, -this.vy);
+                    const gradient = ctx.createLinearGradient(
+                        this.x, this.y,
+                        this.x - Math.sin(heading) * plumeLength,
+                        this.y + Math.cos(heading) * plumeLength
+                    );
+                    gradient.addColorStop(0, 'rgba(255, 220, 100, 0.9)');
+                    gradient.addColorStop(1, 'rgba(255, 120, 0, 0)');
+
+                    ctx.strokeStyle = gradient;
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(
+                        this.x - Math.sin(heading) * plumeLength,
+                        this.y + Math.cos(heading) * plumeLength
+                    );
+                    ctx.stroke();
+                }
+
+                // Lock indicator (if not locked yet)
+                if (!this.isLocked) {
+                    ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 8, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
                 ctx.restore();
             }
         }
@@ -12105,6 +12807,13 @@
                 return;
             }
 
+            // Check if this is a Renegade Legion fighter - use faction-specific AI
+            if (aiAircraft.category === 'Renegade Legion' && aiAircraft.faction) {
+                applyRenegadeLegionAI(aiAircraft);
+                aiAircraft.hasOrders = true;
+                return;
+            }
+
             // Find target (closest enemy aircraft)
             let target = null;
             let minDist = Infinity;
@@ -12503,9 +13212,14 @@
                         // Target is in arc, range, and visible
                         const altitudeDiff = Math.abs(target.altitude - shooter.altitude);
 
-                        // Calculate hit chance
+                        // Calculate base hit chance
                         let effectiveGunnerySkill = shooter.gunnerySkill * (1 - shooter.gForcePenalty);
                         let hitChance = effectiveGunnerySkill * 0.6;
+
+                        // Store base hit chance for weapon-specific calculations
+                        let baseHitChance = hitChance;
+
+                        // Apply standard modifiers (will be overridden for some weapon types)
                         hitChance *= Math.max(0.1, 1 - distance / maxWeaponRange); // Distance factor based on weapon range
                         hitChance *= Math.max(0.3, 1 - altitudeDiff / 500); // Altitude factor
                         hitChance *= Math.min(1, 0.2 + shooter.timeOnTarget / 8); // Time on target bonus
@@ -12546,7 +13260,10 @@
                                 let weaponsFired = [];
 
                                 for (let weaponGroup of shooter.weaponGroups) {
-                                    if (weaponGroup.ammunition <= 0) continue;
+                                    // Energy weapons don't use ammo, skip ammo check for them
+                                    if (weaponGroup.type !== 'laser' && weaponGroup.type !== 'particle_beam') {
+                                        if (weaponGroup.ammunition <= 0) continue;
+                                    }
                                     if (weaponGroup.firingCooldown > 0) {
                                         weaponGroup.firingCooldown--;
                                         continue;
@@ -12594,14 +13311,63 @@
                                             // Plenty of ammo, fire at close-medium range (80% of max)
                                             shouldFireThisWeapon = distance < (weaponGroup.range * 0.80);
                                         }
+                                    } else if (weaponGroup.type === 'laser') {
+                                        // Lasers: High accuracy at all ranges, damage reduces with distance
+                                        shouldFireThisWeapon = distance < weaponGroup.range;
+                                    } else if (weaponGroup.type === 'mass_driver') {
+                                        // Mass Drivers: Fixed damage but hit chance drops rapidly with range
+                                        // Only fire at close-medium range where hit chance is decent
+                                        shouldFireThisWeapon = distance < (weaponGroup.range * 0.7) || hitChance > 0.25;
+                                    } else if (weaponGroup.type === 'particle_beam') {
+                                        // Particle Beams: Most effective at close range, both accuracy and damage fall off
+                                        shouldFireThisWeapon = distance < (weaponGroup.range * 0.85);
+                                    } else if (weaponGroup.type === 'missile_hardpoint') {
+                                        // Missiles: Fire at medium-long range with clear shot
+                                        shouldFireThisWeapon = distance > 300 && distance < weaponGroup.range && hitChance > 0.2;
                                     }
 
                                     if (!shouldFireThisWeapon) continue;
 
+                                    // Handle missile launching separately
+                                    if (weaponGroup.type === 'missile_hardpoint' && weaponGroup.guided) {
+                                        // Initialize missile array if needed
+                                        if (!shooter.fighterMissiles) {
+                                            shooter.fighterMissiles = [];
+                                        }
+
+                                        // Determine missile type based on fighter faction/loadout
+                                        let missileType = 'srm'; // Default to SRM
+                                        if (weaponGroup.name && weaponGroup.name.toLowerCase().includes('torpedo')) {
+                                            missileType = 'torpedo';
+                                        } else if (weaponGroup.name && weaponGroup.name.toLowerCase().includes('lrm')) {
+                                            missileType = 'lrm';
+                                        } else if (distance > 2000) {
+                                            missileType = 'lrm'; // Use LRM at long range
+                                        } else if (target.type && (target.type.includes('Ship') || target.type.includes('Cruiser'))) {
+                                            missileType = 'torpedo'; // Use torpedoes against capital ships
+                                        }
+
+                                        // Launch missile
+                                        const missile = new FighterMissile(shooter.x, shooter.y, shooter, target, missileType);
+                                        shooter.fighterMissiles.push(missile);
+
+                                        // Consume ammo and set cooldown
+                                        weaponGroup.ammunition -= 1;
+                                        shooter.ammunition -= 1;
+                                        weaponGroup.firingCooldown = weaponGroup.rateOfFire * 2; // Longer cooldown for missiles
+                                        weaponsFired.push(weaponGroup.name + ` (${missileType.toUpperCase()})`);
+
+                                        console.log(`${shooter.name} launched ${missileType.toUpperCase()} at ${target.name}!`);
+                                        continue; // Skip normal weapon firing logic
+                                    }
+
                                     // Fire this weapon group
-                                    weaponGroup.ammunition -= weaponGroup.ammoPerBurst;
+                                    // Energy weapons (lasers, particle beams) don't consume ammo
+                                    if (weaponGroup.type !== 'laser' && weaponGroup.type !== 'particle_beam') {
+                                        weaponGroup.ammunition -= weaponGroup.ammoPerBurst;
+                                        shooter.ammunition -= weaponGroup.ammoPerBurst; // Update total ammo
+                                    }
                                     weaponGroup.firingCooldown = weaponGroup.rateOfFire;
-                                    shooter.ammunition -= weaponGroup.ammoPerBurst; // Update total ammo
                                     weaponsFired.push(weaponGroup.name);
 
                                     // Track this weapon for tracer rendering
@@ -12623,11 +13389,66 @@
                                     } else if (weaponGroup.sound === 'cannon') {
                                         soundMe109Cannon.currentTime = 0;
                                         soundMe109Cannon.play().catch(e => console.log('Audio play failed:', e));
+                                    } else if (weaponGroup.sound === 'laser') {
+                                        // TODO: Add laser sound effect
+                                    }
+
+                                    // Calculate weapon-specific hit chance
+                                    let weaponHitChance = hitChance;
+
+                                    if (weaponGroup.type === 'laser') {
+                                        // Lasers: 80% base hit chance at all ranges (ignores distance penalty)
+                                        weaponHitChance = baseHitChance;
+                                        weaponHitChance *= Math.max(0.3, 1 - altitudeDiff / 500); // Altitude factor only
+                                        weaponHitChance *= Math.min(1, 0.2 + shooter.timeOnTarget / 8); // Time on target
+                                        weaponHitChance *= 0.8; // 80% base accuracy for lasers
+
+                                        // Apply roll penalties
+                                        if (shooter.isRolling) weaponHitChance *= 0.5;
+                                        if (target.isRolling) weaponHitChance *= 0.7;
+                                    } else if (weaponGroup.type === 'mass_driver') {
+                                        // Mass Drivers: Hit chance drops very rapidly with range (3x faster than normal)
+                                        weaponHitChance = baseHitChance;
+                                        const rangeFactor = 1 - (distance / weaponGroup.range);
+                                        weaponHitChance *= Math.max(0.05, Math.pow(rangeFactor, 3)); // Cubic falloff
+                                        weaponHitChance *= Math.max(0.3, 1 - altitudeDiff / 500);
+                                        weaponHitChance *= Math.min(1, 0.2 + shooter.timeOnTarget / 8);
+
+                                        // Apply roll penalties
+                                        if (shooter.isRolling) weaponHitChance *= 0.5;
+                                        if (target.isRolling) weaponHitChance *= 0.7;
+                                    } else if (weaponGroup.type === 'particle_beam') {
+                                        // Particle Beams: Hit chance reduces moderately with range (1.5x faster than normal)
+                                        weaponHitChance = baseHitChance;
+                                        const rangeFactor = 1 - (distance / weaponGroup.range);
+                                        weaponHitChance *= Math.max(0.1, Math.pow(rangeFactor, 1.5)); // Moderate falloff
+                                        weaponHitChance *= Math.max(0.3, 1 - altitudeDiff / 500);
+                                        weaponHitChance *= Math.min(1, 0.2 + shooter.timeOnTarget / 8);
+
+                                        // Apply roll penalties
+                                        if (shooter.isRolling) weaponHitChance *= 0.5;
+                                        if (target.isRolling) weaponHitChance *= 0.7;
                                     }
 
                                     // Check if this weapon group hits
-                                    if (Math.random() < hitChance) {
+                                    if (Math.random() < weaponHitChance) {
                                         let weaponDamage = weaponGroup.damageMin + Math.random() * (weaponGroup.damageMax - weaponGroup.damageMin);
+
+                                        // Apply weapon-specific damage modifiers based on range
+                                        if (weaponGroup.type === 'laser') {
+                                            // Lasers: Damage reduces linearly with range (down to 40% at max range)
+                                            const rangeFactor = 1 - (distance / weaponGroup.range);
+                                            const damageMultiplier = 0.4 + (rangeFactor * 0.6); // 100% at 0m, 40% at max range
+                                            weaponDamage *= damageMultiplier;
+                                        } else if (weaponGroup.type === 'mass_driver') {
+                                            // Mass Drivers: Fixed damage (no range penalty)
+                                            // No modification needed - damage stays constant
+                                        } else if (weaponGroup.type === 'particle_beam') {
+                                            // Particle Beams: Damage reduces with range (down to 20% at max range)
+                                            const rangeFactor = 1 - (distance / weaponGroup.range);
+                                            const damageMultiplier = 0.2 + (rangeFactor * 0.8); // 100% at 0m, 20% at max range
+                                            weaponDamage *= damageMultiplier;
+                                        }
 
                                         // Enhancement #8: Gun convergence accuracy bonus
                                         const convergenceDist = Math.abs(distance - shooter.gunConvergence);
@@ -14071,6 +14892,15 @@
                 missile.render();
             }
 
+            // Render fighter-launched missiles
+            for (let plane of aircraft) {
+                if (plane.fighterMissiles) {
+                    for (let missile of plane.fighterMissiles) {
+                        missile.render();
+                    }
+                }
+            }
+
             // Render ghost if in order mode
             if (ghostAircraft) {
                 ghostAircraft.aircraft.renderSVG(true, ghostAircraft.state);
@@ -14587,8 +15417,79 @@
             document.getElementById('realThrustDisplay').textContent = `${ship.currentThrust >= 0 ? '+' : ''}${ship.currentThrust.toFixed(1)} G`;
             document.getElementById('exhaustDisplay').textContent = `${ship.orderedExhaustFacing}°`;
 
+            // Populate fighter hangar
+            const hangarContent = document.getElementById('fighterHangarContent');
+            if (ship.fighterHangar && ship.fighterHangar.complement.length > 0) {
+                document.getElementById('fighterHangarSection').style.display = 'block';
+
+                let hangarHTML = `
+                    <div style="margin-bottom: 10px;">
+                        <label style="cursor: pointer;">
+                            <input type="checkbox" id="autoDeployCheckbox"
+                                   ${ship.fighterHangar.autoDeployEnabled ? 'checked' : ''}
+                                   style="margin-right: 8px;">
+                            <span style="color: #aaa;">Auto-Deploy Fighters</span>
+                        </label>
+                    </div>
+                    <div style="display: grid; gap: 10px;">
+                `;
+
+                ship.fighterHangar.complement.forEach(fighter => {
+                    const fighterName = fighter.type.replace('Fighter-', '');
+                    const cooldownMsg = ship.fighterHangar.launchCooldown > 0 ?
+                        ` (Cooldown: ${ship.fighterHangar.launchCooldown.toFixed(1)}s)` : '';
+
+                    hangarHTML += `
+                        <div style="background: rgba(50, 50, 80, 0.5); padding: 10px; border-radius: 5px; border: 1px solid #666;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 14px; color: #88ccff; font-weight: bold;">${fighterName}</div>
+                                    <div style="font-size: 12px; color: #aaa;">
+                                        Available: ${fighter.available}/${fighter.maxCount} |
+                                        Deployed: ${fighter.deployed}
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary"
+                                        onclick="launchFighterFromShip('${fighter.type}')"
+                                        ${fighter.available <= 0 || ship.fighterHangar.launchCooldown > 0 ? 'disabled' : ''}
+                                        style="padding: 5px 15px; font-size: 12px;">
+                                    LAUNCH${cooldownMsg}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                hangarHTML += '</div>';
+                hangarContent.innerHTML = hangarHTML;
+
+                // Add auto-deploy checkbox listener
+                setTimeout(() => {
+                    const checkbox = document.getElementById('autoDeployCheckbox');
+                    if (checkbox) {
+                        checkbox.addEventListener('change', () => {
+                            ship.fighterHangar.autoDeployEnabled = checkbox.checked;
+                            console.log(`Auto-deploy ${checkbox.checked ? 'enabled' : 'disabled'} for ${ship.type}`);
+                        });
+                    }
+                }, 100);
+            } else {
+                document.getElementById('fighterHangarSection').style.display = 'none';
+            }
+
             // Show modal
             modal.style.display = 'block';
+        }
+
+        // Global function to launch fighters (called from modal buttons)
+        function launchFighterFromShip(fighterType) {
+            if (selectedCapitalShip) {
+                const fighter = selectedCapitalShip.launchFighter(fighterType);
+                if (fighter) {
+                    // Refresh modal
+                    openPowerAllocationModal(selectedCapitalShip);
+                }
+            }
         }
 
         function canSetPowerLevel(ship, group, newLevel) {
@@ -15403,6 +16304,59 @@
                     }
                 }
 
+                // Update fighter-launched missiles
+                for (let plane of aircraft) {
+                    if (!plane.fighterMissiles) continue;
+
+                    for (let i = plane.fighterMissiles.length - 1; i >= 0; i--) {
+                        const missile = plane.fighterMissiles[i];
+                        const hit = missile.update(dt);
+
+                        // Apply damage if missile hit
+                        if (hit && missile.target && !missile.target.isDestroyed) {
+                            let damageAmount = missile.damage;
+
+                            // Apply durability multiplier
+                            damageAmount *= missile.target.durability;
+
+                            // Check if fighter is targeting a specific ship system
+                            if (plane.targetSystem && plane.targetSystem.ship === missile.target) {
+                                const sys = plane.targetSystem.system;
+                                if (sys && !sys.isDestroyed) {
+                                    // Direct hit on targeted system!
+                                    sys.isDestroyed = true;
+                                    console.log(`🎯 SYSTEM DESTROYED! ${plane.name}'s ${missile.missileType.toUpperCase()} destroyed ${sys.name} on ${missile.target.type}!`);
+
+                                    // Apply reduced damage to ship (system absorbed most of it)
+                                    applyComponentDamage(missile.target, damageAmount * 0.3);
+                                } else {
+                                    // System already destroyed or missed, apply normal damage
+                                    applyComponentDamage(missile.target, damageAmount);
+                                }
+                            } else {
+                                // Apply damage normally
+                                applyComponentDamage(missile.target, damageAmount);
+                            }
+
+                            missile.target.lastHitBy = plane.name;
+                            missile.target.lastHitTime = Date.now();
+
+                            console.log(`${missile.missileType.toUpperCase()} HIT! ${missile.target.name} took ${damageAmount.toFixed(1)} damage`);
+
+                            // Check for destruction
+                            if (missile.target.damage >= 100 && !missile.target.isDestroyed) {
+                                missile.target.isDestroyed = true;
+                                console.log(`💥 ${missile.target.name} DESTROYED by ${plane.name}'s ${missile.missileType.toUpperCase()}!`);
+                            }
+                        }
+
+                        // Remove inactive missiles
+                        if (!missile.isActive) {
+                            plane.fighterMissiles.splice(i, 1);
+                        }
+                    }
+                }
+
                 // Update capital ships
                 for (let ship of capitalShips) {
                     ship.update(dt);
@@ -16078,6 +17032,183 @@
 
             // Show command notification
             console.log(`Wingman Command: ${command.toUpperCase().replace('_', ' ')}`);
+        }
+
+        function applyRenegadeLegionAI(fighter) {
+            // Find target (closest enemy)
+            let target = null;
+            let minDist = Infinity;
+
+            // Target both aircraft and capital ships
+            for (let plane of aircraft) {
+                if ((plane.faction && plane.faction === fighter.faction) || plane.isDestroyed) continue;
+                const dx = plane.x - fighter.x;
+                const dy = plane.y - fighter.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < minDist) {
+                    minDist = dist;
+                    target = plane;
+                }
+            }
+
+            // Also consider capital ships as targets
+            for (let ship of capitalShips) {
+                if (ship.faction === fighter.faction || ship.isDestroyed) continue;
+                const dx = ship.x - fighter.x;
+                const dy = ship.y - fighter.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < minDist) {
+                    minDist = dist;
+                    target = ship;
+                }
+            }
+
+            // Check if fighter has torpedoes - prioritize targeting ship point defense
+            let targetSystem = null;
+            if (target && target.ciwsSystems && fighter.weaponGroups) {
+                for (let wg of fighter.weaponGroups) {
+                    if (wg.name && wg.name.toLowerCase().includes('torpedo')) {
+                        // This is a torpedo bomber - prioritize CIWS systems
+                        for (let ciws of target.ciwsSystems) {
+                            if (!ciws.isDestroyed) {
+                                targetSystem = { type: 'ciws', system: ciws, ship: target };
+                                console.log(`${fighter.name}: Targeting ${ciws.name} for torpedo run`);
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Store target system for combat processing
+            fighter.targetSystem = targetSystem;
+
+            if (!target) {
+                // No target - patrol
+                const patrolX = fighter.x + (Math.random() - 0.5) * 400;
+                const patrolY = fighter.y + (Math.random() - 0.5) * 400;
+                fighter.lockOrders(
+                    Math.max(50, Math.min(CANVAS_WIDTH - 50, patrolX)),
+                    Math.max(50, Math.min(CANVAS_HEIGHT - 50, patrolY)),
+                    0, // Space combat - altitude 0
+                    fighter.heading,
+                    0
+                );
+                return;
+            }
+
+            // Calculate approach
+            const dx = target.x - fighter.x;
+            const dy = target.y - fighter.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const angleToTarget = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
+
+            let targetX, targetY, targetHeading;
+            let throttle = 1.0;
+
+            // Faction-specific behaviors
+            if (fighter.faction === 'tog') {
+                // TOG: Aggressive high-speed slashing attacks, missile-focused
+                console.log(`${fighter.name} AI: TOG Aggressive Slash Attack`);
+
+                if (distance > 1000) {
+                    // Approach at high speed
+                    targetX = target.x;
+                    targetY = target.y;
+                    targetHeading = angleToTarget;
+                    throttle = 1.0; // Maximum speed
+                } else if (distance > 400) {
+                    // Slashing attack - pass close and fire missiles
+                    const slashAngle = angleToTarget + (Math.random() > 0.5 ? 30 : -30);
+                    const slashDist = 300;
+                    targetX = target.x + Math.cos((slashAngle - 90) * Math.PI / 180) * slashDist;
+                    targetY = target.y + Math.sin((slashAngle - 90) * Math.PI / 180) * slashDist;
+                    targetHeading = angleToTarget;
+                    throttle = 1.0; // High speed for slashing
+                } else {
+                    // Close range - disengage and reposition for another pass
+                    const escapeAngle = (angleToTarget + 180) % 360;
+                    const escapeDist = 800;
+                    targetX = fighter.x + Math.cos((escapeAngle - 90) * Math.PI / 180) * escapeDist;
+                    targetY = fighter.y + Math.sin((escapeAngle - 90) * Math.PI / 180) * escapeDist;
+                    targetHeading = escapeAngle;
+                    throttle = 1.0; // High speed escape
+                }
+
+            } else if (fighter.name && fighter.name.includes('Petal')) {
+                // KessRith: Tank role, close-in laser combat
+                console.log(`${fighter.name} AI: KessRith Tank - Close Combat`);
+
+                if (distance > 600) {
+                    // Close the distance - fly straight at target
+                    targetX = target.x;
+                    targetY = target.y;
+                    targetHeading = angleToTarget;
+                    throttle = 0.8; // Slower approach (KessRith are slower)
+                } else {
+                    // Stay at close range - orbit for laser fire
+                    const orbitAngle = angleToTarget + 90;
+                    const orbitDist = 400;
+                    targetX = target.x + Math.cos((orbitAngle - 90) * Math.PI / 180) * orbitDist;
+                    targetY = target.y + Math.sin((orbitAngle - 90) * Math.PI / 180) * orbitDist;
+                    targetHeading = angleToTarget; // Always face target
+                    throttle = 0.6; // Moderate speed for sustained fire
+                }
+
+            } else {
+                // Commonwealth: Defensive formations, balanced tactics
+                console.log(`${fighter.name} AI: Commonwealth Balanced Tactics`);
+
+                if (distance > 800) {
+                    // Approach cautiously
+                    const approachDist = 600;
+                    targetX = target.x - Math.cos((angleToTarget - 90) * Math.PI / 180) * approachDist;
+                    targetY = target.y - Math.sin((angleToTarget - 90) * Math.PI / 180) * approachDist;
+                    targetHeading = angleToTarget;
+                    throttle = 0.8;
+                } else {
+                    // Maintain optimal firing range - circle at medium range
+                    const circleAngle = angleToTarget + 45;
+                    const circleDist = 600;
+                    targetX = target.x + Math.cos((circleAngle - 90) * Math.PI / 180) * circleDist;
+                    targetY = target.y + Math.sin((circleAngle - 90) * Math.PI / 180) * circleDist;
+                    targetHeading = angleToTarget;
+                    throttle = 0.7; // Moderate speed for accuracy
+                }
+            }
+
+            // Set throttle
+            fighter.throttle = throttle;
+
+            // Constrain to canvas
+            targetX = Math.max(50, Math.min(CANVAS_WIDTH - 50, targetX));
+            targetY = Math.max(50, Math.min(CANVAS_HEIGHT - 50, targetY));
+
+            // Validate maneuver (space fighters don't have altitude constraints)
+            const validation = fighter.calculateManeuverValidation(targetX, targetY, 0, targetHeading, 0);
+
+            if (validation.state !== 'illegal') {
+                fighter.lockOrders(
+                    validation.finalX,
+                    validation.finalY,
+                    0, // Space combat
+                    validation.finalFlightHeading,
+                    0
+                );
+            } else {
+                // Fallback: continue forward
+                const fallbackDist = 300;
+                const fallbackX = fighter.x + Math.cos((fighter.heading - 90) * Math.PI / 180) * fallbackDist;
+                const fallbackY = fighter.y + Math.sin((fighter.heading - 90) * Math.PI / 180) * fallbackDist;
+                fighter.lockOrders(
+                    Math.max(50, Math.min(CANVAS_WIDTH - 50, fallbackX)),
+                    Math.max(50, Math.min(CANVAS_HEIGHT - 50, fallbackY)),
+                    0,
+                    fighter.heading,
+                    0
+                );
+            }
         }
 
         function applyWingmanAI(wingman) {
@@ -16904,6 +18035,52 @@
                 ],
                 year: 1968,
                 terrain: 'auto'
+            },
+            // Renegade Legion Scenarios
+            {
+                id: 'renegade_legion_patrol',
+                name: 'Renegade Legion: Space Patrol',
+                era: 'Renegade Legion',
+                description: 'Commonwealth fighters encounter TOG interceptors in deep space. Test the new laser weapons and guided missiles!',
+                aircraft: [
+                    { type: 'Fighter-Avenger', side: 'commonwealth', isPlayer: true, x: 300, y: 500, altitude: 0, heading: 90, name: 'CW Avenger 1' },
+                    { type: 'Fighter-Cheetah', side: 'commonwealth', isPlayer: false, x: 400, y: 450, altitude: 0, heading: 90, name: 'CW Cheetah 2' },
+                    { type: 'Fighter-Gladius', side: 'tog', isPlayer: false, x: 1500, y: 500, altitude: 0, heading: 270, name: 'TOG Gladius 1' },
+                    { type: 'Fighter-Lancea', side: 'tog', isPlayer: false, x: 1600, y: 550, altitude: 0, heading: 270, name: 'TOG Lancea 2' }
+                ],
+                year: 6830,
+                terrain: 'auto'
+            },
+            {
+                id: 'renegade_legion_interceptor_strike',
+                name: 'Renegade Legion: Interceptor Strike',
+                era: 'Renegade Legion',
+                description: 'Fast-paced space combat! TOG Spiculum fighters vs Commonwealth Penetrators. High-speed maneuvering with particle beams and mass drivers.',
+                aircraft: [
+                    { type: 'Fighter-Penetrator', side: 'commonwealth', isPlayer: true, x: 300, y: 500, altitude: 0, heading: 90, name: 'CW Penetrator 1' },
+                    { type: 'Fighter-Penetrator', side: 'commonwealth', isPlayer: false, x: 350, y: 450, altitude: 0, heading: 90, name: 'CW Penetrator 2' },
+                    { type: 'Fighter-Guardian', side: 'commonwealth', isPlayer: false, x: 400, y: 550, altitude: 0, heading: 90, name: 'CW Guardian 3' },
+                    { type: 'Fighter-Spiculum', side: 'tog', isPlayer: false, x: 1500, y: 500, altitude: 0, heading: 270, name: 'TOG Spiculum 1' },
+                    { type: 'Fighter-Spiculum', side: 'tog', isPlayer: false, x: 1550, y: 450, altitude: 0, heading: 270, name: 'TOG Spiculum 2' },
+                    { type: 'Fighter-Martiobarbulus', side: 'tog', isPlayer: false, x: 1600, y: 550, altitude: 0, heading: 270, name: 'TOG Martiobarbulus 3' }
+                ],
+                year: 6830,
+                terrain: 'auto'
+            },
+            {
+                id: 'renegade_legion_kessrith',
+                name: 'Renegade Legion: KessRith Alliance',
+                era: 'Renegade Legion',
+                description: 'The heavily-armored KessRith Fluttering Petal joins Commonwealth forces against TOG. Experience laser-heavy combat!',
+                aircraft: [
+                    { type: 'Fighter-Fluttering Petal', side: 'commonwealth', isPlayer: true, x: 300, y: 500, altitude: 0, heading: 90, name: 'KessRith Petal 1' },
+                    { type: 'Fighter-Space Gull', side: 'commonwealth', isPlayer: false, x: 450, y: 500, altitude: 0, heading: 90, name: 'CW Space Gull 2' },
+                    { type: 'Fighter-Gladius', side: 'tog', isPlayer: false, x: 1500, y: 500, altitude: 0, heading: 270, name: 'TOG Gladius 1' },
+                    { type: 'Fighter-Pilum', side: 'tog', isPlayer: false, x: 1600, y: 500, altitude: 0, heading: 270, name: 'TOG Pilum 2' },
+                    { type: 'Fighter-Verutum', side: 'tog', isPlayer: false, x: 1550, y: 600, altitude: 0, heading: 270, name: 'TOG Verutum 3' }
+                ],
+                year: 6830,
+                terrain: 'auto'
             }
         ];
 
@@ -16936,6 +18113,9 @@
                 } else if (scenario.era === 'Vietnam') {
                     eraBadge = '🚁 Vietnam';
                     eraColor = '#00aa44';
+                } else if (scenario.era === 'Renegade Legion') {
+                    eraBadge = '🚀 Renegade Legion';
+                    eraColor = '#aa00ff';
                 }
                 
                 div.innerHTML = `
