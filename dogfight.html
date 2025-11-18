@@ -645,6 +645,14 @@
                 </div>
             </div>
 
+            <!-- Fighter Hangar Section -->
+            <div id="fighterHangarSection" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #4a9eff;">
+                <div style="text-align: center; font-weight: bold; color: #88ccff; margin-bottom: 10px;">FIGHTER HANGAR</div>
+                <div id="fighterHangarContent">
+                    <!-- Fighter hangar content will be populated here -->
+                </div>
+            </div>
+
             <div style="margin-top: 20px; text-align: center; font-size: 12px; color: #aaa;">
                 Click on ship or press ESC to close
             </div>
@@ -4782,7 +4790,8 @@
                             { x: -8, y: 80, type: 'phalanx', range: 1500, rateOfFire: 0.015, damage: 35, accuracy: 0.85, name: 'Phalanx CIWS' },
                             { x: 8, y: 80, type: 'phalanx', range: 1500, rateOfFire: 0.015, damage: 35, accuracy: 0.85, name: 'Phalanx CIWS' }
                         ],
-                        compartments: 12
+                        compartments: 12,
+                        fighterComplement: [] // Battleships don't carry fighters
                     },
                     'carrier': {
                         length: 250,
@@ -4814,7 +4823,13 @@
                             { x: 12, y: 30, type: 'phalanx', range: 1500, rateOfFire: 0.015, damage: 35, accuracy: 0.85, name: 'Phalanx CIWS' },
                             { x: 12, y: 90, type: 'phalanx', range: 1500, rateOfFire: 0.015, damage: 35, accuracy: 0.85, name: 'Phalanx CIWS' }
                         ],
-                        compartments: 10
+                        compartments: 10,
+                        fighterComplement: [
+                            // Carriers have large fighter complements
+                            { type: 'Fighter-Cheetah', count: 6 },
+                            { type: 'Fighter-Avenger', count: 4 },
+                            { type: 'Fighter-Penetrator', count: 2 }
+                        ]
                     },
                     'destroyer': {
                         length: 115,
@@ -4839,7 +4854,11 @@
                             { x: -4, y: -40, type: 'goalkeeper', range: 1500, rateOfFire: 0.014, damage: 38, accuracy: 0.87, name: 'Goalkeeper CIWS' },
                             { x: 4, y: -40, type: 'goalkeeper', range: 1500, rateOfFire: 0.014, damage: 38, accuracy: 0.87, name: 'Goalkeeper CIWS' }
                         ],
-                        compartments: 6
+                        compartments: 6,
+                        fighterComplement: [
+                            // Destroyers carry a small fighter complement
+                            { type: 'Fighter-Cheetah', count: 2 }
+                        ]
                     },
                     'cruiser': {
                         length: 180,
@@ -4870,7 +4889,12 @@
                             { x: -7, y: 70, type: 'type730', range: 2500, rateOfFire: 0.010, damage: 40, accuracy: 0.88, name: 'Type 730 CIWS' },
                             { x: 7, y: 70, type: 'type730', range: 2500, rateOfFire: 0.010, damage: 40, accuracy: 0.88, name: 'Type 730 CIWS' }
                         ],
-                        compartments: 8
+                        compartments: 8,
+                        fighterComplement: [
+                            // Cruisers carry a moderate fighter complement
+                            { type: 'Fighter-Cheetah', count: 3 },
+                            { type: 'Fighter-Avenger', count: 2 }
+                        ]
                     },
                     'battlecruiser': {
                         length: 225,
@@ -4901,7 +4925,13 @@
                             { x: -7, y: 75, type: 'phalanx', range: 1500, rateOfFire: 0.015, damage: 35, accuracy: 0.85, name: 'Phalanx CIWS' },
                             { x: 7, y: 75, type: 'phalanx', range: 1500, rateOfFire: 0.015, damage: 35, accuracy: 0.85, name: 'Phalanx CIWS' }
                         ],
-                        compartments: 10
+                        compartments: 10,
+                        fighterComplement: [
+                            // Battlecruisers carry a moderate fighter complement
+                            { type: 'Fighter-Cheetah', count: 4 },
+                            { type: 'Fighter-Avenger', count: 3 },
+                            { type: 'Fighter-Guardian', count: 1 }
+                        ]
                     }
                 };
 
@@ -4998,6 +5028,9 @@
 
                 // === POWER MANAGEMENT SYSTEM ===
                 this.initializePowerManagement();
+
+                // === FIGHTER HANGAR SYSTEM ===
+                this.initializeFighterHangar(spec.fighterComplement || []);
 
                 // === MANEUVER MODE ===
                 this.inManeuverMode = false;
@@ -5334,6 +5367,101 @@
                 this.updateActiveWeapons();
             }
 
+            initializeFighterHangar(fighterComplement) {
+                // Initialize fighter hangar with complement
+                this.fighterHangar = {
+                    complement: [], // Array of {type, count, deployed, available}
+                    deployed: [], // Array of deployed fighter objects
+                    autoDeployEnabled: false,
+                    launchCooldown: 0,
+                    launchRate: 2.0 // Seconds between launches
+                };
+
+                // Initialize fighter complement
+                fighterComplement.forEach(entry => {
+                    this.fighterHangar.complement.push({
+                        type: entry.type,
+                        maxCount: entry.count,
+                        available: entry.count,
+                        deployed: 0
+                    });
+                });
+            }
+
+            launchFighter(fighterType) {
+                // Find the fighter type in complement
+                const fighterEntry = this.fighterHangar.complement.find(f => f.type === fighterType);
+
+                if (!fighterEntry || fighterEntry.available <= 0) {
+                    console.log(`No ${fighterType} available to launch!`);
+                    return null;
+                }
+
+                // Check cooldown
+                if (this.fighterHangar.launchCooldown > 0) {
+                    console.log(`Launch bay cooling down, wait ${this.fighterHangar.launchCooldown.toFixed(1)}s`);
+                    return null;
+                }
+
+                // Create fighter aircraft
+                const fighterData = aircraftDatabase[fighterType];
+                if (!fighterData) {
+                    console.log(`Fighter type ${fighterType} not found in database!`);
+                    return null;
+                }
+
+                // Launch position: slightly ahead of the ship
+                const headingRad = this.heading * Math.PI / 180;
+                const launchOffsetX = Math.sin(headingRad) * (this.length * 0.6);
+                const launchOffsetY = -Math.cos(headingRad) * (this.length * 0.6);
+
+                const launchX = this.x + launchOffsetX;
+                const launchY = this.y + launchOffsetY;
+
+                // Determine fighter faction based on ship faction
+                let fighterFaction = this.faction;
+                let fighterSide = this.faction === 'commonwealth' ? 'commonwealth' : 'tog';
+
+                // Create fighter name
+                const fighterName = `${fighterType.replace('Fighter-', '')} ${fighterEntry.deployed + 1}`;
+
+                // Create the fighter
+                const fighter = new Aircraft(fighterName, fighterType, launchX, launchY, 0, this.heading, false);
+                fighter.faction = fighterFaction;
+                fighter.side = fighterSide;
+                fighter.parentShip = this;
+
+                // Add to aircraft list
+                aircraft.push(fighter);
+
+                // Update complement tracking
+                fighterEntry.available--;
+                fighterEntry.deployed++;
+                this.fighterHangar.deployed.push(fighter);
+
+                // Set cooldown
+                this.fighterHangar.launchCooldown = this.fighterHangar.launchRate;
+
+                console.log(`Launched ${fighterName} from ${this.type}!`);
+                return fighter;
+            }
+
+            recoverFighter(fighter) {
+                // Remove from deployed list
+                const index = this.fighterHangar.deployed.indexOf(fighter);
+                if (index !== -1) {
+                    this.fighterHangar.deployed.splice(index, 1);
+                }
+
+                // Find fighter type and restore to complement
+                const fighterEntry = this.fighterHangar.complement.find(f => f.type === fighter.type);
+                if (fighterEntry) {
+                    fighterEntry.available++;
+                    fighterEntry.deployed--;
+                    console.log(`${fighter.name} recovered to ${this.type} hangar`);
+                }
+            }
+
             updateActiveWeapons() {
                 const weaponLevel = this.powerManagement.weapons.level;
                 const level2Toggle = this.powerManagement.weapons.level2Toggle;
@@ -5485,6 +5613,11 @@
                 // === POWER MANAGEMENT: MISSILE TIMER ===
                 if (this.missileTimer > 0) {
                     this.missileTimer -= dt;
+                }
+
+                // === FIGHTER HANGAR: LAUNCH COOLDOWN ===
+                if (this.fighterHangar && this.fighterHangar.launchCooldown > 0) {
+                    this.fighterHangar.launchCooldown = Math.max(0, this.fighterHangar.launchCooldown - dt);
                 }
 
                 // Update damage effects
@@ -15277,8 +15410,79 @@
             document.getElementById('realThrustDisplay').textContent = `${ship.currentThrust >= 0 ? '+' : ''}${ship.currentThrust.toFixed(1)} G`;
             document.getElementById('exhaustDisplay').textContent = `${ship.orderedExhaustFacing}°`;
 
+            // Populate fighter hangar
+            const hangarContent = document.getElementById('fighterHangarContent');
+            if (ship.fighterHangar && ship.fighterHangar.complement.length > 0) {
+                document.getElementById('fighterHangarSection').style.display = 'block';
+
+                let hangarHTML = `
+                    <div style="margin-bottom: 10px;">
+                        <label style="cursor: pointer;">
+                            <input type="checkbox" id="autoDeployCheckbox"
+                                   ${ship.fighterHangar.autoDeployEnabled ? 'checked' : ''}
+                                   style="margin-right: 8px;">
+                            <span style="color: #aaa;">Auto-Deploy Fighters</span>
+                        </label>
+                    </div>
+                    <div style="display: grid; gap: 10px;">
+                `;
+
+                ship.fighterHangar.complement.forEach(fighter => {
+                    const fighterName = fighter.type.replace('Fighter-', '');
+                    const cooldownMsg = ship.fighterHangar.launchCooldown > 0 ?
+                        ` (Cooldown: ${ship.fighterHangar.launchCooldown.toFixed(1)}s)` : '';
+
+                    hangarHTML += `
+                        <div style="background: rgba(50, 50, 80, 0.5); padding: 10px; border-radius: 5px; border: 1px solid #666;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 14px; color: #88ccff; font-weight: bold;">${fighterName}</div>
+                                    <div style="font-size: 12px; color: #aaa;">
+                                        Available: ${fighter.available}/${fighter.maxCount} |
+                                        Deployed: ${fighter.deployed}
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary"
+                                        onclick="launchFighterFromShip('${fighter.type}')"
+                                        ${fighter.available <= 0 || ship.fighterHangar.launchCooldown > 0 ? 'disabled' : ''}
+                                        style="padding: 5px 15px; font-size: 12px;">
+                                    LAUNCH${cooldownMsg}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                hangarHTML += '</div>';
+                hangarContent.innerHTML = hangarHTML;
+
+                // Add auto-deploy checkbox listener
+                setTimeout(() => {
+                    const checkbox = document.getElementById('autoDeployCheckbox');
+                    if (checkbox) {
+                        checkbox.addEventListener('change', () => {
+                            ship.fighterHangar.autoDeployEnabled = checkbox.checked;
+                            console.log(`Auto-deploy ${checkbox.checked ? 'enabled' : 'disabled'} for ${ship.type}`);
+                        });
+                    }
+                }, 100);
+            } else {
+                document.getElementById('fighterHangarSection').style.display = 'none';
+            }
+
             // Show modal
             modal.style.display = 'block';
+        }
+
+        // Global function to launch fighters (called from modal buttons)
+        function launchFighterFromShip(fighterType) {
+            if (selectedCapitalShip) {
+                const fighter = selectedCapitalShip.launchFighter(fighterType);
+                if (fighter) {
+                    // Refresh modal
+                    openPowerAllocationModal(selectedCapitalShip);
+                }
+            }
         }
 
         function canSetPowerLevel(ship, group, newLevel) {
