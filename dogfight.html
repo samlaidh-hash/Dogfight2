@@ -3740,6 +3740,389 @@
                     effectiveness: 0.75
                 },
                 color: '#3366ff'
+            },
+
+            //==============================================================================
+            // RENEGADE LEGION INTERCEPTORS - Space Fighters
+            //==============================================================================
+
+            // === TOG (Terran Overlord Government) Fighters ===
+
+            'Fighter-Gladius': {
+                name: 'Gladius Heavy Strike Fighter',
+                nation: 'TOG',
+                faction: 'tog',
+                category: 'Renegade Legion',
+                role: 'Heavy Strike Fighter',
+                crew: 2,
+                sizeMultiplier: 1.40,
+                maxSpeed: 600, // 6G accel = ~60 m/s sustained
+                minSpeed: 0, // No minimum speed in space
+                maxTurnRate: 95, // deg/sec
+                maxClimbRate: 60, // 6G vertical
+                maxDiveRate: 60,
+                maxGForce: 10,
+                maxAcceleration: 60, // 6G
+                maxBraking: 60,
+                serviceCeiling: 999999, // No altitude limit
+                weapons: [
+                    { type: 'particle_beam', name: 'EPC-18', count: 2, damage: [18, 36], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'mass_driver', name: 'MDC-10 Turret', count: 2, ammo: 400, damage: [10, 20], rof: 3, range: 1000, sound: 'hmg' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 5, ammo: 15, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999, // Fusion reactor
+                fuelConsumption: 0,
+                emptyWeight: 210000, // 210 tons
+                armor: 530, // 190 shields + 340 armor
+                durability: 0.9, // TOG fighters less armored
+                specialCapability: 'Two-seat heavy striker with turret weapons and 5 missile hardpoints',
+                color: '#cc3333' // TOG red
+            },
+
+            'Fighter-Lancea': {
+                name: 'Lancea Light Interceptor',
+                nation: 'TOG',
+                faction: 'tog',
+                category: 'Renegade Legion',
+                role: 'Reconnaissance/Interceptor',
+                crew: 1,
+                sizeMultiplier: 0.70,
+                maxSpeed: 1100, // 11G exceptional speed
+                minSpeed: 0,
+                maxTurnRate: 140, // Highest agility
+                maxClimbRate: 110,
+                maxDiveRate: 110,
+                maxGForce: 14,
+                maxAcceleration: 110, // 11G
+                maxBraking: 110,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'laser', name: '5/1 Laser Cannon', count: 2, damage: [5, 10], rof: 2, range: 1500, sound: 'laser' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 3, ammo: 9, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 71000, // 71 tons
+                armor: 300, // 140 shields + 160 armor
+                durability: 0.9,
+                specialCapability: 'Fastest TOG fighter - 11G acceleration for hit-and-run tactics',
+                color: '#cc3333'
+            },
+
+            'Fighter-Martiobarbulus': {
+                name: 'Martiobarbulus Heavy Multi-Role',
+                nation: 'TOG',
+                faction: 'tog',
+                category: 'Renegade Legion',
+                role: 'Heavy Multi-Role Fighter',
+                crew: 1,
+                sizeMultiplier: 1.35,
+                maxSpeed: 600, // 6G
+                minSpeed: 0,
+                maxTurnRate: 90, // Least maneuverable
+                maxClimbRate: 60,
+                maxDiveRate: 60,
+                maxGForce: 10,
+                maxAcceleration: 60, // 6G
+                maxBraking: 60,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'mass_driver', name: 'MDC-10', count: 2, ammo: 400, damage: [10, 20], rof: 3, range: 1000, sound: 'hmg' },
+                    { type: 'laser', name: '7.5/3 Laser Cannon', count: 2, damage: [8, 16], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 1, ammo: 3, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 193000, // 193 tons
+                armor: 370, // 150 shields + 220 armor
+                durability: 0.9,
+                specialCapability: 'Jack-of-all-trades design with balanced energy/kinetic weapons',
+                color: '#cc3333'
+            },
+
+            'Fighter-Pilum': {
+                name: 'Pilum Medium Space Superiority',
+                nation: 'TOG',
+                faction: 'tog',
+                category: 'Renegade Legion',
+                role: 'Space Superiority Fighter',
+                crew: 1,
+                sizeMultiplier: 1.10,
+                maxSpeed: 700, // 7G
+                minSpeed: 0,
+                maxTurnRate: 110,
+                maxClimbRate: 70,
+                maxDiveRate: 70,
+                maxGForce: 11,
+                maxAcceleration: 70, // 7G
+                maxBraking: 70,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'mass_driver', name: 'MDC-8', count: 2, ammo: 400, damage: [8, 16], rof: 3, range: 1000, sound: 'hmg' },
+                    { type: 'laser', name: '7.5/3 Laser Cannon', count: 2, damage: [8, 16], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 1, ammo: 3, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 148000, // 148 tons
+                armor: 420, // 140 shields + 280 armor - excellent armor
+                durability: 0.9,
+                specialCapability: 'Reliable workhorse designed to counter KessRith fighters',
+                color: '#cc3333'
+            },
+
+            'Fighter-Spiculum': {
+                name: 'Spiculum Premier Medium Fighter',
+                nation: 'TOG',
+                faction: 'tog',
+                category: 'Renegade Legion',
+                role: 'Medium Strike Fighter',
+                crew: 1,
+                sizeMultiplier: 1.05,
+                maxSpeed: 800, // 8G
+                minSpeed: 0,
+                maxTurnRate: 120,
+                maxClimbRate: 80,
+                maxDiveRate: 80,
+                maxGForce: 12,
+                maxAcceleration: 80, // 8G
+                maxBraking: 80,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'laser', name: '7.5/4 Laser Cannon', count: 2, damage: [7, 14], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 3, ammo: 9, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 127000, // 127 tons
+                armor: 540, // 180 shields + 360 armor - best armor-to-weight ratio
+                durability: 0.9,
+                specialCapability: 'Premier TOG medium fighter with molecular-bonded armor and Promethium engines',
+                color: '#cc3333'
+            },
+
+            'Fighter-Verutum': {
+                name: 'Verutum Light Fighter',
+                nation: 'TOG',
+                faction: 'tog',
+                category: 'Renegade Legion',
+                role: 'Light Fighter',
+                crew: 1,
+                sizeMultiplier: 0.85,
+                maxSpeed: 600, // 6G (older design)
+                minSpeed: 0,
+                maxTurnRate: 125,
+                maxClimbRate: 60,
+                maxDiveRate: 60,
+                maxGForce: 10,
+                maxAcceleration: 60, // 6G
+                maxBraking: 60,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'particle_beam', name: 'EPC-14', count: 1, damage: [14, 28], rof: 2, range: 1800, sound: 'laser' },
+                    { type: 'particle_beam', name: 'NPC-16', count: 1, damage: [16, 32], rof: 2, range: 1800, sound: 'laser' },
+                    { type: 'laser', name: '5/1 Laser Cannon', count: 2, damage: [5, 10], rof: 2, range: 1500, sound: 'laser' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 1, ammo: 3, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 99000, // 99 tons
+                armor: 380, // 160 shields + 220 armor
+                durability: 0.9,
+                specialCapability: 'Older design with armor-penetrating particle weapons still effective',
+                color: '#cc3333'
+            },
+
+            // === COMMONWEALTH Fighters ===
+
+            'Fighter-Avenger': {
+                name: 'Avenger Heavy Fighter',
+                nation: 'Commonwealth',
+                faction: 'commonwealth',
+                category: 'Renegade Legion',
+                role: 'Space Superiority Fighter',
+                crew: 1,
+                sizeMultiplier: 1.25,
+                maxSpeed: 700, // 7G
+                minSpeed: 0,
+                maxTurnRate: 100,
+                maxClimbRate: 70,
+                maxDiveRate: 70,
+                maxGForce: 11,
+                maxAcceleration: 70, // 7G
+                maxBraking: 70,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'particle_beam', name: 'EPC-18', count: 1, damage: [18, 36], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'laser', name: '5/4 Laser Cannon', count: 2, damage: [6, 12], rof: 2, range: 1800, sound: 'laser' },
+                    { type: 'mass_driver', name: 'MDC-8', count: 2, ammo: 400, damage: [8, 16], rof: 3, range: 1000, sound: 'hmg' }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 175000, // 175 tons
+                armor: 390, // Bow 100+50, Sides 60+40, Stern 100+40
+                durability: 0.75, // Commonwealth standard
+                specialCapability: 'Captured TOG design modified by Commonwealth - reliable dogfighter',
+                color: '#3399ff' // Commonwealth blue
+            },
+
+            'Fighter-Cheetah': {
+                name: 'Cheetah Light Reconnaissance',
+                nation: 'Commonwealth',
+                faction: 'commonwealth',
+                category: 'Renegade Legion',
+                role: 'Reconnaissance/Interceptor',
+                crew: 1,
+                sizeMultiplier: 0.65,
+                maxSpeed: 1000, // 10G exceptional speed
+                minSpeed: 0,
+                maxTurnRate: 140, // Highest maneuverability
+                maxClimbRate: 100,
+                maxDiveRate: 100,
+                maxGForce: 14,
+                maxAcceleration: 100, // 10G
+                maxBraking: 100,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'laser', name: '5/1 Laser Cannon', count: 2, damage: [5, 10], rof: 2, range: 1500, sound: 'laser' },
+                    { type: 'particle_beam', name: 'EPC-9', count: 2, damage: [9, 18], rof: 2, range: 1500, sound: 'laser' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 1, ammo: 3, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 73000, // 73 tons
+                armor: 210, // Paper-thin armor
+                durability: 0.75,
+                specialCapability: "Commonwealth's finest light fighter - exceptional speed and agility",
+                color: '#3399ff'
+            },
+
+            'Fighter-Guardian': {
+                name: 'Guardian Point-Defense Fighter',
+                nation: 'Commonwealth',
+                faction: 'commonwealth',
+                category: 'Renegade Legion',
+                role: 'Point Defense',
+                crew: 1,
+                sizeMultiplier: 0.90,
+                maxSpeed: 400, // 4G painfully slow
+                minSpeed: 0,
+                maxTurnRate: 90, // Lowest maneuverability
+                maxClimbRate: 40,
+                maxDiveRate: 40,
+                maxGForce: 8,
+                maxAcceleration: 40, // 4G
+                maxBraking: 40,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'particle_beam', name: 'EPC-18', count: 2, damage: [18, 36], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'laser', name: '5/2 Laser Cannon', count: 2, damage: [5, 10], rof: 2, range: 1600, sound: 'laser' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 1, ammo: 3, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 106000, // 106 tons
+                armor: 380, // Exceptional armor for light class
+                durability: 0.75,
+                specialCapability: 'Slow but heavily armed - designed for installation point defense',
+                color: '#3399ff'
+            },
+
+            'Fighter-Penetrator': {
+                name: 'Penetrator Medium Strike Fighter',
+                nation: 'Commonwealth',
+                faction: 'commonwealth',
+                category: 'Renegade Legion',
+                role: 'Strike Fighter',
+                crew: 1,
+                sizeMultiplier: 1.08,
+                maxSpeed: 700, // 7G
+                minSpeed: 0,
+                maxTurnRate: 115,
+                maxClimbRate: 70,
+                maxDiveRate: 70,
+                maxGForce: 11,
+                maxAcceleration: 70, // 7G
+                maxBraking: 70,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'particle_beam', name: 'NPC-16', count: 2, damage: [16, 32], rof: 2, range: 1800, sound: 'laser' },
+                    { type: 'particle_beam', name: 'EPC-14', count: 2, damage: [14, 28], rof: 2, range: 1800, sound: 'laser' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 1, ammo: 3, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 139000, // 139 tons
+                armor: 340, // Thin side armor, heavy front/rear
+                durability: 0.75,
+                specialCapability: 'Atmospheric-capable strike fighter for high-speed raids',
+                color: '#3399ff'
+            },
+
+            'Fighter-Space Gull': {
+                name: 'Space Gull Medium Fighter',
+                nation: 'Commonwealth',
+                faction: 'commonwealth',
+                category: 'Renegade Legion',
+                role: 'Deep Space Patrol',
+                crew: 1,
+                sizeMultiplier: 1.00,
+                maxSpeed: 600, // 6G
+                minSpeed: 0,
+                maxTurnRate: 105,
+                maxClimbRate: 60,
+                maxDiveRate: 60,
+                maxGForce: 10,
+                maxAcceleration: 60, // 6G
+                maxBraking: 60,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'particle_beam', name: 'EPC-14', count: 2, damage: [14, 28], rof: 2, range: 1800, sound: 'laser' },
+                    { type: 'mass_driver', name: 'MDC-8', count: 2, ammo: 400, damage: [8, 16], rof: 3, range: 1000, sound: 'hmg' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 1, ammo: 3, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 126000, // 126 tons
+                armor: 330, // Moderate armor
+                durability: 0.75,
+                specialCapability: 'Deep space operations only - no atmospheric capability',
+                color: '#3399ff'
+            },
+
+            // === KESSRITH Fighter (Commonwealth Allied) ===
+
+            'Fighter-Fluttering Petal': {
+                name: "Na'Ctka Moquka (Fluttering Petal)",
+                nation: 'KessRith',
+                faction: 'commonwealth', // Allied with Commonwealth
+                category: 'Renegade Legion',
+                role: 'Heavy Strike Fighter',
+                crew: 2,
+                sizeMultiplier: 1.45,
+                maxSpeed: 500, // 5G lower acceleration
+                minSpeed: 0,
+                maxTurnRate: 100,
+                maxClimbRate: 50,
+                maxDiveRate: 50,
+                maxGForce: 10,
+                maxAcceleration: 50, // 5G
+                maxBraking: 50,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'laser', name: '7.5/5 Heavy Laser', count: 2, damage: [9, 18], rof: 2, range: 2500, sound: 'laser' },
+                    { type: 'laser', name: '5/5 Medium Laser Turret', count: 2, damage: [6, 12], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'laser', name: '5/4 Light Laser Turret', count: 2, damage: [5, 10], rof: 2, range: 1800, sound: 'laser' },
+                    { type: 'mass_driver', name: 'MDC-8', count: 2, ammo: 400, damage: [8, 16], rof: 3, range: 1000, sound: 'hmg' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 2, ammo: 6, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 245000, // 245 tons - heaviest fighter
+                armor: 660, // 260 shields + 400 armor - 50% more than others
+                durability: 0.50, // KessRith heavy armor - takes 50% less damage
+                specialCapability: 'KessRith heavy fighter - laser-focused with rear gunner, exceptional armor',
+                color: '#9966ff' // Purple for KessRith
             }
         };
 
