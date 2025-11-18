@@ -1809,44 +1809,43 @@
                 durability: 1.3,
                 color: '#0099cc'
             },
-            'FokkerAI': {
-                name: 'Fokker A.I',
-                nation: 'German',
-                role: 'Observation/Reconnaissance',
-                firstYear: 1914,
-                lastYear: 1915,
-                sizeMultiplier: 1.08, // Wingspan: 12.12m
+            'MoraneAI': {
+                name: 'Morane-Saulnier AI',
+                nation: 'French',
+                role: 'Fighter',
+                firstYear: 1916,
+                lastYear: 1918,
+                sizeMultiplier: 0.76, // Wingspan: 8.51m
                 era: 'WW1',
                 isBiplane: false, // Monoplane
-                maxSpeed: 38, // m/s (~135 km/h, 84 mph)
-                minSpeed: 16,
-                maxTurnRate: 60, // Slower, less maneuverable observation plane
-                maxClimbRate: 4, // Poor climb with 80hp engine
-                maxDiveRate: 18,
-                maxGForce: 4,
-                maxAcceleration: 10,
-                maxBraking: 13,
+                maxSpeed: 48, // m/s (~105 mph)
+                minSpeed: 17,
+                maxTurnRate: 75,
+                maxClimbRate: 5,
+                maxDiveRate: 20,
+                maxGForce: 4.5,
+                maxAcceleration: 12,
+                maxBraking: 15,
                 weapons: [
                     {
                         type: 'mg',
-                        name: '7.92mm Parabellum',
+                        name: '7.7mm Vickers',
                         count: 1,
-                        ammo: 500,
+                        ammo: 600,
                         burstSize: 3,
                         damage: [2, 4],
                         rof: 1,
                         range: 500,
                         sound: 'mg',
-                        mount: 'observer' // Observer's defensive gun
+                        incendiary: true
                     }
                 ],
-                fuelCapacity: 120,
-                fuelConsumption: 0.35,
-                durability: 1.15, // Fragile early war aircraft
-                hasRotaryEngine: true,
-                rotaryTurnBonus: 1.1,
-                rotaryTurnPenalty: 0.9,
-                color: '#ff6644'
+                fuelCapacity: 100,
+                fuelConsumption: 0.38,
+                durability: 1.2,
+                canCarryRockets: true,
+                rocketCapacity: 4,
+                color: '#00aadd'
             },
             'BristolF2': {
                 name: 'Bristol F.2 Fighter',
@@ -3490,145 +3489,6 @@
                 specialCapability: 'Classic military trainer - Stable, forgiving, and long-serving',
                 isTrainer: true,
                 color: '#0088cc'
-            }
-,
-            'F-4': {
-                name: 'F-4 Phantom II',
-                nation: 'American',
-                role: 'Fighter-Bomber',
-                era: 'Vietnam',
-                generation: 3,
-                firstYear: 1960,
-                lastYear: 2016,
-                sizeMultiplier: 1.45,
-                maxSpeed: 630,
-                minSpeed: 75,
-                maxTurnRate: 85,
-                maxClimbRate: 50,
-                maxDiveRate: 100,
-                maxGForce: 8.5,
-                maxAcceleration: 80,
-                maxBraking: 40,
-                serviceCeiling: 18000,
-                weapons: { type: 'cannon', count: 1, ammo: 640, burstSize: 8, damage: [10, 18], rof: 2 },
-                fuelCapacity: 7500,
-                fuelConsumption: 4.5,
-                canCarryBombs: true,
-                bombCapacity: 8,
-                canCarryRockets: true,
-                rocketCapacity: 12,
-                isJet: true,
-                durability: 0.9,
-                specialCapability: 'Versatile multi-role fighter - Vietnam War workhorse',
-                rcs: 12,
-                ecmSuite: {
-                    ecmType: 'pod',
-                    generation: 1,
-                    jammingPower: 1000,
-                    jammingRange: 8000,
-                    jammingTypes: ['noise'],
-                    frequencyBands: ['X'],
-                    canFrequencyHop: false,
-                    maxContinuousTime: 90,
-                    angleOfCoverage: 180,
-                    powerDraw: 50,
-                    fuelPenalty: 0.3,
-                    cooldownRate: 1.0,
-                    effectiveness: 0.5
-                },
-                color: '#4444ff'
-            },
-            'F-4G': {
-                name: 'F-4G Wild Weasel',
-                nation: 'American',
-                role: 'SEAD (Suppression of Enemy Air Defenses)',
-                era: 'Cold War',
-                generation: 3,
-                firstYear: 1978,
-                lastYear: 1996,
-                sizeMultiplier: 1.45,
-                maxSpeed: 630,
-                minSpeed: 75,
-                maxTurnRate: 85,
-                maxClimbRate: 50,
-                maxDiveRate: 100,
-                maxGForce: 8.5,
-                maxAcceleration: 80,
-                maxBraking: 40,
-                serviceCeiling: 18000,
-                weapons: { type: 'cannon', count: 1, ammo: 640, burstSize: 8, damage: [10, 18], rof: 2 },
-                fuelCapacity: 7500,
-                fuelConsumption: 5.0,
-                canCarryBombs: false,
-                canCarryRockets: true,
-                rocketCapacity: 4,
-                isJet: true,
-                durability: 0.9,
-                specialCapability: 'Wild Weasel SEAD specialist - Advanced ECM and ARM capability',
-                rcs: 12,
-                ecmSuite: {
-                    ecmType: 'dedicated',
-                    generation: 2,
-                    jammingPower: 5000,
-                    jammingRange: 25000,
-                    jammingTypes: ['noise', 'deception', 'barrage'],
-                    frequencyBands: ['X', 'Ku', 'Ka'],
-                    canFrequencyHop: true,
-                    maxContinuousTime: 300,
-                    angleOfCoverage: 360,
-                    powerDraw: 100,
-                    fuelPenalty: 0.5,
-                    cooldownRate: 1.5,
-                    effectiveness: 0.7,
-                    specialFeatures: ['radar_warning_receiver', 'threat_library']
-                },
-                canCarryARM: true,
-                armCapacity: 4,
-                color: '#6666ff'
-            },
-            'F-15C': {
-                name: 'F-15C Eagle',
-                nation: 'American',
-                role: 'Air Superiority Fighter',
-                era: 'Modern',
-                generation: 4,
-                firstYear: 1979,
-                lastYear: 2025,
-                sizeMultiplier: 1.30,
-                maxSpeed: 720,
-                minSpeed: 70,
-                maxTurnRate: 100,
-                maxClimbRate: 75,
-                maxDiveRate: 120,
-                maxGForce: 9,
-                maxAcceleration: 100,
-                maxBraking: 50,
-                serviceCeiling: 20000,
-                weapons: { type: 'cannon', count: 1, ammo: 940, burstSize: 10, damage: [12, 20], rof: 2 },
-                fuelCapacity: 10000,
-                fuelConsumption: 5.5,
-                canCarryBombs: false,
-                canCarryRockets: false,
-                isJet: true,
-                durability: 0.95,
-                specialCapability: 'Undefeated air superiority fighter - 104:0 kill ratio',
-                rcs: 10,
-                ecmSuite: {
-                    ecmType: 'internal',
-                    generation: 3,
-                    jammingPower: 3000,
-                    jammingRange: 15000,
-                    jammingTypes: ['noise', 'deception'],
-                    frequencyBands: ['X', 'Ku'],
-                    canFrequencyHop: true,
-                    maxContinuousTime: 180,
-                    angleOfCoverage: 240,
-                    powerDraw: 50,
-                    fuelPenalty: 0.3,
-                    cooldownRate: 1.0,
-                    effectiveness: 0.75
-                },
-                color: '#3366ff'
             }
         };
 
@@ -6457,279 +6317,6 @@
         }
 
         // Air-to-Air Rocket class
-
-
-        // Ship-launched Surface-to-Air Missile with ECCM
-        class ShipSAM {
-            constructor(x, y, altitude, target, missileType) {
-                this.x = x;
-                this.y = y;
-                this.altitude = altitude;
-                this.target = target;
-                this.missileType = missileType;
-                this.vx = 0;
-                this.vy = 0;
-                this.vz = 0;
-                this.speed = 0;
-                this.maxSpeed = 900;
-                this.acceleration = 200;
-                this.maxTurnRate = 180;
-                this.damage = 50;
-                this.explosionRadius = 20;
-                this.motorBurnTime = 5;
-                this.motorTime = 0;
-                this.isActive = true;
-                this.hasExploded = false;
-                this.proximityFuseRange = 30;
-                this.guidanceMode = 'radar-guided';
-                this.lockStrength = 1.0;
-                this.type = 'radar-guided';
-                
-                // ECCM capability based on missile type
-                this.eccm = this.initializeECCM(missileType);
-                
-                // Track which SAMs can do burn-through/home-on-jam
-                this.burnThroughMode = false;
-                this.homeOnJamMode = false;
-            }
-            
-            initializeECCM(missileType) {
-                // Define ECCM profiles for different SAM types
-                const eccmProfiles = {
-                    'rim7': {
-                        generation: 2,
-                        hasBurnThrough: true,
-                        hasFrequencyAgility: false,
-                        hasHomeOnJam: false,
-                        jammingResistance: 0.2,
-                        lockRetention: 0.5
-                    },
-                    'rim66': {
-                        generation: 3,
-                        hasBurnThrough: true,
-                        hasFrequencyAgility: true,
-                        hasHomeOnJam: true,
-                        jammingResistance: 0.4,
-                        lockRetention: 0.7
-                    },
-                    'rim174': {
-                        generation: 4,
-                        hasBurnThrough: true,
-                        hasFrequencyAgility: true,
-                        hasHomeOnJam: true,
-                        hasMultiModeSeeker: true,
-                        availableModes: ['radar-guided', 'optical'],
-                        jammingResistance: 0.6,
-                        lockRetention: 0.85
-                    }
-                };
-                
-                const profile = eccmProfiles[missileType];
-                return profile ? new ECCMCapability(profile) : null;
-            }
-            
-            update(dt) {
-                if (!this.isActive || this.hasExploded) return;
-                
-                this.motorTime += dt;
-                
-                // Motor burn phase
-                if (this.motorTime < this.motorBurnTime) {
-                    this.speed = Math.min(this.maxSpeed, this.speed + this.acceleration * dt);
-                } else {
-                    // Coasting phase - gradual slowdown
-                    this.speed = Math.max(this.maxSpeed * 0.7, this.speed - 20 * dt);
-                }
-                
-                // Guidance
-                if (this.target && !this.target.isDestroyed) {
-                    this.proportionalNavigation(dt);
-                } else {
-                    // Lost target, continue ballistic
-                    this.altitude -= 9.81 * dt * dt / 2;
-                }
-                
-                // Update position
-                this.x += this.vx * dt;
-                this.y += this.vy * dt;
-                this.altitude += this.vz * dt;
-                
-                // Proximity fuse check
-                this.checkProximityFuse();
-                
-                // Ground impact
-                if (this.altitude <= 0) {
-                    this.explode();
-                }
-                
-                // Timeout after 30 seconds
-                if (this.motorTime > 30) {
-                    this.isActive = false;
-                }
-            }
-            
-            proportionalNavigation(dt) {
-                if (!this.target || this.target.isDestroyed) {
-                    this.lockStrength = 0;
-                    return;
-                }
-                
-                const dx = this.target.x - this.x;
-                const dy = this.target.y - this.y;
-                const dz = this.target.altitude - this.altitude;
-                const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                
-                // Check for ECM jamming
-                let jammingEffect = 0;
-                if (this.type === 'radar-guided' && this.target.ecmSuite && this.target.ecmSuite.isActive) {
-                    jammingEffect = this.target.ecmSuite.calculateJammingEffect(this);
-                    
-                    // Apply ECCM if available
-                    if (this.eccm) {
-                        const originalJamming = jammingEffect;
-                        jammingEffect = this.eccm.processJamming(this, jammingEffect);
-                        
-                        // Check if we switched to home-on-jam
-                        if (this.eccm.hasHomeOnJam && originalJamming > 0.5 && jammingEffect < originalJamming * 0.5) {
-                            this.homeOnJamMode = true;
-                        }
-                        if (this.eccm.hasBurnThrough && originalJamming > 0.3) {
-                            this.burnThroughMode = true;
-                        }
-                    }
-                    
-                    // Degrade lock strength based on effective jamming
-                    this.lockStrength *= (1 - jammingEffect * 0.4);
-                    
-                    // Chance to break lock entirely
-                    if (Math.random() < jammingEffect * 0.15 * dt) {
-                        this.lockStrength = 0;
-                        console.log(this.missileType + ' lock broken by ECM jamming!');
-                        return;
-                    }
-                }
-                
-                // Proportional navigation constant
-                const N = 3;
-                
-                // Calculate line of sight rate
-                const losAngle = Math.atan2(dy, dx);
-                const losElevation = Math.atan2(dz, Math.sqrt(dx * dx + dy * dy));
-                
-                // Calculate required acceleration
-                const closingSpeed = this.speed;
-                const lateralAccel = N * closingSpeed * (this.maxTurnRate * Math.PI / 180) * dt;
-                
-                // Update velocity vector
-                const targetDir = Math.atan2(dy, dx);
-                const targetElev = Math.atan2(dz, Math.sqrt(dx * dx + dy * dy));
-                
-                this.vx = this.speed * Math.cos(targetDir);
-                this.vy = this.speed * Math.sin(targetDir);
-                this.vz = this.speed * Math.sin(targetElev);
-            }
-            
-            checkProximityFuse() {
-                if (!this.target || this.target.isDestroyed || this.hasExploded) return;
-                
-                const dx = this.target.x - this.x;
-                const dy = this.target.y - this.y;
-                const dz = this.target.altitude - this.altitude;
-                const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                
-                let effectiveProximityRange = this.proximityFuseRange;
-                
-                // ECM can affect proximity fuse
-                if (this.type === 'radar-guided' && this.target.ecmSuite && this.target.ecmSuite.isActive) {
-                    let jammingEffect = this.target.ecmSuite.calculateJammingEffect(this);
-                    if (this.eccm) {
-                        jammingEffect = this.eccm.processJamming(this, jammingEffect);
-                    }
-                    effectiveProximityRange *= (1 - jammingEffect * 0.5);
-                    
-                    // Deception jamming can cause premature detonation
-                    if (this.target.ecmSuite.currentMode === 'deception' && Math.random() < jammingEffect * 0.1) {
-                        console.log('Deception jamming caused premature ' + this.missileType + ' detonation!');
-                        this.explode();
-                        return;
-                    }
-                }
-                
-                if (distance <= effectiveProximityRange) {
-                    this.explode();
-                }
-            }
-            
-            explode() {
-                this.hasExploded = true;
-                this.isActive = false;
-                
-                // Damage aircraft if close enough
-                if (this.target && !this.target.isDestroyed) {
-                    const dx = this.target.x - this.x;
-                    const dy = this.target.y - this.y;
-                    const dz = this.target.altitude - this.altitude;
-                    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                    
-                    if (distance <= this.explosionRadius) {
-                        const damageFactor = 1 - (distance / this.explosionRadius);
-                        const actualDamage = this.damage * damageFactor;
-                        
-                        if (typeof applyComponentDamage === 'function') {
-                            applyComponentDamage(this.target, actualDamage);
-                        } else {
-                            this.target.damage += actualDamage;
-                        }
-                        
-                        console.log(this.missileType + ' HIT ' + this.target.name + '! Damage: ' + actualDamage.toFixed(1) + ' Distance: ' + distance.toFixed(1) + 'm');
-                    }
-                }
-            }
-            
-            render() {
-                if (!this.isActive || this.hasExploded) return;
-                
-                ctx.save();
-                
-                // Missile body
-                ctx.fillStyle = this.motorTime < this.motorBurnTime ? '#ffaa00' : '#666666';
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Motor plume
-                if (this.motorTime < this.motorBurnTime) {
-                    const plumeLength = 15;
-                    const gradient = ctx.createLinearGradient(
-                        this.x, this.y,
-                        this.x - this.vx / this.speed * plumeLength, 
-                        this.y - this.vy / this.speed * plumeLength
-                    );
-                    gradient.addColorStop(0, 'rgba(255, 200, 0, 0.8)');
-                    gradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
-                    
-                    ctx.strokeStyle = gradient;
-                    ctx.lineWidth = 4;
-                    ctx.beginPath();
-                    ctx.moveTo(this.x, this.y);
-                    ctx.lineTo(
-                        this.x - this.vx / this.speed * plumeLength,
-                        this.y - this.vy / this.speed * plumeLength
-                    );
-                    ctx.stroke();
-                }
-                
-                // ECCM indicator
-                if (this.burnThroughMode || this.homeOnJamMode) {
-                    ctx.fillStyle = this.homeOnJamMode ? '#ff0000' : '#ffff00';
-                    ctx.font = '10px Arial';
-                    ctx.fillText(this.homeOnJamMode ? 'HOJ' : 'BT', this.x + 5, this.y - 5);
-                }
-                
-                ctx.restore();
-            }
-        }
-
         class RocketAA {
             constructor(x, y, altitude, heading, target) {
                 this.x = x;
@@ -8710,136 +8297,6 @@
             }
         }
 
-
-        // ECMSuite class - Electronic Countermeasures
-        class ECMSuite {
-            constructor(aircraft, config) {
-                this.aircraft = aircraft;
-                this.ecmType = config.ecmType;
-                this.generation = config.generation;
-                this.jammingPower = config.jammingPower;
-                this.jammingRange = config.jammingRange;
-                this.jammingTypes = config.jammingTypes;
-                this.frequencyBands = config.frequencyBands;
-                this.canFrequencyHop = config.canFrequencyHop;
-                this.isActive = false;
-                this.currentMode = 'standby';
-                this.powerLevel = 1.0;
-                this.burnTime = 0;
-                this.maxContinuousTime = config.maxContinuousTime || Infinity;
-                this.powerDraw = config.powerDraw || 0;
-                this.fuelPenalty = config.fuelPenalty || 0;
-                this.effectiveness = config.effectiveness || 1.0;
-                this.angleOfCoverage = config.angleOfCoverage || 360;
-                this.overheatTime = 0;
-                this.cooldownRate = config.cooldownRate || 1.0;
-            }
-            
-            activateJamming(mode = 'noise') {
-                if (this.overheatTime > 0) return false;
-                if (!this.jammingTypes.includes(mode)) mode = this.jammingTypes[0];
-                this.isActive = true;
-                this.currentMode = mode;
-                console.log(`ECM activated: ${mode} jamming (${this.aircraft.name})`);
-                return true;
-            }
-            
-            deactivateJamming() {
-                this.isActive = false;
-                this.currentMode = 'standby';
-            }
-            
-            update(dt) {
-                if (this.isActive) {
-                    this.burnTime += dt;
-                    if (this.burnTime >= this.maxContinuousTime) {
-                        this.overheatTime = 30;
-                        this.deactivateJamming();
-                        console.log(`${this.aircraft.name} ECM overheated!`);
-                    }
-                    if (this.aircraft.fuel) {
-                        this.aircraft.fuel -= this.fuelPenalty * dt;
-                    }
-                } else {
-                    this.burnTime = Math.max(0, this.burnTime - this.cooldownRate * dt);
-                    if (this.overheatTime > 0) {
-                        this.overheatTime -= dt;
-                    }
-                }
-            }
-            
-            calculateJammingEffect(threat) {
-                if (!this.isActive) return 0;
-                const dx = threat.x - this.aircraft.x;
-                const dy = threat.y - this.aircraft.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance > this.jammingRange) return 0;
-                let effect = this.effectiveness * this.powerLevel;
-                effect *= Math.max(0, 1 - (distance / this.jammingRange) ** 2);
-                if (this.angleOfCoverage < 360) {
-                    const angleToThreat = Math.atan2(dy, dx) * 180 / Math.PI;
-                    const relativeAngle = Math.abs(((angleToThreat - this.aircraft.heading + 180) % 360) - 180);
-                    if (relativeAngle > this.angleOfCoverage / 2) {
-                        effect *= 0.1;
-                    }
-                }
-                switch (this.currentMode) {
-                    case 'noise': effect *= 1.0; break;
-                    case 'deception': effect *= 1.3; break;
-                    case 'barrage': effect *= 0.8; break;
-                    case 'spot': effect *= 1.5; break;
-                }
-                return Math.min(1.0, effect);
-            }
-        }
-
-        // ECCMCapability class - Electronic Counter-Countermeasures
-        class ECCMCapability {
-            constructor(config) {
-                this.generation = config.generation;
-                this.hasBurnThrough = config.hasBurnThrough || false;
-                this.hasHomeOnJam = config.hasHomeOnJam || false;
-                this.hasFrequencyAgility = config.hasFrequencyAgility || false;
-                this.hasMultiModeSeeker = config.hasMultiModeSeeker || false;
-                this.hasSidelobleSuppression = config.hasSidelobleSuppression || false;
-                this.burnThroughPower = config.burnThroughPower || 1.0;
-                this.jammingResistance = config.jammingResistance || 0.0;
-                this.lockRetention = config.lockRetention || 0.5;
-                this.availableModes = config.availableModes || ['radar-guided'];
-                this.currentMode = this.availableModes[0];
-            }
-            
-            processJamming(missile, jammingEffect) {
-                let effectiveJamming = jammingEffect;
-                effectiveJamming *= (1 - this.jammingResistance);
-                if (this.hasBurnThrough && jammingEffect > 0.3) {
-                    effectiveJamming *= 0.5;
-                    console.log(`${missile.missileType} burn-through mode activated!`);
-                }
-                if (this.hasHomeOnJam && jammingEffect > 0.5) {
-                    missile.guidanceMode = 'home-on-jam';
-                    if (missile.lockStrength) {
-                        missile.lockStrength = Math.max(missile.lockStrength, 0.7);
-                    }
-                    effectiveJamming *= 0.2;
-                    console.log(`${missile.missileType} homing on jamming source!`);
-                }
-                if (this.hasFrequencyAgility && Math.random() < 0.3) {
-                    effectiveJamming *= 0.7;
-                }
-                if (this.hasMultiModeSeeker && effectiveJamming > 0.6) {
-                    const alternativeModes = this.availableModes.filter(m => m !== this.currentMode);
-                    if (alternativeModes.length > 0) {
-                        this.currentMode = alternativeModes[0];
-                        missile.type = this.currentMode;
-                        effectiveJamming *= 0.4;
-                        console.log(`${missile.missileType} switched to ${this.currentMode} guidance!`);
-                    }
-                }
-                return effectiveJamming;
-            }
-        }
-
         // Aircraft class
         class Aircraft {
             constructor(name, type, x, y, altitude, heading, isPlayer = false) {
@@ -8968,14 +8425,6 @@
                 this.rocketMode = 'ground'; // 'air' or 'ground' - toggle rocket targeting mode
                 this.bombCooldown = 0; // Cooldown between bomb drops
                 this.rocketCooldown = 0; // Cooldown between rocket launches
-
-                // ECM Suite (Electronic Countermeasures)
-                this.rcs = specs.rcs || (this.isJet ? 8 : 5); // Radar Cross Section
-                if (specs.ecmSuite) {
-                    this.ecmSuite = new ECMSuite(this, specs.ecmSuite);
-                } else {
-                    this.ecmSuite = null;
-                }
 
                 // Component damage system (Enhancement #4)
                 this.damage = 0;
@@ -9354,7 +8803,7 @@
                         'O400': 'o400',
                         'FK8': 'fk8',
                         'Salmson2': 'salmson2',
-                        'FokkerAI': 'a1',
+                        'MoraneAI': 'a1',
                         'BristolF2': 'f2',
                         'HanriotHD3': 'hd3',
                         'LetordLet5': 'let5',
@@ -11515,11 +10964,6 @@
                 plane.firingWeapons = []; // Track which weapons are firing this frame
                 if (plane.firingCooldown > 0) plane.firingCooldown--;
 
-                // Update ECM suite
-                if (plane.ecmSuite) {
-                    plane.ecmSuite.update(dt);
-                }
-
                 // Clear hit warning after 2 seconds
                 if (plane.lastHitBy && (Date.now() - plane.lastHitTime) > 2000) {
                     plane.lastHitBy = null;
@@ -12579,59 +12023,6 @@
                 }
             }
 
-
-            // Render ECM visual effects
-            for (let plane of aircraft) {
-                if (plane.isDestroyed || !plane.ecmSuite || !plane.ecmSuite.isActive) continue;
-                
-                ctx.save();
-                
-                // Jamming aura
-                const pulseSize = 30 + Math.sin(Date.now() / 200) * 10;
-                const gradient = ctx.createRadialGradient(plane.x, plane.y, 0, plane.x, plane.y, pulseSize);
-                
-                // Color based on jamming mode
-                let color;
-                switch (plane.ecmSuite.currentMode) {
-                    case 'noise': color = '100, 255, 100'; break;
-                    case 'deception': color = '255, 255, 100'; break;
-                    case 'barrage': color = '255, 100, 100'; break;
-                    default: color = '100, 100, 255';
-                }
-                
-                gradient.addColorStop(0, 'rgba(' + color + ', 0.4)');
-                gradient.addColorStop(0.5, 'rgba(' + color + ', 0.2)');
-                gradient.addColorStop(1, 'rgba(' + color + ', 0)');
-                
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.arc(plane.x, plane.y, pulseSize, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Jamming particles
-                const particleCount = 8;
-                const time = Date.now() / 1000;
-                for (let i = 0; i < particleCount; i++) {
-                    const angle = (i / particleCount) * Math.PI * 2 + time;
-                    const radius = 20 + Math.sin(time * 2 + i) * 5;
-                    const px = plane.x + Math.cos(angle) * radius;
-                    const py = plane.y + Math.sin(angle) * radius;
-                    
-                    ctx.fillStyle = 'rgba(' + color + ', ' + (0.6 + Math.sin(time * 3 + i) * 0.3) + ')';
-                    ctx.beginPath();
-                    ctx.arc(px, py, 2, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                
-                // ECM indicator icon
-                ctx.fillStyle = 'rgba(' + color + ', 0.8)';
-                ctx.font = 'bold 16px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('⚡', plane.x, plane.y - 25);
-                
-                ctx.restore();
-            }
-
             // Render firing cones/reticles (show weapon range and arc)
             if (gameState === 'ORDER' || gameState === 'EXECUTION') {
                 for (let plane of aircraft) {
@@ -13156,61 +12547,6 @@
                 }
             }
 
-
-            // ECM Status Display
-            if (selectedAircraft && selectedAircraft.ecmSuite) {
-                const suite = selectedAircraft.ecmSuite;
-                const panelX = canvas.width - 230;
-                const panelY = 20;
-                const panelWidth = 220;
-                const panelHeight = suite.overheatTime > 0 ? 100 : 85;
-                
-                // Panel background
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-                ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
-                ctx.strokeStyle = suite.isActive ? '#00ff00' : '#666666';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
-                
-                // Title
-                ctx.fillStyle = '#00ff00';
-                ctx.font = 'bold 14px Courier New';
-                ctx.textAlign = 'left';
-                ctx.fillText('ECM SUITE', panelX + 10, panelY + 18);
-                
-                // Status
-                const status = suite.isActive ? suite.currentMode.toUpperCase() : 'STANDBY';
-                const statusColor = suite.isActive ? '#00ff00' : '#ffaa00';
-                ctx.fillStyle = statusColor;
-                ctx.font = '12px Courier New';
-                ctx.fillText('Status: ' + status, panelX + 10, panelY + 35);
-                
-                // Generation and Power
-                ctx.fillStyle = '#ffffff';
-                ctx.fillText('Gen ' + suite.generation + ' | ' + suite.jammingPower + 'W', panelX + 10, panelY + 50);
-                
-                // Range
-                ctx.fillText('Range: ' + (suite.jammingRange / 1000).toFixed(1) + 'km', panelX + 10, panelY + 65);
-                
-                // Overheat warning
-                if (suite.overheatTime > 0) {
-                    ctx.fillStyle = '#ff0000';
-                    ctx.font = 'bold 12px Courier New';
-                    ctx.fillText('COOLING: ' + suite.overheatTime.toFixed(0) + 's', panelX + 10, panelY + 80);
-                } else if (suite.maxContinuousTime < Infinity && suite.isActive) {
-                    const timeRemaining = suite.maxContinuousTime - suite.burnTime;
-                    if (timeRemaining < 30) {
-                        ctx.fillStyle = '#ffaa00';
-                        ctx.fillText('Time: ' + timeRemaining.toFixed(0) + 's', panelX + 10, panelY + 80);
-                    }
-                }
-                
-                // Controls hint
-                ctx.fillStyle = '#888888';
-                ctx.font = '10px Courier New';
-                ctx.fillText('J:Toggle N:Noise M:Decoy B:Barrage', panelX + 10, panelY + panelHeight - 5);
-            }
-
             ctx.restore(); // Restore state after drawing UI elements
         }
 
@@ -13705,47 +13041,6 @@
                         const nextIndex = (currentIndex + 1) % formationTypes.length;
                         changeFormation(formationTypes[nextIndex]);
                         return;
-                }
-            }
-
-
-            // ECM Controls (Electronic Countermeasures)
-            if (selectedAircraft && selectedAircraft.ecmSuite) {
-                const key = e.key.toLowerCase();
-                if (key === 'j') {
-                    // Toggle ECM on/off
-                    if (selectedAircraft.ecmSuite.isActive) {
-                        selectedAircraft.ecmSuite.deactivateJamming();
-                        console.log(selectedAircraft.name + ' ECM deactivated');
-                    } else {
-                        if (selectedAircraft.ecmSuite.activateJamming('noise')) {
-                            console.log(selectedAircraft.name + ' ECM activated (noise mode)');
-                        } else {
-                            console.log(selectedAircraft.name + ' ECM cannot activate (overheated)');
-                        }
-                    }
-                    return;
-                } else if (key === 'n' && selectedAircraft.ecmSuite.isActive) {
-                    // Switch to noise jamming
-                    if (selectedAircraft.ecmSuite.jammingTypes.includes('noise')) {
-                        selectedAircraft.ecmSuite.currentMode = 'noise';
-                        console.log(selectedAircraft.name + ' ECM: Noise jamming mode');
-                    }
-                    return;
-                } else if (key === 'm' && selectedAircraft.ecmSuite.isActive) {
-                    // Switch to deception jamming
-                    if (selectedAircraft.ecmSuite.jammingTypes.includes('deception')) {
-                        selectedAircraft.ecmSuite.currentMode = 'deception';
-                        console.log(selectedAircraft.name + ' ECM: Deception jamming mode');
-                    }
-                    return;
-                } else if (key === 'b' && selectedAircraft.ecmSuite.isActive) {
-                    // Switch to barrage jamming
-                    if (selectedAircraft.ecmSuite.jammingTypes.includes('barrage')) {
-                        selectedAircraft.ecmSuite.currentMode = 'barrage';
-                        console.log(selectedAircraft.name + ' ECM: Barrage jamming mode');
-                    }
-                    return;
                 }
             }
 
@@ -15765,7 +15060,7 @@
                 { type: 'O400', name: 'Handley Page O/400' },
                 { type: 'FK8', name: 'Armstrong Whitworth F.K.8' },
                 { type: 'Salmson2', name: 'Salmson 2' },
-                { type: 'FokkerAI', name: 'Fokker A.I' },
+                { type: 'MoraneAI', name: 'Morane-Saulnier AI' },
                 { type: 'BristolF2', name: 'Bristol F.2 Fighter' },
                 { type: 'HanriotHD3', name: 'Hanriot HD.3' },
                 { type: 'LetordLet5', name: 'Letord Let.5' }
