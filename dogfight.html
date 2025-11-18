@@ -17630,6 +17630,52 @@
                 ],
                 year: 1968,
                 terrain: 'auto'
+            },
+            // Renegade Legion Scenarios
+            {
+                id: 'renegade_legion_patrol',
+                name: 'Renegade Legion: Space Patrol',
+                era: 'Renegade Legion',
+                description: 'Commonwealth fighters encounter TOG interceptors in deep space. Test the new laser weapons and guided missiles!',
+                aircraft: [
+                    { type: 'Fighter-Avenger', side: 'commonwealth', isPlayer: true, x: 300, y: 500, altitude: 0, heading: 90, name: 'CW Avenger 1' },
+                    { type: 'Fighter-Cheetah', side: 'commonwealth', isPlayer: false, x: 400, y: 450, altitude: 0, heading: 90, name: 'CW Cheetah 2' },
+                    { type: 'Fighter-Gladius', side: 'tog', isPlayer: false, x: 1500, y: 500, altitude: 0, heading: 270, name: 'TOG Gladius 1' },
+                    { type: 'Fighter-Lancea', side: 'tog', isPlayer: false, x: 1600, y: 550, altitude: 0, heading: 270, name: 'TOG Lancea 2' }
+                ],
+                year: 6830,
+                terrain: 'auto'
+            },
+            {
+                id: 'renegade_legion_interceptor_strike',
+                name: 'Renegade Legion: Interceptor Strike',
+                era: 'Renegade Legion',
+                description: 'Fast-paced space combat! TOG Spiculum fighters vs Commonwealth Penetrators. High-speed maneuvering with particle beams and mass drivers.',
+                aircraft: [
+                    { type: 'Fighter-Penetrator', side: 'commonwealth', isPlayer: true, x: 300, y: 500, altitude: 0, heading: 90, name: 'CW Penetrator 1' },
+                    { type: 'Fighter-Penetrator', side: 'commonwealth', isPlayer: false, x: 350, y: 450, altitude: 0, heading: 90, name: 'CW Penetrator 2' },
+                    { type: 'Fighter-Guardian', side: 'commonwealth', isPlayer: false, x: 400, y: 550, altitude: 0, heading: 90, name: 'CW Guardian 3' },
+                    { type: 'Fighter-Spiculum', side: 'tog', isPlayer: false, x: 1500, y: 500, altitude: 0, heading: 270, name: 'TOG Spiculum 1' },
+                    { type: 'Fighter-Spiculum', side: 'tog', isPlayer: false, x: 1550, y: 450, altitude: 0, heading: 270, name: 'TOG Spiculum 2' },
+                    { type: 'Fighter-Martiobarbulus', side: 'tog', isPlayer: false, x: 1600, y: 550, altitude: 0, heading: 270, name: 'TOG Martiobarbulus 3' }
+                ],
+                year: 6830,
+                terrain: 'auto'
+            },
+            {
+                id: 'renegade_legion_kessrith',
+                name: 'Renegade Legion: KessRith Alliance',
+                era: 'Renegade Legion',
+                description: 'The heavily-armored KessRith Fluttering Petal joins Commonwealth forces against TOG. Experience laser-heavy combat!',
+                aircraft: [
+                    { type: 'Fighter-Fluttering Petal', side: 'commonwealth', isPlayer: true, x: 300, y: 500, altitude: 0, heading: 90, name: 'KessRith Petal 1' },
+                    { type: 'Fighter-Space Gull', side: 'commonwealth', isPlayer: false, x: 450, y: 500, altitude: 0, heading: 90, name: 'CW Space Gull 2' },
+                    { type: 'Fighter-Gladius', side: 'tog', isPlayer: false, x: 1500, y: 500, altitude: 0, heading: 270, name: 'TOG Gladius 1' },
+                    { type: 'Fighter-Pilum', side: 'tog', isPlayer: false, x: 1600, y: 500, altitude: 0, heading: 270, name: 'TOG Pilum 2' },
+                    { type: 'Fighter-Verutum', side: 'tog', isPlayer: false, x: 1550, y: 600, altitude: 0, heading: 270, name: 'TOG Verutum 3' }
+                ],
+                year: 6830,
+                terrain: 'auto'
             }
         ];
 
@@ -17662,6 +17708,9 @@
                 } else if (scenario.era === 'Vietnam') {
                     eraBadge = '🚁 Vietnam';
                     eraColor = '#00aa44';
+                } else if (scenario.era === 'Renegade Legion') {
+                    eraBadge = '🚀 Renegade Legion';
+                    eraColor = '#aa00ff';
                 }
                 
                 div.innerHTML = `
