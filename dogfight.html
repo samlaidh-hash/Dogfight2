@@ -1062,6 +1062,58 @@
             score: 0
         };
 
+        // Ship images - organized by faction and ship type
+        const shipImages = {
+            commonwealth: {
+                destroyer: null,        // DD
+                cruiser: null,          // CL (Light Cruiser) / CA (Heavy Cruiser)
+                battlecruiser: null,    // BC
+                battleship: null,       // BB
+                carrier: null
+            },
+            terran: {
+                destroyer: null,        // DD
+                cruiser: null,          // CL (Light Cruiser) / CA (Heavy Cruiser)
+                battlecruiser: null,    // BC
+                battleship: null,       // BB
+                carrier: null
+            }
+        };
+
+        // Function to load ship images
+        function loadShipImages() {
+            // When ship images are available, they should follow this naming convention:
+            // commonwealth_dd.png, commonwealth_cl.png, commonwealth_ca.png, commonwealth_bc.png, commonwealth_bb.png
+            // terran_dd.png, terran_cl.png, terran_ca.png, terran_bc.png, terran_bb.png
+
+            const shipTypes = ['destroyer', 'cruiser', 'battlecruiser', 'battleship', 'carrier'];
+            const factions = ['commonwealth', 'terran'];
+
+            for (let faction of factions) {
+                for (let type of shipTypes) {
+                    try {
+                        const img = new Image();
+                        // Try loading with expected naming convention
+                        const typeAbbr = type === 'destroyer' ? 'dd' :
+                                       type === 'cruiser' ? 'cl' :
+                                       type === 'battlecruiser' ? 'bc' :
+                                       type === 'battleship' ? 'bb' : 'cv';
+                        img.src = `${faction}_${typeAbbr}.png`;
+                        img.onload = () => {
+                            shipImages[faction][type] = img;
+                            console.log(`Loaded ship image: ${faction} ${type}`);
+                        };
+                        img.onerror = () => {
+                            // Image not found, will use geometric rendering
+                            console.log(`Ship image not found: ${faction}_${typeAbbr}.png - using geometric rendering`);
+                        };
+                    } catch (e) {
+                        console.log(`Error loading ship image for ${faction} ${type}:`, e);
+                    }
+                }
+            }
+        }
+
         // Mission system (Medium Task: Enhanced with 10 missions)
         let currentMission = null;
         const missions = [
@@ -4305,11 +4357,16 @@
 
         // Capital Ship class - Large naval vessels with AA batteries
         class CapitalShip {
-            constructor(x, y, type = 'destroyer') {
+            constructor(x, y, type = 'destroyer', faction = 'commonwealth') {
                 this.x = x;
                 this.y = y;
-                this.type = type; // 'battleship', 'carrier', 'destroyer', 'cruiser'
+                this.type = type; // 'battleship', 'battlecruiser', 'cruiser', 'destroyer', 'carrier'
+                this.faction = faction; // 'commonwealth' or 'terran'
                 this.heading = 90; // degrees (0 = north, 90 = east)
+
+                // Ship image (will be loaded if available)
+                this.image = null;
+                this.imageLoaded = false;
 
                 // Ship specifications based on type
                 const specs = {
@@ -4431,6 +4488,37 @@
                             { x: 7, y: 70, type: 'type730', range: 2500, rateOfFire: 0.010, damage: 40, accuracy: 0.88, name: 'Type 730 CIWS' }
                         ],
                         compartments: 8
+                    },
+                    'battlecruiser': {
+                        length: 225,
+                        beam: 24,
+                        speed: 17, // m/s (~34 knots) - faster than battleship
+                        health: 1400,
+                        armor: {
+                            bow: 70,
+                            midship: 100,
+                            stern: 60,
+                            superstructure: 40
+                        },
+                        aaBatteries: [
+                            { x: 0, y: -80, range: 750, rateOfFire: 14, accuracy: 0.19, type: 'heavy' },
+                            { x: -12, y: -30, range: 550, rateOfFire: 11, accuracy: 0.21, type: 'medium' },
+                            { x: 12, y: -30, range: 550, rateOfFire: 11, accuracy: 0.21, type: 'medium' },
+                            { x: -12, y: 30, range: 450, rateOfFire: 9, accuracy: 0.24, type: 'light' },
+                            { x: 12, y: 30, range: 450, rateOfFire: 9, accuracy: 0.24, type: 'light' },
+                            { x: 0, y: 80, range: 750, rateOfFire: 14, accuracy: 0.19, type: 'heavy' }
+                        ],
+                        samLaunchers: [
+                            { x: -9, y: -55, type: 'rim66', missiles: 32, maxMissiles: 32, range: 75000, minRange: 2000, reloadTime: 40, rateOfFire: 2.5, name: 'RIM-66 Standard' },
+                            { x: 9, y: -55, type: 'rim66', missiles: 32, maxMissiles: 32, range: 75000, minRange: 2000, reloadTime: 40, rateOfFire: 2.5, name: 'RIM-66 Standard' }
+                        ],
+                        ciws: [
+                            { x: -7, y: -75, type: 'phalanx', range: 1500, rateOfFire: 0.015, damage: 35, accuracy: 0.85, name: 'Phalanx CIWS' },
+                            { x: 7, y: -75, type: 'phalanx', range: 1500, rateOfFire: 0.015, damage: 35, accuracy: 0.85, name: 'Phalanx CIWS' },
+                            { x: -7, y: 75, type: 'phalanx', range: 1500, rateOfFire: 0.015, damage: 35, accuracy: 0.85, name: 'Phalanx CIWS' },
+                            { x: 7, y: 75, type: 'phalanx', range: 1500, rateOfFire: 0.015, damage: 35, accuracy: 0.85, name: 'Phalanx CIWS' }
+                        ],
+                        compartments: 10
                     }
                 };
 
@@ -4508,6 +4596,7 @@
 
                 const baseTurnRates = {
                     battleship: 1.5,
+                    battlecruiser: 1.8,
                     carrier: 1.2,
                     cruiser: 2.0,
                     destroyer: 3.5
@@ -5079,6 +5168,10 @@
                 // Apply sinking offset
                 const sinkOffset = this.sinkProgress * this.beam * 2;
 
+                // Check if ship image is available and loaded
+                const shipImage = shipImages[this.faction] ? shipImages[this.faction][this.type] : null;
+                const useImage = shipImage && shipImage.complete && shipImage.naturalWidth > 0;
+
                 // Render flak bursts and CIWS tracers
                 const now = Date.now();
                 this.flakEffects = this.flakEffects.filter(flak => now - flak.time < flak.duration);
@@ -5132,11 +5225,33 @@
 
                 // Ship hull
                 const hullAlpha = this.isSinking ? Math.max(0.3, 1 - this.sinkProgress) : 1;
-                ctx.fillStyle = `rgba(100, 100, 110, ${hullAlpha})`;
 
-                // Main hull shape (simplified ship silhouette)
-                ctx.beginPath();
-                ctx.moveTo(0, -this.length / 2); // Bow
+                if (useImage) {
+                    // Draw ship image
+                    ctx.globalAlpha = hullAlpha;
+                    const imgWidth = this.length;
+                    const imgHeight = this.beam * 2; // Adjust aspect ratio as needed
+                    ctx.drawImage(
+                        shipImage,
+                        -imgWidth / 2,
+                        -imgHeight / 2 + sinkOffset,
+                        imgWidth,
+                        imgHeight
+                    );
+                    ctx.globalAlpha = 1.0;
+
+                    // Draw faction indicator (optional, small colored dot on bow)
+                    ctx.fillStyle = this.faction === 'commonwealth' ? 'rgba(0, 150, 255, 0.8)' : 'rgba(255, 50, 50, 0.8)';
+                    ctx.beginPath();
+                    ctx.arc(0, -this.length / 2 - 5, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // Fallback to geometric rendering
+                    ctx.fillStyle = `rgba(100, 100, 110, ${hullAlpha})`;
+
+                    // Main hull shape (simplified ship silhouette)
+                    ctx.beginPath();
+                    ctx.moveTo(0, -this.length / 2); // Bow
                 ctx.lineTo(this.beam / 3, -this.length / 3);
                 ctx.lineTo(this.beam / 2, -this.length / 4);
                 ctx.lineTo(this.beam / 2, this.length / 3);
@@ -5180,14 +5295,16 @@
                     ctx.fillRect(-this.beam / 8, -superHeight / 4, this.beam / 4, superHeight / 2);
                 }
 
-                // Gun turrets (main armament)
-                if (this.type !== 'carrier') {
-                    ctx.fillStyle = `rgba(90, 90, 100, ${hullAlpha})`;
-                    const turretPositions = this.type === 'battleship'
-                        ? [-this.length / 3, -this.length / 6, this.length / 6, this.length / 3]
-                        : this.type === 'cruiser'
-                        ? [-this.length / 3, this.length / 3]
-                        : [-this.length / 4, this.length / 4];
+                    // Gun turrets (main armament)
+                    if (this.type !== 'carrier') {
+                        ctx.fillStyle = `rgba(90, 90, 100, ${hullAlpha})`;
+                        const turretPositions = this.type === 'battleship'
+                            ? [-this.length / 3, -this.length / 6, this.length / 6, this.length / 3]
+                            : this.type === 'battlecruiser'
+                            ? [-this.length / 3, 0, this.length / 3]
+                            : this.type === 'cruiser'
+                            ? [-this.length / 3, this.length / 3]
+                            : [-this.length / 4, this.length / 4];
 
                     for (let pos of turretPositions) {
                         ctx.beginPath();
@@ -5196,15 +5313,16 @@
                     }
                 }
 
-                // AA gun positions
-                ctx.fillStyle = `rgba(70, 70, 80, ${hullAlpha})`;
-                for (let battery of this.aaBatteries) {
-                    if (!battery.isDestroyed) {
-                        ctx.beginPath();
-                        ctx.arc(battery.x, battery.y, 3, 0, Math.PI * 2);
-                        ctx.fill();
+                    // AA gun positions
+                    ctx.fillStyle = `rgba(70, 70, 80, ${hullAlpha})`;
+                    for (let battery of this.aaBatteries) {
+                        if (!battery.isDestroyed) {
+                            ctx.beginPath();
+                            ctx.arc(battery.x, battery.y, 3, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
                     }
-                }
+                } // End geometric rendering
 
                 // Fire effects
                 for (let fire of this.fireLocations) {
@@ -15981,7 +16099,8 @@
             // Create capital ships if needed
             if (currentMission.capitalShips) {
                 for (let shipConfig of currentMission.capitalShips) {
-                    const ship = new CapitalShip(shipConfig.x, shipConfig.y, shipConfig.type);
+                    const faction = shipConfig.faction || 'commonwealth'; // Default to commonwealth if not specified
+                    const ship = new CapitalShip(shipConfig.x, shipConfig.y, shipConfig.type, faction);
                     ship.heading = shipConfig.heading || 90;
                     capitalShips.push(ship);
                 }
@@ -16307,15 +16426,15 @@
             aircraft = [spitfire, me109];
 
             // Add test capital ships for demonstration
-            const testBattleship = new CapitalShip(900, 300, 'battleship');
+            const testBattleship = new CapitalShip(900, 300, 'battleship', 'commonwealth');
             testBattleship.heading = 45;
             capitalShips.push(testBattleship);
 
-            const testDestroyer = new CapitalShip(700, 600, 'destroyer');
+            const testDestroyer = new CapitalShip(700, 600, 'destroyer', 'terran');
             testDestroyer.heading = 135;
             capitalShips.push(testDestroyer);
 
-            console.log('Quick Battle started with test capital ships: 1 Battleship, 1 Destroyer');
+            console.log('Quick Battle started with test capital ships: 1 Commonwealth Battleship, 1 Terran Destroyer');
 
             // Start game loop
             gameLoop();
@@ -16976,6 +17095,9 @@
             // Start game loop
             gameLoop();
         }
+
+        // Load ship images
+        loadShipImages();
 
         // Event listeners
         document.getElementById('restartButton').addEventListener('click', restartGame);
