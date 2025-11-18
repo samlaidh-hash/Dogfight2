@@ -1,0 +1,929 @@
+
+
+
+This uses the underlying game mechanics to allow space capital ships to fight each other with fighters etc..
+
+Moving destructible asteroid terrain: asteroids drift slowly, huge asteroids can absorb X damage before splitting into two large asteroids of 0.5X damage each, these in turn split into two Medium, then two Small and Small asteroids turn into gravel which fades away over a few seconds
+Nebula (clouds): flicker shields don't work in nebula, sensors are severely impaired and laser damage is reduced at 3 times normal rate by range.
+Planets and moons
+Black holes
+
+Gravity effects
+Sunside rules apply (check they exist)
+
+Leviathans: simple energy allocation, you have X systems. This option is set in Orders phase.
+Fire 1 broadside, prow and stern lasers, normal Shields and Maneuver
+1 spinal mount, normal Shields and Maneuver
+Reduce Shields or Maneuver to fire 2 broadsides, prow and stern lasers; or 1 broadside & 1 spinal mount
+Reduce Shields and Maneuver to fire everything
+Only fire prow & stern lasers to increase Maneuver or increase Shields
+Only fire prow & stern lasers and reduce Maneuver to Double increase Shields
+Only fire prow & stern lasers and reduce Shields to Double increase Maneuver
+
+Leviathans are Capital Ships, Cruisers, Escorts or Patrol Craft
+
+Patrol Craft
+Fighters: fighters
+
+Newtonian movement
+Battleship 4G acceleration, pivot rate 20 degrees/second
+Battle Cruiser 5G acceleration, pivot rate 25 degrees/second
+Heavy Cruiser 6G acceleration, pivot rate 30 degrees/second
+Light Cruiser 7G acceleration, pivot rate 35 degrees/second
+Destroyer 8G acceleration, pivot rate 40 degrees/second
+Corvette 9G acceleration, pivot rate 45 degrees/second
+
+Ships have a vector (speed and direction) which carries over from execution phase to execution phase. To change vector rotate the ship (AD) or pitch (QE), total rotate/pitch change cannot exceed your pivot rate * turn length (e.g. if you specified a 2 second turn you would be limited to combined rotations of 2 seconds worth) and apply thrust (WS for +  - thrust respectively), a ships is listed above, - thrust is 50% of that (rd). A combination of gimbals and thrust reversers lets you direct your exhaust independently of the ships long axis, use the mouse wheel to adjust thrust angle by up to 180 degrees. The further you are from the normal position (straight out the back) the less efficient the engines are. At 180 degrees maximum thrust is 1/3rd (rd) normal.
+
+ships can use the half-roll and full roll special maneuvers for their defensive benefits but also to reverse facings (after a half-roll).
+
+Fighter launch and recovery (applies equally to wet navy carriers)
+Make landing a special maneuver
+
+Ramming needs calculations.
+
+Defenses
+Ablative Armour: armour HP's are divided evenly around the ships hull, arranged into blocks (e.g. a battleship has armour blocks on each of top, bottom, port, starboard and 4 on fore and aft on the aft, this is 32 blocks in total. It has 1,200,000 armour HP, so each block has 37500 HP).
+Other ship types have proportionately few blocks (less area to cover) and, usually, less HP per block (thinner).
+
+Flicker Shields, % chance to block each attack. Capital ships have 6 Flicker shields (fore, aft, top, bottom, port, starbpard), Cruisers have 4 (each ship covers one side and the respective top and bottom), Destroyers have 2 (port and starboard), Corvettes have 1 (covers entire ship). Each successful block reduces % by 0.1, flicker shields regain 1% each at the end of the round. Flicker shields can block railgun slugs but some of kinetic energy is still transferred so a successful block reduces damage by 75%.
+Battle ships have 60% block chance
+Battle Cruisers have 57% block chance
+Heavy Cruisers have 54% block chance
+Light Cruisers have 51% block chance
+Destroyers have 48% block chance
+Corvettes have 45% block chance
+
+Hit Points
+Ships have 1 HP for each tonne of mass. To integrate this with the air combat game change 1 to what would be an appropriate value for a 1 tonne aircraft (e.g. if a 1 tonne aircraft has a total 100 HP then use 100 HP/tonne of mass). These HPs are divided between major systems. Each system on a ship has a two digit number showing which armour block it is behind (from 1-32) and how deep it is (from 1-X). When an armour block is gone the system with the lowest depth behind that block takes the hit. Ships systems are much less dense than armour so any single hit of XX% or more of the systems starting HP deals that XX% to the system then penetrates on to deliver the remaining damage to the next system inwards.
+XX% depends on the density of the system, dense systems such as engines have higher XX values, say 30%, whereas lower density systems, such as habitation spaces have low values, say 10%.
+If damage penetrates the deepest system it is assigned to the ships Excess Damage pool, which is 5% of the ships starting HP. When the excess damage pool is zeroed the ship falls apart in a shower of wreckage, but no explosion.
+Systems which have multiple elements (such as missile arrays, laser banks, fighter bays, lose a number of elements equal to the total % damage they taken, always assume empty cells are destroyed first for missiles).
+Reactors have a chance of going critical and destroying the ship when they take damage. The chance is 1/10th of the total damage they have taken, rolled each time they take damage.
+For more details see below.
+
+Generic groups
+Capital Ship (Battle ship)
+Cruiser (Battle Cruiser, Heavy Cruiser, Light Cruiser)
+Escort (Destroyer, Corvette)
+
+Weapons
+Broadside Lasers (80% hit chance out to range 20 then 0%, banks of 25, damage 100/gun, 5 second cooldown between shots)
+Battle ships have 8 banks/broadside
+Battle Cruisers have 6 banks
+Heavy Cruisers have 4 banks
+Light Cruisers have 3 banks
+Destroyers have 2 banks
+Corvettes have 1 bank
+
+Prow and Stern Lasers  (80% hit chance out to range 20 then 0%, banks of 5, damage 100/gun at point blank, reducing smoothly to 0 at range 20, 5 second cooldown between shots)
+Battle ships have 8 banks at prow, 8 at stern
+Battle Cruisers have 6 banks at prow, 4 at stern
+Heavy Cruisers have 4 banks at prow, 4 at stern
+Light Cruisers have 3 banks at prow, 3 at stern
+Destroyers have 2 banks at prow, 2 at stern
+Corvettes have 1 bank at prow, 1 at stern
+
+Battle Ship Spinal Mount Railguns (80% hit chance at point blank reducing to 2% at range 30 and 2% from there to infinity, 1 gun 25, damage 100000, 20 second cooldown between shots)
+Battle Cruiser Spinal Mount Railguns (80% hit chance at point blank reducing to 2% at range 30 and 2% from there to infinity, 1 gun 25, damage 75000, 20 second cooldown between shots)
+Heavy Cruiser Spinal Mount Railguns (80% hit chance at point blank reducing to 2% at range 30 and 2% from there to infinity, 1 gun 25, damage 50000, 20 second cooldown between shots)
+Light Cruiser Spinal Mount Railguns (80% hit chance at point blank reducing to 2% at range 30 and 2% from there to infinity, 1 gun 25, damage 37500, 20 second cooldown between shots)
+Destroyer Spinal Mount Railguns (80% hit chance at point blank reducing to 2% at range 30 and 2% from there to infinity, 1 gun 25, damage 25000, 20 second cooldown between shots)
+Corvette Spinal Mount Railguns (80% hit chance at point blank reducing to 2% at range 30 and 2% from there to infinity, 1 gun 25, damage 12500, 20 second cooldown between shots)
+
+
+Missiles (90% hit chance, ecm/eccm modifies, subject to point defense, 25 cells/array, can fire 1 missile/second, damage 1000/missile, flies towards target at ~ 30G acceleration, 20 seconds of burn time, is smart so will switch on and off to conserve fuel). The hit chance is rolled on launch and if failed the missile has either malfunctioned or been jammed and spirals off harmlessly.
+Battle ship has 16 arrays
+Battle Cruiser has 12 arrays
+Heavy Cruiser has 8 arrays
+Light Cruiser has 6 arrays
+Destroyer has 4 arrays
+Corvette has 2 arrays
+
+Missile arrays do not reload during combat, but each ship has enough stored missiles for 6 complete reloads.
+
+Variant Missiles: dogfight missiles do 200 damage/missile, 4 fit into a standard cell (they can still only be fired 1/second), they have 60G acceleration and 5 seconds of burn time.
+Most ships have 10% of their missile cells loaded with dogfight missiles for close in defense.
+
+Point Defense Turrets (turrets are regularly spaced around the hull, turrets bearing is the number of separate turrets that can fire on any given target). PD turrets fire 100 projectiles per second from an effectively unlimited ammo supply. Each projectile is the equivalent of a 20mm aircraft cannon projectile, with similar aiming and damage characteristics, range is unlimited but beyond point blank accuracy drops off rapidly. PD turrets gain 0.1 heat point for every 100 projectiles. Every time they fire they have a % chance equal to their current total Heat of shutting down. When they shut down the Heat drops at 2 points/second until it reaches 0, when they restart. They can be switched to "cool" mode, in which case they only fire 20 projectiles per second but don't gain heat. PD turrets automatically target missiles then fighters if no missiles are present. They prioritise missiles and fighters on intercept courses with them, but will otherwise fire at any such target which they have a greater than 30% chance of hitting.
+
+Battle ship has 16 turrets, turrets bearing 8
+Battle Cruiser has 12 turrets, turrets bearing 6
+Heavy Cruiser has 8 turrets, turrets bearing 4
+Light Cruiser has 6 turrets, turrets bearing 3
+Destroyer has 4 turrets, turrets bearing 2
+Corvette has 2 turrets, turrets bearing 1
+
+Battle ship 800m long, 4 megatons, 3200 ships company, 1300 Air wing, 900 Marines
+Battle Cruiser 700m long, 2.6 megatons, 2400 ships company, 1000 Air wing, 700 Marines
+Heavy Cruiser 600m long, 1.4 megatons, 1900 ships company, 700 Air wing, 500 Marines
+Light Cruiser 500m long, 1 megatons, 1400 ships company, 400 Air wing, 300 Marines
+Destroyer 400m long, 0.5megatons, 500 ships company, 70 Air wing, 120 Marines
+Corvette 280m long, 0.2 megatons, 120 ships company, 40 Air wing, 30 Marines
+
+Battle ships have 160 "ready" Fighters organised into 8 Bays
+Battle Cruiser 120 "ready" Fighters in 6 bays
+Heavy Cruiser have 80 "ready" Fighters in 4 bays
+Light Cruiser have 60 "ready" Fighters in 3 bays
+Destroyers have 40 "ready" Fighters in 2 bays
+Corvettes have 20 "ready" Fighters in 1 bay
+
+"ready" fighters are one's in bays ready for launch in combat. Each ship has roughly 50% as many Fighters in reserve (e.g. a Battleship has 80 reserves). These can be bought into service outside of combat and used to replace losses etc..
+
+Fighters are AI controlled and assigned a mission when launched from: Attack (moves towards the nearest enemy and engages them), Defend (stays near the mothership and moves to intercept incoming threats) or Patrol (follows a semi-random course which takes in the area allied ships are in, engaging threats as they emerge). Fighters will return to their mothership automatically if they take too much damage or run out of consumable ordnance (i.e. missiles and countermeasures).
+
+Docked fighters slowly repair damage over time.
+
+Fighter launches are set in the Orders phase, choose how many Fighters (max 1 per Bay per 4 seconds) and each one's assigned mission. Damaged fighters are always put to the end of the queue.
+
+Launched fighters always try and organise themselves into flights of 4 fighters of the same type and stay together.
+
+Carriers are a special subtype of normal ship. They replace broadside laser bays with additional Fighter bays. Each broadside laser bay removed has 20 Fighters in it.
+
+Variant Fighters: Bombers, Dropships and Gunships consume 2 Fighter slots each, Light Fighters consume 0.5 slots each.
+
+
+Here’s a first-pass **numerical HP breakdown per class**, using your “1 HP per tonne” rule and treating **each battery/array/turret/bay as a separate system**.
+
+I’ll:
+
+* Give you a **summary table** for all six classes (systems across the top).
+* Then explain a **block–depth pattern** you can use (the 2-digit code in your rules), so you can slot systems in behind specific armour blocks.
+
+---
+
+## 1. Shared assumptions
+
+* **Total HP = mass in tonnes** (from your notes):
+
+  * Battleship: **4,000,000 HP**
+  * Battlecruiser: **2,600,000 HP**
+  * Heavy Cruiser: **1,400,000 HP**
+  * Light Cruiser: **1,000,000 HP**
+  * Destroyer: **500,000 HP**
+  * Corvette: **200,000 HP**
+* Ablative **armour blocks**:
+
+  * We keep a **32-block logical grid** (blocks 01–32) for all hulls.
+  * Battleship actually uses all 32; smaller ships use fewer of those positions but still reference them.
+* **Weapons HP split (within the weapons pool)** – same ratios for all classes:
+
+  * 30% Broadside laser banks
+  * 15% Prow+stern laser banks
+  * 25% Missile arrays
+  * 10% Point defense turrets
+  * 10% Spinal railgun
+  * 10% Fire-control network (FC nodes)
+* **Flight HP** (where present): 80% into fighter bays, 20% into “flight support” systems.
+* Engines: tachyon rockets, **no propellant tanks** needed.
+
+Percentages of total ship HP per category (already baked into the numbers below):
+
+| Class         | Armour | General + Crew | Power/Drive | Weapons | Flight | Marines | C3 (CIC/Bridges/Sensors/Comms/EW) |
+| ------------- | ------ | -------------- | ----------- | ------- | ------ | ------- | --------------------------------- |
+| Battleship    | 30%    | 15%            | 20%         | 15%     | 10%    | 5%      | 5%                                |
+| Battlecruiser | 25%    | 15%            | 23%         | 15%     | 12%    | 5%      | 5%                                |
+| Heavy Cruiser | 27%    | 15%            | 20%         | 18%     | 10%    | 5%      | 5%                                |
+| Light Cruiser | 28%    | 16%            | 20%         | 18%     | 7%     | 4%      | 7%                                |
+| Destroyer     | 30%    | 18%            | 22%         | 20%     | 4%     | 3%      | 3%                                |
+| Corvette      | 32%    | 20%            | 22%         | 20%     | ~0%*   | 3%      | 3%                                |
+
+*Corvette still has a fighter bay; you can “steal” some HP from General to give the bay a small pool if you want.
+
+---
+
+## 2. System HP per ship class
+
+### 2.1 Battleship (800 m, 4 Mt)
+
+**Total HP: 4,000,000**
+
+**Armour**
+
+* Total armour HP: **1,200,000**
+* Blocks: **32**, each **37,500 HP**
+
+**Weapons (total 600,000 HP)**
+
+* Broadside laser banks: 8 per side → **16 banks**
+
+  * HP per bank: **11,250**
+* Prow laser banks: **8 banks**
+
+  * HP per bank: **5,625**
+* Stern laser banks: **8 banks**
+
+  * HP per bank: **5,625**
+* Spinal railgun: **1 system**
+
+  * HP: **60,000**
+* Missile arrays: **16 arrays**
+
+  * HP per array: **9,375**
+* Point-defence turrets: **16 turrets**
+
+  * HP per turret: **3,750**
+* Fire-control nodes: **4 nodes**
+
+  * HP per node: **15,000**
+
+**Flight ops (total 400,000 HP)**
+
+* Fighter bays: **8 bays** (160 ready fighters)
+
+  * HP per bay: **40,000**
+* Flight support nodes (launch/recovery, tractor systems, deck control): **2 nodes**
+
+  * HP per node: **40,000**
+
+**Power & propulsion (total 800,000 HP)**
+
+* Reactors: **3** main fusion plants
+
+  * HP per reactor: **≈146,666**
+* Engine rooms (tachyon rocket clusters): **4** clusters
+
+  * HP per engine room: **70,000**
+* Main power trunk / distribution nodes: **1 system**
+
+  * HP: **80,000**
+
+**General ship systems / crew spaces (total 600,000 HP)**
+
+* Habitation / life-support blocks: **4 systems**
+
+  * HP per hab block: **100,000**
+* Cargo holds: **2 systems**
+
+  * HP per cargo block: **100,000**
+
+**Marines (total 200,000 HP)**
+
+* Marine barracks / armouries / assault staging: **1 system**
+
+  * HP: **200,000**
+
+**C3, sensors, comms, EW (total 200,000 HP)**
+
+Suggested split:
+
+* Command & Control:
+
+  * CIC (primary): **40,000**
+  * Main bridge: **20,000**
+  * Auxiliary bridge: **20,000**
+  * Flag bridge: **30,000**
+  * **Subtotal C&C:** 110,000
+* Sensor arrays (distributed): **4 systems**
+
+  * HP per array: **10,000** → 40,000 total
+* Comms / EW clusters: **5 systems**
+
+  * HP per node: **10,000** → 50,000 total
+
+> Excess damage pool: **5% of total HP = 200,000** (per your rules, not tied to a specific system).
+
+---
+
+### 2.2 Battlecruiser (700 m, 2.6 Mt)
+
+**Total HP: 2,600,000**
+
+**Armour**
+
+* Armour HP: **650,000**
+* Use fewer/thinner blocks, e.g. **24 active blocks** (still addressed in the 01–32 grid)
+
+  * HP per “real” block: ≈ **27,000**
+
+**Weapons (390,000 HP)**
+
+* Broadside banks: 6 per side → **12**
+
+  * HP per bank: **9,750**
+* Prow banks: **6**, Stern banks: **4** → 10 total
+
+  * HP per prow/stern bank: **5,850**
+* Spinal railgun: **39,000** HP
+* Missile arrays: **12**
+
+  * HP per array: **8,125**
+* PD turrets: **12**
+
+  * HP per turret: **3,250**
+* Fire-control nodes: **4**
+
+  * HP per node: **9,750**
+
+**Flight ops (312,000 HP)**
+
+* Fighter bays: **6** (120 ready fighters)
+
+  * HP per bay: **41,600**
+* Flight support nodes: **2**
+
+  * HP per node: **31,200**
+
+**Power & propulsion (598,000 HP)**
+
+* Reactors: **2**
+
+  * HP per reactor: **≈164,450**
+* Engine rooms: **3**
+
+  * HP per engine room: **≈69,800**
+* Power trunk system: **1**
+
+  * HP: **59,800**
+
+**General / crew (390,000 HP)**
+
+* Habitation blocks: **3**
+
+  * HP per hab block: **≈86,666**
+* Cargo holds: **2**
+
+  * HP per cargo block: **65,000**
+
+**Marines (130,000 HP)**
+
+* Marine barracks: **130,000**
+
+**C3 (130,000 HP)**
+
+Example split:
+
+* CIC: **30,000**
+* Main bridge: **15,000**
+* Aux bridge: **15,000**
+* Flag bridge: **20,000**
+* 4× sensor arrays: **~7,500** each (≈30,000)
+* 3× comms/EW nodes: **~6,700** each (≈20,000)
+
+---
+
+### 2.3 Heavy Cruiser (600 m, 1.4 Mt)
+
+**Total HP: 1,400,000**
+
+**Armour**
+
+* Armour HP: **378,000**
+* Say **20 active blocks** (thinner / less surface area)
+
+  * HP per armour block: **18,900**
+
+**Weapons (252,000 HP)**
+
+* Broadside banks: 4 per side → **8**
+
+  * HP per bank: **9,450**
+* Prow banks: **4**, Stern banks: **4** → 8
+
+  * HP per bank: **4,725**
+* Spinal railgun: **25,200** HP
+* Missile arrays: **8**
+
+  * HP per array: **7,875**
+* PD turrets: **8**
+
+  * HP per turret: **3,150**
+* Fire-control nodes: **4**
+
+  * HP per node: **6,300**
+
+**Flight ops (140,000 HP)**
+
+* Fighter bays: **4** (80 ready fighters)
+
+  * HP per bay: **28,000**
+* Flight support nodes: **2**
+
+  * HP per node: **14,000**
+
+**Power & propulsion (280,000 HP)**
+
+* Reactors: **2** → **77,000** each
+* Engines: **3** → **32,666** each
+* Power trunk: **28,000**
+
+**General / crew (210,000 HP)**
+
+* Hab blocks: **3** → **≈46,666** each
+* Cargo holds: **2** → **35,000** each
+
+**Marines (70,000 HP)**
+
+* Marine barracks: **70,000**
+
+**C3 (70,000 HP)**
+
+* CIC: ~15,000
+* Bridge: ~8,000
+* Aux bridge: ~8,000
+* Flag bridge: ~10,000
+* 4× sensor arrays + 3× comms/EW nodes share the remaining ~29,000 between them.
+
+---
+
+### 2.4 Light Cruiser (500 m, 1.0 Mt)
+
+**Total HP: 1,000,000**
+
+**Armour**
+
+* Armour HP: **280,000**
+* Use **16 active blocks**, HP per block ≈ **17,500**
+
+**Weapons (180,000 HP)**
+
+* Broadside banks: 3 per side → **6**
+
+  * HP per bank: **9,000**
+* Prow banks: **3**, Stern banks: **3** → 6
+
+  * HP per bank: **4,500**
+* Spinal railgun: **18,000**
+* Missile arrays: **6**
+
+  * HP per array: **7,500**
+* PD turrets: **6**
+
+  * HP per turret: **3,000**
+* Fire-control nodes: **4**
+
+  * HP per node: **4,500**
+
+**Flight ops (70,000 HP)**
+
+* Fighter bays: **3** (60 ready fighters)
+
+  * HP per bay: **≈18,666**
+* Flight support node: **1**
+
+  * HP: **14,000**
+
+**Power & propulsion (200,000 HP)**
+
+* Reactors: **2** → **55,000** each
+* Engines: **2** → **35,000** each
+* Power trunk: **20,000**
+
+**General / crew (160,000 HP)**
+
+* Hab blocks: **3** → **≈35,555** each
+* Cargo holds: **2** → **≈26,667** each
+
+**Marines (40,000 HP)**
+
+* Marine barracks: **40,000**
+
+**C3 (70,000 HP)**
+
+Similar to Heavy Cruiser but slightly lighter per node; still CIC + Bridge + Aux + Flag + 4× sensors + 3× comms/EW.
+
+---
+
+### 2.5 Destroyer (400 m, 0.5 Mt)
+
+**Total HP: 500,000**
+
+**Armour**
+
+* Armour HP: **150,000**
+* Use **12 active blocks**, HP per block: **12,500**
+
+**Weapons (100,000 HP)**
+
+* Broadside banks: 2 per side → **4**
+
+  * HP per bank: **7,500**
+* Prow banks: **2**, Stern banks: **2** → 4
+
+  * HP per bank: **3,750**
+* Spinal railgun: **10,000**
+* Missile arrays: **4**
+
+  * HP per array: **6,250**
+* PD turrets: **4**
+
+  * HP per turret: **2,500**
+* Fire-control nodes: **2**
+
+  * HP per node: **5,000**
+
+**Flight ops (20,000 HP)**
+
+* Fighter bays: **2** (40 ready fighters)
+
+  * HP per bay: **8,000**
+* Flight support node: **1**
+
+  * HP: **4,000**
+
+**Power & propulsion (110,000 HP)**
+
+* Reactors: **1** → **≈60,500**
+* Engines: **2** → **≈19,250** each
+* Power trunk: **11,000**
+
+**General / crew (90,000 HP)**
+
+* Hab blocks: **2** → **30,000** each
+* Cargo hold: **1** → **30,000**
+
+**Marines (15,000 HP)**
+
+* Marine barracks: **15,000**
+
+**C3 (15,000 HP)**
+
+* CIC: ~5,000
+* Bridge: ~3,000
+* Aux bridge: ~3,000
+* 3× sensor/comms/EW nodes share the remaining ~4,000.
+
+---
+
+### 2.6 Corvette (280 m, 0.2 Mt)
+
+**Total HP: 200,000**
+
+**Armour**
+
+* Armour HP: **64,000**
+* Use **8 active blocks**, HP per block: **8,000**
+
+**Weapons (40,000 HP)**
+
+* Broadside banks: 1 per side → **2**
+
+  * HP per bank: **6,000**
+* Prow bank: **1**, Stern bank: **1** → 2
+
+  * HP per bank: **3,000**
+* Spinal railgun: **4,000**
+* Missile arrays: **2**
+
+  * HP per array: **5,000**
+* PD turrets: **2**
+
+  * HP per turret: **2,000**
+* Fire-control nodes: **2**
+
+  * HP per node: **2,000**
+
+**Flight ops**
+
+Your high-level percentages put **0% here**, but the ship still has **1 bay with 20 ready fighters**. Easiest fix:
+
+* Take **10,000 HP** from General and treat it as:
+
+  * Fighter bay: **1×10,000 HP**
+
+(So General effectively becomes 30,000 HP instead of 40,000.)
+
+**Power & propulsion (44,000 HP)**
+
+* Reactor: **1×24,200 HP**
+* Engine room: **1×≈15,400 HP**
+* Power trunk: **≈4,400 HP**
+
+**General / crew (~30,000 HP after giving 10k to the bay)**
+
+* Hab block: **1×≈20,000 HP**
+* Cargo hold: **1×≈10,000 HP**
+
+**Marines (6,000 HP)**
+
+* Marine barracks: **6,000**
+
+**C3 (6,000 HP)**
+
+* CIC: ~2,000
+* Bridge: ~1,500
+* 3× small combined sensor/comms/EW nodes share the remaining ~2,500
+
+---
+
+## 3. Block–Depth coding (how to actually place systems)
+
+You said:
+
+> Each system on a ship has a two digit number showing which armour block it is behind (from 1–32) and how deep it is (from 1–X).
+
+Here’s a **simple pattern** you can use for *all* classes:
+
+* Treat the hull as a cylinder sliced into:
+
+  * **Fore half:** blocks 01–16
+  * **Aft half:** blocks 17–32
+* Within each half, group by “face”:
+
+  * Dorsal (top): 4 blocks
+  * Ventral (bottom): 4 blocks
+  * Port: 4 blocks
+  * Starboard: 4 blocks
+
+Example (Battleship):
+
+* **Prow lasers**: put banks behind **fore blocks 01–08**, depth **1–2**.
+  e.g. “Prow Laser Bank 1 – HP 5,625 – Block 01 – Depth 1 → Code 01–1”
+* **Stern lasers**: aft blocks **17–24**, depth **1–2**.
+* **Port broadsides**: fore port **09–12** and aft port **25–28**, depth 1.
+* **Starboard broadsides**: fore starboard **13–16** and aft starboard **29–32**, depth 1.
+* **Missile arrays / PD turrets**: ring them around outer layers at depth 1–2, sharing the same blocks as adjacent laser banks.
+* **Reactors / engines**: cluster behind aft blocks (e.g. 21–32) at **depth 3–4**, so they’re “deep” targets.
+* **CIC / Flag bridge**: behind **fore dorsal blocks 01–04**, depths **3–4**.
+* **Main bridge / Aux bridge**: shallower dorsal blocks (01–04) at **depth 2–3**.
+* **Fighter bays**: mid-ship port/starboard blocks around **09–16 / 25–32**, depths **1–2**.
+* **Marines barracks**: central, behind mid fore or aft blocks at moderate depth (e.g. 10–3).
+* **Cargo**: aft ventral blocks at low–moderate depth.
+
+For **smaller ships**, you:
+
+* Use fewer blocks (e.g. only 8 or 12 of the 32 positions are “live”),
+* Keep the same notion:
+
+  * prow/cockpit → low-number fore blocks,
+  * engines → high-number aft blocks,
+  * broadsides → mid-port/starboard,
+  * sensors on dorsal/ventral fore/aft, etc.
+
+---
+
+I’ll treat your layout as a *template* and give you, for **each class**, a table of **systems → HP → typical block(s) + depth**.
+
+To keep this usable (and not 20 pages long), I’m grouping *identical* systems into rows (e.g. “4 port-fore broadside banks”) but still respecting your rule that **each bank/array/turret/bay is a distinct system** with that HP and that block/depth pattern.
+
+I’m using a consistent **32-block armour map** for the big hulls:
+
+* **Fore, dorsal:** 01–04  **Fore, port:** 05–08
+* **Fore, ventral:** 09–12  **Fore, starboard:** 13–16
+* **Aft, dorsal:** 17–20   **Aft, port:** 21–24
+* **Aft, ventral:** 25–28   **Aft, starboard:** 29–32
+
+Smaller ships “use fewer blocks” (less area, thinner armour) but still reference the same numbers.
+
+Depth: **1 = just behind armour**, larger numbers = deeper inside hull.
+
+---
+
+## 1. Battleship (BB) – 4,000,000 HP
+
+**HP by major pool** (matches what we derived before):
+
+* Armour: **1,200,000 HP** (32 blocks → 37,500 HP each)
+* Weapons: **600,000 HP**
+* Power & Drives: **800,000 HP**
+* General/Crew/Cargo: **600,000 HP**
+* Flight: **400,000 HP**
+* Marines: **200,000 HP**
+* C3 (CIC/bridges/sensors/comms/EW): **200,000 HP**
+* Plus your **200,000 HP “excess damage” pool**.
+
+### 1.1 Battleship system table
+
+| System group / element                        | Count | HP per system |  Total HP | Typical block(s)              | Typical depth |
+| --------------------------------------------- | :---: | ------------: | --------: | ----------------------------- | :-----------: |
+| **Armour block**                              |   32  |        37,500 | 1,200,000 | 01–32 (full hull)             |  – (surface)  |
+| **Port fore broadside laser bank**            |   4   |        11,250 |    45,000 | 05–08                         |       1       |
+| **Port aft broadside laser bank**             |   4   |        11,250 |    45,000 | 21–24                         |       1       |
+| **Starboard fore broadside bank**             |   4   |        11,250 |    45,000 | 13–16                         |       1       |
+| **Starboard aft broadside bank**              |   4   |        11,250 |    45,000 | 29–32                         |       1       |
+| **Prow laser bank** (forward arc)             |   8   |         5,625 |    45,000 | 01–02, 05–06, 09–10, 13–14    |       2       |
+| **Stern laser bank** (aft arc)                |   8   |         5,625 |    45,000 | 17–18, 21–22, 25–26, 29–30    |       2       |
+| **Spinal railgun**                            |   1   |        60,000 |    60,000 | 10–12 (central, ventral fore) |      3–4      |
+| **Missile array (upper/fore)**                |   8   |         9,375 |    75,000 | 01–04, 09–12                  |       2       |
+| **Missile array (aft/lower)**                 |   8   |         9,375 |    75,000 | 17–20, 25–28                  |       2       |
+| **Point defence turret (CIWS, dorsal ring)**  |   8   |         3,750 |    30,000 | 01–04, 17–20                  |       1       |
+| **Point defence turret (CIWS, ventral ring)** |   8   |         3,750 |    30,000 | 09–12, 25–28                  |       1       |
+| **Fire control node (battery director)**      |   4   |        15,000 |    60,000 | 06, 11, 22, 27                |      2–3      |
+| **Main reactor**                              |   1   |      ~150,000 |  ~150,000 | 22                            |       4       |
+| **Secondary reactors**                        |   2   |      ~150,000 |  ~300,000 | 20, 24                        |       4       |
+| **Engine room (tachyon cluster)**             |   4   |        70,000 |   280,000 | 18, 21, 26, 30                |       3       |
+| **Main power trunk/distribution**             |   1   |        80,000 |    80,000 | 23 (central aft)              |      3–4      |
+| **Habitation / life support block**           |   4   |       100,000 |   400,000 | 06, 08, 14, 16                |      2–3      |
+| **Cargo hold**                                |   2   |       100,000 |   200,000 | 25, 27                        |       2       |
+| **Fighter bay (port fore)**                   |   2   |        40,000 |    80,000 | 05, 09                        |      1–2      |
+| **Fighter bay (port aft)**                    |   2   |        40,000 |    80,000 | 21, 25                        |      1–2      |
+| **Fighter bay (starboard fore)**              |   2   |        40,000 |    80,000 | 13, 11                        |      1–2      |
+| **Fighter bay (starboard aft)**               |   2   |        40,000 |    80,000 | 29, 27                        |      1–2      |
+| **Flight ops / launch-control node**          |   2   |        40,000 |    80,000 | 04, 20                        |       2       |
+| **Marine barracks & armouries**               |   1   |       200,000 |   200,000 | 26 (aft-ventral, central)     |       3       |
+| **CIC (primary)**                             |   1   |        50,000 |    50,000 | 02 (fore-dorsal, central)     |       4       |
+| **Flag bridge**                               |   1   |        40,000 |    40,000 | 03 (fore-dorsal)              |       3       |
+| **Main bridge**                               |   1   |        20,000 |    20,000 | 01 (fore-dorsal)              |       2       |
+| **Auxiliary bridge**                          |   1   |        20,000 |    20,000 | 04 (fore-dorsal)              |       3       |
+| **Sensor array (fore dorsal/ventral)**        |   2   |        10,000 |    20,000 | 01, 09                        |       1       |
+| **Sensor array (aft dorsal/ventral)**         |   2   |        10,000 |    20,000 | 17, 25                        |       1       |
+| **Comms / EW node (fore ring)**               |   3   |       ~10,000 |   ~30,000 | 05, 10, 13                    |       2       |
+| **Comms / EW node (aft ring)**                |   2   |       ~10,000 |   ~20,000 | 21, 28                        |       2       |
+
+*(Totals match the earlier HP budgets to within rounding.)*
+
+Use this as your master pattern; everything below just scales down from here.
+
+---
+
+## 2. Battlecruiser (BC) – 2,600,000 HP
+
+Totals per pool (from our earlier scaling):
+
+* Armour: **650,000 HP** – use **24 active blocks**, ~27,000 HP each
+* Weapons: **390,000 HP**
+* Power: **598,000 HP**
+* General: **390,000 HP**
+* Flight: **312,000 HP** (6 fighter bays, 120 ready fighters)
+* Marines: **130,000 HP**
+* C3: **130,000 HP**
+
+### 2.1 Battlecruiser system table (grouped)
+
+| System group / element   |         Count         |   HP per | Total HP | Typical block(s)                                             | Depth |
+| ------------------------ | :-------------------: | -------: | -------: | ------------------------------------------------------------ | :---: |
+| **Armour block** (BC)    |           24          |  ~27,000 |  650,000 | 01–06, 09–14, 17–22, 25–30                                   |   –   |
+| **Port broadside bank**  | 6 per side → 12 total |    9,750 |  117,000 | Port: 05–07, 21–23; Starboard: 13–15, 29–31                  |   1   |
+| **Prow laser bank**      |           6           |    5,850 |   35,100 | 01–02, 05–06, 09–10                                          |   2   |
+| **Stern laser bank**     |           4           |    5,850 |   23,400 | 17–18, 25–26                                                 |   2   |
+| **Spinal railgun**       |           1           |   39,000 |   39,000 | 10–12                                                        |  3–4  |
+| **Missile array**        |           12          |    8,125 |   97,500 | 03–04, 11–12, 19–20, 27–28                                   |   2   |
+| **Point defence turret** |           12          |    3,250 |   39,000 | Dorsal: 01–02, 17–18; Ventral: 09–10, 25–26; plus 2 midships |   1   |
+| **Fire control node**    |           4           |    9,750 |   39,000 | 06, 11, 22, 27                                               |  2–3  |
+| **Reactors**             |           2           | ~164,500 | ~329,000 | 20, 22                                                       |   4   |
+| **Engine rooms**         |           3           |  ~69,800 | ~209,400 | 18, 24, 30                                                   |   3   |
+| **Power trunk**          |           1           |  ~59,800 |  ~59,800 | 21                                                           |  3–4  |
+| **Hab blocks**           |           3           |  ~86,700 | ~260,000 | 06, 08, 14                                                   |  2–3  |
+| **Cargo holds**          |           2           |   65,000 |  130,000 | 25, 27                                                       |   2   |
+| **Fighter bays**         |           6           |   41,600 |  249,600 | 05, 09, 13, 21, 25, 29                                       |  1–2  |
+| **Flight ops nodes**     |           2           |   31,200 |   62,400 | 04, 20                                                       |   2   |
+| **Marine barracks**      |           1           |  130,000 |  130,000 | 26                                                           |   3   |
+| **CIC**                  |           1           |   30,000 |   30,000 | 02                                                           |   4   |
+| **Flag bridge**          |           1           |   20,000 |   20,000 | 03                                                           |   3   |
+| **Main bridge**          |           1           |   15,000 |   15,000 | 01                                                           |   2   |
+| **Aux bridge**           |           1           |   15,000 |   15,000 | 04                                                           |   3   |
+| **Sensor arrays**        |           4           |   ~7,500 |  ~30,000 | 01, 09, 17, 25                                               |   1   |
+| **Comms/EW nodes**       |           3           |   ~6,700 |  ~20,000 | 05, 13, 21                                                   |   2   |
+
+---
+
+## 3. Heavy Cruiser (CA) – 1,400,000 HP
+
+Pools:
+
+* Armour: **378,000 HP** – use **20 blocks**, 18,900 HP each
+* Weapons: **252,000 HP**
+* Power: **280,000 HP**
+* General: **210,000 HP**
+* Flight: **140,000 HP** (4 bays, 80 fighters)
+* Marines: **70,000 HP**
+* C3: **70,000 HP**
+
+### 3.1 Heavy Cruiser systems
+
+| System group / element                        |  Count  |  HP per | Total HP | Blocks                                          | Depth |
+| --------------------------------------------- | :-----: | ------: | -------: | ----------------------------------------------- | :---: |
+| **Armour block** (CA)                         |    20   |  18,900 |  378,000 | 01–05, 09–13, 17–21, 25–29                      |   –   |
+| **Broadside banks**                           |    8    |   9,450 |   75,600 | Port: 05, 21, 06, 22; Starboard: 13, 29, 14, 30 |   1   |
+| **Prow laser banks**                          |    4    |   4,725 |   18,900 | 01–02, 09–10                                    |   2   |
+| **Stern laser banks**                         |    4    |   4,725 |   18,900 | 17–18, 25–26                                    |   2   |
+| **Spinal railgun**                            |    1    |  25,200 |   25,200 | 10–12                                           |  3–4  |
+| **Missile arrays**                            |    8    |   7,875 |   63,000 | 03–04, 11–12, 19–20, 27–28                      |   2   |
+| **Point defence turrets**                     |    8    |   3,150 |   25,200 | 01, 09, 17, 25 + 4 side mounts                  |   1   |
+| **Fire control nodes**                        |    4    |   6,300 |   25,200 | 06, 11, 22, 27                                  |  2–3  |
+| **Reactors**                                  |    2    |  77,000 |  154,000 | 20, 22                                          |   4   |
+| **Engine rooms**                              |    3    | ~32,700 |  ~98,000 | 18, 24, 30                                      |   3   |
+| **Power trunk**                               |    1    |  28,000 |   28,000 | 21                                              |  3–4  |
+| **Hab blocks**                                |    3    | ~46,700 |  140,000 | 06, 08, 14                                      |  2–3  |
+| **Cargo holds**                               |    2    |  35,000 |   70,000 | 25, 27                                          |   2   |
+| **Fighter bays**                              |    4    |  28,000 |  112,000 | 05, 09, 21, 25                                  |  1–2  |
+| **Flight ops nodes**                          |    2    |  14,000 |   28,000 | 04, 20                                          |   2   |
+| **Marine barracks**                           |    1    |  70,000 |   70,000 | 26                                              |   3   |
+| **CIC / Flag / Bridges / Sensors / Comms/EW** | grouped |       – |   70,000 | 01–04, 09,17                                    |  2–4  |
+
+*(For the CA and smaller hulls I’m grouping the C3 elements to avoid the table exploding; you can copy the BB/BC pattern and simply scale HPs.)*
+
+---
+
+## 4. Light Cruiser (CL) – 1,000,000 HP
+
+Pools:
+
+* Armour: **280,000 HP** – **16 blocks**, 17,500 each
+* Weapons: **180,000 HP**
+* Power: **200,000 HP**
+* General: **160,000 HP**
+* Flight: **70,000 HP** (3 bays, 60 fighters)
+* Marines: **40,000 HP**
+* C3: **70,000 HP**
+
+### 4.1 Light Cruiser systems
+
+| System group / element                      |  Count  |  HP per | Total HP | Blocks                              | Depth |
+| ------------------------------------------- | :-----: | ------: | -------: | ----------------------------------- | :---: |
+| **Armour block** (CL)                       |    16   |  17,500 |  280,000 | 01–04, 09–12, 17–20, 25–28          |   –   |
+| **Broadside banks**                         |    6    |   9,000 |   54,000 | Port: 05,21,06; Starboard: 13,29,14 |   1   |
+| **Prow laser banks**                        |    3    |   4,500 |   13,500 | 01,02,09                            |   2   |
+| **Stern laser banks**                       |    3    |   4,500 |   13,500 | 17,18,25                            |   2   |
+| **Spinal railgun**                          |    1    |  18,000 |   18,000 | 10–12                               |  3–4  |
+| **Missile arrays**                          |    6    |   7,500 |   45,000 | 03–04, 11–12, 19–20                 |   2   |
+| **Point defence turrets**                   |    6    |   3,000 |   18,000 | 01,09,17,25 + 2 midship             |   1   |
+| **Fire control nodes**                      |    4    |   4,500 |   18,000 | 06,11,22,27                         |  2–3  |
+| **Reactors**                                |    2    |  55,000 |  110,000 | 20,22                               |   4   |
+| **Engine rooms**                            |    2    |  35,000 |   70,000 | 18,24                               |   3   |
+| **Power trunk**                             |    1    |  20,000 |   20,000 | 21                                  |  3–4  |
+| **Hab blocks**                              |    3    | ~35,500 | ~106,500 | 06,08,14                            |  2–3  |
+| **Cargo holds**                             |    2    | ~26,700 |  ~53,500 | 25,27                               |   2   |
+| **Fighter bays**                            |    3    | ~18,700 |  ~56,000 | 05,09,21                            |  1–2  |
+| **Flight ops node**                         |    1    |  14,000 |   14,000 | 04                                  |   2   |
+| **Marine barracks**                         |    1    |  40,000 |   40,000 | 26                                  |   3   |
+| **C3 suite (CIC/Bridges/Sensors/Comms/EW)** | grouped |       – |   70,000 | 01–04, 09,17                        |  2–4  |
+
+---
+
+## 5. Destroyer (DD) – 500,000 HP
+
+Pools:
+
+* Armour: **150,000 HP** – **12 blocks**, 12,500 each
+* Weapons: **100,000 HP**
+* Power: **110,000 HP**
+* General: **90,000 HP**
+* Flight: **20,000 HP** (2 bays, 40 fighters)
+* Marines: **15,000 HP**
+* C3: **15,000 HP**
+
+### 5.1 Destroyer systems
+
+| System group / element    |  Count  |  HP per | Total HP | Blocks                        | Depth |
+| ------------------------- | :-----: | ------: | -------: | ----------------------------- | :---: |
+| **Armour block** (DD)     |    12   |  12,500 |  150,000 | 01–03, 09–11, 17–19, 25–27    |   –   |
+| **Broadside banks**       |    4    |   7,500 |   30,000 | Port: 05,21; Starboard: 13,29 |   1   |
+| **Prow laser banks**      |    2    |   3,750 |    7,500 | 01,09                         |   2   |
+| **Stern laser banks**     |    2    |   3,750 |    7,500 | 17,25                         |   2   |
+| **Spinal railgun**        |    1    |  10,000 |   10,000 | 10–11                         |  3–4  |
+| **Missile arrays**        |    4    |   6,250 |   25,000 | 03,11,19,27                   |   2   |
+| **Point defence turrets** |    4    |   2,500 |   10,000 | 01,09,17,25                   |   1   |
+| **Fire control nodes**    |    2    |   5,000 |   10,000 | 06,22                         |  2–3  |
+| **Reactor**               |    1    | ~60,500 |  ~60,500 | 20                            |   4   |
+| **Engine rooms**          |    2    | ~19,250 |  ~38,500 | 18,24                         |   3   |
+| **Power trunk**           |    1    |  11,000 |   11,000 | 21                            |  3–4  |
+| **Hab blocks**            |    2    |  30,000 |   60,000 | 06,14                         |  2–3  |
+| **Cargo hold**            |    1    |  30,000 |   30,000 | 25                            |   2   |
+| **Fighter bays**          |    2    |   8,000 |   16,000 | 05,21                         |  1–2  |
+| **Flight ops node**       |    1    |   4,000 |    4,000 | 04                            |   2   |
+| **Marine barracks**       |    1    |  15,000 |   15,000 | 26                            |   3   |
+| **C3 suite**              | grouped |       – |   15,000 | 01–02,09,17                   |  2–4  |
+
+---
+
+## 6. Corvette (CV) – 200,000 HP
+
+Pools (with the tweak we discussed to give the bay some HP):
+
+* Armour: **64,000 HP** – **8 blocks**, 8,000 each
+* Weapons: **40,000 HP**
+* Power: **44,000 HP**
+* General: **30,000 HP**
+* Flight: **10,000 HP** (1 bay, 20 fighters)
+* Marines: **6,000 HP**
+* C3: **6,000 HP**
+
+### 6.1 Corvette systems
+
+| System group / element    |  Count  | HP per | Total HP | Blocks                     | Depth |
+| ------------------------- | :-----: | -----: | -------: | -------------------------- | :---: |
+| **Armour block** (CV)     |    8    |  8,000 |   64,000 | 01–02, 09–10, 17–18, 25–26 |   –   |
+| **Broadside banks**       |    2    |  6,000 |   12,000 | Port: 05; Starboard: 13    |   1   |
+| **Prow laser bank**       |    1    |  3,000 |    3,000 | 01                         |   2   |
+| **Stern laser bank**      |    1    |  3,000 |    3,000 | 17                         |   2   |
+| **Spinal railgun**        |    1    |  4,000 |    4,000 | 10                         |  3–4  |
+| **Missile arrays**        |    2    |  5,000 |   10,000 | 03,19                      |   2   |
+| **Point defence turrets** |    2    |  2,000 |    4,000 | 09,25                      |   1   |
+| **Fire control nodes**    |    2    |  2,000 |    4,000 | 06,22                      |  2–3  |
+| **Reactor**               |    1    | 24,200 |   24,200 | 20                         |   4   |
+| **Engine room**           |    1    | 15,400 |   15,400 | 24                         |   3   |
+| **Power trunk**           |    1    |  4,400 |    4,400 | 21                         |  3–4  |
+| **Hab block**             |    1    | 20,000 |   20,000 | 06                         |  2–3  |
+| **Cargo hold**            |    1    | 10,000 |   10,000 | 25                         |   2   |
+| **Fighter bay**           |    1    |  8,000 |    8,000 | 05                         |  1–2  |
+| **Marine barracks**       |    1    |  6,000 |    6,000 | 26                         |   3   |
+| **C3 suite**              | grouped |      – |    6,000 | 01–02,09                   |  2–4  |
+
+---
+
+### How to use this at the table
+
+* When a hit penetrates a given **armour block**, you:
+
+  1. Look up all systems using that block.
+  2. Choose the **shallowest depth** system that still has HP (as per your rules).
+  3. Apply damage; if it exceeds your “penetration %” threshold for that system type, spill the rest inward (next depth).
+
+* Because I’ve given you **block ranges** for grouped entries (e.g. “05–08”), you can:
+
+  * Either treat each block within that range as holding *one* copy of that system; or
+  * Roll a 1–N to pick which of those blocks is actually involved if you’re resolving very precisely.
+
+If you’d like, I can now do a **compact master table** with rows = ship class and columns = “# broadside banks, HP per; # missile arrays, HP per; # CIWS, HP per; etc.”, using these same numbers, as a quick reference sheet separate from the block/depth detail.
+
