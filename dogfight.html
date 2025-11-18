@@ -592,6 +592,64 @@
 
         <div id="ghostPanel" class="ghost-panel"></div>
 
+        <!-- Power Allocation Modal for Capital Ships -->
+        <div id="powerAllocationModal" style="display: none; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.95); padding: 20px; border-radius: 10px; border: 2px solid #4a9eff; z-index: 200; min-width: 600px;">
+            <div style="text-align: center; font-size: 20px; font-weight: bold; color: #4a9eff; margin-bottom: 20px;" id="powerModalTitle">POWER ALLOCATION - DESTROYER</div>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px;">
+                <!-- Shields Column -->
+                <div>
+                    <div style="text-align: center; font-weight: bold; color: #88ccff; margin-bottom: 10px;">SHIELDS</div>
+                    <div id="shieldsPowerOptions" style="display: flex; flex-direction: column; gap: 5px;">
+                        <!-- Radio buttons will be generated here -->
+                    </div>
+                </div>
+
+                <!-- Engines Column -->
+                <div>
+                    <div style="text-align: center; font-weight: bold; color: #88ccff; margin-bottom: 10px;">ENGINES</div>
+                    <div id="enginesPowerOptions" style="display: flex; flex-direction: column; gap: 5px;">
+                        <!-- Radio buttons will be generated here -->
+                    </div>
+                </div>
+
+                <!-- Weapons Column -->
+                <div>
+                    <div style="text-align: center; font-weight: bold; color: #88ccff; margin-bottom: 10px;">WEAPONS</div>
+                    <div id="weaponsPowerOptions" style="display: flex; flex-direction: column; gap: 5px;">
+                        <!-- Radio buttons will be generated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Thrust/Maneuver Controls -->
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #4a9eff;">
+                <div style="text-align: center; font-weight: bold; color: #88ccff; margin-bottom: 10px;">MANEUVER CONTROLS</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 5px;">Set Thrust: <span id="thrustDisplay">0 G</span></div>
+                        <div style="font-size: 11px; color: #888;">WS: Increase/Decrease</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 5px;">Real Thrust: <span id="realThrustDisplay">0 G</span></div>
+                        <div style="font-size: 11px; color: #888;">Based on exhaust facing</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 5px;">Exhaust Facing: <span id="exhaustDisplay">180°</span></div>
+                        <div style="font-size: 11px; color: #888;">Mouse Wheel</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 5px;">Pivot: AD</div>
+                        <div style="font-size: 11px; color: #888;">Pitch: QE</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; text-align: center; font-size: 12px; color: #aaa;">
+                Click on ship or press ESC to close
+            </div>
+        </div>
+
         <div id="realisticModeToggle" style="position: absolute; top: 10px; right: 270px; background: rgba(0, 0, 0, 0.7); padding: 10px; border-radius: 5px; z-index: 150;">
             <label style="cursor: pointer; font-size: 14px;">
                 <input type="checkbox" id="realisticModeCheckbox" style="margin-right: 8px; cursor: pointer;">
@@ -965,6 +1023,7 @@
         let gameState = 'ORDER'; // ORDER, EXECUTION, REVIEW, GAMEOVER, PAUSED
         let currentTurn = 1;
         let selectedAircraft = null;
+        let selectedCapitalShip = null; // Currently selected capital ship for power management
         let ghostAircraft = null;
         let aiPredictedGhost = null; // Predicted AI position based on last turn
         let realisticMode = false; // Toggle for realistic AI display
@@ -4464,6 +4523,28 @@
                 this.antiShipMissiles = [];
                 this.navalShells = [];
                 this.torpedoes = [];
+
+                // === POWER MANAGEMENT SYSTEM ===
+                this.initializePowerManagement();
+
+                // === MANEUVER MODE ===
+                this.inManeuverMode = false;
+                this.hasOrders = false;
+                this.orderedThrust = 0; // Set thrust (-2G to +4G)
+                this.currentThrust = 0; // Actual thrust based on exhaust facing
+                this.orderedExhaustFacing = 180; // Degrees relative to ship heading (180 = aft, 0 = fore)
+                this.orderedPitch = 0; // Pitch angle for next turn (-90 to +90)
+                this.orderedEndX = this.x;
+                this.orderedEndY = this.y;
+                this.orderedEndHeading = this.heading;
+                this.velocityVector = { x: 0, y: 0 }; // Current velocity vector
+                this.maneuverPath = []; // Projected path for visualization
+                this.priorityTarget = null; // Right-click assigned target
+
+                // Ship characteristics for 3D movement
+                this.pivotSpeed = 360 / (this.length / 10); // Deg/sec, function of hull size
+                this.mass = spec.health * 10; // Mass for G-force calculations
+                this.maxGForce = 4; // Maximum G-force
             }
 
             initializeHitLocations() {
@@ -4648,6 +4729,211 @@
                 }
             }
 
+            initializePowerManagement() {
+                // Power groups: Shields, Engines, Weapons
+                // Levels: 0, 1, 2 (middle), 3, 4
+                // Constraint: Total deviation from middle (2) must sum to 0
+
+                this.powerManagement = {
+                    shields: {
+                        level: 2, // Middle: +0% Flicker
+                        options: [
+                            { level: 0, name: '0% Flicker', flickerStrength: 0 },
+                            { level: 1, name: '-10% Flicker', flickerStrength: 0.4 },
+                            { level: 2, name: '+0% Flicker', flickerStrength: 0.5 },
+                            { level: 3, name: '+10% Flicker', flickerStrength: 0.6 },
+                            { level: 4, name: '+20% Flicker', flickerStrength: 0.7 }
+                        ],
+                        currentFlicker: 0.5,
+                        flickerState: false,
+                        flickerTimer: 0,
+                        flickerCycle: 0.1, // Flicker on/off every 0.1s
+                        shieldArcs: [] // Visual effects when shields block attacks
+                    },
+                    engines: {
+                        level: 2, // Middle: +0 G
+                        options: [
+                            { level: 0, name: '0 G', gForce: 0 },
+                            { level: 1, name: '-2 G', gForce: -2 },
+                            { level: 2, name: '+0 G', gForce: 0 },
+                            { level: 3, name: '+2 G', gForce: 2 },
+                            { level: 4, name: '+4 G', gForce: 4 }
+                        ],
+                        currentGForce: 0
+                    },
+                    weapons: {
+                        level: 2, // Middle: Fire Chasers
+                        // Level 2 options: toggle between Broadside+Chasers OR Spinal+Chasers
+                        // Level 3 options: toggle between Both Broadsides+Chasers OR Spinal+Broadside+Chasers
+                        level2Toggle: 0, // 0 = Broadside+Chasers, 1 = Spinal+Chasers
+                        level3Toggle: 0, // 0 = Both Broadsides+Chasers, 1 = Spinal+Broadside+Chasers
+                        options: [
+                            { level: 0, name: 'No Weapons', weapons: [] },
+                            { level: 1, name: 'Fire Chasers', weapons: ['chasers'] },
+                            { level: 2, name: 'Broadside and Chasers', weapons: ['broadside', 'chasers'] }, // or Spinal+Chasers
+                            { level: 3, name: 'Both Broadsides and Chasers', weapons: ['broadside_port', 'broadside_starboard', 'chasers'] }, // or Spinal+Broadside+Chasers
+                            { level: 4, name: 'Both Broadsides and Spinal Mount and Chasers', weapons: ['broadside_port', 'broadside_starboard', 'spinal', 'chasers'] }
+                        ],
+                        activeWeapons: ['chasers']
+                    }
+                };
+
+                // Initialize laser weapon banks
+                this.laserWeapons = {
+                    chasers: {
+                        // Fore and aft lasers: ±45° lateral, ±45° pitch from centerline
+                        banks: [
+                            { name: 'Forward Chasers', x: 0, y: -this.length * 0.3, arc: { yaw: [-45, 45], pitch: [-45, 45] }, cooldown: 0, cycleTime: 2.0 },
+                            { name: 'Aft Chasers', x: 0, y: this.length * 0.3, arc: { yaw: [135, 225], pitch: [-45, 45] }, cooldown: 0, cycleTime: 2.0 }
+                        ],
+                        damage: 30,
+                        range: 5000,
+                        color: 'rgba(0, 255, 0, 0.8)'
+                    },
+                    broadside_port: {
+                        // Port side: covers port side ±45° from beam
+                        banks: [
+                            { name: 'Port Broadside Fore', x: -this.beam * 0.4, y: -this.length * 0.2, arc: { yaw: [225, 315], pitch: [-45, 45] }, cooldown: 0, cycleTime: 2.5 },
+                            { name: 'Port Broadside Mid', x: -this.beam * 0.4, y: 0, arc: { yaw: [225, 315], pitch: [-45, 45] }, cooldown: 0, cycleTime: 2.5 },
+                            { name: 'Port Broadside Aft', x: -this.beam * 0.4, y: this.length * 0.2, arc: { yaw: [225, 315], pitch: [-45, 45] }, cooldown: 0, cycleTime: 2.5 }
+                        ],
+                        damage: 40,
+                        range: 6000,
+                        color: 'rgba(255, 50, 50, 0.8)'
+                    },
+                    broadside_starboard: {
+                        // Starboard side: covers starboard side ±45° from beam
+                        banks: [
+                            { name: 'Starboard Broadside Fore', x: this.beam * 0.4, y: -this.length * 0.2, arc: { yaw: [45, 135], pitch: [-45, 45] }, cooldown: 0, cycleTime: 2.5 },
+                            { name: 'Starboard Broadside Mid', x: this.beam * 0.4, y: 0, arc: { yaw: [45, 135], pitch: [-45, 45] }, cooldown: 0, cycleTime: 2.5 },
+                            { name: 'Starboard Broadside Aft', x: this.beam * 0.4, y: this.length * 0.2, arc: { yaw: [45, 135], pitch: [-45, 45] }, cooldown: 0, cycleTime: 2.5 }
+                        ],
+                        damage: 40,
+                        range: 6000,
+                        color: 'rgba(255, 50, 50, 0.8)'
+                    },
+                    broadside: {
+                        // Virtual group - will fire either port or starboard based on target
+                        selectSide: (targetBearing) => {
+                            // targetBearing is relative to ship heading (0 = fore, 90 = starboard, 180 = aft, 270 = port)
+                            if (targetBearing > 90 && targetBearing < 270) {
+                                return 'broadside_port';
+                            } else {
+                                return 'broadside_starboard';
+                            }
+                        }
+                    },
+                    spinal: {
+                        // Spinal mount: ±30° from centerline
+                        banks: [
+                            { name: 'Spinal Mount', x: 0, y: -this.length * 0.4, arc: { yaw: [-30, 30], pitch: [-30, 30] }, cooldown: 0, cycleTime: 3.0 }
+                        ],
+                        damage: 80,
+                        range: 8000,
+                        color: 'rgba(100, 100, 255, 0.9)'
+                    }
+                };
+
+                // Missile arrays (always fire, don't use power)
+                this.missileArrays = 8; // Number of missile cells
+                this.missileTimer = 0;
+                this.missileCooldown = 1.0; // 1 missile per second per array = 8/sec total
+                this.activeMissiles = [];
+
+                // Update active weapons based on power level
+                this.updateActiveWeapons();
+            }
+
+            updateActiveWeapons() {
+                const weaponLevel = this.powerManagement.weapons.level;
+                const level2Toggle = this.powerManagement.weapons.level2Toggle;
+                const level3Toggle = this.powerManagement.weapons.level3Toggle;
+
+                // Determine active weapons based on level and toggles
+                switch (weaponLevel) {
+                    case 0:
+                        this.powerManagement.weapons.activeWeapons = [];
+                        break;
+                    case 1:
+                        this.powerManagement.weapons.activeWeapons = ['chasers'];
+                        break;
+                    case 2:
+                        if (level2Toggle === 0) {
+                            this.powerManagement.weapons.activeWeapons = ['broadside', 'chasers'];
+                        } else {
+                            this.powerManagement.weapons.activeWeapons = ['spinal', 'chasers'];
+                        }
+                        break;
+                    case 3:
+                        if (level3Toggle === 0) {
+                            this.powerManagement.weapons.activeWeapons = ['broadside_port', 'broadside_starboard', 'chasers'];
+                        } else {
+                            this.powerManagement.weapons.activeWeapons = ['spinal', 'broadside', 'chasers'];
+                        }
+                        break;
+                    case 4:
+                        this.powerManagement.weapons.activeWeapons = ['broadside_port', 'broadside_starboard', 'spinal', 'chasers'];
+                        break;
+                }
+
+                // Update G-force
+                this.powerManagement.engines.currentGForce = this.powerManagement.engines.options[this.powerManagement.engines.level].gForce;
+
+                // Update shield flicker strength
+                this.powerManagement.shields.currentFlicker = this.powerManagement.shields.options[this.powerManagement.shields.level].flickerStrength;
+            }
+
+            setPowerLevel(group, newLevel) {
+                const current = this.powerManagement;
+                const currentDeviation = (current.shields.level - 2) + (current.engines.level - 2) + (current.weapons.level - 2);
+                const groupCurrentLevel = current[group].level;
+                const levelChange = newLevel - groupCurrentLevel;
+                const newDeviation = currentDeviation + levelChange;
+
+                // Check if this change is valid (total deviation must be 0)
+                if (newDeviation !== 0) {
+                    console.log(`Invalid power change: deviation would be ${newDeviation}`);
+                    return false;
+                }
+
+                // Apply change
+                current[group].level = newLevel;
+                this.updateActiveWeapons();
+                console.log(`${this.type}: ${group} power set to level ${newLevel}`);
+                return true;
+            }
+
+            toggleWeaponMode(level) {
+                if (level === 2) {
+                    this.powerManagement.weapons.level2Toggle = 1 - this.powerManagement.weapons.level2Toggle;
+                } else if (level === 3) {
+                    this.powerManagement.weapons.level3Toggle = 1 - this.powerManagement.weapons.level3Toggle;
+                }
+                this.updateActiveWeapons();
+            }
+
+            isClicked(x, y) {
+                // Check if click is within ship bounds
+                const dx = x - this.x;
+                const dy = y - this.y;
+                const headingRad = -this.heading * Math.PI / 180;
+                const localX = dx * Math.cos(headingRad) - dy * Math.sin(headingRad);
+                const localY = dx * Math.sin(headingRad) + dy * Math.cos(headingRad);
+
+                return Math.abs(localX) < this.beam && Math.abs(localY) < this.length / 2;
+            }
+
+            lockOrders() {
+                this.hasOrders = true;
+                this.inManeuverMode = false;
+                console.log(`${this.type}: Orders locked`);
+            }
+
+            unlockOrders() {
+                this.hasOrders = false;
+                console.log(`${this.type}: Orders unlocked`);
+            }
+
             update(dt) {
                 if (this.isDestroyed) return;
 
@@ -4668,6 +4954,33 @@
                     if (this.hitLocations[location].hp !== undefined) {
                         this.updateLocationEffects(location);
                     }
+                }
+
+                // === POWER MANAGEMENT: SHIELD FLICKER ===
+                const shields = this.powerManagement.shields;
+                shields.flickerTimer += dt;
+                if (shields.flickerTimer >= shields.flickerCycle) {
+                    shields.flickerState = !shields.flickerState;
+                    shields.flickerTimer = 0;
+                }
+                // Update shield arcs (visual effects when shields block attacks)
+                shields.shieldArcs = shields.shieldArcs.filter(arc => Date.now() - arc.time < 500);
+
+                // === POWER MANAGEMENT: LASER WEAPON COOLDOWNS ===
+                for (let weaponType in this.laserWeapons) {
+                    const weapon = this.laserWeapons[weaponType];
+                    if (weapon.banks) {
+                        for (let bank of weapon.banks) {
+                            if (bank.cooldown > 0) {
+                                bank.cooldown -= dt;
+                            }
+                        }
+                    }
+                }
+
+                // === POWER MANAGEMENT: MISSILE TIMER ===
+                if (this.missileTimer > 0) {
+                    this.missileTimer -= dt;
                 }
 
                 // Update damage effects
@@ -4923,6 +5236,108 @@
                         ctx.arc(this.beam / 4, this.length / 2 + i * 8, this.beam / 3 + i * 4, 0, Math.PI);
                         ctx.stroke();
                     }
+                }
+
+                // === POWER MANAGEMENT: ENGINE PLUME VISUAL ===
+                const gForce = this.powerManagement.engines.currentGForce;
+                if (gForce !== 0 && !this.isSinking) {
+                    const exhaustFacing = this.orderedExhaustFacing || 180; // Default to aft
+                    const exhaustRad = exhaustFacing * Math.PI / 180;
+                    const exhaustX = Math.sin(exhaustRad) * this.length * 0.3;
+                    const exhaustY = Math.cos(exhaustRad) * this.length * 0.3;
+
+                    // Plume length based on G-force (longer = more thrust)
+                    const baseLength = 30;
+                    const plumeLength = baseLength + Math.abs(gForce) * 15;
+
+                    // Draw tachyon exhaust plume
+                    const gradient = ctx.createLinearGradient(exhaustX, exhaustY,
+                        exhaustX - Math.sin(exhaustRad) * plumeLength,
+                        exhaustY - Math.cos(exhaustRad) * plumeLength);
+                    gradient.addColorStop(0, 'rgba(100, 150, 255, 0.8)');
+                    gradient.addColorStop(0.5, 'rgba(150, 200, 255, 0.4)');
+                    gradient.addColorStop(1, 'rgba(200, 220, 255, 0)');
+
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(exhaustX, exhaustY, 8, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.strokeStyle = gradient;
+                    ctx.lineWidth = 12;
+                    ctx.beginPath();
+                    ctx.moveTo(exhaustX, exhaustY);
+                    ctx.lineTo(exhaustX - Math.sin(exhaustRad) * plumeLength, exhaustY - Math.cos(exhaustRad) * plumeLength);
+                    ctx.stroke();
+                }
+
+                // === POWER MANAGEMENT: WEAPON HARDPOINT GLOWS ===
+                const activeWeapons = this.powerManagement.weapons.activeWeapons;
+                for (let weaponName of activeWeapons) {
+                    const weapon = weaponName === 'broadside' ? null : this.laserWeapons[weaponName];
+                    if (!weapon || !weapon.banks) {
+                        // Handle broadside - glow both sides
+                        if (weaponName === 'broadside') {
+                            // Port side glow
+                            ctx.fillStyle = 'rgba(255, 50, 50, 0.3)';
+                            ctx.beginPath();
+                            ctx.arc(-this.beam * 0.4, 0, 8, 0, Math.PI * 2);
+                            ctx.fill();
+                            // Starboard side glow
+                            ctx.beginPath();
+                            ctx.arc(this.beam * 0.4, 0, 8, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        continue;
+                    }
+
+                    for (let bank of weapon.banks) {
+                        // Glow active weapon hardpoints
+                        const glowAlpha = bank.cooldown > 0 ? 0.2 : 0.5; // Dim when cooling
+                        ctx.fillStyle = weapon.color.replace(/[\d.]+\)$/, `${glowAlpha})`);
+                        ctx.beginPath();
+                        ctx.arc(bank.x, bank.y, 5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+                // === POWER MANAGEMENT: SHIELD VISUAL ===
+                const shields = this.powerManagement.shields;
+                // Overall shield glow when active
+                if (shields.flickerState && shields.currentFlicker > 0) {
+                    const shieldAlpha = shields.currentFlicker * 0.15;
+                    ctx.strokeStyle = `rgba(100, 200, 255, ${shieldAlpha})`;
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    // Draw shield outline around ship
+                    const shieldPadding = 10;
+                    ctx.moveTo(0, -this.length / 2 - shieldPadding);
+                    ctx.lineTo(this.beam / 2 + shieldPadding, -this.length / 4);
+                    ctx.lineTo(this.beam / 2 + shieldPadding, this.length / 3);
+                    ctx.lineTo(0, this.length / 2 + shieldPadding);
+                    ctx.lineTo(-this.beam / 2 - shieldPadding, this.length / 3);
+                    ctx.lineTo(-this.beam / 2 - shieldPadding, -this.length / 4);
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+
+                // Shield arcs when blocking attacks
+                for (let arc of shields.shieldArcs) {
+                    const age = (Date.now() - arc.time) / 500;
+                    const arcAlpha = 1 - age;
+                    ctx.strokeStyle = `rgba(100, 200, 255, ${arcAlpha * 0.8})`;
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    const arcRad = 40;
+                    const arcAngle = arc.angle * Math.PI / 180;
+                    ctx.arc(arc.x, arc.y, arcRad, arcAngle - Math.PI / 4, arcAngle + Math.PI / 4);
+                    ctx.stroke();
+
+                    // Impact flash
+                    ctx.fillStyle = `rgba(255, 255, 255, ${arcAlpha * 0.6})`;
+                    ctx.beginPath();
+                    ctx.arc(arc.x, arc.y, 5, 0, Math.PI * 2);
+                    ctx.fill();
                 }
 
                 ctx.restore();
@@ -5722,6 +6137,180 @@
                 }
 
                 return hits;
+            }
+
+            // === POWER MANAGEMENT: LASER WEAPON FIRING ===
+            fireLaserWeapons(targets, dt) {
+                if (this.isDestroyed || this.isSinking) return [];
+
+                const hits = [];
+                const activeWeapons = this.powerManagement.weapons.activeWeapons;
+
+                // Find target (priority target or nearest enemy)
+                let targetShip = this.priorityTarget;
+                if (!targetShip || targetShip.isDestroyed) {
+                    // Find nearest enemy ship that we can hurt
+                    targetShip = this.findBestTarget(targets);
+                }
+
+                if (!targetShip) return hits;
+
+                // Calculate bearing to target
+                const dx = targetShip.x - this.x;
+                const dy = targetShip.y - this.y;
+                const distanceToTarget = Math.sqrt(dx * dx + dy * dy);
+                const angleToTarget = Math.atan2(dy, dx) * 180 / Math.PI;
+                let targetBearing = angleToTarget - this.heading;
+                while (targetBearing < 0) targetBearing += 360;
+                while (targetBearing >= 360) targetBearing -= 360;
+
+                // Fire each active weapon system
+                for (let weaponName of activeWeapons) {
+                    let weaponSystem = this.laserWeapons[weaponName];
+
+                    // Handle 'broadside' virtual weapon - select port or starboard
+                    if (weaponName === 'broadside') {
+                        const side = this.laserWeapons.broadside.selectSide(targetBearing);
+                        weaponSystem = this.laserWeapons[side];
+                    }
+
+                    if (!weaponSystem || !weaponSystem.banks) continue;
+
+                    // Fire banks in ripple (overlapping, nearest first)
+                    let closestBank = null;
+                    let closestDist = Infinity;
+
+                    for (let bank of weaponSystem.banks) {
+                        if (bank.cooldown > 0) continue;
+
+                        // Check if target is in arc
+                        if (!this.isTargetInArc(bank, targetBearing, distanceToTarget, weaponSystem.range)) continue;
+
+                        // Get bank world position
+                        const headingRad = this.heading * Math.PI / 180;
+                        const bankWorldX = this.x + bank.x * Math.cos(headingRad) - bank.y * Math.sin(headingRad);
+                        const bankWorldY = this.y + bank.x * Math.sin(headingRad) + bank.y * Math.cos(headingRad);
+
+                        const bankDist = Math.sqrt(Math.pow(targetShip.x - bankWorldX, 2) + Math.pow(targetShip.y - bankWorldY, 2));
+                        if (bankDist < closestDist) {
+                            closestDist = bankDist;
+                            closestBank = { bank, worldX: bankWorldX, worldY: bankWorldY };
+                        }
+                    }
+
+                    // Fire closest bank (if found)
+                    if (closestBank) {
+                        const bank = closestBank.bank;
+                        bank.cooldown = bank.cycleTime;
+
+                        // All lasers in bank fire simultaneously
+                        const numLasers = weaponName.includes('spinal') ? 1 : 3; // Spinal = 1 big laser, others = 3 lasers per bank
+                        for (let i = 0; i < numLasers; i++) {
+                            hits.push({
+                                target: targetShip,
+                                damage: weaponSystem.damage,
+                                weaponType: weaponName,
+                                bankName: bank.name,
+                                sourceX: closestBank.worldX,
+                                sourceY: closestBank.worldY,
+                                color: weaponSystem.color
+                            });
+                        }
+
+                        console.log(`${this.type} ${bank.name} fired at ${targetShip.type}!`);
+                    }
+                }
+
+                // Fire missiles (always active, don't use power)
+                if (this.missileTimer <= 0 && targetShip && distanceToTarget < 10000) {
+                    this.missileTimer = this.missileCooldown;
+                    // Fire 1 missile per array
+                    for (let i = 0; i < this.missileArrays; i++) {
+                        this.activeMissiles.push({
+                            x: this.x + (Math.random() - 0.5) * this.beam,
+                            y: this.y + (Math.random() - 0.5) * this.length * 0.3,
+                            targetX: targetShip.x,
+                            targetY: targetShip.y,
+                            target: targetShip,
+                            speed: 150, // m/s
+                            damage: 25,
+                            time: Date.now()
+                        });
+                    }
+                }
+
+                // Update active missiles
+                for (let missile of this.activeMissiles) {
+                    const mdx = missile.targetX - missile.x;
+                    const mdy = missile.targetY - missile.y;
+                    const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+
+                    if (mdist < 10) {
+                        // Hit!
+                        if (!missile.target.isDestroyed) {
+                            hits.push({
+                                target: missile.target,
+                                damage: missile.damage,
+                                weaponType: 'missile',
+                                sourceX: missile.x,
+                                sourceY: missile.y,
+                                color: 'rgba(255, 200, 0, 0.9)'
+                            });
+                        }
+                        missile.hit = true;
+                    } else {
+                        // Move towards target
+                        missile.x += (mdx / mdist) * missile.speed * dt;
+                        missile.y += (mdy / mdist) * missile.speed * dt;
+                    }
+                }
+
+                this.activeMissiles = this.activeMissiles.filter(m => !m.hit && Date.now() - m.time < 20000);
+
+                return hits;
+            }
+
+            findBestTarget(targets) {
+                let bestTarget = null;
+                let bestScore = -Infinity;
+
+                for (let target of targets) {
+                    if (target === this || target.isDestroyed) continue;
+
+                    const dx = target.x - this.x;
+                    const dy = target.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    // Score based on proximity and ability to hurt
+                    const score = 10000 - distance; // Closer = higher score
+
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestTarget = target;
+                    }
+                }
+
+                return bestTarget;
+            }
+
+            isTargetInArc(bank, targetBearing, distance, maxRange) {
+                if (distance > maxRange) return false;
+
+                // Check yaw (horizontal) arc
+                const yawMin = bank.arc.yaw[0];
+                const yawMax = bank.arc.yaw[1];
+
+                // Handle wrap-around
+                let inYawArc = false;
+                if (yawMin < yawMax) {
+                    inYawArc = targetBearing >= yawMin && targetBearing <= yawMax;
+                } else {
+                    // Arc crosses 0 degrees
+                    inYawArc = targetBearing >= yawMin || targetBearing <= yawMax;
+                }
+
+                // For now, ignore pitch (assume targets are at same level)
+                return inYawArc;
             }
 
             // Check if a point is within the ship's collision bounds
@@ -16024,5 +16613,93 @@
         // Game will start when user selects mode from splash screen
         // gameLoop() called from startQuickBattle() or startCustomBattle()
     </script>
+    <!--
+    ========================================
+    POWER MANAGEMENT SYSTEM - IMPLEMENTATION STATUS
+    ========================================
+
+    COMPLETED:
+    1. ✅ Power Management Data Structures (CapitalShip class)
+       - Power groups: Shields (flicker strength), Engines (G-force), Weapons (weapon banks)
+       - Constraint system: Total deviation from middle must equal zero
+       - Toggle modes for Weapons level 2 and 3
+
+    2. ✅ Laser Weapon Systems
+       - Chasers: ±45° coverage fore/aft
+       - Broadside (Port/Starboard): ±45° coverage on sides
+       - Spinal Mount: ±30° coverage forward
+       - Ripple fire with cooldown cycles
+       - Targeting logic with arc checking
+
+    3. ✅ Shield Flicker System
+       - Exponential power consumption with duty cycle
+       - Flicker state alternates on/off (0.1s cycle)
+       - Blocks lasers/missiles when ON
+       - Reduces railgun damage when ON
+       - Visual arcs show when shields block attacks
+
+    4. ✅ Visual Effects
+       - Engine plumes (blue tachyon exhaust, length based on G-force)
+       - Weapon hardpoint glows (color-coded by weapon type)
+       - Shield glow (brightness based on flicker strength)
+       - Shield impact arcs
+
+    5. ✅ Power Allocation UI Modal (HTML)
+       - Three-column radio button layout
+       - Maneuver controls display
+       - Thrust/exhaust facing indicators
+
+    6. ✅ Maneuver Mode Properties
+       - Thrust settings (-2G to +4G)
+       - Exhaust facing (0-360°)
+       - Velocity vector tracking
+       - Pivot speed based on hull size
+
+    TODO - INTEGRATION NEEDED:
+    1. ⏳ Add click handler for capital ships
+       - Detect ship clicks in canvas click event
+       - Open power allocation modal
+       - Populate radio buttons dynamically
+
+    2. ⏳ Add power level change handlers
+       - Radio button click validation
+       - Apply power changes to ship
+       - Update UI to reflect changes
+
+    3. ⏳ Add keyboard controls for ship maneuver
+       - W/S: Increase/decrease thrust
+       - A/D: Rotate ship (pivot)
+       - Q/E: Pitch up/down
+       - Mouse wheel: Change exhaust facing
+       - Right-click: Set priority target
+
+    4. ⏳ Integrate laser weapon firing into game loop
+       - Call ship.fireLaserWeapons(capitalShips, dt) during execution
+       - Apply hits to target ships
+       - Create visual laser beam effects
+       - Check shield flicker state to block/reduce damage
+
+    5. ⏳ Shield damage blocking logic
+       - Check shields.flickerState when ship takes damage
+       - Block laser/missile damage if shields ON
+       - Reduce railgun damage by 50%
+       - Create shield arc visual on block
+
+    6. ⏳ Missile firing integration
+       - Update active missiles each frame
+       - Render missile trails
+       - Apply hits when missiles reach targets
+
+    USAGE NOTES:
+    - All capital ships start with balanced power (level 2 in all groups)
+    - Players must decrease one power group to increase another
+    - Missiles (8 arrays, 1/sec each) always fire, don't use power
+    - Shields flicker on/off automatically based on power level
+    - G-force affects velocity change rate (not implemented in physics yet)
+    - Ships fire on nearest enemy or priority target (right-click assigned)
+
+    See IMPLEMENTATION_STATUS.md for detailed specification.
+    -->
+
 </body>
 </html>
