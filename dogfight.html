@@ -16319,8 +16319,25 @@
                             // Apply durability multiplier
                             damageAmount *= missile.target.durability;
 
-                            // Apply damage
-                            applyComponentDamage(missile.target, damageAmount);
+                            // Check if fighter is targeting a specific ship system
+                            if (plane.targetSystem && plane.targetSystem.ship === missile.target) {
+                                const sys = plane.targetSystem.system;
+                                if (sys && !sys.isDestroyed) {
+                                    // Direct hit on targeted system!
+                                    sys.isDestroyed = true;
+                                    console.log(`🎯 SYSTEM DESTROYED! ${plane.name}'s ${missile.missileType.toUpperCase()} destroyed ${sys.name} on ${missile.target.type}!`);
+
+                                    // Apply reduced damage to ship (system absorbed most of it)
+                                    applyComponentDamage(missile.target, damageAmount * 0.3);
+                                } else {
+                                    // System already destroyed or missed, apply normal damage
+                                    applyComponentDamage(missile.target, damageAmount);
+                                }
+                            } else {
+                                // Apply damage normally
+                                applyComponentDamage(missile.target, damageAmount);
+                            }
+
                             missile.target.lastHitBy = plane.name;
                             missile.target.lastHitTime = Date.now();
 
@@ -17045,6 +17062,27 @@
                     target = ship;
                 }
             }
+
+            // Check if fighter has torpedoes - prioritize targeting ship point defense
+            let targetSystem = null;
+            if (target && target.ciwsSystems && fighter.weaponGroups) {
+                for (let wg of fighter.weaponGroups) {
+                    if (wg.name && wg.name.toLowerCase().includes('torpedo')) {
+                        // This is a torpedo bomber - prioritize CIWS systems
+                        for (let ciws of target.ciwsSystems) {
+                            if (!ciws.isDestroyed) {
+                                targetSystem = { type: 'ciws', system: ciws, ship: target };
+                                console.log(`${fighter.name}: Targeting ${ciws.name} for torpedo run`);
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Store target system for combat processing
+            fighter.targetSystem = targetSystem;
 
             if (!target) {
                 // No target - patrol
