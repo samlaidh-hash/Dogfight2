@@ -12886,9 +12886,14 @@
                         // Target is in arc, range, and visible
                         const altitudeDiff = Math.abs(target.altitude - shooter.altitude);
 
-                        // Calculate hit chance
+                        // Calculate base hit chance
                         let effectiveGunnerySkill = shooter.gunnerySkill * (1 - shooter.gForcePenalty);
                         let hitChance = effectiveGunnerySkill * 0.6;
+
+                        // Store base hit chance for weapon-specific calculations
+                        let baseHitChance = hitChance;
+
+                        // Apply standard modifiers (will be overridden for some weapon types)
                         hitChance *= Math.max(0.1, 1 - distance / maxWeaponRange); // Distance factor based on weapon range
                         hitChance *= Math.max(0.3, 1 - altitudeDiff / 500); // Altitude factor
                         hitChance *= Math.min(1, 0.2 + shooter.timeOnTarget / 8); // Time on target bonus
@@ -12929,7 +12934,10 @@
                                 let weaponsFired = [];
 
                                 for (let weaponGroup of shooter.weaponGroups) {
-                                    if (weaponGroup.ammunition <= 0) continue;
+                                    // Energy weapons don't use ammo, skip ammo check for them
+                                    if (weaponGroup.type !== 'laser' && weaponGroup.type !== 'particle_beam') {
+                                        if (weaponGroup.ammunition <= 0) continue;
+                                    }
                                     if (weaponGroup.firingCooldown > 0) {
                                         weaponGroup.firingCooldown--;
                                         continue;
@@ -12977,14 +12985,27 @@
                                             // Plenty of ammo, fire at close-medium range (80% of max)
                                             shouldFireThisWeapon = distance < (weaponGroup.range * 0.80);
                                         }
+                                    } else if (weaponGroup.type === 'laser') {
+                                        // Lasers: High accuracy at all ranges, damage reduces with distance
+                                        shouldFireThisWeapon = distance < weaponGroup.range;
+                                    } else if (weaponGroup.type === 'mass_driver') {
+                                        // Mass Drivers: Fixed damage but hit chance drops rapidly with range
+                                        // Only fire at close-medium range where hit chance is decent
+                                        shouldFireThisWeapon = distance < (weaponGroup.range * 0.7) || hitChance > 0.25;
+                                    } else if (weaponGroup.type === 'particle_beam') {
+                                        // Particle Beams: Most effective at close range, both accuracy and damage fall off
+                                        shouldFireThisWeapon = distance < (weaponGroup.range * 0.85);
                                     }
 
                                     if (!shouldFireThisWeapon) continue;
 
                                     // Fire this weapon group
-                                    weaponGroup.ammunition -= weaponGroup.ammoPerBurst;
+                                    // Energy weapons (lasers, particle beams) don't consume ammo
+                                    if (weaponGroup.type !== 'laser' && weaponGroup.type !== 'particle_beam') {
+                                        weaponGroup.ammunition -= weaponGroup.ammoPerBurst;
+                                        shooter.ammunition -= weaponGroup.ammoPerBurst; // Update total ammo
+                                    }
                                     weaponGroup.firingCooldown = weaponGroup.rateOfFire;
-                                    shooter.ammunition -= weaponGroup.ammoPerBurst; // Update total ammo
                                     weaponsFired.push(weaponGroup.name);
 
                                     // Track this weapon for tracer rendering
@@ -13006,11 +13027,66 @@
                                     } else if (weaponGroup.sound === 'cannon') {
                                         soundMe109Cannon.currentTime = 0;
                                         soundMe109Cannon.play().catch(e => console.log('Audio play failed:', e));
+                                    } else if (weaponGroup.sound === 'laser') {
+                                        // TODO: Add laser sound effect
+                                    }
+
+                                    // Calculate weapon-specific hit chance
+                                    let weaponHitChance = hitChance;
+
+                                    if (weaponGroup.type === 'laser') {
+                                        // Lasers: 80% base hit chance at all ranges (ignores distance penalty)
+                                        weaponHitChance = baseHitChance;
+                                        weaponHitChance *= Math.max(0.3, 1 - altitudeDiff / 500); // Altitude factor only
+                                        weaponHitChance *= Math.min(1, 0.2 + shooter.timeOnTarget / 8); // Time on target
+                                        weaponHitChance *= 0.8; // 80% base accuracy for lasers
+
+                                        // Apply roll penalties
+                                        if (shooter.isRolling) weaponHitChance *= 0.5;
+                                        if (target.isRolling) weaponHitChance *= 0.7;
+                                    } else if (weaponGroup.type === 'mass_driver') {
+                                        // Mass Drivers: Hit chance drops very rapidly with range (3x faster than normal)
+                                        weaponHitChance = baseHitChance;
+                                        const rangeFactor = 1 - (distance / weaponGroup.range);
+                                        weaponHitChance *= Math.max(0.05, Math.pow(rangeFactor, 3)); // Cubic falloff
+                                        weaponHitChance *= Math.max(0.3, 1 - altitudeDiff / 500);
+                                        weaponHitChance *= Math.min(1, 0.2 + shooter.timeOnTarget / 8);
+
+                                        // Apply roll penalties
+                                        if (shooter.isRolling) weaponHitChance *= 0.5;
+                                        if (target.isRolling) weaponHitChance *= 0.7;
+                                    } else if (weaponGroup.type === 'particle_beam') {
+                                        // Particle Beams: Hit chance reduces moderately with range (1.5x faster than normal)
+                                        weaponHitChance = baseHitChance;
+                                        const rangeFactor = 1 - (distance / weaponGroup.range);
+                                        weaponHitChance *= Math.max(0.1, Math.pow(rangeFactor, 1.5)); // Moderate falloff
+                                        weaponHitChance *= Math.max(0.3, 1 - altitudeDiff / 500);
+                                        weaponHitChance *= Math.min(1, 0.2 + shooter.timeOnTarget / 8);
+
+                                        // Apply roll penalties
+                                        if (shooter.isRolling) weaponHitChance *= 0.5;
+                                        if (target.isRolling) weaponHitChance *= 0.7;
                                     }
 
                                     // Check if this weapon group hits
-                                    if (Math.random() < hitChance) {
+                                    if (Math.random() < weaponHitChance) {
                                         let weaponDamage = weaponGroup.damageMin + Math.random() * (weaponGroup.damageMax - weaponGroup.damageMin);
+
+                                        // Apply weapon-specific damage modifiers based on range
+                                        if (weaponGroup.type === 'laser') {
+                                            // Lasers: Damage reduces linearly with range (down to 40% at max range)
+                                            const rangeFactor = 1 - (distance / weaponGroup.range);
+                                            const damageMultiplier = 0.4 + (rangeFactor * 0.6); // 100% at 0m, 40% at max range
+                                            weaponDamage *= damageMultiplier;
+                                        } else if (weaponGroup.type === 'mass_driver') {
+                                            // Mass Drivers: Fixed damage (no range penalty)
+                                            // No modification needed - damage stays constant
+                                        } else if (weaponGroup.type === 'particle_beam') {
+                                            // Particle Beams: Damage reduces with range (down to 20% at max range)
+                                            const rangeFactor = 1 - (distance / weaponGroup.range);
+                                            const damageMultiplier = 0.2 + (rangeFactor * 0.8); // 100% at 0m, 20% at max range
+                                            weaponDamage *= damageMultiplier;
+                                        }
 
                                         // Enhancement #8: Gun convergence accuracy bonus
                                         const convergenceDist = Math.abs(distance - shooter.gunConvergence);
