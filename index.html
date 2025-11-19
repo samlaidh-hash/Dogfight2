@@ -99,8 +99,8 @@
             border-radius: 5px;
             max-width: 800px;
             width: auto;
-            max-height: 160px;
-            overflow-y: auto;
+            max-height: none;
+            overflow: visible;
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 15px;
@@ -15017,6 +15017,10 @@
 
             // Draw multi-turn maneuver progress indicators (during EXECUTION only)
             if (gameState === 'EXECUTION') {
+                // Calculate execution progress
+                const elapsed = Date.now() - executionStartTime;
+                const progress = Math.min(1, elapsed / executionTime);
+
                 let yOffset = 80; // Start position from top
                 for (let plane of aircraft) {
                     if (plane.isInMultiTurnManeuver && !plane.isDestroyed) {
