@@ -5141,6 +5141,9 @@
                 // === POWER MANAGEMENT SYSTEM ===
                 this.initializePowerManagement();
 
+                // === FTL DRIVE SYSTEM ===
+                this.initializeFTLDrive();
+
                 // === FIGHTER HANGAR SYSTEM ===
                 this.initializeFighterHangar(spec.fighterComplement || []);
 
@@ -5477,6 +5480,29 @@
 
                 // Update active weapons based on power level
                 this.updateActiveWeapons();
+            }
+
+            initializeFTLDrive() {
+                // FTL drive charge times by ship class
+                const ftlChargeTimes = {
+                    'destroyer': 20,      // DD
+                    'light_cruiser': 25,  // CL
+                    'cruiser': 30,        // CA (heavy cruiser)
+                    'battlecruiser': 35,  // BC
+                    'battleship': 40,     // BB
+                    'carrier': 30         // CV (same as CA)
+                };
+
+                this.ftlDrive = {
+                    installed: true,  // All capital ships have FTL
+                    chargeTime: ftlChargeTimes[this.type] || 30, // Seconds to charge
+                    state: 'offline',  // 'offline', 'charging', 'charged', 'jumping'
+                    chargeProgress: 0,  // 0 to chargeTime
+                    poweredDownSystem: null,  // Which system is powered down: 'shields', 'engines', or 'weapons'
+                    canJump: false,  // Updated each frame based on FTL shadows
+                    inShadow: false,  // True if in FTL shadow
+                    shadowSource: null  // What's creating the shadow
+                };
             }
 
             initializeFighterHangar(fighterComplement) {
