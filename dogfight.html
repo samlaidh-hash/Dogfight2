@@ -87,8 +87,8 @@
 
         #aircraftPanel {
             top: 10px;
-            max-height: 70vh;
-            overflow-y: auto;
+            max-height: 90vh;
+            overflow: visible;
         }
 
         #controlsPanel {
@@ -563,7 +563,7 @@
 
         <!-- Controls Panel (Center Top - Landscape) -->
         <div id="controlsPanel" class="ui-panel">
-            <div class="panel-tab" onclick="togglePanel('controlsPanel')">CONTROLS</div>
+            <div class="panel-tab" onclick="togglePanel('controlsPanel')">Control</div>
             <div class="control-section">
                 <div class="control-section-title">Basic Flight:</div>
                 <div>• Click aircraft to select</div>
@@ -1063,7 +1063,7 @@
 
         // Game era and terrain
         let gameEra = 'WW2'; // Track current game era
-        let terrain = new Terrain(); // Default to WW2 terrain
+        let terrain; // Will be initialized in startQuickBattle() or startCustomBattle()
         let spitfire = null;
         let me109 = null;
         let aircraft = [];
