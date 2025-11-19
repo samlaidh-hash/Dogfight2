@@ -1318,8 +1318,8 @@
                 maxClimbRate: 15,
                 maxDiveRate: 30,
                 maxGForce: 7,
-                maxAcceleration: 15,
-                maxBraking: 20,
+                maxAcceleration: 4, // m/s² - realistic WW2 fighter acceleration
+                maxBraking: 2, // m/s² - deceleration much slower (air resistance only)
                 // Mixed armament: 4× .303 Browning MGs + 2× 20mm Hispano cannons
                 weapons: [
                     {
@@ -1363,8 +1363,8 @@
                 maxClimbRate: 17,
                 maxDiveRate: 35,
                 maxGForce: 6.5,
-                maxAcceleration: 17,
-                maxBraking: 18,
+                maxAcceleration: 4.5, // m/s² - realistic WW2 fighter acceleration
+                maxBraking: 2, // m/s² - deceleration much slower (air resistance only)
                 // Mixed armament: 2× 13mm MG 131 + 1× 20mm MG 151/20 cannon
                 weapons: [
                     {
@@ -11607,7 +11607,8 @@
                         // Need to accelerate
                         throttleAcceleration = Math.min(speedDiff / TIME_STEP, this.maxAcceleration);
                     } else if (speedDiff < 0) {
-                        // Need to decelerate
+                        // Need to decelerate - limit to max braking rate
+                        // speedDiff is negative, so we use Math.max to prevent exceeding braking limit
                         throttleAcceleration = Math.max(speedDiff / TIME_STEP, -this.maxBraking);
                     }
 
