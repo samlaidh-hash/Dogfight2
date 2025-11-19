@@ -9492,6 +9492,452 @@
                 }
             }
         }
+
+        // Space Terrain class - for Renegade Legion battles in deep space
+        class SpaceTerrain {
+            constructor(isBlackHole = false) {
+                this.isBlackHole = isBlackHole;
+                this.stars = [];
+                this.asteroids = [];
+                this.planets = [];
+                this.moons = [];
+                this.sun = null;
+                this.nebulae = [];
+                this.blackHole = null;
+                this.lightningTimers = []; // Track lightning bolts for each nebula
+
+                this.generateStars();
+                this.generateAsteroids();
+
+                if (isBlackHole) {
+                    this.generateBlackHole();
+                    this.generateNebulae(true); // More nebulae around black hole
+                } else {
+                    this.generatePlanets();
+                    this.generateSun();
+                    this.generateNebulae(false);
+                }
+            }
+
+            // Generate starfield background
+            generateStars() {
+                const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
+                // Create 300-500 stars scattered across the map
+                const numStars = 300 + Math.floor(Math.random() * 200);
+                for (let i = 0; i < numStars; i++) {
+                    this.stars.push({
+                        x: Math.random() * TERRAIN_WIDTH - CANVAS_WIDTH,
+                        y: Math.random() * CANVAS_HEIGHT,
+                        size: 0.5 + Math.random() * 2, // 0.5-2.5 pixels
+                        brightness: 0.3 + Math.random() * 0.7 // 0.3-1.0 opacity
+                    });
+                }
+            }
+
+            // Generate asteroids that drift slowly
+            generateAsteroids() {
+                const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
+                const numAsteroids = 15 + Math.floor(Math.random() * 10); // 15-25 asteroids
+
+                for (let i = 0; i < numAsteroids; i++) {
+                    const x = Math.random() * TERRAIN_WIDTH - CANVAS_WIDTH;
+                    const y = Math.random() * CANVAS_HEIGHT;
+                    const size = 15 + Math.random() * 35; // 15-50 meter asteroids
+
+                    if (this.isBlackHole) {
+                        // Asteroids orbit the black hole
+                        const centerX = CANVAS_WIDTH / 2;
+                        const centerY = CANVAS_HEIGHT / 2;
+                        const distance = 200 + Math.random() * 400;
+                        const angle = Math.random() * Math.PI * 2;
+                        const orbitalSpeed = 0.0005 + Math.random() * 0.0015; // radians per ms
+
+                        this.asteroids.push({
+                            orbitDistance: distance,
+                            orbitAngle: angle,
+                            orbitalSpeed: orbitalSpeed,
+                            size: size,
+                            rotation: Math.random() * Math.PI * 2,
+                            rotationSpeed: (Math.random() - 0.5) * 0.001
+                        });
+                    } else {
+                        // Asteroids drift slowly
+                        this.asteroids.push({
+                            x: x,
+                            y: y,
+                            size: size,
+                            driftVx: (Math.random() - 0.5) * 0.02, // -0.01 to 0.01 m/ms
+                            driftVy: (Math.random() - 0.5) * 0.02,
+                            rotation: Math.random() * Math.PI * 2,
+                            rotationSpeed: (Math.random() - 0.5) * 0.001
+                        });
+                    }
+                }
+            }
+
+            // Generate planets and moons
+            generatePlanets() {
+                const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
+                const numPlanets = 1 + Math.floor(Math.random() * 2); // 1-2 planets
+
+                for (let i = 0; i < numPlanets; i++) {
+                    const x = Math.random() * TERRAIN_WIDTH - CANVAS_WIDTH;
+                    const y = Math.random() * CANVAS_HEIGHT;
+                    const radius = 80 + Math.random() * 120; // 80-200 radius
+
+                    // Random planet colors
+                    const planetTypes = [
+                        { color1: '#4a4aff', color2: '#2a2a99' }, // Blue
+                        { color1: '#ff9944', color2: '#cc6622' }, // Orange
+                        { color1: '#44ff44', color2: '#229922' }, // Green
+                        { color1: '#ff4444', color2: '#992222' }, // Red
+                        { color1: '#ccaa77', color2: '#886644' }  // Brown/desert
+                    ];
+                    const planetType = planetTypes[Math.floor(Math.random() * planetTypes.length)];
+
+                    const planet = {
+                        x: x,
+                        y: y,
+                        radius: radius,
+                        color1: planetType.color1,
+                        color2: planetType.color2,
+                        moons: []
+                    };
+
+                    // 50% chance of having 1-2 moons
+                    if (Math.random() > 0.5) {
+                        const numMoons = 1 + Math.floor(Math.random() * 2);
+                        for (let m = 0; m < numMoons; m++) {
+                            planet.moons.push({
+                                distance: radius + 50 + Math.random() * 100,
+                                angle: Math.random() * Math.PI * 2,
+                                orbitalSpeed: 0.0003 + Math.random() * 0.0007,
+                                radius: 15 + Math.random() * 25
+                            });
+                        }
+                    }
+
+                    this.planets.push(planet);
+                }
+            }
+
+            // Generate sun
+            generateSun() {
+                const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
+                this.sun = {
+                    x: Math.random() * TERRAIN_WIDTH - CANVAS_WIDTH,
+                    y: Math.random() * CANVAS_HEIGHT,
+                    radius: 100 + Math.random() * 100, // 100-200 radius
+                    pulsePhase: Math.random() * Math.PI * 2
+                };
+            }
+
+            // Generate nebulae with lightning
+            generateNebulae(isBlackHole) {
+                const numNebulae = isBlackHole ? (5 + Math.floor(Math.random() * 5)) : (2 + Math.floor(Math.random() * 3));
+                const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
+
+                for (let i = 0; i < numNebulae; i++) {
+                    if (isBlackHole) {
+                        // Nebulae orbit the black hole
+                        const distance = 300 + Math.random() * 350;
+                        const angle = Math.random() * Math.PI * 2;
+                        const orbitalSpeed = 0.0003 + Math.random() * 0.0007;
+
+                        this.nebulae.push({
+                            orbitDistance: distance,
+                            orbitAngle: angle,
+                            orbitalSpeed: orbitalSpeed,
+                            radius: 80 + Math.random() * 120,
+                            lightningBolts: [],
+                            nextLightning: Date.now() + Math.random() * 2000
+                        });
+                    } else {
+                        this.nebulae.push({
+                            x: Math.random() * TERRAIN_WIDTH - CANVAS_WIDTH,
+                            y: Math.random() * CANVAS_HEIGHT,
+                            radius: 80 + Math.random() * 120,
+                            lightningBolts: [],
+                            nextLightning: Date.now() + Math.random() * 2000
+                        });
+                    }
+                }
+            }
+
+            // Generate black hole
+            generateBlackHole() {
+                this.blackHole = {
+                    x: CANVAS_WIDTH / 2,
+                    y: CANVAS_HEIGHT / 2,
+                    radius: 60,
+                    eventHorizon: 80,
+                    accretionDisk: 150,
+                    rotationAngle: 0
+                };
+            }
+
+            // Update - called every frame to update positions
+            update(dt, gameState) {
+                // Only drift asteroids during execution phase
+                if (gameState === 'EXECUTION') {
+                    if (this.isBlackHole) {
+                        // Update orbiting asteroids
+                        for (let asteroid of this.asteroids) {
+                            asteroid.orbitAngle += asteroid.orbitalSpeed * dt;
+                            asteroid.rotation += asteroid.rotationSpeed * dt;
+                        }
+
+                        // Update orbiting nebulae
+                        for (let nebula of this.nebulae) {
+                            nebula.orbitAngle += nebula.orbitalSpeed * dt;
+                        }
+
+                        // Rotate black hole accretion disk
+                        if (this.blackHole) {
+                            this.blackHole.rotationAngle += 0.0005 * dt;
+                        }
+                    } else {
+                        // Update drifting asteroids
+                        for (let asteroid of this.asteroids) {
+                            asteroid.x += asteroid.driftVx * dt;
+                            asteroid.y += asteroid.driftVy * dt;
+                            asteroid.rotation += asteroid.rotationSpeed * dt;
+
+                            // Wrap around screen edges
+                            const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
+                            if (asteroid.x < -CANVAS_WIDTH) asteroid.x += TERRAIN_WIDTH;
+                            if (asteroid.x > CANVAS_WIDTH * 2) asteroid.x -= TERRAIN_WIDTH;
+                            if (asteroid.y < 0) asteroid.y += CANVAS_HEIGHT;
+                            if (asteroid.y > CANVAS_HEIGHT) asteroid.y -= CANVAS_HEIGHT;
+                        }
+                    }
+                }
+
+                // Update moons orbiting planets
+                for (let planet of this.planets) {
+                    for (let moon of planet.moons) {
+                        moon.angle += moon.orbitalSpeed * dt;
+                    }
+                }
+
+                // Update sun pulse
+                if (this.sun) {
+                    this.sun.pulsePhase += 0.002 * dt;
+                }
+
+                // Update lightning bolts in nebulae
+                const now = Date.now();
+                for (let nebula of this.nebulae) {
+                    // Remove expired lightning bolts
+                    nebula.lightningBolts = nebula.lightningBolts.filter(bolt => bolt.expires > now);
+
+                    // Generate new lightning
+                    if (now >= nebula.nextLightning) {
+                        // Create new lightning bolt
+                        const numSegments = 5 + Math.floor(Math.random() * 8);
+                        const segments = [];
+                        let currentX = (Math.random() - 0.5) * nebula.radius * 0.8;
+                        let currentY = (Math.random() - 0.5) * nebula.radius * 0.8;
+
+                        for (let i = 0; i < numSegments; i++) {
+                            const nextX = currentX + (Math.random() - 0.5) * 40;
+                            const nextY = currentY + (Math.random() - 0.5) * 40;
+                            segments.push({ x1: currentX, y1: currentY, x2: nextX, y2: nextY });
+                            currentX = nextX;
+                            currentY = nextY;
+                        }
+
+                        nebula.lightningBolts.push({
+                            segments: segments,
+                            expires: now + 150 + Math.random() * 150 // 150-300ms duration
+                        });
+
+                        nebula.nextLightning = now + 800 + Math.random() * 1200; // Next bolt in 0.8-2s
+                    }
+                }
+            }
+
+            render() {
+                // Render black background
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(-CANVAS_WIDTH, 0, CANVAS_WIDTH * 3, CANVAS_HEIGHT);
+
+                // Render stars
+                ctx.save();
+                for (let star of this.stars) {
+                    ctx.fillStyle = `rgba(255, 255, 255, ${star.brightness})`;
+                    ctx.fillRect(star.x - star.size / 2, star.y - star.size / 2, star.size, star.size);
+                }
+                ctx.restore();
+
+                // Render sun (if exists)
+                if (this.sun) {
+                    const pulse = 0.9 + Math.sin(this.sun.pulsePhase) * 0.1;
+                    const gradient = ctx.createRadialGradient(
+                        this.sun.x, this.sun.y, 0,
+                        this.sun.x, this.sun.y, this.sun.radius * pulse
+                    );
+                    gradient.addColorStop(0, '#ffff88');
+                    gradient.addColorStop(0.4, '#ffaa44');
+                    gradient.addColorStop(0.7, '#ff6622');
+                    gradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(this.sun.x, this.sun.y, this.sun.radius * pulse, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Render planets
+                for (let planet of this.planets) {
+                    const gradient = ctx.createRadialGradient(
+                        planet.x - planet.radius * 0.3, planet.y - planet.radius * 0.3, 0,
+                        planet.x, planet.y, planet.radius
+                    );
+                    gradient.addColorStop(0, planet.color1);
+                    gradient.addColorStop(1, planet.color2);
+
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(planet.x, planet.y, planet.radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Render moons
+                    for (let moon of planet.moons) {
+                        const moonX = planet.x + Math.cos(moon.angle) * moon.distance;
+                        const moonY = planet.y + Math.sin(moon.angle) * moon.distance;
+
+                        ctx.fillStyle = '#aaaaaa';
+                        ctx.beginPath();
+                        ctx.arc(moonX, moonY, moon.radius, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+                // Render black hole (if exists)
+                if (this.blackHole) {
+                    const bh = this.blackHole;
+
+                    // Accretion disk
+                    ctx.save();
+                    ctx.translate(bh.x, bh.y);
+                    ctx.rotate(bh.rotationAngle);
+
+                    for (let i = 0; i < 3; i++) {
+                        const diskRadius = bh.accretionDisk - i * 20;
+                        const gradient = ctx.createRadialGradient(0, 0, bh.eventHorizon, 0, 0, diskRadius);
+                        gradient.addColorStop(0, 'rgba(255, 150, 0, 0)');
+                        gradient.addColorStop(0.3, `rgba(255, 100, 0, ${0.3 - i * 0.1})`);
+                        gradient.addColorStop(0.7, `rgba(255, 50, 0, ${0.2 - i * 0.05})`);
+                        gradient.addColorStop(1, 'rgba(100, 0, 0, 0)');
+
+                        ctx.fillStyle = gradient;
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, diskRadius, diskRadius * 0.3, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.restore();
+
+                    // Event horizon glow
+                    const horizonGradient = ctx.createRadialGradient(bh.x, bh.y, 0, bh.x, bh.y, bh.eventHorizon);
+                    horizonGradient.addColorStop(0, '#000000');
+                    horizonGradient.addColorStop(0.7, '#000000');
+                    horizonGradient.addColorStop(1, 'rgba(255, 100, 0, 0.5)');
+
+                    ctx.fillStyle = horizonGradient;
+                    ctx.beginPath();
+                    ctx.arc(bh.x, bh.y, bh.eventHorizon, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Black hole center
+                    ctx.fillStyle = '#000000';
+                    ctx.beginPath();
+                    ctx.arc(bh.x, bh.y, bh.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Render nebulae with lightning
+                for (let nebula of this.nebulae) {
+                    let nebulaX, nebulaY;
+                    if (this.isBlackHole) {
+                        nebulaX = this.blackHole.x + Math.cos(nebula.orbitAngle) * nebula.orbitDistance;
+                        nebulaY = this.blackHole.y + Math.sin(nebula.orbitAngle) * nebula.orbitDistance;
+                    } else {
+                        nebulaX = nebula.x;
+                        nebulaY = nebula.y;
+                    }
+
+                    // Nebula cloud with bluish tinge
+                    const gradient = ctx.createRadialGradient(nebulaX, nebulaY, 0, nebulaX, nebulaY, nebula.radius);
+                    gradient.addColorStop(0, 'rgba(100, 100, 255, 0.4)');
+                    gradient.addColorStop(0.5, 'rgba(80, 80, 200, 0.3)');
+                    gradient.addColorStop(1, 'rgba(60, 60, 150, 0)');
+
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(nebulaX, nebulaY, nebula.radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Lightning bolts (purple)
+                    ctx.save();
+                    ctx.strokeStyle = '#cc66ff';
+                    ctx.lineWidth = 2;
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#cc66ff';
+
+                    for (let bolt of nebula.lightningBolts) {
+                        ctx.beginPath();
+                        for (let segment of bolt.segments) {
+                            ctx.moveTo(nebulaX + segment.x1, nebulaY + segment.y1);
+                            ctx.lineTo(nebulaX + segment.x2, nebulaY + segment.y2);
+                        }
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+                }
+
+                // Render asteroids
+                for (let asteroid of this.asteroids) {
+                    let asteroidX, asteroidY;
+                    if (this.isBlackHole) {
+                        asteroidX = this.blackHole.x + Math.cos(asteroid.orbitAngle) * asteroid.orbitDistance;
+                        asteroidY = this.blackHole.y + Math.sin(asteroid.orbitAngle) * asteroid.orbitDistance;
+                    } else {
+                        asteroidX = asteroid.x;
+                        asteroidY = asteroid.y;
+                    }
+
+                    ctx.save();
+                    ctx.translate(asteroidX, asteroidY);
+                    ctx.rotate(asteroid.rotation);
+
+                    // Draw irregular asteroid shape
+                    ctx.fillStyle = '#8b7355';
+                    ctx.strokeStyle = '#5a4a3a';
+                    ctx.lineWidth = 1;
+
+                    ctx.beginPath();
+                    const numPoints = 6 + Math.floor(Math.random() * 3);
+                    for (let i = 0; i < numPoints; i++) {
+                        const angle = (i / numPoints) * Math.PI * 2;
+                        const radiusVar = 0.7 + Math.random() * 0.3;
+                        const x = Math.cos(angle) * asteroid.size * radiusVar;
+                        const y = Math.sin(angle) * asteroid.size * radiusVar;
+                        if (i === 0) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.restore();
+                }
+            }
+        }
+
         // Perlin Noise generator for natural terrain
         class PerlinNoise {
             constructor(seed = Math.random()) {
@@ -16480,6 +16926,12 @@
 
                 // Update bombs and rockets (Enhancement #8)
                 const dt = 1 / 60; // Assume 60 FPS for physics
+
+                // Update space terrain (asteroids, lightning, orbits) if it's a SpaceTerrain
+                if (terrain && typeof terrain.update === 'function') {
+                    terrain.update(elapsed, gameState);
+                }
+
                 for (let i = bombs.length - 1; i >= 0; i--) {
                     bombs[i].update(dt);
                     // Remove inactive bombs after explosion animation completes
@@ -18034,8 +18486,15 @@
             rockets = [];
             missiles = [];
 
-            // Create space terrain (simple black background)
-            terrain = new Terrain(); // Will use default terrain
+            // Create space terrain - default to standard space (not black hole)
+            // Black hole mode can be toggled in future UI enhancement
+            terrain = new SpaceTerrain(false);
+
+            console.log('🚀 Space Terrain created:',
+                terrain.stars.length, 'stars,',
+                terrain.asteroids.length, 'asteroids,',
+                terrain.planets.length, 'planets,',
+                terrain.nebulae.length, 'nebulae');
 
             // Create Renegade Legion fighters - Commonwealth vs TOG
             const cwAvenger = new Aircraft('CW Avenger', 'Fighter-Avenger', 300, 500, 0, 90, true);
