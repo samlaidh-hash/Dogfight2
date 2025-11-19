@@ -1040,6 +1040,13 @@
         let isPaused = false;
         let pausedTime = 0;
 
+        // Game era and terrain
+        let gameEra = 'WW2'; // Track current game era
+        let terrain = new Terrain(); // Default to WW2 terrain
+        let spitfire = null;
+        let me109 = null;
+        let aircraft = [];
+
         // Hot-seat multiplayer (Enhancement #14)
         let hotSeatMode = false;
         let currentPlayer = 1; // 1 or 2
@@ -12784,13 +12791,6 @@
                 duration: 1500 // Critical hits show longer
             });
         }
-
-        // Initialize game
-        let terrain = new Terrain(); // Default to WW2 terrain
-        let gameEra = 'WW2'; // Track current game era
-        let spitfire = null;
-        let me109 = null;
-        let aircraft = [];
 
         // AI for Me-109 - Tactical Dogfight AI
         function generateAIOrders(aiAircraft = null) {
