@@ -16274,11 +16274,12 @@
         // Main game loop
         function gameLoop() {
             // Manage engine sounds based on game state and aircraft status
+            // Only for WW2 mode (spitfire/me109 exist)
             if (gameState === 'EXECUTION') {
-                if (!spitfire.isDestroyed && soundSpitfireEngine.paused) {
+                if (spitfire && !spitfire.isDestroyed && soundSpitfireEngine.paused) {
                     soundSpitfireEngine.play().catch(e => console.log('Engine audio failed:', e));
                 }
-                if (!me109.isDestroyed && soundMe109Engine.paused) {
+                if (me109 && !me109.isDestroyed && soundMe109Engine.paused) {
                     soundMe109Engine.play().catch(e => console.log('Engine audio failed:', e));
                 }
             } else {
@@ -16287,10 +16288,10 @@
             }
 
             // Stop engine sounds for destroyed aircraft
-            if (spitfire.isDestroyed && !soundSpitfireEngine.paused) {
+            if (spitfire && spitfire.isDestroyed && !soundSpitfireEngine.paused) {
                 soundSpitfireEngine.pause();
             }
-            if (me109.isDestroyed && !soundMe109Engine.paused) {
+            if (me109 && me109.isDestroyed && !soundMe109Engine.paused) {
                 soundMe109Engine.pause();
             }
 
@@ -16404,9 +16405,16 @@
                 if (hotSeatMode) {
                     player1Destroyed = player1Aircraft.every(a => a.isDestroyed);
                     player2Destroyed = player2Aircraft.every(a => a.isDestroyed);
-                } else {
+                } else if (spitfire && me109) {
+                    // WW2 mode with spitfire vs me109
                     player1Destroyed = spitfire.isDestroyed;
                     player2Destroyed = me109.isDestroyed;
+                } else {
+                    // Other game modes (e.g. Renegade Legion) - check all aircraft
+                    const playerAircraft = aircraft.filter(a => a.isPlayer);
+                    const enemyAircraft = aircraft.filter(a => !a.isPlayer);
+                    player1Destroyed = playerAircraft.length > 0 && playerAircraft.every(a => a.isDestroyed);
+                    player2Destroyed = enemyAircraft.length > 0 && enemyAircraft.every(a => a.isDestroyed);
                 }
 
                 if (player1Destroyed || player2Destroyed) {
@@ -16500,8 +16508,8 @@
                         ctx.fillStyle = '#ffffff';
                         ctx.fillText('Player 2 aircraft destroyed', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
                     }
-                } else {
-                    // Single-player victory message
+                } else if (spitfire && me109) {
+                    // WW2 single-player victory message
                     if (spitfire.isDestroyed) {
                         ctx.fillStyle = '#ff4444';
                         ctx.fillText('DEFEAT', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40);
@@ -16514,6 +16522,25 @@
                         ctx.font = '24px Courier New';
                         ctx.fillStyle = '#ffffff';
                         ctx.fillText('Enemy Me-109 destroyed!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
+                    }
+                } else {
+                    // Other game mode victory message
+                    const playerAircraft = aircraft.filter(a => a.isPlayer);
+                    const enemyAircraft = aircraft.filter(a => !a.isPlayer);
+                    const playerDestroyed = playerAircraft.every(a => a.isDestroyed);
+
+                    if (playerDestroyed) {
+                        ctx.fillStyle = '#ff4444';
+                        ctx.fillText('DEFEAT', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40);
+                        ctx.font = '24px Courier New';
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillText('All your aircraft destroyed!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
+                    } else {
+                        ctx.fillStyle = '#00ff00';
+                        ctx.fillText('VICTORY!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40);
+                        ctx.font = '24px Courier New';
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillText('All enemy aircraft destroyed!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
                     }
                 }
 
@@ -17522,7 +17549,7 @@
                     objectivesComplete++;
                 }
                 // Survive
-                if (!spitfire.isDestroyed) {
+                if (spitfire && !spitfire.isDestroyed) {
                     objectivesComplete++;
                 }
             }
