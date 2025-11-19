@@ -519,6 +519,10 @@
             <div>⚔️ WW1 BATTLE</div>
             <div class="mode-description">Allied vs Central Powers - Biplane dogfights</div>
         </button>
+        <button class="game-mode-btn" onclick="startRenegadeLegionBattle()" style="background: linear-gradient(135deg, #6b2c91 0%, #3a1651 100%); border-color: #aa00ff;">
+            <div>🚀 RENEGADE LEGION</div>
+            <div class="mode-description">Space fighter combat - TOG vs Commonwealth</div>
+        </button>
         <button class="game-mode-btn" onclick="showScenarioSelector()">
             <div>📋 SCENARIOS</div>
             <div class="mode-description">Historical battles and preset scenarios</div>
@@ -1046,6 +1050,12 @@
         let spitfire = null;
         let me109 = null;
         let aircraft = [];
+        let groundTargets = [];
+        let capitalShips = []; // Capital ships (battleships, carriers, destroyers, cruisers)
+        let bombs = []; // Active bombs
+        let rockets = []; // Active rockets (both ground and air-to-air)
+        let missiles = []; // Active guided missiles (SAMs from ships)
+        let aerialUnits = []; // Aerial units (clouds, balloons, etc.)
 
         // Hot-seat multiplayer (Enhancement #14)
         let hotSeatMode = false;
@@ -8501,12 +8511,6 @@
                 }
             }
         }
-
-        let groundTargets = [];
-        let capitalShips = []; // Capital ships (battleships, carriers, destroyers, cruisers)
-        let bombs = []; // Active bombs
-        let rockets = []; // Active rockets (both ground and air-to-air)
-        let missiles = []; // Active guided missiles (SAMs from ships)
 
         // Canvas setup
         const canvas = document.getElementById('gameCanvas');
@@ -17788,6 +17792,65 @@
             capitalShips.push(testDestroyer);
 
             console.log('Quick Battle started with test capital ships: 1 Commonwealth Battleship, 1 Terran Destroyer');
+
+            // Start game loop
+            gameLoop();
+        }
+
+        function startRenegadeLegionBattle() {
+            hideSplashScreen();
+
+            // Set game era to Renegade Legion
+            gameEra = 'Renegade Legion';
+
+            // Reset game state
+            gameState = 'ORDER';
+            currentTurn = 1;
+            groundTargets = [];
+            capitalShips = [];
+            executionRecording = [];
+            aerialUnits = [];
+            bombs = [];
+            rockets = [];
+            missiles = [];
+
+            // Create space terrain (simple black background)
+            terrain = new Terrain(); // Will use default terrain
+
+            // Create Renegade Legion fighters - Commonwealth vs TOG
+            const cwAvenger = new Aircraft('CW Avenger', 'Fighter-Avenger', 300, 500, 0, 90, true);
+            cwAvenger.faction = 'commonwealth';
+            cwAvenger.side = 'commonwealth';
+
+            const cwCheetah = new Aircraft('CW Cheetah', 'Fighter-Cheetah', 350, 450, 0, 90, false);
+            cwCheetah.faction = 'commonwealth';
+            cwCheetah.side = 'commonwealth';
+
+            const togGladius = new Aircraft('TOG Gladius', 'Fighter-Gladius', 1500, 500, 0, 270, false);
+            togGladius.faction = 'tog';
+            togGladius.side = 'tog';
+
+            const togLancea = new Aircraft('TOG Lancea', 'Fighter-Lancea', 1550, 550, 0, 270, false);
+            togLancea.faction = 'tog';
+            togLancea.side = 'tog';
+
+            aircraft = [cwAvenger, cwCheetah, togGladius, togLancea];
+            selectedAircraft = cwAvenger;
+
+            // Add capital ships with fighters
+            const cwCruiser = new CapitalShip(200, 300, 'cruiser', 'commonwealth');
+            cwCruiser.heading = 90;
+            capitalShips.push(cwCruiser);
+
+            const togDestroyer = new CapitalShip(1600, 700, 'destroyer', 'tog');
+            togDestroyer.heading = 270;
+            capitalShips.push(togDestroyer);
+
+            console.log('🚀 Renegade Legion Battle Started! Commonwealth vs TOG in deep space');
+            console.log('- 2 Commonwealth fighters (Avenger, Cheetah)');
+            console.log('- 2 TOG fighters (Gladius, Lancea)');
+            console.log('- Commonwealth Cruiser with fighter complement');
+            console.log('- TOG Destroyer with fighter complement');
 
             // Start game loop
             gameLoop();
