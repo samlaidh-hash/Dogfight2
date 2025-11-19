@@ -1,4 +1,6 @@
 <!DOCTYPE html>
+<!-- DOGFIGHT 2 v2.1.0 - Renegade Legion Update - Build: 2025-01-19 20:00 UTC -->
+<!-- If you see old UI, please do HARD REFRESH: Ctrl+Shift+R (Windows) or Cmd+Shift+R (Mac) -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -6,7 +8,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Dogfight 2 - Aerial Combat</title>
+    <title>Dogfight 2 v2.1.0 - Aerial Combat</title>
     <style>
         * {
             margin: 0;
@@ -1026,6 +1028,16 @@
 
         // Game constants
         const GAME_VERSION = 'v2.1.0'; // Renegade Legion Update
+        const BUILD_DATE = '2025-01-19 20:00 UTC'; // Build timestamp
+
+        // Version check - alert user if wrong version is loaded
+        console.log(`%c🚀 DOGFIGHT 2 ${GAME_VERSION}`, 'color: #aa00ff; font-size: 20px; font-weight: bold;');
+        console.log(`%cBuild Date: ${BUILD_DATE}`, 'color: #4a9eff; font-size: 12px;');
+        console.log('%cIf you see version v2.0.0 or older, please do a HARD REFRESH:', 'color: #ff4444; font-size: 14px; font-weight: bold;');
+        console.log('%c  • Windows/Linux: Ctrl+Shift+R or Ctrl+F5', 'color: #ffaa00;');
+        console.log('%c  • Mac: Cmd+Shift+R', 'color: #ffaa00;');
+        console.log('%c  • Or clear browser cache completely', 'color: #ffaa00;');
+
         const CANVAS_WIDTH = 1800;
         const CANVAS_HEIGHT = 1000;
         let executionTime = 4000; // milliseconds - can be changed by player (2s, 4s, 6s, 8s)
