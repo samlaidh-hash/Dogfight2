@@ -99,8 +99,8 @@
             border-radius: 5px;
             max-width: 800px;
             width: auto;
-            max-height: 160px;
-            overflow-y: auto;
+            max-height: none;
+            overflow: visible;
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 15px;
@@ -14259,7 +14259,9 @@
                 if (plane === selectedAircraft && ghostAircraft) continue;
 
                 // Render locked order paths (solid, bright colors)
-                if (plane.flightPath && plane.flightPath.length > 0 && plane.hasOrders) {
+                // During ORDER phase: only show player's locked path (hide AI's to prevent metagaming)
+                // During EXECUTION phase: show all locked paths
+                if (plane.flightPath && plane.flightPath.length > 0 && plane.hasOrders && (gameState === 'EXECUTION' || plane.isPlayer)) {
                     ctx.strokeStyle = plane.isPlayer ? '#00aaff' : '#ff6666';
                     ctx.lineWidth = 3;
                     ctx.setLineDash([5, 5]); // Dotted line
@@ -15017,6 +15019,10 @@
 
             // Draw multi-turn maneuver progress indicators (during EXECUTION only)
             if (gameState === 'EXECUTION') {
+                // Calculate execution progress
+                const elapsed = Date.now() - executionStartTime;
+                const progress = Math.min(1, elapsed / executionTime);
+
                 let yOffset = 80; // Start position from top
                 for (let plane of aircraft) {
                     if (plane.isInMultiTurnManeuver && !plane.isDestroyed) {
