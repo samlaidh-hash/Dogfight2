@@ -13129,7 +13129,7 @@
         }
 
         // Combat system
-        function processCombat() {
+        function processCombat(dt) {
             // Reset firing states and clear old hit warnings
             for (let plane of aircraft) {
                 plane.isFiring = false;
@@ -16388,7 +16388,7 @@
                 }
 
                 // Process combat
-                processCombat();
+                processCombat(dt);
 
                 // Check for game over
                 let player1Destroyed = false;
@@ -17802,17 +17802,6 @@
             spitfire = new Aircraft('Spitfire', 'Spitfire', 400, 500, 1200, 90, true);
             me109 = new Aircraft('Me-109', 'Me-109', 1400, 500, 1200, 270, false);
             aircraft = [spitfire, me109];
-
-            // Add test capital ships for demonstration
-            const testBattleship = new CapitalShip(900, 300, 'battleship', 'commonwealth');
-            testBattleship.heading = 45;
-            capitalShips.push(testBattleship);
-
-            const testDestroyer = new CapitalShip(700, 600, 'destroyer', 'terran');
-            testDestroyer.heading = 135;
-            capitalShips.push(testDestroyer);
-
-            console.log('Quick Battle started with test capital ships: 1 Commonwealth Battleship, 1 Terran Destroyer');
 
             // Start game loop
             gameLoop();
