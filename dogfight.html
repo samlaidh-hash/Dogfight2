@@ -14259,7 +14259,9 @@
                 if (plane === selectedAircraft && ghostAircraft) continue;
 
                 // Render locked order paths (solid, bright colors)
-                if (plane.flightPath && plane.flightPath.length > 0 && plane.hasOrders) {
+                // During ORDER phase: only show player's locked path (hide AI's to prevent metagaming)
+                // During EXECUTION phase: show all locked paths
+                if (plane.flightPath && plane.flightPath.length > 0 && plane.hasOrders && (gameState === 'EXECUTION' || plane.isPlayer)) {
                     ctx.strokeStyle = plane.isPlayer ? '#00aaff' : '#ff6666';
                     ctx.lineWidth = 3;
                     ctx.setLineDash([5, 5]); // Dotted line
