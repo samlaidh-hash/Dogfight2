@@ -16719,20 +16719,24 @@
             minimapCtx.fillStyle = 'rgba(20, 30, 20, 0.9)';
             minimapCtx.fillRect(0, 0, mmWidth, mmHeight);
 
-            // Draw terrain (simplified)
-            minimapCtx.fillStyle = 'rgba(100, 80, 60, 0.5)';
-            for (let mountain of terrain.mountains) {
-                minimapCtx.beginPath();
-                minimapCtx.arc(mountain.x * scaleX, mountain.y * scaleY, 5, 0, Math.PI * 2);
-                minimapCtx.fill();
+            // Draw terrain (simplified) - only if terrain exists
+            if (terrain && terrain.mountains) {
+                minimapCtx.fillStyle = 'rgba(100, 80, 60, 0.5)';
+                for (let mountain of terrain.mountains) {
+                    minimapCtx.beginPath();
+                    minimapCtx.arc(mountain.x * scaleX, mountain.y * scaleY, 5, 0, Math.PI * 2);
+                    minimapCtx.fill();
+                }
             }
 
             // Draw clouds
-            minimapCtx.fillStyle = 'rgba(200, 200, 200, 0.3)';
-            for (let cloud of terrain.clouds) {
-                minimapCtx.beginPath();
-                minimapCtx.arc(cloud.x * scaleX, cloud.y * scaleY, 8, 0, Math.PI * 2);
-                minimapCtx.fill();
+            if (terrain && terrain.clouds) {
+                minimapCtx.fillStyle = 'rgba(200, 200, 200, 0.3)';
+                for (let cloud of terrain.clouds) {
+                    minimapCtx.beginPath();
+                    minimapCtx.arc(cloud.x * scaleX, cloud.y * scaleY, 8, 0, Math.PI * 2);
+                    minimapCtx.fill();
+                }
             }
 
             // Draw ground targets
