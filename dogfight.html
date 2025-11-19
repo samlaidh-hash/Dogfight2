@@ -9310,19 +9310,76 @@
                     ctx.restore();
                 }
 
-                // Render villages
+                // Render villages with more detail
                 for (let village of this.villages) {
-                    for (let building of village.buildings) {
+                    for (let i = 0; i < village.buildings.length; i++) {
+                        const building = village.buildings[i];
                         if (building.destroyed) continue;
 
                         ctx.save();
-                        ctx.fillStyle = building.health > 15 ? '#8b7355' : '#6b5a45'; // Darker when damaged
+
+                        // Main building body
+                        const isChurch = i === 0; // First building is a church
+                        const wallColor = building.health > 15 ?
+                            (isChurch ? '#9a8a7a' : '#8b7355') :
+                            '#6b5a45'; // Darker when damaged
+
+                        ctx.fillStyle = wallColor;
                         ctx.fillRect(
                             building.x - building.width / 2,
                             building.y - building.height / 2,
                             building.width,
                             building.height
                         );
+
+                        // Add triangular roof
+                        ctx.fillStyle = building.health > 15 ? '#704a2a' : '#5a3a1a';
+                        ctx.beginPath();
+                        ctx.moveTo(building.x - building.width / 2 - 2, building.y - building.height / 2);
+                        ctx.lineTo(building.x, building.y - building.height / 2 - building.width * 0.4);
+                        ctx.lineTo(building.x + building.width / 2 + 2, building.y - building.height / 2);
+                        ctx.closePath();
+                        ctx.fill();
+
+                        // Church steeple
+                        if (isChurch) {
+                            const steepleWidth = building.width * 0.3;
+                            const steepleHeight = building.width * 0.6;
+                            ctx.fillStyle = wallColor;
+                            ctx.fillRect(
+                                building.x - steepleWidth / 2,
+                                building.y - building.height / 2 - building.width * 0.4 - steepleHeight,
+                                steepleWidth,
+                                steepleHeight
+                            );
+                            // Steeple roof
+                            ctx.fillStyle = '#704a2a';
+                            ctx.beginPath();
+                            ctx.moveTo(building.x - steepleWidth / 2 - 1, building.y - building.height / 2 - building.width * 0.4 - steepleHeight);
+                            ctx.lineTo(building.x, building.y - building.height / 2 - building.width * 0.4 - steepleHeight - steepleWidth * 0.5);
+                            ctx.lineTo(building.x + steepleWidth / 2 + 1, building.y - building.height / 2 - building.width * 0.4 - steepleHeight);
+                            ctx.closePath();
+                            ctx.fill();
+                        }
+
+                        // Add windows (2x2 grid for larger buildings)
+                        if (building.width > 10 && building.height > 10) {
+                            ctx.fillStyle = building.health > 15 ? '#4a4a3a' : '#3a3a2a';
+                            const windowSize = Math.min(building.width * 0.15, 2);
+                            const windowSpacing = building.width * 0.3;
+                            for (let wx = -1; wx <= 1; wx += 2) {
+                                for (let wy = -0.5; wy <= 0.5; wy += 1) {
+                                    ctx.fillRect(
+                                        building.x + wx * windowSpacing - windowSize / 2,
+                                        building.y + wy * building.height * 0.3 - windowSize / 2,
+                                        windowSize,
+                                        windowSize
+                                    );
+                                }
+                            }
+                        }
+
+                        // Building outline
                         ctx.strokeStyle = '#5a4a3a';
                         ctx.lineWidth = 1;
                         ctx.strokeRect(
@@ -9331,6 +9388,7 @@
                             building.width,
                             building.height
                         );
+
                         ctx.restore();
                     }
                 }
