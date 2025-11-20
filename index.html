@@ -5533,62 +5533,200 @@
                         }
                     },
                     spinal: {
-                        // Spinal mount: ±30° from centerline
+                        // Mass Driver Spinal mount: ±30° from centerline
+                        // Can penetrate flicker shields, reducing damage by 80%
                         banks: [
-                            { name: 'Spinal Mount', x: 0, y: -this.length * 0.4, arc: { yaw: [-30, 30], pitch: [-30, 30] },
+                            { name: 'Mass Driver Spinal', x: 0, y: -this.length * 0.4, arc: { yaw: [-30, 30], pitch: [-30, 30] },
                               cooldown: 0, cycleTime: 3.0, fireMode: 'offensive', gunsPerBank: 1,
                               sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 3.0 }
                         ],
                         damage: 80,
-                        range: 50000, // 50km range updated
-                        color: 'rgba(100, 100, 255, 0.9)'
-                    },
-                    particle_beams: {
-                        // Particle beam turrets: 360° coverage, improved critical hit chance
-                        banks: [
-                            { name: 'Particle Beam Turret 1', x: -this.beam * 0.3, y: -this.length * 0.2, arc: { yaw: [0, 360], pitch: [-45, 45] },
-                              cooldown: 0, cycleTime: 2.2, fireMode: 'offensive', gunsPerBank: 8,
-                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.25 },
-                            { name: 'Particle Beam Turret 2', x: this.beam * 0.3, y: -this.length * 0.2, arc: { yaw: [0, 360], pitch: [-45, 45] },
-                              cooldown: 0, cycleTime: 2.2, fireMode: 'offensive', gunsPerBank: 8,
-                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.25 },
-                            { name: 'Particle Beam Turret 3', x: -this.beam * 0.3, y: this.length * 0.2, arc: { yaw: [0, 360], pitch: [-45, 45] },
-                              cooldown: 0, cycleTime: 2.2, fireMode: 'offensive', gunsPerBank: 8,
-                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.25 },
-                            { name: 'Particle Beam Turret 4', x: this.beam * 0.3, y: this.length * 0.2, arc: { yaw: [0, 360], pitch: [-45, 45] },
-                              cooldown: 0, cycleTime: 2.2, fireMode: 'offensive', gunsPerBank: 8,
-                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.25 }
-                        ],
-                        damage: 50, // Higher damage than lasers
                         range: 50000, // 50km range
-                        critChance: 0.25, // 25% critical hit chance (radiation/EMP effects)
-                        critMultiplier: 1.8, // 80% extra damage on crits
-                        color: 'rgba(150, 50, 255, 0.9)', // Purple for particle beams
-                        weaponType: 'particle_beam' // For special handling
-                    },
-                    mass_drivers: {
-                        // Mass driver turrets: Kinetic weapons with accuracy drop-off
+                        color: 'rgba(255, 150, 50, 0.9)', // Orange for mass drivers
+                        weaponType: 'mass_driver',
+                        baseAccuracy: 0.95,
+                        accuracyDropoffStart: 25000,
+                        accuracyDropoffRate: 0.65,
+                        penetratesShields: true,
+                        shieldPenetrationDamageMultiplier: 0.20 // 80% damage reduction through shields
+                    }
+                };
+
+                // === WEAPON SYSTEM TEMPLATES ===
+                // These are NOT automatically added to ships - use these templates when configuring specific ship loadouts
+
+                // Store weapon templates for reference (not active on this ship unless explicitly configured)
+                this.weaponTemplates = {
+                    // LASER WEAPON TEMPLATES
+                    laser_chasers: {
+                        description: "Fore and aft laser banks: ±45° lateral, ±45° pitch",
                         banks: [
-                            { name: 'Mass Driver Turret 1', x: -this.beam * 0.2, y: -this.length * 0.15, arc: { yaw: [0, 360], pitch: [-30, 30] },
-                              cooldown: 0, cycleTime: 1.5, fireMode: 'offensive', gunsPerBank: 12,
-                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.15 },
-                            { name: 'Mass Driver Turret 2', x: this.beam * 0.2, y: -this.length * 0.15, arc: { yaw: [0, 360], pitch: [-30, 30] },
-                              cooldown: 0, cycleTime: 1.5, fireMode: 'offensive', gunsPerBank: 12,
-                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.15 },
-                            { name: 'Mass Driver Turret 3', x: -this.beam * 0.2, y: this.length * 0.15, arc: { yaw: [0, 360], pitch: [-30, 30] },
-                              cooldown: 0, cycleTime: 1.5, fireMode: 'offensive', gunsPerBank: 12,
-                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.15 },
-                            { name: 'Mass Driver Turret 4', x: this.beam * 0.2, y: this.length * 0.15, arc: { yaw: [0, 360], pitch: [-30, 30] },
-                              cooldown: 0, cycleTime: 1.5, fireMode: 'offensive', gunsPerBank: 12,
-                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.15 }
+                            { name: 'Forward Laser Chasers', x: 0, y: -this.length * 0.3, arc: { yaw: [-45, 45], pitch: [-45, 45] },
+                              cooldown: 0, cycleTime: 2.0, fireMode: 'offensive', gunsPerBank: 10,
+                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.2 },
+                            { name: 'Aft Laser Chasers', x: 0, y: this.length * 0.3, arc: { yaw: [135, 225], pitch: [-45, 45] },
+                              cooldown: 0, cycleTime: 2.0, fireMode: 'offensive', gunsPerBank: 10,
+                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.2 }
                         ],
-                        damage: 35, // Kinetic damage
-                        range: 100000, // Unlimited practical range, but accuracy drops
-                        baseAccuracy: 0.90, // 90% at optimal range (0-25km)
-                        accuracyDropoffStart: 25000, // Accuracy starts dropping after 25km
-                        accuracyDropoffRate: 0.6, // Accuracy at 50km: 90% * 0.6 = 54%, at 100km: ~30%
-                        color: 'rgba(255, 150, 50, 0.8)', // Orange for mass drivers
-                        weaponType: 'mass_driver' // For special handling
+                        damage: 30,
+                        range: 50000,
+                        color: 'rgba(0, 255, 0, 0.8)',
+                        weaponType: 'laser'
+                    },
+                    laser_broadside_port: {
+                        description: "Port laser broadside: 3 banks of 25 guns each",
+                        banks: [
+                            { name: 'Port Laser Broadside Fore', x: -this.beam * 0.4, y: -this.length * 0.2, arc: { yaw: [225, 315], pitch: [-45, 45] },
+                              cooldown: 0, cycleTime: 2.5, fireMode: 'offensive', gunsPerBank: 25,
+                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.2 },
+                            { name: 'Port Laser Broadside Mid', x: -this.beam * 0.4, y: 0, arc: { yaw: [225, 315], pitch: [-45, 45] },
+                              cooldown: 0, cycleTime: 2.5, fireMode: 'offensive', gunsPerBank: 25,
+                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.2 },
+                            { name: 'Port Laser Broadside Aft', x: -this.beam * 0.4, y: this.length * 0.2, arc: { yaw: [225, 315], pitch: [-45, 45] },
+                              cooldown: 0, cycleTime: 2.5, fireMode: 'offensive', gunsPerBank: 25,
+                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.2 }
+                        ],
+                        damage: 40,
+                        range: 50000,
+                        color: 'rgba(255, 50, 50, 0.8)',
+                        weaponType: 'laser'
+                    },
+                    laser_broadside_starboard: {
+                        description: "Starboard laser broadside: 3 banks of 25 guns each",
+                        banks: [
+                            { name: 'Starboard Laser Broadside Fore', x: this.beam * 0.4, y: -this.length * 0.2, arc: { yaw: [45, 135], pitch: [-45, 45] },
+                              cooldown: 0, cycleTime: 2.5, fireMode: 'offensive', gunsPerBank: 25,
+                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.2 },
+                            { name: 'Starboard Laser Broadside Mid', x: this.beam * 0.4, y: 0, arc: { yaw: [45, 135], pitch: [-45, 45] },
+                              cooldown: 0, cycleTime: 2.5, fireMode: 'offensive', gunsPerBank: 25,
+                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.2 },
+                            { name: 'Starboard Laser Broadside Aft', x: this.beam * 0.4, y: this.length * 0.2, arc: { yaw: [45, 135], pitch: [-45, 45] },
+                              cooldown: 0, cycleTime: 2.5, fireMode: 'offensive', gunsPerBank: 25,
+                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.2 }
+                        ],
+                        damage: 40,
+                        range: 50000,
+                        color: 'rgba(255, 50, 50, 0.8)',
+                        weaponType: 'laser'
+                    },
+                    laser_spinal: {
+                        description: "Heavy laser spinal mount: ±30° from centerline",
+                        banks: [
+                            { name: 'Laser Spinal Mount', x: 0, y: -this.length * 0.4, arc: { yaw: [-30, 30], pitch: [-30, 30] },
+                              cooldown: 0, cycleTime: 3.0, fireMode: 'offensive', gunsPerBank: 1,
+                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 3.0 }
+                        ],
+                        damage: 80,
+                        range: 50000,
+                        color: 'rgba(0, 255, 150, 0.9)',
+                        weaponType: 'laser'
+                    },
+
+                    // PARTICLE BEAM WEAPON TEMPLATES
+                    particle_beam_banks: {
+                        description: "Particle beam banks (replaces chasers): 10 guns per bank, 25% crit chance",
+                        banks: [
+                            { name: 'Forward Particle Beam Bank', x: 0, y: -this.length * 0.3, arc: { yaw: [-45, 45], pitch: [-45, 45] },
+                              cooldown: 0, cycleTime: 2.0, fireMode: 'offensive', gunsPerBank: 10,
+                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.2 },
+                            { name: 'Aft Particle Beam Bank', x: 0, y: this.length * 0.3, arc: { yaw: [135, 225], pitch: [-45, 45] },
+                              cooldown: 0, cycleTime: 2.0, fireMode: 'offensive', gunsPerBank: 10,
+                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.2 }
+                        ],
+                        damage: 40, // Higher than laser chasers (30)
+                        range: 50000,
+                        critChance: 0.25,
+                        critMultiplier: 1.8,
+                        color: 'rgba(150, 50, 255, 0.9)',
+                        weaponType: 'particle_beam'
+                    },
+                    particle_beam_turret: {
+                        description: "Particle beam turret: 2 guns, 360° coverage, between broadside and spinal capability",
+                        banks: [
+                            { name: 'Particle Beam Turret', x: 0, y: 0, arc: { yaw: [0, 360], pitch: [-60, 60] },
+                              cooldown: 0, cycleTime: 2.3, fireMode: 'offensive', gunsPerBank: 2,
+                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.3 }
+                        ],
+                        damage: 60, // Between broadside (40) and spinal (80)
+                        range: 50000,
+                        critChance: 0.25,
+                        critMultiplier: 1.8,
+                        color: 'rgba(150, 50, 255, 0.9)',
+                        weaponType: 'particle_beam',
+                        penetratesShields: false
+                    },
+                    particle_beam_spinal: {
+                        description: "Heavy particle beam spinal mount: ±30° from centerline, 25% crit chance",
+                        banks: [
+                            { name: 'Particle Beam Spinal', x: 0, y: -this.length * 0.4, arc: { yaw: [-30, 30], pitch: [-30, 30] },
+                              cooldown: 0, cycleTime: 3.0, fireMode: 'offensive', gunsPerBank: 1,
+                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 3.0 }
+                        ],
+                        damage: 85, // Slightly higher than mass driver spinal due to crit chance
+                        range: 50000,
+                        critChance: 0.25,
+                        critMultiplier: 1.8,
+                        color: 'rgba(200, 100, 255, 0.95)',
+                        weaponType: 'particle_beam',
+                        penetratesShields: false
+                    },
+
+                    // MASS DRIVER WEAPON TEMPLATES
+                    mass_driver_banks: {
+                        description: "Mass driver banks (replaces broadsides): 25 guns per bank, accuracy drop-off",
+                        banks: [
+                            { name: 'Port Mass Driver Bank Fore', x: -this.beam * 0.4, y: -this.length * 0.2, arc: { yaw: [225, 315], pitch: [-45, 45] },
+                              cooldown: 0, cycleTime: 2.5, fireMode: 'offensive', gunsPerBank: 25,
+                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.2 },
+                            { name: 'Port Mass Driver Bank Mid', x: -this.beam * 0.4, y: 0, arc: { yaw: [225, 315], pitch: [-45, 45] },
+                              cooldown: 0, cycleTime: 2.5, fireMode: 'offensive', gunsPerBank: 25,
+                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.2 },
+                            { name: 'Port Mass Driver Bank Aft', x: -this.beam * 0.4, y: this.length * 0.2, arc: { yaw: [225, 315], pitch: [-45, 45] },
+                              cooldown: 0, cycleTime: 2.5, fireMode: 'offensive', gunsPerBank: 25,
+                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.2 }
+                        ],
+                        damage: 38, // Slightly lower than laser broadside (40) but with range advantage
+                        range: 100000,
+                        baseAccuracy: 0.90,
+                        accuracyDropoffStart: 25000,
+                        accuracyDropoffRate: 0.6,
+                        color: 'rgba(255, 150, 50, 0.8)',
+                        weaponType: 'mass_driver',
+                        penetratesShields: false
+                    },
+                    mass_driver_turret: {
+                        description: "Mass driver turret: 2 guns, 360° coverage, penetrates shields (80% damage reduction)",
+                        banks: [
+                            { name: 'Mass Driver Turret', x: 0, y: 0, arc: { yaw: [0, 360], pitch: [-60, 60] },
+                              cooldown: 0, cycleTime: 2.2, fireMode: 'offensive', gunsPerBank: 2,
+                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 0.3 }
+                        ],
+                        damage: 55, // Between broadside (38-40) and spinal (80)
+                        range: 100000,
+                        baseAccuracy: 0.92,
+                        accuracyDropoffStart: 25000,
+                        accuracyDropoffRate: 0.65,
+                        color: 'rgba(255, 180, 80, 0.9)',
+                        weaponType: 'mass_driver',
+                        penetratesShields: true,
+                        shieldPenetrationDamageMultiplier: 0.20 // 80% reduction through shields
+                    },
+                    mass_driver_spinal: {
+                        description: "Mass driver spinal mount: penetrates shields (80% damage reduction)",
+                        banks: [
+                            { name: 'Mass Driver Spinal', x: 0, y: -this.length * 0.4, arc: { yaw: [-30, 30], pitch: [-30, 30] },
+                              cooldown: 0, cycleTime: 3.0, fireMode: 'offensive', gunsPerBank: 1,
+                              sequentialFireIndex: 0, sequentialFireTimer: 0, sequentialFireRate: 3.0 }
+                        ],
+                        damage: 80,
+                        range: 100000,
+                        baseAccuracy: 0.95,
+                        accuracyDropoffStart: 25000,
+                        accuracyDropoffRate: 0.65,
+                        color: 'rgba(255, 150, 50, 0.9)',
+                        weaponType: 'mass_driver',
+                        penetratesShields: true,
+                        shieldPenetrationDamageMultiplier: 0.20 // 80% reduction through shields
                     }
                 };
 
@@ -15241,8 +15379,27 @@
                         }
 
                         if (targetShields.flickerState && shieldStrength > 0) {
-                            // Shields block laser/missile damage completely when ON
-                            if (hit.weaponType === 'missile') {
+                            // Check if weapon can penetrate shields (mass driver spinals/turrets)
+                            const weaponSystem = ship.laserWeapons[hit.weaponType];
+                            const canPenetrateShields = weaponSystem && weaponSystem.penetratesShields;
+
+                            if (canPenetrateShields && weaponSystem.shieldPenetrationDamageMultiplier) {
+                                // Mass driver penetrates shields with reduced damage
+                                damage *= weaponSystem.shieldPenetrationDamageMultiplier;
+                                console.log(`${hit.target.type} shields PENETRATED by ${ship.type} ${hit.bankName}! Reduced damage: ${damage.toFixed(1)}`);
+                                // Add weaker shield arc visual for penetration
+                                const dx = hit.sourceX - hit.target.x;
+                                const dy = hit.sourceY - hit.target.y;
+                                const impactAngle = Math.atan2(dx, -dy) * 180 / Math.PI;
+                                targetShields.shieldArcs.push({
+                                    x: hit.target.x + dx * 0.1,
+                                    y: hit.target.y + dy * 0.1,
+                                    angle: impactAngle,
+                                    time: Date.now()
+                                });
+                                // Continue to apply reduced damage (don't block completely)
+                            } else if (hit.weaponType === 'missile') {
+                                // Shields block missiles completely when ON
                                 console.log(`${hit.target.type} shields BLOCKED ${ship.type} ${hit.weaponType}!`);
                                 // Add shield arc visual
                                 const dx = hit.sourceX - hit.target.x;
@@ -15256,7 +15413,7 @@
                                 });
                                 continue; // Blocked completely
                             } else {
-                                // Laser blocked
+                                // Lasers and particle beams blocked completely
                                 console.log(`${hit.target.type} shields BLOCKED ${ship.type} ${hit.bankName}!`);
                                 // Add shield arc visual
                                 const dx = hit.sourceX - hit.target.x;
