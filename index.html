@@ -6457,6 +6457,82 @@
                     }
                 }
 
+                // === RENEGADE LEGION WEAPON UPDATES ===
+                if (this.rlWeapons) {
+                    // Update broadside bank cooldowns
+                    if (this.rlWeapons.broadsidePort && this.rlWeapons.broadsidePort.fireCooldown > 0) {
+                        this.rlWeapons.broadsidePort.fireCooldown -= dt;
+                    }
+                    if (this.rlWeapons.broadsideStarboard && this.rlWeapons.broadsideStarboard.fireCooldown > 0) {
+                        this.rlWeapons.broadsideStarboard.fireCooldown -= dt;
+                    }
+
+                    // Update chaser cooldowns
+                    if (this.rlWeapons.prowChasers && this.rlWeapons.prowChasers.fireCooldown > 0) {
+                        this.rlWeapons.prowChasers.fireCooldown -= dt;
+                    }
+                    if (this.rlWeapons.sternChasers && this.rlWeapons.sternChasers.fireCooldown > 0) {
+                        this.rlWeapons.sternChasers.fireCooldown -= dt;
+                    }
+
+                    // Update spinal mount cooldown
+                    if (this.rlWeapons.spinalMount && this.rlWeapons.spinalMount.fireCooldown > 0) {
+                        this.rlWeapons.spinalMount.fireCooldown -= dt;
+                    }
+
+                    // Update missile array cooldown
+                    if (this.rlWeapons.missiles && this.rlWeapons.missiles.fireCooldown > 0) {
+                        this.rlWeapons.missiles.fireCooldown -= dt;
+                    }
+
+                    // Update point defense cooldown
+                    if (this.rlWeapons.pointDefense && this.rlWeapons.pointDefense.fireCooldown > 0) {
+                        this.rlWeapons.pointDefense.fireCooldown -= dt;
+                    }
+                }
+
+                // === RENEGADE LEGION SHIELD RECHARGE ===
+                if (this.shields && this.shields.active) {
+                    const currentTime = Date.now();
+                    for (let i = 0; i < this.shields.faceHP.length; i++) {
+                        const face = this.shields.faceHP[i];
+
+                        // Check if enough time has passed since last hit for recharge
+                        const timeSinceHit = currentTime - face.lastHitTime;
+                        if (timeSinceHit >= this.shields.rechargeDelay && face.current < face.max) {
+                            // Recharge this shield face
+                            face.recharging = true;
+                            face.current = Math.min(face.max, face.current + this.shields.rechargeRate * dt);
+                        } else if (timeSinceHit < this.shields.rechargeDelay) {
+                            face.recharging = false;
+                        }
+                    }
+
+                    // Calculate shield degradation based on armor block damage
+                    if (this.armorBlocks) {
+                        const damagedBlocks = this.armorBlocks.filter(block => block.isDestroyed).length;
+                        const degradation = damagedBlocks * this.shields.degradationRate;
+
+                        // Apply degradation to max shield strength
+                        for (let face of this.shields.faceHP) {
+                            const degradedMax = 100 - (degradation * 100);
+                            face.max = Math.max(10, degradedMax); // Minimum 10% max
+                            face.current = Math.min(face.current, face.max);
+                        }
+                    }
+                }
+
+                // === RENEGADE LEGION REACTOR CRITICALITY ===
+                if (this.reactor && this.reactor.damaged) {
+                    // Calculate critical chance per frame (1/20th of damage taken)
+                    this.reactor.criticalChance = (100 - this.reactor.stability) / 100;
+
+                    // Roll for critical explosion
+                    if (Math.random() < this.reactor.criticalChance * dt) {
+                        this.explodeReactor();
+                    }
+                }
+
                 // Update launched missiles
                 this.launchedMissiles = this.launchedMissiles.filter(missile => {
                     if (!missile.isActive || missile.hasExploded) return false;
@@ -8837,6 +8913,340 @@
 
                     ctx.restore();
                 }
+            }
+
+            // === RENEGADE LEGION WEAPON FIRING METHODS ===
+
+            fireRLWeapons(targets, dt) {
+                if (!this.rlWeapons || this.isDestroyed) return;
+
+                // Find enemy targets
+                const enemyTargets = targets.filter(t => t.faction !== this.faction && !t.isDestroyed);
+                if (enemyTargets.length === 0) return;
+
+                // Fire broadsides (port and starboard)
+                this.fireRLBroadsides(enemyTargets, 'port');
+                this.fireRLBroadsides(enemyTargets, 'starboard');
+
+                // Fire chasers
+                this.fireRLChasers(enemyTargets, 'prow');
+                this.fireRLChasers(enemyTargets, 'stern');
+
+                // Fire spinal mount
+                this.fireRLSpinal(enemyTargets);
+
+                // Fire missiles
+                this.fireRLMissiles(enemyTargets);
+
+                // Fire point defense (against incoming missiles/fighters)
+                this.fireRLPointDefense(targets);
+            }
+
+            fireRLBroadsides(targets, side) {
+                const weapon = side === 'port' ? this.rlWeapons.broadsidePort : this.rlWeapons.broadsideStarboard;
+                if (!weapon || weapon.isDestroyed || weapon.fireCooldown > 0) return;
+
+                // Find targets in arc
+                for (let target of targets) {
+                    const inArc = this.checkWeaponArc(target, side === 'port' ? 270 : 90, weapon.arc);
+                    if (!inArc) continue;
+
+                    const distance = this.distanceTo(target);
+                    if (distance < weapon.minRange || distance > weapon.maxRange) continue;
+
+                    // Calculate damage with linear falloff
+                    const damage = this.calculateLaserDamage(weapon.baseDamage, distance, weapon.minRange, weapon.maxRange);
+                    if (damage <= 0) continue;
+
+                    // Apply damage (multiplied by gun count)
+                    const totalDamage = damage * weapon.guns;
+                    this.applyRLDamage(target, totalDamage, weapon.weaponType, distance);
+
+                    // Set cooldown
+                    weapon.fireCooldown = weapon.rateOfFire;
+
+                    console.log(`${this.type} ${weapon.name} fired at ${target.type}: ${totalDamage.toFixed(0)} damage @ ${(distance/1000).toFixed(1)}km`);
+                    break; // One target per volley
+                }
+            }
+
+            fireRLChasers(targets, position) {
+                const weapon = position === 'prow' ? this.rlWeapons.prowChasers : this.rlWeapons.sternChasers;
+                if (!weapon || weapon.isDestroyed || weapon.fireCooldown > 0) return;
+
+                for (let target of targets) {
+                    const inArc = this.checkWeaponArc(target, weapon.arcCenter, weapon.arc);
+                    if (!inArc) continue;
+
+                    const distance = this.distanceTo(target);
+                    if (distance < weapon.minRange || distance > weapon.maxRange) continue;
+
+                    const damage = this.calculateLaserDamage(weapon.baseDamage, distance, weapon.minRange, weapon.maxRange);
+                    if (damage <= 0) continue;
+
+                    const totalDamage = damage * weapon.guns;
+                    this.applyRLDamage(target, totalDamage, weapon.weaponType, distance);
+
+                    weapon.fireCooldown = weapon.rateOfFire;
+
+                    console.log(`${this.type} ${weapon.name} fired: ${totalDamage.toFixed(0)} damage @ ${(distance/1000).toFixed(1)}km`);
+                    break;
+                }
+            }
+
+            fireRLSpinal(targets) {
+                const weapon = this.rlWeapons.spinalMount;
+                if (!weapon || weapon.isDestroyed || weapon.fireCooldown > 0) return;
+
+                // Spinal mounts fire straight ahead
+                for (let target of targets) {
+                    const inArc = this.checkWeaponArc(target, 0, 15); // 15° arc ahead
+                    if (!inArc) continue;
+
+                    const distance = this.distanceTo(target);
+
+                    // Calculate accuracy with falloff
+                    let accuracy = weapon.baseAccuracy;
+                    if (distance > weapon.range30km) {
+                        accuracy = weapon.accuracyLong; // 2%
+                    } else if (distance > weapon.range15km) {
+                        // Interpolate between 50% at 15km and 2% at 30km
+                        const t = (distance - weapon.range15km) / (weapon.range30km - weapon.range15km);
+                        accuracy = weapon.accuracyMid + (weapon.accuracyLong - weapon.accuracyMid) * t;
+                    } else if (distance > weapon.range1km) {
+                        // Interpolate between 80% at 1km and 50% at 15km
+                        const t = (distance - weapon.range1km) / (weapon.range15km - weapon.range1km);
+                        accuracy = weapon.baseAccuracy + (weapon.accuracyMid - weapon.baseAccuracy) * t;
+                    }
+
+                    // Roll for hit
+                    if (Math.random() > accuracy) {
+                        console.log(`${this.type} Spinal Railgun MISSED ${target.type} @ ${(distance/1000).toFixed(1)}km (${(accuracy*100).toFixed(0)}% accuracy)`);
+                        weapon.fireCooldown = weapon.rateOfFire;
+                        break;
+                    }
+
+                    // Hit! Apply damage with shield penetration
+                    this.applyRLDamage(target, weapon.damage, weapon.weaponType, distance, weapon.shieldPenetration);
+
+                    weapon.fireCooldown = weapon.rateOfFire;
+
+                    console.log(`${this.type} Spinal Railgun HIT ${target.type}: ${weapon.damage} damage @ ${(distance/1000).toFixed(1)}km`);
+                    break;
+                }
+            }
+
+            fireRLMissiles(targets) {
+                const weapon = this.rlWeapons.missiles;
+                if (!weapon || weapon.isDestroyed || weapon.fireCooldown > 0 || weapon.currentMissiles <= 0) return;
+
+                // Find closest target in range
+                let closestTarget = null;
+                let closestDist = Infinity;
+
+                for (let target of targets) {
+                    const distance = this.distanceTo(target);
+                    if (distance < weapon.range && distance < closestDist) {
+                        closestTarget = target;
+                        closestDist = distance;
+                    }
+                }
+
+                if (!closestTarget) return;
+
+                // Launch missile
+                weapon.currentMissiles--;
+                weapon.fireCooldown = weapon.rateOfFire;
+
+                console.log(`${this.type} launched missile at ${closestTarget.type} @ ${(closestDist/1000).toFixed(1)}km (${weapon.currentMissiles}/${weapon.totalCells} remaining)`);
+
+                // TODO: Create actual missile object to track in flight
+                // For now, apply damage directly with ECM/ECCM contest
+                const hitChance = 0.70; // Base 70% hit chance
+                if (Math.random() < hitChance) {
+                    this.applyRLDamage(closestTarget, weapon.damage, weapon.weaponType, closestDist);
+                }
+            }
+
+            fireRLPointDefense(targets) {
+                const weapon = this.rlWeapons.pointDefense;
+                if (!weapon || weapon.isDestroyed || weapon.fireCooldown > 0) return;
+
+                // Target missiles and fighters within range
+                // TODO: Implement actual missile/fighter targeting
+                // For now, just track cooldown
+                weapon.fireCooldown = weapon.rateOfFire;
+            }
+
+            // === DAMAGE CALCULATION HELPERS ===
+
+            calculateLaserDamage(baseDamage, distance, minRange, maxRange) {
+                // Linear falloff: 100 @ 1km → 0 @ 21km
+                if (distance < minRange) return baseDamage;
+                if (distance > maxRange) return 0;
+
+                const falloffRange = maxRange - minRange;
+                const distanceIntoFalloff = distance - minRange;
+                const falloffFactor = 1.0 - (distanceIntoFalloff / falloffRange);
+
+                return baseDamage * falloffFactor;
+            }
+
+            checkWeaponArc(target, arcCenter, arcWidth) {
+                // Calculate angle to target
+                const dx = target.x - this.x;
+                const dy = target.y - this.y;
+                let angleToTarget = Math.atan2(dx, -dy) * 180 / Math.PI; // 0° = north
+
+                // Convert to ship-relative angle
+                let relativeAngle = angleToTarget - this.heading;
+                while (relativeAngle < -180) relativeAngle += 360;
+                while (relativeAngle > 180) relativeAngle -= 360;
+
+                // Check if target is within arc
+                let arcDiff = relativeAngle - arcCenter;
+                while (arcDiff < -180) arcDiff += 360;
+                while (arcDiff > 180) arcDiff -= 360;
+
+                return Math.abs(arcDiff) <= arcWidth / 2;
+            }
+
+            distanceTo(target) {
+                const dx = target.x - this.x;
+                const dy = target.y - this.y;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+
+            // === DAMAGE APPLICATION WITH PENETRATION ===
+
+            applyRLDamage(target, damage, weaponType, distance, shieldPenetration = 0) {
+                if (!target.shields || !target.shields.active) {
+                    // No shields - damage goes directly to armor/systems
+                    this.applyArmorDamage(target, damage, weaponType);
+                    return;
+                }
+
+                // Check shield penetration (spinal railguns can penetrate)
+                if (shieldPenetration > 0) {
+                    const penetratingDamage = damage * shieldPenetration;
+                    const blockedDamage = damage * (1 - shieldPenetration);
+
+                    // Determine which shield face was hit
+                    const faceIndex = this.determineShieldFace(target, distance);
+                    const face = target.shields.faceHP[faceIndex];
+
+                    // Apply blocked damage to shield
+                    face.current -= blockedDamage / 10; // Shields absorb damage (scaled down)
+                    face.lastHitTime = Date.now();
+
+                    if (face.current < 0) {
+                        // Shield face collapsed - excess damage penetrates
+                        this.applyArmorDamage(target, Math.abs(face.current) * 10 + penetratingDamage, weaponType);
+                        face.current = 0;
+                    } else {
+                        // Shield held - only penetrating damage gets through
+                        this.applyArmorDamage(target, penetratingDamage, weaponType);
+                    }
+
+                    console.log(`  └─ Shield face ${faceIndex+1}: ${face.current.toFixed(1)}% (${penetratingDamage.toFixed(0)} penetrated)`);
+                } else {
+                    // Full shield block (lasers, particle beams, missiles)
+                    const faceIndex = this.determineShieldFace(target, distance);
+                    const face = target.shields.faceHP[faceIndex];
+
+                    face.current -= damage / 10; // Shields absorb damage
+                    face.lastHitTime = Date.now();
+
+                    if (face.current < 0) {
+                        // Shield collapsed - excess damage penetrates
+                        this.applyArmorDamage(target, Math.abs(face.current) * 10, weaponType);
+                        face.current = 0;
+                        console.log(`  └─ Shield face ${faceIndex+1} COLLAPSED! Excess damage: ${(Math.abs(face.current) * 10).toFixed(0)}`);
+                    } else {
+                        console.log(`  └─ Shield face ${faceIndex+1} BLOCKED (${face.current.toFixed(1)}% remaining)`);
+                    }
+                }
+            }
+
+            determineShieldFace(target, distance) {
+                // Determine which shield face was hit based on angle of attack
+                // For now, simple: random face (TODO: improve with actual geometry)
+                return Math.floor(Math.random() * target.shields.faceHP.length);
+            }
+
+            applyArmorDamage(target, damage, weaponType) {
+                // Select random armor block to hit
+                if (!target.armorBlocks || target.armorBlocks.length === 0) {
+                    // No armor system - apply to old health pool
+                    target.health -= damage;
+                    if (target.health <= 0) {
+                        target.isDestroyed = true;
+                        target.isSinking = true;
+                    }
+                    return;
+                }
+
+                const blockIndex = Math.floor(Math.random() * target.armorBlocks.length);
+                const block = target.armorBlocks[blockIndex];
+
+                block.hp -= damage;
+
+                if (block.hp <= 0 && !block.isDestroyed) {
+                    block.isDestroyed = true;
+                    console.log(`  └─ Armor Block ${block.blockNumber} DESTROYED!`);
+
+                    // Excess damage penetrates to systems
+                    const excessDamage = Math.abs(block.hp);
+                    this.applySystemDamage(target, excessDamage, weaponType);
+
+                    block.hp = 0;
+                } else {
+                    // Update damage level
+                    const hpPercent = block.hp / block.maxHp;
+                    if (hpPercent > 0.70) block.damageLevel = 1; // Minor
+                    else if (hpPercent > 0.40) block.damageLevel = 2; // Moderate
+                    else if (hpPercent > 0.15) block.damageLevel = 3; // Major
+                    else block.damageLevel = 4; // Critical
+
+                    console.log(`  └─ Armor Block ${block.blockNumber} damaged: ${block.hp.toFixed(0)}/${block.maxHp.toFixed(0)} HP`);
+                }
+
+                // Update reactor stability (1/20th of damage affects reactor)
+                if (target.reactor) {
+                    const reactorDamage = damage * target.reactor.damageMultiplier;
+                    target.reactor.stability = Math.max(0, target.reactor.stability - reactorDamage);
+
+                    if (target.reactor.stability < 50) {
+                        target.reactor.damaged = true;
+                    }
+                }
+            }
+
+            applySystemDamage(target, damage, weaponType) {
+                // Penetrating damage hits internal systems
+                // For now, apply to excess damage pool
+                if (!target.excessDamagePool) return;
+
+                target.excessDamagePool.current -= damage;
+                console.log(`  └─ INTERNAL DAMAGE! Excess pool: ${target.excessDamagePool.current.toFixed(0)}/${target.excessDamagePool.max.toFixed(0)}`);
+
+                if (target.excessDamagePool.current <= 0) {
+                    // Ship breaks apart!
+                    target.isDestroyed = true;
+                    target.isSinking = true;
+                    console.log(`  └─ ${target.type.toUpperCase()} BREAKING APART!`);
+                }
+            }
+
+            explodeReactor() {
+                // Reactor goes critical - ship explodes
+                console.log(`⚠️ REACTOR CRITICAL! ${this.type.toUpperCase()} EXPLODING!`);
+
+                this.isDestroyed = true;
+                this.health = 0;
+
+                // TODO: Apply explosion damage to nearby ships (inverse square law)
+                // For now, just destroy this ship
             }
         }
 
@@ -15836,6 +16246,15 @@
                         duration: 100 // 100ms laser beam visual
                     });
                 }
+            }
+
+            // === RENEGADE LEGION CAPITAL SHIP COMBAT ===
+            // RL ships fire their weapons at each other
+            for (let ship of capitalShips) {
+                if (ship.isDestroyed || !ship.rlWeapons) continue;
+
+                // Fire RL weapons at all capital ships
+                ship.fireRLWeapons(capitalShips, dt);
             }
 
             // Automatic ground attack weapons (bombs and rockets)
