@@ -4859,8 +4859,12 @@
         }
 
         // Capital Ship class - Large naval vessels with AA batteries
+        // Global ship ID counter for unique identification
+        let _shipIdCounter = 0;
+
         class CapitalShip {
             constructor(x, y, type = 'destroyer', faction = 'commonwealth') {
+                this.id = `ship_${++_shipIdCounter}`; // Unique ID for detection tracking
                 this.x = x;
                 this.y = y;
                 this.type = type; // 'battleship', 'battlecruiser', 'cruiser', 'destroyer', 'carrier'
@@ -5165,6 +5169,11 @@
                 this.pivotSpeed = 360 / (this.length / 10); // Deg/sec, function of hull size
                 this.mass = spec.health * 10; // Mass for G-force calculations
                 this.maxGForce = 4; // Maximum G-force
+
+                // === SENSOR SYSTEM ===
+                this.sensorRange = 500; // Detection range in meters - capital ships have long-range sensors
+                this.detectedShips = new Set(); // Set of detected ship/aircraft IDs
+                this.detectionState = new Map(); // Map of ship ID -> detection state for hysteresis
             }
 
             initializeHitLocations() {
@@ -5837,11 +5846,160 @@
 
                 this.torpedoes.forEach(t => t.update(dt));
                 this.torpedoes = this.torpedoes.filter(t => t.isActive);
+
+                // === SENSOR DETECTION SYSTEM ===
+                this.updateSensorDetection(dt);
+            }
+
+            isDetectedByPlayer() {
+                // Check if this ship is detected by any player-controlled ship
+                if (this.isPlayer) {
+                    return true; // Player's own ships are always "detected"
+                }
+
+                if (typeof capitalShips === 'undefined') {
+                    return true; // Fallback: show all ships if no detection system
+                }
+
+                // Check all player ships to see if any have detected this ship
+                for (let playerShip of capitalShips) {
+                    if (playerShip.isPlayer && playerShip.detectedShips.has(this.id)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            updateSensorDetection(dt) {
+                // Skip detection if sensors are destroyed
+                if (this.hitLocations.sensors && this.hitLocations.sensors.isDestroyed) {
+                    // Sensors destroyed - lose all detections gradually
+                    this.detectedShips.clear();
+                    this.detectionState.clear();
+                    return;
+                }
+
+                // Calculate effective sensor range based on sensor efficiency
+                const sensorEfficiency = this.hitLocations.sensors ? this.hitLocations.sensors.efficiency : 1.0;
+                const effectiveSensorRange = this.sensorRange * sensorEfficiency;
+
+                // Update detection decay timers for all tracked ships
+                for (let [shipId, state] of this.detectionState.entries()) {
+                    if (state.decayTimer > 0) {
+                        state.decayTimer -= dt;
+                        if (state.decayTimer <= 0) {
+                            // Detection has fully decayed
+                            this.detectedShips.delete(shipId);
+                            this.detectionState.delete(shipId);
+                        }
+                    }
+                }
+
+                // Check detection for all capital ships
+                if (typeof capitalShips !== 'undefined') {
+                    for (let otherShip of capitalShips) {
+                        if (otherShip === this || otherShip.isDestroyed) continue;
+
+                        const dx = otherShip.x - this.x;
+                        const dy = otherShip.y - this.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        // Check if ship is within sensor range
+                        if (distance <= effectiveSensorRange) {
+                            // Ship detected!
+                            this.detectedShips.add(otherShip.id);
+
+                            // Update detection state with hysteresis timer
+                            if (!this.detectionState.has(otherShip.id)) {
+                                this.detectionState.set(otherShip.id, {
+                                    ship: otherShip,
+                                    decayTimer: 5.0, // 5 seconds of persistence after leaving range
+                                    lastDetectedTime: Date.now()
+                                });
+                            } else {
+                                // Refresh the decay timer
+                                const state = this.detectionState.get(otherShip.id);
+                                state.decayTimer = 5.0;
+                                state.lastDetectedTime = Date.now();
+                            }
+                        } else {
+                            // Ship out of range - start decay if it was previously detected
+                            if (this.detectionState.has(otherShip.id)) {
+                                const state = this.detectionState.get(otherShip.id);
+                                // Decay timer already running, let it count down
+                            }
+                        }
+                    }
+                }
+
+                // Check detection for all aircraft
+                if (typeof aircraft !== 'undefined') {
+                    for (let plane of aircraft) {
+                        if (plane.isDestroyed) continue;
+
+                        const dx = plane.x - this.x;
+                        const dy = plane.y - this.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        const planeId = `plane_${plane.name}`;
+
+                        // Check if aircraft is within sensor range
+                        if (distance <= effectiveSensorRange) {
+                            // Aircraft detected!
+                            this.detectedShips.add(planeId);
+
+                            // Update detection state with hysteresis timer
+                            if (!this.detectionState.has(planeId)) {
+                                this.detectionState.set(planeId, {
+                                    ship: plane,
+                                    decayTimer: 5.0,
+                                    lastDetectedTime: Date.now()
+                                });
+                            } else {
+                                // Refresh the decay timer
+                                const state = this.detectionState.get(planeId);
+                                state.decayTimer = 5.0;
+                                state.lastDetectedTime = Date.now();
+                            }
+                        } else {
+                            // Aircraft out of range - start decay if it was previously detected
+                            if (this.detectionState.has(planeId)) {
+                                const state = this.detectionState.get(planeId);
+                                // Decay timer already running, let it count down
+                            }
+                        }
+                    }
+                }
             }
 
             render() {
                 if (this.sinkProgress > 0.95) return; // Don't render fully sunk ships
 
+                // === FOG OF WAR ===
+                // Check if this ship is detected by the player
+                const isDetected = this.isDetectedByPlayer();
+
+                if (!isDetected) {
+                    // Render as fog of war - simple green dot
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(0, 255, 0, 0.6)';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 8, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Add a small pulsing effect
+                    const pulseSize = 8 + Math.sin(Date.now() / 500) * 2;
+                    ctx.strokeStyle = 'rgba(0, 255, 0, 0.3)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, pulseSize, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    ctx.restore();
+                    return; // Don't render the full ship
+                }
+
+                // Ship is detected - render normally
                 ctx.save();
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.heading * Math.PI / 180);
@@ -10109,6 +10267,126 @@
                     ctx.restore();
                 }
             }
+
+            // Check if line of sight between two points is blocked by terrain
+            // Returns true if blocked, false if clear
+            checkSensorShadow(observerX, observerY, targetX, targetY) {
+                // Helper function to check if a line segment intersects a circle
+                const lineCircleIntersection = (x1, y1, x2, y2, cx, cy, radius) => {
+                    // Vector from point 1 to point 2
+                    const dx = x2 - x1;
+                    const dy = y2 - y1;
+
+                    // Vector from point 1 to circle center
+                    const fx = x1 - cx;
+                    const fy = y1 - cy;
+
+                    // Quadratic formula components for line-circle intersection
+                    const a = dx * dx + dy * dy;
+                    const b = 2 * (fx * dx + fy * dy);
+                    const c = (fx * fx + fy * fy) - radius * radius;
+
+                    let discriminant = b * b - 4 * a * c;
+
+                    // No intersection if discriminant is negative
+                    if (discriminant < 0) {
+                        return false;
+                    }
+
+                    // Calculate intersection points
+                    discriminant = Math.sqrt(discriminant);
+                    const t1 = (-b - discriminant) / (2 * a);
+                    const t2 = (-b + discriminant) / (2 * a);
+
+                    // Check if intersection occurs along the line segment (t between 0 and 1)
+                    // We check if at least one intersection point is within the segment
+                    if ((t1 >= 0 && t1 <= 1) || (t2 >= 0 && t2 <= 1)) {
+                        return true;
+                    }
+
+                    // Also check if the line segment is entirely inside the circle
+                    if (t1 < 0 && t2 > 1) {
+                        return true;
+                    }
+
+                    return false;
+                };
+
+                // Check planets
+                for (let planet of this.planets) {
+                    if (lineCircleIntersection(observerX, observerY, targetX, targetY,
+                                              planet.x, planet.y, planet.radius)) {
+                        return true;
+                    }
+
+                    // Check moons orbiting this planet
+                    for (let moon of planet.moons) {
+                        const moonX = planet.x + Math.cos(moon.angle) * moon.distance;
+                        const moonY = planet.y + Math.sin(moon.angle) * moon.distance;
+                        if (lineCircleIntersection(observerX, observerY, targetX, targetY,
+                                                  moonX, moonY, moon.radius)) {
+                            return true;
+                        }
+                    }
+                }
+
+                // Check sun
+                if (this.sun) {
+                    if (lineCircleIntersection(observerX, observerY, targetX, targetY,
+                                              this.sun.x, this.sun.y, this.sun.radius)) {
+                        return true;
+                    }
+                }
+
+                // Check asteroids
+                for (let asteroid of this.asteroids) {
+                    let asteroidX, asteroidY;
+                    if (this.isBlackHole) {
+                        // Calculate position from orbital parameters
+                        asteroidX = this.blackHole.x + Math.cos(asteroid.orbitAngle) * asteroid.orbitDistance;
+                        asteroidY = this.blackHole.y + Math.sin(asteroid.orbitAngle) * asteroid.orbitDistance;
+                    } else {
+                        asteroidX = asteroid.x;
+                        asteroidY = asteroid.y;
+                    }
+
+                    // Use asteroid size as radius (asteroids are roughly circular)
+                    if (lineCircleIntersection(observerX, observerY, targetX, targetY,
+                                              asteroidX, asteroidY, asteroid.size / 2)) {
+                        return true;
+                    }
+                }
+
+                // Check nebulae
+                for (let nebula of this.nebulae) {
+                    let nebulaX, nebulaY;
+                    if (this.isBlackHole) {
+                        // Calculate position from orbital parameters
+                        nebulaX = this.blackHole.x + Math.cos(nebula.orbitAngle) * nebula.orbitDistance;
+                        nebulaY = this.blackHole.y + Math.sin(nebula.orbitAngle) * nebula.orbitDistance;
+                    } else {
+                        nebulaX = nebula.x;
+                        nebulaY = nebula.y;
+                    }
+
+                    if (lineCircleIntersection(observerX, observerY, targetX, targetY,
+                                              nebulaX, nebulaY, nebula.radius)) {
+                        return true;
+                    }
+                }
+
+                // Check black hole (if exists)
+                if (this.blackHole) {
+                    // Use event horizon as the blocking radius
+                    if (lineCircleIntersection(observerX, observerY, targetX, targetY,
+                                              this.blackHole.x, this.blackHole.y, this.blackHole.eventHorizon)) {
+                        return true;
+                    }
+                }
+
+                // No obstructions found - line of sight is clear
+                return false;
+            }
         }
 
         // Perlin Noise generator for natural terrain
@@ -11467,6 +11745,11 @@
                     gPenalty: 0,
                     asymmetryPenalty: 0
                 };
+
+                // === SENSOR SYSTEM ===
+                this.sensorRange = 250; // Detection range in meters - aircraft have shorter range sensors
+                this.detectedShips = new Set(); // Set of detected ship/aircraft IDs
+                this.detectionState = new Map(); // Map of ship ID -> detection state for hysteresis
             }
 
             /**
