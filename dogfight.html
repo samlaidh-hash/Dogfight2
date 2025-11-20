@@ -4875,13 +4875,120 @@
                 this.image = null;
                 this.imageLoaded = false;
 
+                // Determine if this is a Renegade Legion space ship
+                const isRenegadeLegion = (faction === 'commonwealth' || faction === 'tog');
+
                 // Ship specifications based on type
-                const specs = {
-                    'battleship': {
-                        length: 270,
-                        beam: 33,
-                        speed: 15, // m/s (~30 knots)
-                        health: 2000,
+                let specs;
+
+                if (isRenegadeLegion) {
+                    // === RENEGADE LEGION SPACE CAPITAL SHIP SPECIFICATIONS ===
+                    // Using 5 tonnes/HP ratio, Newtonian physics, proper dimensions
+                    specs = {
+                        'battleship': {  // BB - Battleship
+                            length: 800,      // meters
+                            beam: 100,        // meters
+                            mass: 4000000,    // tonnes (4 million)
+                            speed: 0,         // Newtonian - no fixed speed
+                            health: 800000,   // 5 tonnes/HP = 4M / 5
+                            baseAcceleration: 4,  // G-force
+                            pivotRate: 20,    // degrees/second
+                            crew: 3200,
+                            marines: 900,
+                            airWing: 1300,    // Fighter complement
+                            fighterBays: 13,  // 1 bay per 100 fighters
+                            compartments: 32, // Armor blocks
+                            fighterComplement: [
+                                { type: 'Fighter-Cheetah', count: 650 },
+                                { type: 'Fighter-Avenger', count: 400 },
+                                { type: 'Fighter-Penetrator', count: 250 }
+                            ]
+                        },
+                        'battlecruiser': {  // BC - Battlecruiser
+                            length: 700,
+                            beam: 90,
+                            mass: 2600000,    // 2.6 million tonnes
+                            speed: 0,
+                            health: 520000,   // 2.6M / 5
+                            baseAcceleration: 5,
+                            pivotRate: 25,
+                            crew: 2400,
+                            marines: 700,
+                            airWing: 1000,
+                            fighterBays: 10,
+                            compartments: 32,
+                            fighterComplement: [
+                                { type: 'Fighter-Cheetah', count: 500 },
+                                { type: 'Fighter-Avenger', count: 300 },
+                                { type: 'Fighter-Penetrator', count: 200 }
+                            ]
+                        },
+                        'cruiser': {  // CA - Heavy Cruiser
+                            length: 600,
+                            beam: 75,
+                            mass: 1400000,    // 1.4 million tonnes
+                            speed: 0,
+                            health: 280000,   // 1.4M / 5
+                            baseAcceleration: 6,
+                            pivotRate: 30,
+                            crew: 1600,
+                            marines: 500,
+                            airWing: 600,
+                            fighterBays: 6,
+                            compartments: 32,
+                            fighterComplement: [
+                                { type: 'Fighter-Cheetah', count: 300 },
+                                { type: 'Fighter-Avenger', count: 200 },
+                                { type: 'Fighter-Penetrator', count: 100 }
+                            ]
+                        },
+                        'destroyer': {  // DD - Destroyer
+                            length: 400,
+                            beam: 50,
+                            mass: 500000,     // 500k tonnes
+                            speed: 0,
+                            health: 100000,   // 500k / 5
+                            baseAcceleration: 8,
+                            pivotRate: 40,
+                            crew: 800,
+                            marines: 250,
+                            airWing: 200,
+                            fighterBays: 2,
+                            compartments: 32,
+                            fighterComplement: [
+                                { type: 'Fighter-Cheetah', count: 100 },
+                                { type: 'Fighter-Avenger', count: 60 },
+                                { type: 'Fighter-Penetrator', count: 40 }
+                            ]
+                        },
+                        'carrier': {  // CT - Corvette (using 'carrier' type for compatibility)
+                            length: 280,
+                            beam: 35,
+                            mass: 200000,     // 200k tonnes
+                            speed: 0,
+                            health: 40000,    // 200k / 5
+                            baseAcceleration: 9,
+                            pivotRate: 45,
+                            crew: 400,
+                            marines: 100,
+                            airWing: 100,
+                            fighterBays: 1,
+                            compartments: 32,
+                            fighterComplement: [
+                                { type: 'Fighter-Cheetah', count: 50 },
+                                { type: 'Fighter-Avenger', count: 30 },
+                                { type: 'Fighter-Penetrator', count: 20 }
+                            ]
+                        }
+                    };
+                } else {
+                    // === WET NAVY CAPITAL SHIP SPECIFICATIONS ===
+                    specs = {
+                        'battleship': {
+                            length: 270,
+                            beam: 33,
+                            speed: 15, // m/s (~30 knots)
+                            health: 2000,
                         armor: {
                             bow: 100,
                             midship: 150,
@@ -5050,18 +5157,35 @@
                         ]
                     }
                 };
+                } // End of wet navy specs
 
                 const spec = specs[type];
                 this.length = spec.length;
                 this.beam = spec.beam;
-                this.speed = spec.speed;
-                this.maxHealth = spec.health;
-                this.health = spec.health;
-                this.armor = spec.armor;
                 this.compartments = spec.compartments;
 
-                // Initialize AA batteries with cooldowns
-                this.aaBatteries = spec.aaBatteries.map(battery => ({
+                // RL ships have different properties than wet navy ships
+                if (isRenegadeLegion) {
+                    this.mass = spec.mass;
+                    this.baseAcceleration = spec.baseAcceleration;
+                    this.pivotRate = spec.pivotRate;
+                    this.crew = spec.crew;
+                    this.marines = spec.marines;
+                    this.airWing = spec.airWing;
+                    this.fighterBays = spec.fighterBays;
+                    this.speed = 0; // Newtonian physics - no fixed speed
+                    this.maxHealth = spec.health;
+                    this.health = spec.health;
+                    this.armor = null; // RL ships use 32-block armor system instead
+                } else {
+                    this.speed = spec.speed;
+                    this.maxHealth = spec.health;
+                    this.health = spec.health;
+                    this.armor = spec.armor;
+                }
+
+                // Initialize AA batteries with cooldowns (wet navy only)
+                this.aaBatteries = (spec.aaBatteries || []).map(battery => ({
                     ...battery,
                     fireCooldown: 0,
                     isDestroyed: false
@@ -5091,59 +5215,312 @@
                 this.launchedMissiles = [];
 
                 // === RENEGADE LEGION SPACE WEAPONS ===
-                // If this is a Renegade Legion space battle (commonwealth or tog), replace wet navy weapons with space weapons
-                if (this.faction === 'commonwealth' || this.faction === 'tog') {
-                    // Clear wet navy weapons
-                    this.aaBatteries = [];
-                    this.samLaunchers = [];
-                    this.ciwsSystems = [];
-
-                    // Add Renegade Legion space weapons based on ship type
-                    const spaceWeaponCounts = {
-                        'battleship': { lasers: 12, particleBeams: 8, massDrivers: 16 },
-                        'battlecruiser': { lasers: 10, particleBeams: 6, massDrivers: 12 },
-                        'cruiser': { lasers: 8, particleBeams: 4, massDrivers: 10 },
-                        'destroyer': { lasers: 6, particleBeams: 2, massDrivers: 8 },
-                        'carrier': { lasers: 4, particleBeams: 2, massDrivers: 6 }
+                // Standard RL faction uses banks, chasers, spinal mounts, missiles, and PD
+                if (isRenegadeLegion) {
+                    // Weapon counts scale by ship class
+                    const rlWeaponCounts = {
+                        'battleship': {      // BB
+                            broadsideBanks: 40,      // Port + Starboard laser banks
+                            prowChasers: 5,          // Forward-firing
+                            sternChasers: 5,         // Aft-firing
+                            spinalMounts: 1,         // Heavy railgun
+                            missileArrays: 2,        // 50 cells each = 100 total
+                            pdTurrets: 20            // Point defense (doubled from 10 base)
+                        },
+                        'battlecruiser': {   // BC
+                            broadsideBanks: 32,
+                            prowChasers: 5,
+                            sternChasers: 5,
+                            spinalMounts: 1,
+                            missileArrays: 2,        // 100 total cells
+                            pdTurrets: 16
+                        },
+                        'cruiser': {         // CA
+                            broadsideBanks: 24,
+                            prowChasers: 5,
+                            sternChasers: 5,
+                            spinalMounts: 1,
+                            missileArrays: 2,        // 100 total cells
+                            pdTurrets: 12
+                        },
+                        'destroyer': {       // DD
+                            broadsideBanks: 16,
+                            prowChasers: 5,
+                            sternChasers: 5,
+                            spinalMounts: 1,
+                            missileArrays: 2,        // 100 total cells
+                            pdTurrets: 8
+                        },
+                        'carrier': {         // CT (Corvette)
+                            broadsideBanks: 8,
+                            prowChasers: 5,
+                            sternChasers: 5,
+                            spinalMounts: 1,
+                            missileArrays: 2,        // 100 total cells
+                            pdTurrets: 4
+                        }
                     };
 
-                    const counts = spaceWeaponCounts[this.type] || spaceWeaponCounts['destroyer'];
+                    const rlCounts = rlWeaponCounts[this.type] || rlWeaponCounts['destroyer'];
 
-                    // Laser turrets - 50km range
-                    this.spaceWeapons = {
-                        lasers: Array(counts.lasers).fill(null).map(() => ({
-                            range: 50000,
-                            damage: [50, 100],
-                            rateOfFire: 2,
-                            accuracy: 0.70,
+                    // Initialize Renegade Legion weapon systems
+                    this.rlWeapons = {
+                        // BROADSIDE LASER BANKS
+                        // Linear damage falloff: 100 @ 1km → 0 @ 21km
+                        // Split into port and starboard
+                        broadsidePort: {
+                            guns: rlCounts.broadsideBanks / 2,
+                            baseDamage: 100,           // Damage at 1km
+                            minRange: 1000,            // 1km
+                            maxRange: 21000,           // 21km (damage drops to 0)
+                            rateOfFire: 1,             // Seconds between volleys
                             fireCooldown: 0,
+                            arc: 90,                   // 90° firing arc to port
+                            damageThreshold: 0.10,     // 10% of system HP to penetrate
+                            weaponType: 'laser_bank',
                             isDestroyed: false,
-                            name: 'Heavy Laser Turret'
+                            name: 'Port Laser Banks'
+                        },
+                        broadsideStarboard: {
+                            guns: rlCounts.broadsideBanks / 2,
+                            baseDamage: 100,
+                            minRange: 1000,
+                            maxRange: 21000,
+                            rateOfFire: 1,
+                            fireCooldown: 0,
+                            arc: 90,                   // 90° firing arc to starboard
+                            damageThreshold: 0.10,
+                            weaponType: 'laser_bank',
+                            isDestroyed: false,
+                            name: 'Starboard Laser Banks'
+                        },
+
+                        // PROW CHASERS
+                        // Forward-firing, 90° arc, same damage profile as broadsides
+                        prowChasers: {
+                            guns: rlCounts.prowChasers,
+                            baseDamage: 100,
+                            minRange: 1000,
+                            maxRange: 21000,
+                            rateOfFire: 1,
+                            fireCooldown: 0,
+                            arc: 90,                   // 90° forward arc
+                            arcCenter: 0,              // Pointing forward (0° = fore)
+                            damageThreshold: 0.10,
+                            weaponType: 'chaser',
+                            isDestroyed: false,
+                            name: 'Prow Chasers'
+                        },
+
+                        // STERN CHASERS
+                        // Aft-firing, 90° arc
+                        sternChasers: {
+                            guns: rlCounts.sternChasers,
+                            baseDamage: 100,
+                            minRange: 1000,
+                            maxRange: 21000,
+                            rateOfFire: 1,
+                            fireCooldown: 0,
+                            arc: 90,
+                            arcCenter: 180,            // Pointing aft (180° = aft)
+                            damageThreshold: 0.10,
+                            weaponType: 'chaser',
+                            isDestroyed: false,
+                            name: 'Stern Chasers'
+                        },
+
+                        // SPINAL MOUNT RAILGUN
+                        // Accuracy falloff: 80% @ 1km, 50% @ 15km, 2% @ 30km+
+                        // 25% shield penetration
+                        spinalMount: {
+                            damage: this.type === 'battleship' ? 1000 :
+                                   this.type === 'battlecruiser' ? 800 :
+                                   this.type === 'cruiser' ? 600 :
+                                   this.type === 'destroyer' ? 300 :
+                                   150,  // CT (corvette)
+                            rateOfFire: 10,            // 10 second reload
+                            fireCooldown: 0,
+                            baseAccuracy: 0.80,        // 80% at 1km
+                            accuracyMid: 0.50,         // 50% at 15km
+                            accuracyLong: 0.02,        // 2% at 30km+
+                            range1km: 1000,
+                            range15km: 15000,
+                            range30km: 30000,
+                            shieldPenetration: 0.25,   // 25% damage through shields
+                            weaponType: 'spinal_railgun',
+                            isDestroyed: false,
+                            name: 'Spinal Railgun'
+                        },
+
+                        // MISSILE ARRAYS
+                        // 50 cells each, doubled count (2 arrays = 100 cells total)
+                        missiles: {
+                            arrays: rlCounts.missileArrays,
+                            cellsPerArray: 50,
+                            totalCells: rlCounts.missileArrays * 50,
+                            currentMissiles: rlCounts.missileArrays * 50,
+                            damage: 200,
+                            range: 50000,              // 50km range
+                            speed: 500,                // m/s
+                            rateOfFire: 2,             // 2 seconds between launches
+                            fireCooldown: 0,
+                            ecm: this.type === 'battleship' ? 0.21 :
+                                 this.type === 'battlecruiser' ? 0.18 :
+                                 this.type === 'cruiser' ? 0.15 :
+                                 this.type === 'destroyer' ? 0.12 :
+                                 0.10,  // Scales down by class
+                            eccm: this.type === 'battleship' ? 0.105 :
+                                  this.type === 'battlecruiser' ? 0.09 :
+                                  this.type === 'cruiser' ? 0.075 :
+                                  this.type === 'destroyer' ? 0.06 :
+                                  0.05,  // Half of ECM
+                            weaponType: 'missile',
+                            isDestroyed: false,
+                            name: 'Missile Arrays'
+                        },
+
+                        // POINT DEFENSE TURRETS
+                        // Doubled count, 40mm equivalent, one-shot-kill on missiles/fighters
+                        pointDefense: {
+                            turrets: rlCounts.pdTurrets,
+                            damage: 100,               // One-shot kill
+                            range: 5000,               // 5km range
+                            rateOfFire: 0.1,           // 10 rounds per second per turret
+                            accuracy: 0.85,            // 85% hit chance
+                            fireCooldown: 0,
+                            weaponType: 'point_defense',
+                            caliber: 40,               // 40mm equivalent
+                            isDestroyed: false,
+                            name: 'Point Defense Turrets'
+                        }
+                    };
+
+                    // === 32-BLOCK ARMOR SYSTEM ===
+                    // Initialize armor blocks with HP and depth tracking
+                    this.armorBlocks = Array(32).fill(null).map((_, index) => ({
+                        blockNumber: index + 1,
+                        hp: spec.health * 0.30 / 32,  // 30% of total HP divided across 32 blocks
+                        maxHp: spec.health * 0.30 / 32,
+                        damageLevel: 0,     // 0 = undamaged, 1 = minor, 2 = moderate, 3 = major, 4 = destroyed
+                        isDestroyed: false
+                    }));
+
+                    // === SYSTEM HP ALLOCATION ===
+                    // Allocate HP to various systems (percentages from RL specs)
+                    this.systemHP = {
+                        // Armor: 30% of total HP (already allocated to armor blocks above)
+                        armour: {
+                            current: spec.health * 0.30,
+                            max: spec.health * 0.30,
+                            percentage: 0.30
+                        },
+                        // Weapons: 20% of total HP
+                        weapons: {
+                            current: spec.health * 0.20,
+                            max: spec.health * 0.20,
+                            percentage: 0.20,
+                            damageThreshold: 0.10,  // 10% of weapon system HP before penetration
+                            blockNumber: 5,         // Example: weapons in block 5
+                            depth: 2                // Depth from surface
+                        },
+                        // Power/Reactor: 15% of total HP
+                        power: {
+                            current: spec.health * 0.15,
+                            max: spec.health * 0.15,
+                            percentage: 0.15,
+                            damageThreshold: 0.20,  // 20% threshold
+                            blockNumber: 16,        // Amidships, deep
+                            depth: 4
+                        },
+                        // Flight/Propulsion: 15% of total HP
+                        flight: {
+                            current: spec.health * 0.15,
+                            max: spec.health * 0.15,
+                            percentage: 0.15,
+                            damageThreshold: 0.30,  // 30% threshold (engines are tough)
+                            blockNumber: 28,        // Stern
+                            depth: 3,
+                            efficiency: 1.0         // Movement efficiency multiplier
+                        },
+                        // Crew Quarters: 8% of total HP
+                        crew: {
+                            current: spec.health * 0.08,
+                            max: spec.health * 0.08,
+                            percentage: 0.08,
+                            damageThreshold: 0.05,  // Crew quarters are fragile
+                            casualties: 0,          // Track crew losses
+                            blockNumber: 12,
+                            depth: 2
+                        },
+                        // Marines: 4% of total HP
+                        marines: {
+                            current: spec.health * 0.04,
+                            max: spec.health * 0.04,
+                            percentage: 0.04,
+                            damageThreshold: 0.05,
+                            casualties: 0,
+                            blockNumber: 18,
+                            depth: 2
+                        },
+                        // C3 (Command, Control, Communications): 8% of total HP
+                        c3: {
+                            current: spec.health * 0.08,
+                            max: spec.health * 0.08,
+                            percentage: 0.08,
+                            damageThreshold: 0.15,
+                            blockNumber: 3,         // Forward, bridge area
+                            depth: 1,               // Shallow (exposed)
+                            efficiency: 1.0         // Combat effectiveness multiplier
+                        }
+                    };
+
+                    // === EXCESS DAMAGE POOL ===
+                    // 5% of ship HP - when this reaches 0, ship breaks apart
+                    this.excessDamagePool = {
+                        current: spec.health * 0.05,
+                        max: spec.health * 0.05,
+                        percentage: 0.05
+                    };
+
+                    // === FLICKER SHIELDS ===
+                    // Multi-facing shields with recharge mechanics
+                    const shieldFaces = this.type === 'battleship' || this.type === 'battlecruiser' ? 6 :
+                                       this.type === 'cruiser' || this.type === 'destroyer' ? 4 :
+                                       this.type === 'carrier' ? 1 : 2;  // Corvette gets 1
+
+                    this.shields = {
+                        faces: shieldFaces,
+                        faceHP: Array(shieldFaces).fill(null).map(() => ({
+                            current: 100,       // Percentage (0-100%)
+                            max: 100,
+                            recharging: false,
+                            lastHitTime: 0      // Time since last hit
                         })),
+                        rechargeRate: 0.25,     // 0.25% per second
+                        rechargeDelay: 4000,    // 4 seconds after last hit (milliseconds)
+                        degradationRate: 0.001, // -0.1% per armor block damaged
+                        active: true,
+                        powerLevel: 3           // 1-5 power allocation (from power management)
+                    };
 
-                        // Particle beam cannons - 55km range with critical hit chance
-                        particleBeams: Array(counts.particleBeams).fill(null).map(() => ({
-                            range: 55000,
-                            damage: [80, 150],
-                            rateOfFire: 1.5,
-                            accuracy: 0.65,
-                            critChance: 0.25, // 25% chance for radiation/EMP effects
-                            fireCooldown: 0,
-                            isDestroyed: false,
-                            name: 'Particle Beam Cannon'
-                        })),
+                    // === ARMOR SHUTTERS ===
+                    this.armorShutters = {
+                        open: false,
+                        opening: false,
+                        closing: false,
+                        openDelay: 2000,        // 2 seconds to open (milliseconds)
+                        closeDelay: 2000,       // 2 seconds to close
+                        progress: 0,            // 0-1 open/close progress
+                        exposedSystems: []      // Systems exposed when shutters open
+                    };
 
-                        // Mass drivers - unlimited range with accuracy drop-off
-                        massDrivers: Array(counts.massDrivers).fill(null).map(() => ({
-                            range: 999999, // Effectively unlimited
-                            damage: [30, 60],
-                            rateOfFire: 4,
-                            baseAccuracy: 0.80, // Accuracy at close range
-                            accuracyDropoff: 0.00001, // Accuracy decreases with distance
-                            fireCooldown: 0,
-                            isDestroyed: false,
-                            name: 'Mass Driver Turret'
-                        }))
+                    // === REACTOR CRITICALITY ===
+                    this.reactor = {
+                        stability: 100,         // Percentage (0-100%)
+                        criticalChance: 0,      // % chance to explode this frame
+                        damaged: false,
+                        explosionRadius: 1000,  // Meters (if reactor goes critical)
+                        damageMultiplier: 0.05  // 1/20th of damage taken affects stability
                     };
                 }
 
