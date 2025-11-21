@@ -5676,6 +5676,15 @@
                 // === POWER MANAGEMENT SYSTEM ===
                 this.initializePowerManagement();
 
+                // === RL POWER SETTINGS (5-level system) ===
+                if (isRenegadeLegion) {
+                    this.powerSettings = {
+                        shields: 3,    // Default: level 3 (100% baseline)
+                        engines: 3,    // Default: level 3 (100% baseline)
+                        weapons: 3     // Default: level 3 (100% baseline)
+                    };
+                }
+
                 // === FTL DRIVE SYSTEM ===
                 this.initializeFTLDrive();
 
@@ -6439,16 +6448,25 @@
             update(dt) {
                 if (this.isDestroyed) return;
 
-                // === PHASE 3: MANEUVER SYSTEM ===
-                this.updateSpeed(dt);
-                this.updateHeading(dt);
+                // === MOVEMENT SYSTEM ===
+                // RL ships use Newtonian physics, wet navy ships use traditional speed-based
+                const isRenegadeLegion = (this.faction === 'commonwealth' || this.faction === 'tog');
 
-                // Update position based on heading and speed
-                const headingRad = this.heading * Math.PI / 180;
-                this.velocityX = this.speed * Math.sin(headingRad);
-                this.velocityY = -this.speed * Math.cos(headingRad);
-                this.x += this.velocityX * dt;
-                this.y += this.velocityY * dt;
+                if (isRenegadeLegion && this.baseAcceleration) {
+                    // === NEWTONIAN MOVEMENT FOR RL SHIPS ===
+                    this.updateNewtonianMovement(dt);
+                } else {
+                    // === TRADITIONAL MOVEMENT FOR WET NAVY SHIPS ===
+                    this.updateSpeed(dt);
+                    this.updateHeading(dt);
+
+                    // Update position based on heading and speed
+                    const headingRad = this.heading * Math.PI / 180;
+                    this.velocityX = this.speed * Math.sin(headingRad);
+                    this.velocityY = -this.speed * Math.cos(headingRad);
+                    this.x += this.velocityX * dt;
+                    this.y += this.velocityY * dt;
+                }
 
                 // === PHASE 3: LOCATION EFFECTS ===
                 // Update all location effects periodically
@@ -9453,6 +9471,110 @@
 
                 // TODO: Apply explosion damage to nearby ships (inverse square law)
                 // For now, just destroy this ship
+            }
+
+            // === NEWTONIAN MOVEMENT FOR RL SHIPS ===
+
+            updateNewtonianMovement(dt) {
+                // Get current acceleration (affected by propulsion damage)
+                const propulsionEfficiency = this.systemHP && this.systemHP.flight ?
+                    this.systemHP.flight.efficiency : 1.0;
+                const effectiveAcceleration = this.baseAcceleration * propulsionEfficiency;
+
+                // Convert G-force to m/s²
+                const accelerationMPS2 = effectiveAcceleration * 9.8;
+
+                // Initialize velocity if not set
+                if (!this.velocityVector) {
+                    this.velocityVector = { x: 0, y: 0 };
+                }
+
+                // Apply thrust based on heading (simplified - no thrust vectoring yet)
+                // For now, assume ship accelerates in direction of heading
+                const headingRad = this.heading * Math.PI / 180;
+                const thrustX = accelerationMPS2 * Math.sin(headingRad);
+                const thrustY = -accelerationMPS2 * Math.cos(headingRad);
+
+                // Update velocity (v = v0 + a*t)
+                this.velocityVector.x += thrustX * dt;
+                this.velocityVector.y += thrustY * dt;
+
+                // Apply drag to prevent infinite acceleration (space ships have some station-keeping)
+                const dragFactor = 0.99; // 1% drag per second
+                this.velocityVector.x *= Math.pow(dragFactor, dt);
+                this.velocityVector.y *= Math.pow(dragFactor, dt);
+
+                // Update position (x = x0 + v*t)
+                this.x += this.velocityVector.x * dt;
+                this.y += this.velocityVector.y * dt;
+
+                // Update velocityX/Y for compatibility with existing code
+                this.velocityX = this.velocityVector.x;
+                this.velocityY = this.velocityVector.y;
+
+                // Calculate current speed for display
+                this.speed = Math.sqrt(
+                    this.velocityVector.x * this.velocityVector.x +
+                    this.velocityVector.y * this.velocityVector.y
+                );
+
+                // Update heading rotation (pivot rate in degrees/second)
+                // For now, simple rotation - full pivot system in Phase 2
+                if (this.pivotRate) {
+                    // Allow heading changes at pivot rate
+                    // This is simplified - real implementation needs player input for heading changes
+                    // For AI ships, gradually turn toward targets
+                    if (this.orderedHeading !== undefined && Math.abs(this.orderedHeading - this.heading) > 1) {
+                        let headingDiff = this.orderedHeading - this.heading;
+                        while (headingDiff > 180) headingDiff -= 360;
+                        while (headingDiff < -180) headingDiff += 360;
+
+                        const maxTurn = this.pivotRate * dt;
+                        const turnAmount = Math.max(-maxTurn, Math.min(maxTurn, headingDiff));
+                        this.heading += turnAmount;
+
+                        // Normalize heading
+                        while (this.heading < 0) this.heading += 360;
+                        while (this.heading >= 360) this.heading -= 360;
+                    }
+                }
+            }
+
+            // === POWER MANAGEMENT SYSTEM ===
+
+            setPowerLevel(system, level) {
+                // Set power level (1-5) for shields, engines, or weapons
+                if (!this.powerManagement) return;
+
+                level = Math.max(1, Math.min(5, level)); // Clamp to 1-5
+
+                if (system === 'shields' && this.shields) {
+                    this.shields.powerLevel = level;
+                    // Higher power = faster recharge, but drains other systems
+                    this.shields.rechargeRate = 0.25 * (level / 3); // Scale around level 3 baseline
+                    console.log(`${this.type}: Shield power set to ${level} (${(this.shields.rechargeRate*100).toFixed(2)}%/sec recharge)`);
+                } else if (system === 'engines') {
+                    // Affects acceleration and pivot rate
+                    const efficiencyMult = (level / 3); // Scale around level 3
+                    console.log(`${this.type}: Engine power set to ${level} (${(efficiencyMult*100).toFixed(0)}% efficiency)`);
+                    // Store power level for updateNewtonianMovement to use
+                    if (!this.powerSettings) this.powerSettings = {};
+                    this.powerSettings.engines = level;
+                } else if (system === 'weapons') {
+                    // Affects weapon damage and rate of fire
+                    const efficiencyMult = (level / 3);
+                    console.log(`${this.type}: Weapon power set to ${level} (${(efficiencyMult*100).toFixed(0)}% efficiency)`);
+                    if (!this.powerSettings) this.powerSettings = {};
+                    this.powerSettings.weapons = level;
+                }
+            }
+
+            getPowerEfficiency(system) {
+                // Get current power efficiency multiplier for a system
+                if (!this.powerSettings) return 1.0;
+
+                const level = this.powerSettings[system] || 3; // Default level 3
+                return level / 3; // Scale around level 3 = 100%
             }
         }
 
