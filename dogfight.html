@@ -91,6 +91,93 @@
             overflow: visible;
         }
 
+        #shipsPanel {
+            top: 10px;
+            max-height: 90vh;
+            overflow-y: auto;
+            overflow-x: visible;
+        }
+
+        .ship-entry {
+            margin: 8px 0;
+            padding: 6px;
+            background: rgba(20, 40, 60, 0.6);
+            border-radius: 3px;
+            border-left: 3px solid #4a9eff;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .ship-entry:hover {
+            background: rgba(30, 50, 70, 0.8);
+        }
+
+        .ship-entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .ship-name {
+            font-weight: bold;
+            color: #88ff88;
+        }
+
+        .ship-camera-icon {
+            cursor: pointer;
+            padding: 2px 6px;
+            background: rgba(100, 150, 255, 0.3);
+            border-radius: 3px;
+            font-size: 10px;
+            transition: background 0.2s;
+        }
+
+        .ship-camera-icon:hover {
+            background: rgba(100, 150, 255, 0.6);
+        }
+
+        .ship-details {
+            display: none;
+            margin-top: 8px;
+            font-size: 10px;
+            line-height: 1.4;
+        }
+
+        .ship-details.expanded {
+            display: block;
+        }
+
+        .ship-hp-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 0, 0, 0.3);
+            border-radius: 3px;
+            margin: 4px 0;
+            overflow: hidden;
+        }
+
+        .ship-hp-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #00ff00);
+            transition: width 0.3s;
+        }
+
+        .ship-shield-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(0, 100, 255, 0.3);
+            border-radius: 3px;
+            margin: 4px 0;
+            overflow: hidden;
+        }
+
+        .ship-shield-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0066ff, #00ffff);
+            transition: width 0.3s;
+        }
+
         #controlsPanel {
             /* Repositioned to center top, landscape orientation */
             left: 50%;
@@ -559,6 +646,13 @@
                 <div id="wingmanCount"></div>
                 <div id="formationBonusDisplay"></div>
             </div>
+        </div>
+
+        <!-- Ships Panel (Left side, below aircraft panel) -->
+        <div id="shipsPanel" class="ui-panel" style="display: none; top: 150px;">
+            <div class="panel-tab" onclick="togglePanel('shipsPanel')">SHIPS</div>
+            <h2 style="font-size: 16px; margin-bottom: 10px;">Capital Ships</h2>
+            <div id="shipsList"></div>
         </div>
 
         <!-- Controls Panel (Center Top - Landscape) -->
@@ -5184,6 +5278,9 @@
                     this.armor = spec.armor;
                 }
 
+                // Assign ship name based on faction
+                this.name = this.generateShipName(faction, type);
+
                 // Initialize AA batteries with cooldowns (wet navy only)
                 this.aaBatteries = (spec.aaBatteries || []).map(battery => ({
                     ...battery,
@@ -9126,44 +9223,41 @@
                     return;
                 }
 
-                // Check shield penetration (spinal railguns can penetrate)
-                if (shieldPenetration > 0) {
-                    const penetratingDamage = damage * shieldPenetration;
-                    const blockedDamage = damage * (1 - shieldPenetration);
+                // Determine which shield face was hit
+                const faceIndex = this.determineShieldFace(target, distance);
+                const face = target.shields.faceHP[faceIndex];
 
-                    // Determine which shield face was hit
-                    const faceIndex = this.determineShieldFace(target, distance);
-                    const face = target.shields.faceHP[faceIndex];
+                // Apply damage to shield
+                face.current -= damage / 10; // Shields absorb damage (scaled down)
+                face.lastHitTime = Date.now();
 
-                    // Apply blocked damage to shield
-                    face.current -= blockedDamage / 10; // Shields absorb damage (scaled down)
-                    face.lastHitTime = Date.now();
-
-                    if (face.current < 0) {
-                        // Shield face collapsed - excess damage penetrates
-                        this.applyArmorDamage(target, Math.abs(face.current) * 10 + penetratingDamage, weaponType);
-                        face.current = 0;
-                    } else {
-                        // Shield held - only penetrating damage gets through
-                        this.applyArmorDamage(target, penetratingDamage, weaponType);
-                    }
-
-                    console.log(`  └─ Shield face ${faceIndex+1}: ${face.current.toFixed(1)}% (${penetratingDamage.toFixed(0)} penetrated)`);
+                if (face.current < 0) {
+                    // Shield face collapsed - damage penetrates to armor
+                    const excessDamage = Math.abs(face.current) * 10;
+                    face.current = 0;
+                    this.applyArmorDamage(target, excessDamage, weaponType);
+                    console.log(`  └─ Shield face ${faceIndex+1} COLLAPSED! Excess damage: ${excessDamage.toFixed(0)}`);
                 } else {
-                    // Full shield block (lasers, particle beams, missiles)
-                    const faceIndex = this.determineShieldFace(target, distance);
-                    const face = target.shields.faceHP[faceIndex];
+                    // Shield held - apply reduced damage based on weapon type
+                    console.log(`  └─ Shield face ${faceIndex+1} BLOCKED (${face.current.toFixed(1)}% remaining)`);
 
-                    face.current -= damage / 10; // Shields absorb damage
-                    face.lastHitTime = Date.now();
+                    // Determine damage through shields based on weapon type
+                    let shieldLeakDamage = 0;
+                    if (weaponType === 'spinal_railgun') {
+                        // Spinal mounts deal 25% damage through shields
+                        shieldLeakDamage = damage * 0.25;
+                        console.log(`  └─ Spinal mount: ${shieldLeakDamage.toFixed(0)} damage leaks through shields (25%)`);
+                    } else if (weaponType === 'mass_driver' || weaponType === 'laser' || weaponType === 'particle_beam') {
+                        // Turrets deal 10% damage through shields (but not PD turrets)
+                        if (weaponType !== 'point_defense') {
+                            shieldLeakDamage = damage * 0.10;
+                            console.log(`  └─ Turret: ${shieldLeakDamage.toFixed(0)} damage leaks through shields (10%)`);
+                        }
+                    }
+                    // Broadside (laser_bank), Chaser (chaser), Missiles (missile), PD (point_defense) do 0 damage when blocked
 
-                    if (face.current < 0) {
-                        // Shield collapsed - excess damage penetrates
-                        this.applyArmorDamage(target, Math.abs(face.current) * 10, weaponType);
-                        face.current = 0;
-                        console.log(`  └─ Shield face ${faceIndex+1} COLLAPSED! Excess damage: ${(Math.abs(face.current) * 10).toFixed(0)}`);
-                    } else {
-                        console.log(`  └─ Shield face ${faceIndex+1} BLOCKED (${face.current.toFixed(1)}% remaining)`);
+                    if (shieldLeakDamage > 0) {
+                        this.applyArmorDamage(target, shieldLeakDamage, weaponType);
                     }
                 }
             }
@@ -9195,12 +9289,12 @@
                     block.isDestroyed = true;
                     console.log(`  └─ Armor Block ${block.blockNumber} DESTROYED!`);
 
-                    // Excess damage penetrates to systems
+                    // Excess damage penetrates to depth 1 internal systems
                     const excessDamage = Math.abs(block.hp);
-                    this.applySystemDamage(target, excessDamage, weaponType);
+                    this.applyInternalDamage(target, excessDamage, blockIndex, 1, weaponType);
 
                     block.hp = 0;
-                } else {
+                } else if (block.hp > 0) {
                     // Update damage level
                     const hpPercent = block.hp / block.maxHp;
                     if (hpPercent > 0.70) block.damageLevel = 1; // Minor
@@ -9222,20 +9316,132 @@
                 }
             }
 
-            applySystemDamage(target, damage, weaponType) {
-                // Penetrating damage hits internal systems
-                // For now, apply to excess damage pool
-                if (!target.excessDamagePool) return;
+            applyInternalDamage(target, damage, blockIndex, currentDepth, weaponType) {
+                // Depth-based internal damage system
+                // Damage penetrates through depth 1, 2, 3, 4 systems before reaching excess pool
+                if (!target.systemHP || !target.excessDamagePool) return;
 
-                target.excessDamagePool.current -= damage;
-                console.log(`  └─ INTERNAL DAMAGE! Excess pool: ${target.excessDamagePool.current.toFixed(0)}/${target.excessDamagePool.max.toFixed(0)}`);
-
-                if (target.excessDamagePool.current <= 0) {
-                    // Ship breaks apart!
-                    target.isDestroyed = true;
-                    target.isSinking = true;
-                    console.log(`  └─ ${target.type.toUpperCase()} BREAKING APART!`);
+                // Find systems at current depth
+                const systemsAtDepth = [];
+                for (const [systemName, system] of Object.entries(target.systemHP)) {
+                    if (system.depth === currentDepth && system.current > 0) {
+                        systemsAtDepth.push({ name: systemName, system: system });
+                    }
                 }
+
+                if (systemsAtDepth.length > 0) {
+                    // Randomly select a system at this depth (or use blockNumber mapping if available)
+                    const targetSystem = systemsAtDepth[Math.floor(Math.random() * systemsAtDepth.length)];
+                    const system = targetSystem.system;
+                    const systemName = targetSystem.name;
+
+                    system.current -= damage;
+                    console.log(`  └─ Depth ${currentDepth} ${systemName.toUpperCase()} HIT: ${system.current.toFixed(0)}/${system.max.toFixed(0)} HP`);
+
+                    if (system.current <= 0) {
+                        // System destroyed - apply excess damage to next depth
+                        const excessDamage = Math.abs(system.current);
+                        system.current = 0;
+                        console.log(`  └─ ${systemName.toUpperCase()} DESTROYED!`);
+
+                        // Apply system-specific effects
+                        this.applySystemDestructionEffects(target, systemName);
+
+                        // Continue to next depth
+                        this.applyInternalDamage(target, excessDamage, blockIndex, currentDepth + 1, weaponType);
+                    } else {
+                        // System damaged but not destroyed - apply efficiency penalty
+                        const efficiency = system.current / system.max;
+                        if (system.hasOwnProperty('efficiency')) {
+                            system.efficiency = Math.max(0.2, efficiency);
+                        }
+                    }
+                } else {
+                    // No systems at this depth - try next depth
+                    if (currentDepth < 5) {
+                        this.applyInternalDamage(target, damage, blockIndex, currentDepth + 1, weaponType);
+                    } else {
+                        // No more systems - damage goes to excess damage pool
+                        target.excessDamagePool.current -= damage;
+                        console.log(`  └─ EXCESS DAMAGE POOL: ${target.excessDamagePool.current.toFixed(0)}/${target.excessDamagePool.max.toFixed(0)}`);
+
+                        if (target.excessDamagePool.current <= 0) {
+                            // Ship falls apart!
+                            target.isDestroyed = true;
+                            target.isSinking = true;
+                            console.log(`  └─ ${target.type.toUpperCase()} FALLS APART!`);
+                        }
+                    }
+                }
+            }
+
+            applySystemDestructionEffects(target, systemName) {
+                // Apply effects when systems are destroyed
+                switch (systemName) {
+                    case 'flight':
+                        target.currentMaxSpeed *= 0.5;
+                        target.currentTurnRate *= 0.5;
+                        console.log(`  └─ Propulsion damaged - speed/maneuverability reduced`);
+                        break;
+                    case 'weapons':
+                        // Disable random weapons
+                        if (target.rlWeapons) {
+                            const weaponKeys = Object.keys(target.rlWeapons);
+                            const randomWeapon = weaponKeys[Math.floor(Math.random() * weaponKeys.length)];
+                            if (target.rlWeapons[randomWeapon]) {
+                                target.rlWeapons[randomWeapon].isDestroyed = true;
+                                console.log(`  └─ ${randomWeapon} disabled`);
+                            }
+                        }
+                        break;
+                    case 'power':
+                        if (target.shields) {
+                            target.shields.active = false;
+                            console.log(`  └─ Shields offline!`);
+                        }
+                        break;
+                    case 'c3':
+                        // Reduce weapon accuracy
+                        console.log(`  └─ Fire control offline - weapon accuracy degraded`);
+                        break;
+                    case 'crew':
+                        console.log(`  └─ Crew casualties mounting`);
+                        break;
+                    case 'marines':
+                        console.log(`  └─ Marine casualties`);
+                        break;
+                }
+            }
+
+            generateShipName(faction, type) {
+                // TOG ships: historical names (places, people, events from Earth history)
+                const togNames = [
+                    'Achilles', 'Sparta', 'Trajan', 'Kursk', 'Tiber', 'Danube',
+                    'Marathon', 'Thermopylae', 'Caesar', 'Hannibal', 'Napoleon', 'Wellington',
+                    'Waterloo', 'Gettysburg', 'Stalingrad', 'Midway', 'Trafalgar', 'Austerlitz',
+                    'Thames', 'Rhine', 'Seine', 'Nile', 'Amazon', 'Mississippi',
+                    'Everest', 'Olympus', 'Kilimanjaro', 'Vesuvius', 'Etna', 'Fuji',
+                    'Alexander', 'Leonidas', 'Scipio', 'Agincourt', 'Hastings', 'Salamis',
+                    'Verdun', 'Somme', 'Guadalcanal', 'Iwo Jima', 'El Alamein', 'Normandy'
+                ];
+
+                // Commonwealth ships: abstract nouns and verbs
+                const commonwealthNames = [
+                    'Daring', 'Illustrious', 'Revenge', 'Adamant', 'Endurance',
+                    'Resolute', 'Intrepid', 'Valiant', 'Defiant', 'Relentless',
+                    'Indomitable', 'Invincible', 'Formidable', 'Tremendous', 'Audacious',
+                    'Courageous', 'Glorious', 'Victorious', 'Magnificent', 'Majestic',
+                    'Fearless', 'Dauntless', 'Undaunted', 'Reliant', 'Steadfast',
+                    'Vigilant', 'Dominant', 'Triumphant', 'Resurgent', 'Ascendant',
+                    'Vengeance', 'Justice', 'Liberty', 'Freedom', 'Unity',
+                    'Stalwart', 'Tenacious', 'Indefatigable', 'Inexorable', 'Implacable'
+                ];
+
+                const prefix = faction === 'tog' ? 'TIS' : 'CWS';
+                const namePool = faction === 'tog' ? togNames : commonwealthNames;
+                const randomName = namePool[Math.floor(Math.random() * namePool.length)];
+
+                return `${prefix} ${randomName}`;
             }
 
             explodeReactor() {
@@ -17371,6 +17577,96 @@
                 }
             }
             document.getElementById('executeButton').style.display = showExecute ? 'block' : 'none';
+
+            // Update ships panel
+            updateShipsPanel();
+        }
+
+        function updateShipsPanel() {
+            // Show ships panel only if there are capital ships
+            if (!capitalShips || capitalShips.length === 0) {
+                document.getElementById('shipsPanel').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('shipsPanel').style.display = 'block';
+
+            const shipsList = document.getElementById('shipsList');
+            shipsList.innerHTML = '';
+
+            capitalShips.forEach(ship => {
+                if (ship.isDestroyed) return;
+
+                const shipEntry = document.createElement('div');
+                shipEntry.className = 'ship-entry';
+                shipEntry.dataset.shipId = ship.id;
+
+                // Faction color
+                const factionColor = ship.faction === 'tog' ? '#ff5050' : '#5050ff';
+
+                // Calculate HP percentage
+                const hpPercent = ship.health / ship.maxHealth * 100;
+
+                // Calculate shield percentage (average across all faces)
+                let shieldPercent = 0;
+                if (ship.shields && ship.shields.active) {
+                    const avgShield = ship.shields.faceHP.reduce((sum, face) => sum + face.current, 0) / ship.shields.faceHP.length;
+                    shieldPercent = avgShield;
+                }
+
+                shipEntry.innerHTML = `
+                    <div class="ship-entry-header" onclick="toggleShipDetails('${ship.id}')">
+                        <span class="ship-name" style="color: ${factionColor}">${ship.name}</span>
+                        <span class="ship-camera-icon" onclick="event.stopPropagation(); centerMapOnShip('${ship.id}')">📹</span>
+                    </div>
+                    <div class="ship-details" id="ship-details-${ship.id}">
+                        <div>Type: ${ship.type.toUpperCase()}</div>
+                        <div>Hull:</div>
+                        <div class="ship-hp-bar">
+                            <div class="ship-hp-fill" style="width: ${hpPercent}%; background: ${hpPercent > 50 ? '#00ff00' : hpPercent > 25 ? '#ffaa00' : '#ff0000'}"></div>
+                        </div>
+                        <div>${Math.floor(ship.health)}/${Math.floor(ship.maxHealth)} HP (${Math.floor(hpPercent)}%)</div>
+                        ${ship.shields && ship.shields.active ? `
+                            <div>Shields:</div>
+                            <div class="ship-shield-bar">
+                                <div class="ship-shield-fill" style="width: ${shieldPercent}%"></div>
+                            </div>
+                            <div>${Math.floor(shieldPercent)}%</div>
+                        ` : '<div>Shields: OFFLINE</div>'}
+                        ${ship.excessDamagePool ? `
+                            <div>Structure: ${Math.floor(ship.excessDamagePool.current)}/${Math.floor(ship.excessDamagePool.max)}</div>
+                        ` : ''}
+                        ${ship.reactor ? `
+                            <div>Reactor: ${Math.floor(ship.reactor.stability)}%</div>
+                        ` : ''}
+                    </div>
+                `;
+
+                shipsList.appendChild(shipEntry);
+            });
+        }
+
+        function toggleShipDetails(shipId) {
+            const details = document.getElementById(`ship-details-${shipId}`);
+            if (details) {
+                details.classList.toggle('expanded');
+            }
+        }
+
+        function centerMapOnShip(shipId) {
+            const ship = capitalShips.find(s => s.id === shipId);
+            if (!ship) return;
+
+            // Center the map on the ship
+            const canvas = document.getElementById('gameCanvas');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // Set pan to center the ship
+            panX = -(ship.x - centerX);
+            panY = -(ship.y - centerY);
+
+            console.log(`Centered map on ${ship.name}`);
         }
 
         // Mouse handling
