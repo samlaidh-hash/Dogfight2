@@ -4513,6 +4513,142 @@
                 durability: 0.50, // KessRith heavy armor - takes 50% less damage
                 specialCapability: 'KessRith heavy fighter - laser-focused with rear gunner, exceptional armor',
                 color: '#9966ff' // Purple for KessRith
+            },
+
+            // === DROPSHIPS - Marine Assault Craft ===
+
+            'Dropship-Valkyrie': {
+                name: 'Valkyrie Assault Dropship',
+                nation: 'Commonwealth',
+                faction: 'commonwealth',
+                category: 'Renegade Legion',
+                role: 'Marine Assault / Boarding',
+                crew: 3, // Pilot, Co-pilot, Crew Chief
+                marines: 25, // Full platoon
+                sizeMultiplier: 1.80, // Larger than heavy fighters
+                maxSpeed: 400, // 4G - slower than heavy fighters
+                minSpeed: 0,
+                maxTurnRate: 70, // Poor maneuverability
+                maxClimbRate: 40,
+                maxDiveRate: 40,
+                maxGForce: 8,
+                maxAcceleration: 40, // 4G
+                maxBraking: 40,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'laser', name: '5/2 Laser Cannon', count: 2, damage: [5, 10], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'mass_driver', name: 'MDC-6 Suppression Gun', count: 4, ammo: 800, damage: [6, 12], rof: 4, range: 1800, sound: 'hmg' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 2, ammo: 6, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 320000, // 320 tons
+                armor: 520, // Very heavy armor for survivability
+                durability: 0.60, // Heavy armor reduces effective damage
+                specialCapability: 'Heavy armor, carries 25 marines for boarding actions, space-to-surface capable',
+                color: '#3399ff'
+            },
+
+            'Dropship-Corvus': {
+                name: 'Corvus Assault Dropship',
+                nation: 'TOG',
+                faction: 'tog',
+                category: 'Renegade Legion',
+                role: 'Marine Assault / Boarding',
+                crew: 3, // Pilot, Co-pilot, Crew Chief
+                marines: 25, // Full platoon
+                sizeMultiplier: 1.80, // Larger than heavy fighters
+                maxSpeed: 400, // 4G - slower than heavy fighters
+                minSpeed: 0,
+                maxTurnRate: 70, // Poor maneuverability
+                maxClimbRate: 40,
+                maxDiveRate: 40,
+                maxGForce: 8,
+                maxAcceleration: 40, // 4G
+                maxBraking: 40,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'mass_driver', name: 'MDC-8 Suppression Gun', count: 4, ammo: 800, damage: [8, 16], rof: 4, range: 1800, sound: 'hmg' },
+                    { type: 'laser', name: '5/3 Laser Cannon', count: 2, damage: [5, 10], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 2, ammo: 6, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 320000, // 320 tons
+                armor: 580, // 240 shields + 340 armor - even heavier than Commonwealth
+                durability: 0.55, // TOG heavy armor philosophy
+                specialCapability: 'Exceptional armor, carries 25 marines for boarding actions, Roman corvus-inspired design',
+                color: '#cc3333'
+            },
+
+            // === GUNSHIPS - Heavy Assault Craft ===
+
+            'Gunship-Warmonger': {
+                name: 'Warmonger Heavy Gunship',
+                nation: 'Commonwealth',
+                faction: 'commonwealth',
+                category: 'Renegade Legion',
+                role: 'Heavy Fire Support',
+                crew: 4, // Pilot, Systems Operator, 2x Weapons Officers
+                sizeMultiplier: 2.20, // Larger than dropships
+                maxSpeed: 500, // 5G - faster than dropships, slower than heavy fighters
+                minSpeed: 0,
+                maxTurnRate: 80, // Poor but better than dropship
+                maxClimbRate: 50,
+                maxDiveRate: 50,
+                maxGForce: 9,
+                maxAcceleration: 50, // 5G
+                maxBraking: 50,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'particle_beam', name: 'NPC-20 Spinal Mount', count: 2, damage: [20, 40], rof: 1.5, range: 2500, sound: 'laser' },
+                    { type: 'laser', name: '7.5/4 Laser Cannon', count: 4, damage: [8, 16], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'mass_driver', name: 'MDC-10 Turret', count: 4, ammo: 1200, damage: [10, 20], rof: 3, range: 2000, sound: 'hmg' },
+                    { type: 'laser', name: '5/2 Turret (Top)', count: 2, damage: [5, 10], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'laser', name: '5/2 Turret (Bottom)', count: 2, damage: [5, 10], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 4, ammo: 12, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 480000, // 480 tons - massive
+                armor: 450, // Better than heavy fighter, less than dropship
+                durability: 0.70, // Moderate armor
+                specialCapability: 'Multiple turrets (top/bottom), spinal mount weapons, 4-man crew, devastating firepower',
+                color: '#3399ff'
+            },
+
+            'Gunship-Fulmen': {
+                name: 'Fulmen Heavy Gunship',
+                nation: 'TOG',
+                faction: 'tog',
+                category: 'Renegade Legion',
+                role: 'Heavy Fire Support',
+                crew: 4, // Pilot, Systems Operator, 2x Weapons Officers
+                sizeMultiplier: 2.20, // Larger than dropships
+                maxSpeed: 500, // 5G - faster than dropships, slower than heavy fighters
+                minSpeed: 0,
+                maxTurnRate: 80, // Poor but better than dropship
+                maxClimbRate: 50,
+                maxDiveRate: 50,
+                maxGForce: 9,
+                maxAcceleration: 50, // 5G
+                maxBraking: 50,
+                serviceCeiling: 999999,
+                weapons: [
+                    { type: 'mass_driver', name: 'MDC-16 Spinal Mount', count: 2, ammo: 600, damage: [16, 32], rof: 2, range: 2200, sound: 'hmg' },
+                    { type: 'laser', name: '7.5/5 Laser Cannon', count: 4, damage: [9, 18], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'mass_driver', name: 'MDC-12 Turret', count: 4, ammo: 1200, damage: [12, 24], rof: 3, range: 2000, sound: 'hmg' },
+                    { type: 'laser', name: '5/3 Turret (Top)', count: 2, damage: [5, 10], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'laser', name: '5/3 Turret (Bottom)', count: 2, damage: [5, 10], rof: 2, range: 2000, sound: 'laser' },
+                    { type: 'missile_hardpoint', name: 'Missile Hardpoint', count: 4, ammo: 12, damage: [40, 80], guided: true, range: 5000 }
+                ],
+                fuelCapacity: 999999,
+                fuelConsumption: 0,
+                emptyWeight: 480000, // 480 tons - massive
+                armor: 510, // 200 shields + 310 armor - better than Commonwealth
+                durability: 0.65, // TOG armor philosophy
+                specialCapability: 'Multiple turrets (top/bottom), spinal mount weapons, 4-man crew, kinetic-focused firepower',
+                color: '#cc3333'
             }
         };
 
@@ -5129,6 +5265,59 @@
                 }
             }
         }
+
+        /*
+         * ============================================================
+         * CAPITAL SHIP ARMOR BLOCK HIT MECHANICS
+         * ============================================================
+         *
+         * Capital ships use a compartmentalized armor system where damage
+         * is tracked per armor block. Different weapon types have different
+         * hit distribution patterns:
+         *
+         * SPINAL MOUNT WEAPONS:
+         *   - Each shot strikes a single armor block
+         *   - High precision, concentrated damage
+         *   - Example: Heavy particle beam running length of ship
+         *
+         * TURRET WEAPONS (Non-Point Defense):
+         *   - Every TWO shots strike the same armor block
+         *   - Rarely: Two adjacent blocks take one hit each
+         *   - Represents sustained fire from turreted weapons
+         *   - Example: Laser turrets, mass driver turrets
+         *
+         * BROADSIDE BANKS:
+         *   - Multiple guns firing simultaneously
+         *   - ~40% of hits strike the CENTRAL armor block
+         *   - ~15% of hits strike EACH adjacent block:
+         *     - Left side (laterally)
+         *     - Right side (laterally)
+         *     - Top side (vertical)
+         *     - Bottom side (vertical)
+         *   - Total: 40% + (4 × 15%) = 100%
+         *   - Represents massed battery fire
+         *
+         * MISSILE HITS:
+         *   - 80% chance: Hits random armor block on impact side
+         *   - 20% chance: Hits one of four adjacent sides
+         *   - Impact side determined by missile approach vector
+         *   - Adjacent sides: forward, aft, dorsal, ventral relative to impact
+         *
+         * FIGHTER FLIGHT ATTACKS:
+         *   - A flight consists of 4 fighters
+         *   - ALL attacks from the flight hit the SAME armor block
+         *   - Represents coordinated strike on specific target area
+         *   - Enhanced chance to hit POINT DEFENSE TURRETS
+         *   - Fighters can specifically target ship systems
+         *
+         * IMPLEMENTATION NOTES:
+         *   - Ships have 32 compartments representing armor blocks
+         *   - Each compartment has its own armor value
+         *   - Once compartment armor is depleted, internal damage occurs
+         *   - Critical systems can be destroyed through focused fire
+         *
+         * ============================================================
+         */
 
         // Capital Ship class - Large naval vessels with AA batteries
         // Global ship ID counter for unique identification
@@ -21071,9 +21260,13 @@
             'Fighter-Penetrator': { slots: 2, category: 'Heavy' },
             'Fighter-Martiobarbulus': { slots: 2, category: 'Heavy' },
             'Fighter-Spiculum': { slots: 2, category: 'Heavy' },
-            'Fighter-Guardian': { slots: 2, category: 'Heavy' }
-            // Dropships: 3 slots (not yet in database)
-            // Gunships: 4 slots (not yet in database)
+            'Fighter-Guardian': { slots: 2, category: 'Heavy' },
+            // Dropships: 3 slots - marine assault craft
+            'Dropship-Valkyrie': { slots: 3, category: 'Dropship' },
+            'Dropship-Corvus': { slots: 3, category: 'Dropship' },
+            // Gunships: 4 slots - heavy fire support
+            'Gunship-Warmonger': { slots: 4, category: 'Gunship' },
+            'Gunship-Fulmen': { slots: 4, category: 'Gunship' }
         };
 
         function proceedToLoadoutConfig() {
@@ -21227,7 +21420,9 @@
                 'Fighter-Cheetah',
                 'Fighter-Avenger',
                 'Fighter-Penetrator',
-                'Fighter-Guardian'
+                'Fighter-Guardian',
+                'Dropship-Valkyrie',
+                'Gunship-Warmonger'
             ];
             const togFighters = [
                 'Fighter-Pilum',
@@ -21235,7 +21430,9 @@
                 'Fighter-Lancea',
                 'Fighter-Verutum',
                 'Fighter-Martiobarbulus',
-                'Fighter-Spiculum'
+                'Fighter-Spiculum',
+                'Dropship-Corvus',
+                'Gunship-Fulmen'
             ];
 
             const fighters = faction === 'commonwealth' ? commonwealthFighters : togFighters;
