@@ -5170,6 +5170,7 @@
                             airWing: 1300,    // Fighter complement
                             fighterBays: 13,  // 1 bay per 100 fighters
                             compartments: 32, // Armor blocks
+                            missileArrays: 12, // Missile array cells
                             fighterComplement: [
                                 { type: 'Fighter-Cheetah', count: 650 },
                                 { type: 'Fighter-Avenger', count: 400 },
@@ -5189,6 +5190,7 @@
                             airWing: 1000,
                             fighterBays: 10,
                             compartments: 32,
+                            missileArrays: 10, // Missile array cells
                             fighterComplement: [
                                 { type: 'Fighter-Cheetah', count: 500 },
                                 { type: 'Fighter-Avenger', count: 300 },
@@ -5208,10 +5210,31 @@
                             airWing: 600,
                             fighterBays: 6,
                             compartments: 32,
+                            missileArrays: 8, // Missile array cells
                             fighterComplement: [
                                 { type: 'Fighter-Cheetah', count: 300 },
                                 { type: 'Fighter-Avenger', count: 200 },
                                 { type: 'Fighter-Penetrator', count: 100 }
+                            ]
+                        },
+                        'lightcruiser': {  // CL - Light Cruiser
+                            length: 500,
+                            beam: 60,
+                            mass: 800000,     // 800k tonnes
+                            speed: 0,
+                            health: 160000,   // 800k / 5
+                            baseAcceleration: 7,
+                            pivotRate: 35,
+                            crew: 1200,
+                            marines: 350,
+                            airWing: 400,
+                            fighterBays: 4,
+                            compartments: 32,
+                            missileArrays: 6, // Missile array cells
+                            fighterComplement: [
+                                { type: 'Fighter-Cheetah', count: 200 },
+                                { type: 'Fighter-Avenger', count: 120 },
+                                { type: 'Fighter-Penetrator', count: 80 }
                             ]
                         },
                         'destroyer': {  // DD - Destroyer
@@ -5227,13 +5250,14 @@
                             airWing: 200,
                             fighterBays: 2,
                             compartments: 32,
+                            missileArrays: 4, // Missile array cells
                             fighterComplement: [
                                 { type: 'Fighter-Cheetah', count: 100 },
                                 { type: 'Fighter-Avenger', count: 60 },
                                 { type: 'Fighter-Penetrator', count: 40 }
                             ]
                         },
-                        'carrier': {  // CT - Corvette (using 'carrier' type for compatibility)
+                        'corvette': {  // CT - Corvette
                             length: 280,
                             beam: 35,
                             mass: 200000,     // 200k tonnes
@@ -5246,6 +5270,27 @@
                             airWing: 100,
                             fighterBays: 1,
                             compartments: 32,
+                            missileArrays: 2, // Missile array cells
+                            fighterComplement: [
+                                { type: 'Fighter-Cheetah', count: 50 },
+                                { type: 'Fighter-Avenger', count: 30 },
+                                { type: 'Fighter-Penetrator', count: 20 }
+                            ]
+                        },
+                        'carrier': {  // CV - Carrier (for backwards compatibility)
+                            length: 280,
+                            beam: 35,
+                            mass: 200000,     // 200k tonnes
+                            speed: 0,
+                            health: 40000,    // 200k / 5
+                            baseAcceleration: 9,
+                            pivotRate: 45,
+                            crew: 400,
+                            marines: 100,
+                            airWing: 100,
+                            fighterBays: 1,
+                            compartments: 32,
+                            missileArrays: 2, // Missile array cells
                             fighterComplement: [
                                 { type: 'Fighter-Cheetah', count: 50 },
                                 { type: 'Fighter-Avenger', count: 30 },
@@ -20938,15 +20983,12 @@
             document.getElementById('splashScreen').style.display = 'none';
             document.getElementById('renegadeLegionBattleSelector').style.display = 'block';
 
-            // Set up default forces
-            commonwealthShips = [
-                { type: 'Fighter-Avenger', isPlayer: true },
-                { type: 'Fighter-Cheetah', isPlayer: false }
-            ];
-            togShips = [
-                { type: 'Fighter-Gladius', isPlayer: false },
-                { type: 'Fighter-Lancea', isPlayer: false }
-            ];
+            // Clear previous selections
+            commonwealthShips = [];
+            togShips = [];
+
+            // Hide loadout config screen if visible
+            document.getElementById('rlLoadoutConfig').style.display = 'none';
 
             updateShipLists();
         }
@@ -20956,37 +20998,34 @@
             document.getElementById('splashScreen').style.display = 'block';
         }
 
-        function addCommonwealthShip() {
-            const select = document.getElementById('commonwealthShipSelect');
+        function addRLShip(faction) {
+            const select = document.getElementById(faction === 'commonwealth' ? 'commonwealthShipSelect' : 'togShipSelect');
             const shipType = select.value;
 
             if (!shipType) {
-                alert('Please select a ship type');
+                alert('Please select a capital ship type');
                 return;
             }
 
-            commonwealthShips.push({
+            // Create ship with default loadout configuration
+            const shipConfig = {
                 type: shipType,
-                isPlayer: false // Default to AI
-            });
+                isPlayer: false, // Default to AI
+                loadout: {
+                    fighterBays: [], // Will be populated in loadout config
+                    missileArrays: {
+                        dogfight: 0,  // Dogfight missiles (4 per cell)
+                        standard: 0,  // Standard missiles (1 per cell)
+                        torpedo: 0    // Torpedoes (1 per cell)
+                    }
+                }
+            };
 
-            select.value = '';
-            updateShipLists();
-        }
-
-        function addTogShip() {
-            const select = document.getElementById('togShipSelect');
-            const shipType = select.value;
-
-            if (!shipType) {
-                alert('Please select a ship type');
-                return;
+            if (faction === 'commonwealth') {
+                commonwealthShips.push(shipConfig);
+            } else {
+                togShips.push(shipConfig);
             }
-
-            togShips.push({
-                type: shipType,
-                isPlayer: false // Default to AI
-            });
 
             select.value = '';
             updateShipLists();
@@ -21014,6 +21053,249 @@
             updateShipLists();
         }
 
+        // Fighter categorization for slot usage
+        const fighterSlots = {
+            // Light fighters: 0.5 slots
+            'Fighter-Cheetah': { slots: 0.5, category: 'Light' },
+            'Fighter-Pilum': { slots: 0.5, category: 'Light' },
+            // Medium fighters: 1 slot
+            'Fighter-Avenger': { slots: 1, category: 'Medium' },
+            'Fighter-Gladius': { slots: 1, category: 'Medium' },
+            'Fighter-Lancea': { slots: 1, category: 'Medium' },
+            'Fighter-Verutum': { slots: 1, category: 'Medium' },
+            // Heavy fighters: 2 slots
+            'Fighter-Penetrator': { slots: 2, category: 'Heavy' },
+            'Fighter-Martiobarbulus': { slots: 2, category: 'Heavy' },
+            'Fighter-Spiculum': { slots: 2, category: 'Heavy' },
+            'Fighter-Guardian': { slots: 2, category: 'Heavy' }
+            // Dropships: 3 slots (not yet in database)
+            // Gunships: 4 slots (not yet in database)
+        };
+
+        function proceedToLoadoutConfig() {
+            // Validate at least one ship per side
+            if (commonwealthShips.length === 0 || togShips.length === 0) {
+                alert('Please add at least one ship to each side before configuring loadouts!');
+                return;
+            }
+
+            // Hide ship selection, show loadout config
+            document.getElementById('renegadeLegionBattleSelector').style.display = 'none';
+            document.getElementById('rlLoadoutConfig').style.display = 'block';
+
+            // Generate loadout configuration UI
+            generateLoadoutConfigUI();
+        }
+
+        function backToShipSelection() {
+            document.getElementById('rlLoadoutConfig').style.display = 'none';
+            document.getElementById('renegadeLegionBattleSelector').style.display = 'block';
+        }
+
+        function generateLoadoutConfigUI() {
+            const container = document.getElementById('loadoutConfigList');
+            container.innerHTML = '';
+
+            // Add Commonwealth ships loadout config
+            const cwSection = document.createElement('div');
+            cwSection.innerHTML = `<h2 style="color: #0088ff; margin-top: 20px;">COMMONWEALTH FORCES LOADOUT</h2>`;
+            container.appendChild(cwSection);
+
+            commonwealthShips.forEach((ship, index) => {
+                const shipDiv = createShipLoadoutConfig(ship, 'commonwealth', index);
+                container.appendChild(shipDiv);
+            });
+
+            // Add TOG ships loadout config
+            const togSection = document.createElement('div');
+            togSection.innerHTML = `<h2 style="color: #ff4444; margin-top: 30px;">TOG EMPIRE LOADOUT</h2>`;
+            container.appendChild(togSection);
+
+            togShips.forEach((ship, index) => {
+                const shipDiv = createShipLoadoutConfig(ship, 'tog', index);
+                container.appendChild(shipDiv);
+            });
+        }
+
+        function createShipLoadoutConfig(ship, faction, index) {
+            // Get ship specifications from the capital ship data (simulated here)
+            const shipSpecs = getShipSpecs(ship.type);
+            const shipName = getShipDisplayName(ship.type);
+
+            const div = document.createElement('div');
+            div.style.cssText = `
+                background: rgba(${faction === 'commonwealth' ? '0, 150, 255' : '200, 0, 0'}, 0.2);
+                padding: 15px;
+                margin-bottom: 15px;
+                border-radius: 10px;
+                border: 2px solid ${faction === 'commonwealth' ? '#0088ff' : '#ff4444'};
+            `;
+
+            let html = `
+                <h3 style="margin-top: 0;">${shipName}</h3>
+                <div style="margin-bottom: 15px;">
+                    <strong>Fighter Bays:</strong> ${shipSpecs.fighterBays} bays available
+                </div>
+            `;
+
+            // Generate fighter bay configuration
+            html += `<div style="margin-left: 20px; margin-bottom: 15px;">`;
+            for (let i = 0; i < shipSpecs.fighterBays; i++) {
+                html += `
+                    <div style="margin-bottom: 10px;">
+                        <label>Bay ${i + 1}:</label>
+                        <select id="bay_${faction}_${index}_${i}" onchange="updateBayConfig('${faction}', ${index}, ${i})"
+                                style="width: 250px; padding: 5px; background: rgba(0, 0, 0, 0.5); color: white; border: 1px solid #666; border-radius: 4px; margin-left: 10px;">
+                            <option value="">-- Empty --</option>
+                            ${getFighterOptions(faction)}
+                        </select>
+                        <span id="bayslots_${faction}_${index}_${i}" style="margin-left: 10px; color: #aaa;"></span>
+                    </div>
+                `;
+            }
+            html += `</div>`;
+
+            // Generate missile array configuration
+            html += `
+                <div style="margin-bottom: 15px;">
+                    <strong>Missile Arrays:</strong> ${shipSpecs.missileArrays} cells available
+                </div>
+                <div style="margin-left: 20px;">
+                    <div style="margin-bottom: 8px;">
+                        <label>Dogfight Missiles (4 per cell):</label>
+                        <input type="number" id="dogfight_${faction}_${index}" min="0" max="${shipSpecs.missileArrays}"
+                               value="0" onchange="updateMissileConfig('${faction}', ${index})"
+                               style="width: 60px; padding: 5px; background: rgba(0, 0, 0, 0.5); color: white; border: 1px solid #666; border-radius: 4px; margin-left: 10px;">
+                        <span style="margin-left: 10px; color: #aaa;">= <span id="dogfightcount_${faction}_${index}">0</span> missiles</span>
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <label>Standard Missiles (1 per cell):</label>
+                        <input type="number" id="standard_${faction}_${index}" min="0" max="${shipSpecs.missileArrays}"
+                               value="0" onchange="updateMissileConfig('${faction}', ${index})"
+                               style="width: 60px; padding: 5px; background: rgba(0, 0, 0, 0.5); color: white; border: 1px solid #666; border-radius: 4px; margin-left: 10px;">
+                        <span style="margin-left: 10px; color: #aaa;">= <span id="standardcount_${faction}_${index}">0</span> missiles</span>
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <label>Torpedoes (1 per cell):</label>
+                        <input type="number" id="torpedo_${faction}_${index}" min="0" max="${shipSpecs.missileArrays}"
+                               value="0" onchange="updateMissileConfig('${faction}', ${index})"
+                               style="width: 60px; padding: 5px; background: rgba(0, 0, 0, 0.5); color: white; border: 1px solid #666; border-radius: 4px; margin-left: 10px;">
+                        <span style="margin-left: 10px; color: #aaa;">= <span id="torpedocount_${faction}_${index}">0</span> torpedoes</span>
+                    </div>
+                    <div style="margin-top: 10px; color: #ffaa00;">
+                        <strong>Cells Used:</strong> <span id="cellsused_${faction}_${index}">0</span> / ${shipSpecs.missileArrays}
+                    </div>
+                </div>
+            `;
+
+            div.innerHTML = html;
+            return div;
+        }
+
+        function getShipSpecs(shipType) {
+            // Simulate getting ship specs - in reality this would come from the CapitalShip class
+            const specs = {
+                'battleship': { fighterBays: 13, missileArrays: 12 },
+                'battlecruiser': { fighterBays: 10, missileArrays: 10 },
+                'cruiser': { fighterBays: 6, missileArrays: 8 },
+                'lightcruiser': { fighterBays: 4, missileArrays: 6 },
+                'destroyer': { fighterBays: 2, missileArrays: 4 },
+                'corvette': { fighterBays: 1, missileArrays: 2 }
+            };
+            return specs[shipType] || { fighterBays: 1, missileArrays: 2 };
+        }
+
+        function getShipDisplayName(shipType) {
+            const names = {
+                'battleship': 'Battleship (BB)',
+                'battlecruiser': 'Battlecruiser (BC)',
+                'cruiser': 'Heavy Cruiser (CA)',
+                'lightcruiser': 'Light Cruiser (CL)',
+                'destroyer': 'Destroyer (DD)',
+                'corvette': 'Corvette (CT)'
+            };
+            return names[shipType] || shipType.charAt(0).toUpperCase() + shipType.slice(1);
+        }
+
+        function getFighterOptions(faction) {
+            // Get fighters available to each faction
+            const commonwealthFighters = [
+                'Fighter-Cheetah',
+                'Fighter-Avenger',
+                'Fighter-Penetrator',
+                'Fighter-Guardian'
+            ];
+            const togFighters = [
+                'Fighter-Pilum',
+                'Fighter-Gladius',
+                'Fighter-Lancea',
+                'Fighter-Verutum',
+                'Fighter-Martiobarbulus',
+                'Fighter-Spiculum'
+            ];
+
+            const fighters = faction === 'commonwealth' ? commonwealthFighters : togFighters;
+            return fighters.map(f => {
+                const name = f.split('-')[1];
+                const slotInfo = fighterSlots[f] || { slots: 1, category: 'Medium' };
+                return `<option value="${f}">${name} ${slotInfo.category} (${slotInfo.slots} slots)</option>`;
+            }).join('');
+        }
+
+        function updateBayConfig(faction, shipIndex, bayIndex) {
+            const select = document.getElementById(`bay_${faction}_${shipIndex}_${bayIndex}`);
+            const slotSpan = document.getElementById(`bayslots_${faction}_${shipIndex}_${bayIndex}`);
+
+            const fighterType = select.value;
+            if (fighterType && fighterSlots[fighterType]) {
+                const slots = fighterSlots[fighterType].slots;
+                slotSpan.textContent = `(uses ${slots} slot${slots !== 1 ? 's' : ''})`;
+
+                // Update ship configuration
+                const ships = faction === 'commonwealth' ? commonwealthShips : togShips;
+                if (!ships[shipIndex].loadout.fighterBays[bayIndex]) {
+                    ships[shipIndex].loadout.fighterBays[bayIndex] = {};
+                }
+                ships[shipIndex].loadout.fighterBays[bayIndex].type = fighterType;
+                ships[shipIndex].loadout.fighterBays[bayIndex].slots = slots;
+            } else {
+                slotSpan.textContent = '';
+            }
+        }
+
+        function updateMissileConfig(faction, shipIndex) {
+            const dogfight = parseInt(document.getElementById(`dogfight_${faction}_${shipIndex}`).value) || 0;
+            const standard = parseInt(document.getElementById(`standard_${faction}_${shipIndex}`).value) || 0;
+            const torpedo = parseInt(document.getElementById(`torpedo_${faction}_${shipIndex}`).value) || 0;
+
+            const totalCells = dogfight + standard + torpedo;
+            const shipSpecs = getShipSpecs((faction === 'commonwealth' ? commonwealthShips : togShips)[shipIndex].type);
+
+            // Update displays
+            document.getElementById(`dogfightcount_${faction}_${shipIndex}`).textContent = dogfight * 4;
+            document.getElementById(`standardcount_${faction}_${shipIndex}`).textContent = standard;
+            document.getElementById(`torpedocount_${faction}_${shipIndex}`).textContent = torpedo;
+            document.getElementById(`cellsused_${faction}_${shipIndex}`).textContent = totalCells;
+
+            // Change color based on usage
+            const cellsUsedSpan = document.getElementById(`cellsused_${faction}_${shipIndex}`).parentElement;
+            if (totalCells > shipSpecs.missileArrays) {
+                cellsUsedSpan.style.color = '#ff0000';
+            } else if (totalCells === shipSpecs.missileArrays) {
+                cellsUsedSpan.style.color = '#00ff00';
+            } else {
+                cellsUsedSpan.style.color = '#ffaa00';
+            }
+
+            // Update ship configuration
+            const ships = faction === 'commonwealth' ? commonwealthShips : togShips;
+            ships[shipIndex].loadout.missileArrays = {
+                dogfight: dogfight,
+                standard: standard,
+                torpedo: torpedo
+            };
+        }
+
         function updateShipLists() {
             const commonwealthList = document.getElementById('commonwealthShipList');
             const togList = document.getElementById('togShipList');
@@ -21022,12 +21304,20 @@
             commonwealthList.innerHTML = '';
             togList.innerHTML = '';
 
+            // Show placeholder if no ships
+            if (commonwealthShips.length === 0) {
+                commonwealthList.innerHTML = '<div style="opacity: 0.6; font-style: italic;">No ships selected</div>';
+            }
+            if (togShips.length === 0) {
+                togList.innerHTML = '<div style="opacity: 0.6; font-style: italic;">No ships selected</div>';
+            }
+
             // Render Commonwealth ships
             commonwealthShips.forEach((ship, index) => {
                 const div = document.createElement('div');
                 div.style.cssText = 'background: rgba(0, 150, 255, 0.2); padding: 10px; margin-bottom: 10px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;';
 
-                const shipName = ship.type.includes('Fighter') ? ship.type.split('-')[1] + ' Fighter' : ship.type.charAt(0).toUpperCase() + ship.type.slice(1);
+                const shipName = getShipDisplayName(ship.type);
 
                 div.innerHTML = `
                     <div style="flex: 1;">
@@ -21051,7 +21341,7 @@
                 const div = document.createElement('div');
                 div.style.cssText = 'background: rgba(200, 0, 0, 0.2); padding: 10px; margin-bottom: 10px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;';
 
-                const shipName = ship.type.includes('Fighter') ? ship.type.split('-')[1] + ' Fighter' : ship.type.charAt(0).toUpperCase() + ship.type.slice(1);
+                const shipName = getShipDisplayName(ship.type);
 
                 div.innerHTML = `
                     <div style="flex: 1;">
