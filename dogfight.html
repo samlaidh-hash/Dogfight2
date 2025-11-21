@@ -392,6 +392,30 @@
             transform: scale(1.05);
         }
 
+        .scenario-btn {
+            padding: 20px;
+            background: rgba(30, 60, 100, 0.6);
+            color: white;
+            border: 2px solid #4a9eff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s;
+            text-align: left;
+        }
+
+        .scenario-btn:hover {
+            background: rgba(50, 100, 150, 0.8);
+            border-color: #6bf;
+            transform: scale(1.02);
+        }
+
+        .scenario-btn.selected {
+            background: rgba(100, 150, 255, 0.4);
+            border-color: #4af;
+            border-width: 3px;
+        }
+
         .mode-description {
             font-size: 12px;
             color: #ccc;
@@ -1017,7 +1041,137 @@
 
             <div style="text-align: center; margin-top: 20px;">
                 <button class="btn btn-primary" onclick="startCustomBattle()">START BATTLE</button>
-                <button class="btn" onclick="hideSplashScreen(); document.getElementById('aircraftSelector').style.display='none';">BACK</button>
+                <button class="btn" onclick="document.getElementById('aircraftSelector').style.display='none'; document.getElementById('scenarioSelector').style.display='block';">BACK</button>
+            </div>
+        </div>
+
+        <!-- Scenario Selection Panel (for Custom Battles) -->
+        <div id="scenarioSelector" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); display: none; z-index: 1000; overflow-y: auto;">
+            <div style="max-width: 1200px; margin: 0 auto; padding: 40px; color: #fff;">
+                <div class="panel-title" style="font-size: 36px; margin-bottom: 30px;">SCENARIO SETUP</div>
+
+                <!-- Map Type Selection -->
+                <div style="margin-bottom: 30px;">
+                    <h2 style="font-size: 24px; margin-bottom: 20px; color: #4af;">Choose Map Type</h2>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+                        <button class="scenario-btn" onclick="selectScenarioMap('mountains')" data-map="mountains">
+                            <div style="font-size: 18px; font-weight: bold;">⛰️ Mountains & Clouds</div>
+                            <div style="font-size: 12px; opacity: 0.8;">WW2 terrain with mountains and ground units</div>
+                        </button>
+                        <button class="scenario-btn" onclick="selectScenarioMap('ww1-western')" data-map="ww1-western">
+                            <div style="font-size: 18px; font-weight: bold;">🏞️ Hills</div>
+                            <div style="font-size: 12px; opacity: 0.8;">Rolling hills, villages, ground units (trenches if 1914-1921)</div>
+                        </button>
+                        <button class="scenario-btn" onclick="selectScenarioMap('jungle')" data-map="jungle">
+                            <div style="font-size: 18px; font-weight: bold;">🌴 Jungle</div>
+                            <div style="font-size: 12px; opacity: 0.8;">Dense jungle with hills, rivers, and villages</div>
+                        </button>
+                        <button class="scenario-btn" onclick="selectScenarioMap('ww1-alps')" data-map="ww1-alps">
+                            <div style="font-size: 18px; font-weight: bold;">🏔️ Alps</div>
+                            <div style="font-size: 12px; opacity: 0.8;">Mountains up to 6km, clouds, ground units</div>
+                        </button>
+                        <button class="scenario-btn" onclick="selectScenarioMap('sea')" data-map="sea">
+                            <div style="font-size: 18px; font-weight: bold;">🌊 Sea</div>
+                            <div style="font-size: 12px; opacity: 0.8;">Open water with clouds and naval vessels</div>
+                        </button>
+                        <button class="scenario-btn" onclick="selectScenarioMap('coast')" data-map="coast">
+                            <div style="font-size: 18px; font-weight: bold;">🏖️ Coastal</div>
+                            <div style="font-size: 12px; opacity: 0.8;">Half sea/half land with coastline, ships & ground units</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Year Selection -->
+                <div style="margin-bottom: 30px;">
+                    <h2 style="font-size: 24px; margin-bottom: 20px; color: #4af;">Choose Year</h2>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 20px;">
+                        <button onclick="adjustYear(-5)" class="btn">-5</button>
+                        <button onclick="adjustYear(-1)" class="btn">-1</button>
+                        <div style="font-size: 32px; font-weight: bold; min-width: 150px; text-align: center; color: #4af;">
+                            <span id="selectedYear">1940</span>
+                        </div>
+                        <button onclick="adjustYear(1)" class="btn">+1</button>
+                        <button onclick="adjustYear(5)" class="btn">+5</button>
+                    </div>
+                    <div style="text-align: center; margin-top: 10px;">
+                        <input type="range" id="yearSlider" min="1914" max="2100" value="1940"
+                               onchange="updateYearFromSlider()"
+                               style="width: 60%; max-width: 600px;">
+                        <div style="font-size: 12px; opacity: 0.7; margin-top: 5px;">
+                            Range: 1914 (WW1) - 2100 (Far Future)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Objectives Selection -->
+                <div style="margin-bottom: 30px;">
+                    <h2 style="font-size: 24px; margin-bottom: 20px; color: #4af;">Mission Objectives</h2>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px;">
+                        <!-- Side A Objectives -->
+                        <div style="background: rgba(255, 80, 80, 0.2); padding: 15px; border-radius: 8px; border: 2px solid #ff5050;">
+                            <h3 style="font-size: 16px; margin-bottom: 10px; color: #ff5050;">Side A Objectives</h3>
+                            <div id="sideAObjectives" style="min-height: 60px; font-size: 14px;">
+                                <div style="opacity: 0.6; font-style: italic;">No objectives assigned</div>
+                            </div>
+                            <select id="objectiveSelectA" style="width: 100%; padding: 8px; margin-top: 10px; background: rgba(0, 0, 0, 0.5); color: white; border: 1px solid #ff5050; border-radius: 4px; font-family: 'Courier New', monospace;">
+                                <option value="">-- Add Objective --</option>
+                                <option value="destroy-all">Destroy all enemy aircraft</option>
+                                <option value="destroy-ground">Destroy ground targets</option>
+                                <option value="destroy-ships">Destroy enemy ships</option>
+                                <option value="protect-ground">Protect ground targets</option>
+                                <option value="protect-ships">Protect friendly ships</option>
+                                <option value="recon">Reconnaissance mission</option>
+                                <option value="survive">Survive for 10 turns</option>
+                                <option value="control-area">Control designated area</option>
+                            </select>
+                            <button onclick="addObjective('A')" class="btn" style="width: 100%; margin-top: 5px; background: #ff5050;">Add</button>
+                        </div>
+
+                        <!-- Side B Objectives -->
+                        <div style="background: rgba(80, 80, 255, 0.2); padding: 15px; border-radius: 8px; border: 2px solid #5050ff;">
+                            <h3 style="font-size: 16px; margin-bottom: 10px; color: #5050ff;">Side B Objectives</h3>
+                            <div id="sideBObjectives" style="min-height: 60px; font-size: 14px;">
+                                <div style="opacity: 0.6; font-style: italic;">No objectives assigned</div>
+                            </div>
+                            <select id="objectiveSelectB" style="width: 100%; padding: 8px; margin-top: 10px; background: rgba(0, 0, 0, 0.5); color: white; border: 1px solid #5050ff; border-radius: 4px; font-family: 'Courier New', monospace;">
+                                <option value="">-- Add Objective --</option>
+                                <option value="destroy-all">Destroy all enemy aircraft</option>
+                                <option value="destroy-ground">Destroy ground targets</option>
+                                <option value="destroy-ships">Destroy enemy ships</option>
+                                <option value="protect-ground">Protect ground targets</option>
+                                <option value="protect-ships">Protect friendly ships</option>
+                                <option value="recon">Reconnaissance mission</option>
+                                <option value="survive">Survive for 10 turns</option>
+                                <option value="control-area">Control designated area</option>
+                            </select>
+                            <button onclick="addObjective('B')" class="btn" style="width: 100%; margin-top: 5px; background: #5050ff;">Add</button>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <button onclick="randomizeObjectives()" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 10px 30px;">
+                            🎲 Randomize Objectives
+                        </button>
+                        <button onclick="clearAllObjectives()" class="btn" style="background: #666; padding: 10px 30px; margin-left: 10px;">
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Selected Scenario Display -->
+                <div id="scenarioSummary" style="margin-bottom: 30px; padding: 20px; background: rgba(100, 150, 255, 0.1); border: 2px solid #4af; border-radius: 8px; display: none;">
+                    <h3 style="font-size: 18px; margin-bottom: 10px;">Selected Scenario:</h3>
+                    <div id="scenarioDetails" style="font-size: 14px;"></div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="text-align: center;">
+                    <button class="btn btn-primary" onclick="proceedToAircraftSelection()" id="proceedBtn" disabled style="opacity: 0.5;">
+                        PROCEED TO AIRCRAFT SELECTION
+                    </button>
+                    <button class="btn" onclick="hideScenarioSelector()">BACK</button>
+                </div>
             </div>
         </div>
 
@@ -10644,7 +10798,7 @@
 
         // WW1 Terrain class - specialized for WW1 era battles
         class WW1Terrain {
-            constructor(isAlps = false) {
+            constructor(isAlps = false, includeTrenches = true) {
                 this.hills = [];
                 this.clouds = [];
                 this.trenches = [];
@@ -10652,7 +10806,9 @@
                 this.isAlps = isAlps;
                 this.generateHills(isAlps);
                 this.generateClouds(isAlps);
-                this.generateTrenches();
+                if (includeTrenches) {
+                    this.generateTrenches();
+                }
                 this.generateVillages();
             }
 
@@ -20588,11 +20744,266 @@
         }
 
         function showAircraftSelector() {
-            // Instead of directly showing aircraft selector, show generation selector first
-            showGenerationSelector();
+            // Show scenario selector first for custom battles
+            showScenarioSelector();
             return;
-            // Removed - now handled by selectGeneration()
-            // Initialize loadout display with event listeners
+        }
+
+        // Scenario selector variables
+        let selectedScenarioMap = null;
+        let selectedScenarioYear = 1940;
+
+        function showScenarioSelector() {
+            document.getElementById('splashScreen').style.display = 'none';
+            document.getElementById('scenarioSelector').style.display = 'block';
+
+            // Reset selections
+            selectedScenarioMap = null;
+            selectedScenarioYear = 1940;
+            document.getElementById('selectedYear').textContent = selectedScenarioYear;
+            document.getElementById('yearSlider').value = selectedScenarioYear;
+            document.getElementById('scenarioSummary').style.display = 'none';
+            document.getElementById('proceedBtn').disabled = true;
+            document.getElementById('proceedBtn').style.opacity = '0.5';
+
+            // Clear any selected buttons
+            document.querySelectorAll('.scenario-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+        }
+
+        function hideScenarioSelector() {
+            document.getElementById('scenarioSelector').style.display = 'none';
+            document.getElementById('splashScreen').style.display = 'block';
+        }
+
+        function selectScenarioMap(mapType) {
+            selectedScenarioMap = mapType;
+
+            // Update button styles
+            document.querySelectorAll('.scenario-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.closest('.scenario-btn').classList.add('selected');
+
+            // Update summary
+            updateScenarioSummary();
+
+            // Enable proceed button
+            document.getElementById('proceedBtn').disabled = false;
+            document.getElementById('proceedBtn').style.opacity = '1';
+        }
+
+        function adjustYear(amount) {
+            selectedScenarioYear = Math.max(1914, Math.min(2100, selectedScenarioYear + amount));
+            document.getElementById('selectedYear').textContent = selectedScenarioYear;
+            document.getElementById('yearSlider').value = selectedScenarioYear;
+            updateScenarioSummary();
+        }
+
+        function updateYearFromSlider() {
+            selectedScenarioYear = parseInt(document.getElementById('yearSlider').value);
+            document.getElementById('selectedYear').textContent = selectedScenarioYear;
+            updateScenarioSummary();
+        }
+
+        function updateScenarioSummary() {
+            if (!selectedScenarioMap) return;
+
+            const mapNames = {
+                'mountains': 'Mountains & Clouds',
+                'ww1-western': 'Hills',
+                'jungle': 'Jungle',
+                'ww1-alps': 'Alps',
+                'sea': 'Sea',
+                'coast': 'Coastal'
+            };
+
+            const mapDescriptions = {
+                'mountains': 'WW2 terrain with mountains, valleys, and ground targets',
+                'ww1-western': `Rolling hills with villages and ground units${selectedScenarioYear >= 1914 && selectedScenarioYear <= 1921 ? ' (trenches included)' : ''}`,
+                'jungle': 'Dense jungle terrain with hills, rivers, villages, and ground units',
+                'ww1-alps': 'Alpine terrain with mountains up to 6000m, clouds, and ground units',
+                'sea': 'Open ocean with clouds and naval vessels for both sides',
+                'coast': 'Realistic coastline dividing map - sea with ships on one side, land with ground units on the other'
+            };
+
+            document.getElementById('scenarioSummary').style.display = 'block';
+            document.getElementById('scenarioDetails').innerHTML = `
+                <div style="margin-bottom: 10px;"><strong>Map:</strong> ${mapNames[selectedScenarioMap]}</div>
+                <div style="margin-bottom: 10px;"><strong>Year:</strong> ${selectedScenarioYear}</div>
+                <div style="opacity: 0.8;">${mapDescriptions[selectedScenarioMap]}</div>
+            `;
+        }
+
+        function proceedToAircraftSelection() {
+            if (!selectedScenarioMap) return;
+
+            // Hide scenario selector
+            document.getElementById('scenarioSelector').style.display = 'none';
+
+            // Show generation selector
+            showGenerationSelector();
+        }
+
+        // Mission Objectives System
+        let sideAObjectives = [];
+        let sideBObjectives = [];
+
+        /*
+         * UNIT PLACEMENT RULES FOR OBJECTIVES
+         * ====================================
+         * When objectives are selected, ground units and wet navy vessels are automatically
+         * placed on the map based on the objectives assigned to each side.
+         *
+         * PLACEMENT RULES:
+         * 1. Ground Units:
+         *    - Can be placed on flat terrain, hills, or mountains
+         *    - Unit's effective altitude = terrain height at that position
+         *    - Must not overlap with:
+         *      - Other ground units
+         *      - Villages
+         *      - Trenches (if present)
+         *      - Rivers (jungle terrain)
+         *    - Placed on Side A (left side of map) or Side B (right side of map)
+         *
+         * 2. Wet Navy Ships:
+         *    - Can only be placed on water (sea level, terrain height = 0)
+         *    - Must not overlap with:
+         *      - Other ships
+         *      - Coastline (on coastal maps)
+         *      - Rivers (too shallow for ships)
+         *    - For coastal maps: placed in sea portion only
+         *    - For sea maps: placed anywhere
+         *
+         * 3. Side Markers:
+         *    - Side A units marked with red indicator
+         *    - Side B units marked with blue indicator
+         *    - Markers visible above units at all times
+         *
+         * 4. Objective-Based Spawning:
+         *    - "destroy-ground": Spawns 3-5 ground targets for enemy side
+         *    - "protect-ground": Spawns 3-5 ground targets for friendly side
+         *    - "destroy-ships": Spawns 2-3 ships for enemy side
+         *    - "protect-ships": Spawns 2-3 ships for friendly side
+         *    - "recon": No units spawned, mission is to survive and observe
+         *    - "control-area": Spawns area markers, no units
+         *
+         * IMPLEMENTATION NOTE:
+         * Unit placement will be handled in startCustomBattle() after terrain is created,
+         * using the selectedScenarioMap, sideAObjectives, and sideBObjectives arrays.
+         */
+
+        const objectiveDescriptions = {
+            'destroy-all': 'Destroy all enemy aircraft',
+            'destroy-ground': 'Destroy ground targets',
+            'destroy-ships': 'Destroy enemy ships',
+            'protect-ground': 'Protect ground targets',
+            'protect-ships': 'Protect friendly ships',
+            'recon': 'Reconnaissance mission',
+            'survive': 'Survive for 10 turns',
+            'control-area': 'Control designated area'
+        };
+
+        function addObjective(side) {
+            const selectId = side === 'A' ? 'objectiveSelectA' : 'objectiveSelectB';
+            const select = document.getElementById(selectId);
+            const objective = select.value;
+
+            if (!objective) return;
+
+            const objectives = side === 'A' ? sideAObjectives : sideBObjectives;
+
+            // Check if already added
+            if (objectives.includes(objective)) {
+                alert('This objective is already assigned to this side!');
+                return;
+            }
+
+            // Add objective
+            objectives.push(objective);
+
+            // Update display
+            updateObjectivesDisplay();
+
+            // Reset select
+            select.value = '';
+        }
+
+        function removeObjective(side, objective) {
+            const objectives = side === 'A' ? sideAObjectives : sideBObjectives;
+            const index = objectives.indexOf(objective);
+            if (index > -1) {
+                objectives.splice(index, 1);
+                updateObjectivesDisplay();
+            }
+        }
+
+        function updateObjectivesDisplay() {
+            // Update Side A
+            const sideADiv = document.getElementById('sideAObjectives');
+            if (sideAObjectives.length === 0) {
+                sideADiv.innerHTML = '<div style="opacity: 0.6; font-style: italic;">No objectives assigned</div>';
+            } else {
+                sideADiv.innerHTML = sideAObjectives.map(obj => `
+                    <div style="margin: 5px 0; padding: 8px; background: rgba(255, 80, 80, 0.3); border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>• ${objectiveDescriptions[obj]}</span>
+                        <button onclick="removeObjective('A', '${obj}')" style="background: #ff0000; color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;">✕</button>
+                    </div>
+                `).join('');
+            }
+
+            // Update Side B
+            const sideBDiv = document.getElementById('sideBObjectives');
+            if (sideBObjectives.length === 0) {
+                sideBDiv.innerHTML = '<div style="opacity: 0.6; font-style: italic;">No objectives assigned</div>';
+            } else {
+                sideBDiv.innerHTML = sideBObjectives.map(obj => `
+                    <div style="margin: 5px 0; padding: 8px; background: rgba(80, 80, 255, 0.3); border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>• ${objectiveDescriptions[obj]}</span>
+                        <button onclick="removeObjective('B', '${obj}')" style="background: #0000ff; color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;">✕</button>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function randomizeObjectives() {
+            // Clear existing objectives
+            sideAObjectives = [];
+            sideBObjectives = [];
+
+            // All available objectives
+            const allObjectives = [
+                'destroy-all', 'destroy-ground', 'destroy-ships',
+                'protect-ground', 'protect-ships', 'recon',
+                'survive', 'control-area'
+            ];
+
+            // Randomly select 1-3 objectives for each side
+            const numA = 1 + Math.floor(Math.random() * 3); // 1-3
+            const numB = 1 + Math.floor(Math.random() * 3); // 1-3
+
+            // Shuffle and select for Side A
+            const shuffledA = [...allObjectives].sort(() => Math.random() - 0.5);
+            sideAObjectives = shuffledA.slice(0, numA);
+
+            // Shuffle and select for Side B
+            const shuffledB = [...allObjectives].sort(() => Math.random() - 0.5);
+            sideBObjectives = shuffledB.slice(0, numB);
+
+            // Update display
+            updateObjectivesDisplay();
+
+            console.log('Randomized objectives:', {
+                sideA: sideAObjectives.map(o => objectiveDescriptions[o]),
+                sideB: sideBObjectives.map(o => objectiveDescriptions[o])
+            });
+        }
+
+        function clearAllObjectives() {
+            sideAObjectives = [];
+            sideBObjectives = [];
+            updateObjectivesDisplay();
         }
 
         // WW1 Battle Selector Functions
@@ -21421,9 +21832,6 @@
             document.getElementById('aircraftSelector').style.display = 'none';
             document.getElementById('gameContainer').style.display = 'block';
 
-            // Set game era to WW2
-            gameEra = 'WW2';
-
             // Get selected aircraft
             const playerType = document.getElementById('playerAircraftSelect').value;
             const enemyType = document.getElementById('enemyAircraftSelect').value;
@@ -21434,17 +21842,328 @@
             groundTargets = [];
             capitalShips = [];
             executionRecording = [];
+            aerialUnits = [];
+            bombs = [];
+            rockets = [];
+            missiles = [];
+            selectedAircraft = null;
+            ghostAircraft = null;
 
-            // Create WW2 terrain
-            terrain = new Terrain();
+            // Reset hot-seat mode
+            hotSeatMode = false;
+            currentPlayer = 1;
+            player1Aircraft = [];
+            player2Aircraft = [];
+            awaitingPlayerSwitch = false;
 
-            // Create selected aircraft at safe altitude above terrain (1200m)
-            spitfire = new Aircraft('Player', playerType, 400, 500, 1200, 90, true);
-            me109 = new Aircraft('Enemy', enemyType, 1400, 500, 1200, 270, false);
+            // Reset camera
+            zoomLevel = 1;
+            panX = 0;
+            panY = 0;
+
+            // Determine game era based on year
+            if (selectedScenarioYear < 1920) {
+                gameEra = 'WW1';
+            } else if (selectedScenarioYear < 1946) {
+                gameEra = 'WW2';
+            } else if (selectedScenarioYear < 1980) {
+                gameEra = 'Vietnam';
+            } else if (selectedScenarioYear < 2050) {
+                gameEra = 'Modern';
+            } else {
+                gameEra = 'Future';
+            }
+
+            // Create terrain based on selected scenario
+            try {
+                switch (selectedScenarioMap) {
+                    case 'mountains':
+                        terrain = new Terrain();
+                        console.log('Created mountains & clouds terrain');
+                        break;
+
+                    case 'ww1-western':
+                        // Include trenches only for years 1914-1921
+                        const includeTrenches = selectedScenarioYear >= 1914 && selectedScenarioYear <= 1921;
+                        terrain = new WW1Terrain(false, includeTrenches); // Hills
+                        console.log(`Created Hills terrain${includeTrenches ? ' with trenches' : ''}`);
+                        break;
+
+                    case 'jungle':
+                        terrain = createJungleTerrain();
+                        console.log('Created jungle terrain');
+                        break;
+
+                    case 'ww1-alps':
+                        terrain = new WW1Terrain(true); // Alps mode
+                        console.log('Created Alps terrain');
+                        break;
+
+                    case 'sea':
+                        terrain = createSeaTerrain();
+                        console.log('Created sea terrain');
+                        break;
+
+                    case 'coast':
+                        terrain = createCoastalTerrain();
+                        console.log('Created coastal terrain');
+                        break;
+
+                    default:
+                        terrain = new Terrain();
+                        console.log('Created default terrain');
+                }
+            } catch (e) {
+                console.error('Error creating terrain:', e);
+                alert('Error creating terrain. Check console for details.');
+                return;
+            }
+
+            // Create selected aircraft at safe altitude
+            const startAltitude = selectedScenarioMap.includes('alps') ? 2000 : 1200;
+            spitfire = new Aircraft('Player', playerType, 400, 500, startAltitude, 90, true);
+            me109 = new Aircraft('Enemy', enemyType, 1400, 500, startAltitude, 270, false);
             aircraft = [spitfire, me109];
+            selectedAircraft = spitfire;
+
+            console.log(`Starting custom battle: ${selectedScenarioMap} terrain, year ${selectedScenarioYear}`);
 
             // Start game loop
             gameLoop();
+        }
+
+        // Create simple sea terrain (all water, clouds only)
+        function createSeaTerrain() {
+            return {
+                mountains: [], // No mountains
+                clouds: generateClouds(15, 200, 1500),
+                hills: [],
+                trenches: [],
+                villages: [],
+                getHeightAt: function(x, y) { return 0; }, // Sea level
+                renderBackground: function(ctx) {
+                    // Draw water
+                    ctx.fillStyle = '#004080';
+                    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+                    // Draw waves
+                    ctx.strokeStyle = 'rgba(100, 150, 255, 0.3)';
+                    ctx.lineWidth = 2;
+                    for (let i = 0; i < 10; i++) {
+                        const waveY = (i * 150 + Date.now() / 50) % ctx.canvas.height;
+                        ctx.beginPath();
+                        for (let x = 0; x < ctx.canvas.width; x += 50) {
+                            const y = waveY + Math.sin(x / 100 + Date.now() / 1000) * 10;
+                            ctx.lineTo(x, y);
+                        }
+                        ctx.stroke();
+                    }
+                }
+            };
+        }
+
+        // Create coastal terrain (half land, half sea)
+        function createCoastalTerrain() {
+            const coastlineX = 900; // Middle of 1800px canvas
+
+            return {
+                mountains: generateMountains(10, 400, coastlineX - 400),
+                clouds: generateClouds(15, 200, 1500),
+                hills: [],
+                trenches: [],
+                villages: [],
+                coastlineX: coastlineX,
+                getHeightAt: function(x, y) {
+                    // Sea side (right half)
+                    if (x > this.coastlineX) return 0;
+
+                    // Land side (left half) - check mountains
+                    for (let mtn of this.mountains) {
+                        const dx = x - mtn.x;
+                        const dy = y - mtn.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < mtn.radius) {
+                            const heightFactor = 1 - (dist / mtn.radius);
+                            return mtn.height * heightFactor;
+                        }
+                    }
+                    return 0;
+                },
+                renderBackground: function(ctx) {
+                    // Draw land (left side)
+                    ctx.fillStyle = '#2a4a2a';
+                    ctx.fillRect(0, 0, this.coastlineX, ctx.canvas.height);
+
+                    // Draw sea (right side)
+                    ctx.fillStyle = '#004080';
+                    ctx.fillRect(this.coastlineX, 0, ctx.canvas.width - this.coastlineX, ctx.canvas.height);
+
+                    // Draw coastline
+                    ctx.strokeStyle = '#f0e68c';
+                    ctx.lineWidth = 10;
+                    ctx.beginPath();
+                    for (let y = 0; y < ctx.canvas.height; y += 20) {
+                        const variation = Math.sin(y / 100) * 30;
+                        ctx.lineTo(this.coastlineX + variation, y);
+                    }
+                    ctx.stroke();
+
+                    // Draw waves on sea side
+                    ctx.strokeStyle = 'rgba(100, 150, 255, 0.3)';
+                    ctx.lineWidth = 2;
+                    for (let i = 0; i < 5; i++) {
+                        const waveY = (i * 200 + Date.now() / 50) % ctx.canvas.height;
+                        ctx.beginPath();
+                        for (let x = this.coastlineX; x < ctx.canvas.width; x += 50) {
+                            const y = waveY + Math.sin(x / 100 + Date.now() / 1000) * 10;
+                            ctx.lineTo(x, y);
+                        }
+                        ctx.stroke();
+                    }
+                }
+            };
+        }
+
+        // Helper function to generate mountains
+        function generateMountains(count, maxRadius, maxX) {
+            const mountains = [];
+            for (let i = 0; i < count; i++) {
+                mountains.push({
+                    x: Math.random() * maxX,
+                    y: Math.random() * 1000,
+                    radius: 100 + Math.random() * maxRadius,
+                    height: 200 + Math.random() * 600
+                });
+            }
+            return mountains;
+        }
+
+        // Helper function to generate clouds
+        function generateClouds(count, minAlt, maxAlt) {
+            const clouds = [];
+            for (let i = 0; i < count; i++) {
+                clouds.push({
+                    x: Math.random() * 1800,
+                    y: Math.random() * 1000,
+                    altitude: minAlt + Math.random() * (maxAlt - minAlt),
+                    radius: 50 + Math.random() * 100,
+                    density: 0.1 + Math.random() * 0.3
+                });
+            }
+            return clouds;
+        }
+
+        // Create jungle terrain with dense vegetation and hills
+        function createJungleTerrain() {
+            const hills = [];
+            const clouds = generateClouds(20, 100, 1000);
+            const rivers = [];
+            const villages = [];
+
+            // Generate rolling jungle hills (lower than mountains)
+            for (let i = 0; i < 12; i++) {
+                hills.push({
+                    x: Math.random() * 1800,
+                    y: Math.random() * 1000,
+                    radius: 150 + Math.random() * 300,
+                    height: 100 + Math.random() * 300 // Lower hills for jungle
+                });
+            }
+
+            // Generate rivers (winding paths through jungle)
+            for (let i = 0; i < 3; i++) {
+                const river = {
+                    points: [],
+                    width: 20 + Math.random() * 30
+                };
+                const startY = Math.random() * 1000;
+                for (let x = 0; x < 1800; x += 100) {
+                    const y = startY + Math.sin(x / 200) * 200 + (Math.random() - 0.5) * 100;
+                    river.points.push({ x, y });
+                }
+                rivers.push(river);
+            }
+
+            // Generate villages
+            for (let i = 0; i < 5; i++) {
+                villages.push({
+                    x: Math.random() * 1800,
+                    y: Math.random() * 1000,
+                    size: 30 + Math.random() * 40
+                });
+            }
+
+            return {
+                mountains: [],
+                hills: hills,
+                clouds: clouds,
+                trenches: [],
+                rivers: rivers,
+                villages: villages,
+                getHeightAt: function(x, y) {
+                    // Check hills
+                    for (let hill of this.hills) {
+                        const dx = x - hill.x;
+                        const dy = y - hill.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < hill.radius) {
+                            const heightFactor = 1 - (dist / hill.radius);
+                            return hill.height * heightFactor;
+                        }
+                    }
+                    return 0;
+                },
+                renderBackground: function(ctx) {
+                    // Draw jungle floor (dark green)
+                    ctx.fillStyle = '#1a3a1a';
+                    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+                    // Draw dense foliage pattern
+                    ctx.fillStyle = '#2a4a2a';
+                    for (let x = 0; x < ctx.canvas.width; x += 40) {
+                        for (let y = 0; y < ctx.canvas.height; y += 40) {
+                            if (Math.random() > 0.5) {
+                                ctx.fillRect(x + Math.random() * 20, y + Math.random() * 20, 25, 25);
+                            }
+                        }
+                    }
+
+                    // Draw rivers
+                    ctx.strokeStyle = '#4a8aa8';
+                    ctx.lineWidth = 1;
+                    for (let river of this.rivers) {
+                        ctx.beginPath();
+                        river.points.forEach((point, i) => {
+                            if (i === 0) ctx.moveTo(point.x, point.y);
+                            else ctx.lineTo(point.x, point.y);
+                        });
+                        ctx.lineWidth = river.width;
+                        ctx.stroke();
+                    }
+
+                    // Draw villages
+                    ctx.fillStyle = '#8b6914';
+                    for (let village of this.villages) {
+                        // Draw simple hut representation
+                        for (let i = 0; i < 3; i++) {
+                            const hx = village.x + (Math.random() - 0.5) * village.size;
+                            const hy = village.y + (Math.random() - 0.5) * village.size;
+                            ctx.fillRect(hx - 5, hy - 5, 10, 10);
+                        }
+                    }
+
+                    // Draw jungle vegetation overlay (lighter green spots)
+                    ctx.fillStyle = 'rgba(60, 120, 60, 0.4)';
+                    for (let i = 0; i < 100; i++) {
+                        const x = Math.random() * ctx.canvas.width;
+                        const y = Math.random() * ctx.canvas.height;
+                        const size = 10 + Math.random() * 30;
+                        ctx.beginPath();
+                        ctx.arc(x, y, size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            };
         }
 
         // Load ship images
