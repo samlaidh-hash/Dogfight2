@@ -20917,190 +20917,229 @@
             rockets = [];
             missiles = [];
             aircraft = [];
+            selectedAircraft = null;
+            selectedCapitalShip = null;
+            ghostAircraft = null;
+
+            // Reset hot-seat mode
+            hotSeatMode = false;
+            currentPlayer = 1;
+            player1Aircraft = [];
+            player2Aircraft = [];
+            awaitingPlayerSwitch = false;
+
+            // Reset camera
+            zoomLevel = 1;
+            panX = 0;
+            panY = 0;
+
+            // Reset squadron/formation system
+            squadron = {
+                formation: 'finger_four',
+                leader: null,
+                wingmen: [],
+                inFormation: false,
+                formationBonus: 0
+            };
+            activeWingmanCommand = null;
 
             // Create space terrain with black hole toggle
-            const isBlackHole = document.getElementById('blackHoleMode').checked;
-            terrain = new SpaceTerrain(isBlackHole);
+            try {
+                const isBlackHole = document.getElementById('blackHoleMode').checked;
+                terrain = new SpaceTerrain(isBlackHole);
 
-            console.log('🚀 Space Terrain created:',
-                isBlackHole ? 'BLACK HOLE MODE' : 'Standard Space',
-                terrain.stars.length, 'stars,',
-                terrain.asteroids.length, 'asteroids,',
-                terrain.planets ? terrain.planets.length : 0, 'planets,',
-                terrain.nebulae.length, 'nebulae');
+                console.log('🚀 Space Terrain created:',
+                    isBlackHole ? 'BLACK HOLE MODE' : 'Standard Space',
+                    terrain.stars.length, 'stars,',
+                    terrain.asteroids.length, 'asteroids,',
+                    terrain.planets ? terrain.planets.length : 0, 'planets,',
+                    terrain.nebulae.length, 'nebulae');
+            } catch (e) {
+                console.error('Error creating space terrain:', e);
+                alert('Error creating space terrain. Check console for details.');
+                return;
+            }
 
-            // Create Commonwealth forces
+            // Create Commonwealth and TOG forces
             let commonwealthX = 300;
             let hasPlayerShip = false;
             let fighterCount = 0;
             let capitalShipCount = 0;
 
-            commonwealthShips.forEach((ship, shipIndex) => {
-                const y = 400 + (shipIndex % 3) * 250;
+            try {
+                // Create Commonwealth forces
+                commonwealthShips.forEach((ship, shipIndex) => {
+                    const y = 400 + (shipIndex % 3) * 250;
 
-                // Check if this is a capital ship
-                const isCapitalShip = !ship.type.startsWith('Fighter-') &&
-                                     !ship.type.startsWith('Dropship-') &&
-                                     !ship.type.startsWith('Gunship-');
+                    // Check if this is a capital ship
+                    const isCapitalShip = !ship.type.startsWith('Fighter-') &&
+                                         !ship.type.startsWith('Dropship-') &&
+                                         !ship.type.startsWith('Gunship-');
 
-                if (isCapitalShip) {
-                    // Create capital ship
-                    const capShip = new CapitalShip(commonwealthX - 100, y, ship.type, 'commonwealth');
-                    capShip.heading = 90;
+                    if (isCapitalShip) {
+                        // Create capital ship
+                        const capShip = new CapitalShip(commonwealthX - 100, y, ship.type, 'commonwealth');
+                        capShip.heading = 90;
 
-                    // Apply missile loadout configuration
-                    if (ship.loadout && ship.loadout.missileArrays) {
-                        capShip.missileLoadout = {
-                            dogfight: ship.loadout.missileArrays.dogfight * 4, // 4 missiles per cell
-                            standard: ship.loadout.missileArrays.standard,     // 1 missile per cell
-                            torpedo: ship.loadout.missileArrays.torpedo        // 1 torpedo per cell
-                        };
-                        console.log(`  ${ship.type} missile loadout:`, capShip.missileLoadout);
+                        // Apply missile loadout configuration
+                        if (ship.loadout && ship.loadout.missileArrays) {
+                            capShip.missileLoadout = {
+                                dogfight: ship.loadout.missileArrays.dogfight * 4, // 4 missiles per cell
+                                standard: ship.loadout.missileArrays.standard,     // 1 missile per cell
+                                torpedo: ship.loadout.missileArrays.torpedo        // 1 torpedo per cell
+                            };
+                            console.log(`  ${ship.type} missile loadout:`, capShip.missileLoadout);
+                        }
+
+                        capitalShips.push(capShip);
+                        capitalShipCount++;
+
+                        // Launch fighters from configured bays
+                        if (ship.loadout && ship.loadout.fighterBays) {
+                            let bayIndex = 0;
+                            ship.loadout.fighterBays.forEach((bay, idx) => {
+                                if (bay && bay.type) {
+                                    // Spawn fighter offset from capital ship
+                                    const offsetX = -150 - (bayIndex * 80);
+                                    const offsetY = (bayIndex % 2 === 0 ? -100 : 100);
+
+                                    const fighterName = `CW ${bay.type.split('-')[1]} ${bayIndex + 1}`;
+                                    const fighter = new Aircraft(
+                                        fighterName,
+                                        bay.type,
+                                        commonwealthX + offsetX,
+                                        y + offsetY,
+                                        0,
+                                        90,
+                                        false // Fighters launched from bays are AI controlled
+                                    );
+                                    fighter.faction = 'commonwealth';
+                                    fighter.side = 'commonwealth';
+                                    fighter.motherShip = capShip; // Track which ship launched this fighter
+                                    aircraft.push(fighter);
+                                    fighterCount++;
+                                    bayIndex++;
+                                }
+                            });
+                        }
+                    } else {
+                        // Create standalone fighter, dropship, or gunship
+                        const craftType = ship.type.split('-')[0]; // 'Fighter', 'Dropship', or 'Gunship'
+                        const craftName = ship.type.split('-')[1];
+                        const displayName = `CW ${craftName}`;
+
+                        const craft = new Aircraft(displayName, ship.type, commonwealthX, y, 0, 90, ship.isPlayer);
+                        craft.faction = 'commonwealth';
+                        craft.side = 'commonwealth';
+                        aircraft.push(craft);
+                        fighterCount++;
+
+                        if (ship.isPlayer && !hasPlayerShip) {
+                            selectedAircraft = craft;
+                            hasPlayerShip = true;
+                        }
                     }
 
-                    capitalShips.push(capShip);
-                    capitalShipCount++;
+                    commonwealthX += 150;
+                });
 
-                    // Launch fighters from configured bays
-                    if (ship.loadout && ship.loadout.fighterBays) {
-                        let bayIndex = 0;
-                        ship.loadout.fighterBays.forEach((bay, idx) => {
-                            if (bay && bay.type) {
-                                // Spawn fighter offset from capital ship
-                                const offsetX = -150 - (bayIndex * 80);
-                                const offsetY = (bayIndex % 2 === 0 ? -100 : 100);
+                // Create TOG forces
+                let togX = 1500;
+                togShips.forEach((ship, shipIndex) => {
+                    const y = 400 + (shipIndex % 3) * 250;
 
-                                const fighterName = `CW ${bay.type.split('-')[1]} ${bayIndex + 1}`;
-                                const fighter = new Aircraft(
-                                    fighterName,
-                                    bay.type,
-                                    commonwealthX + offsetX,
-                                    y + offsetY,
-                                    0,
-                                    90,
-                                    false // Fighters launched from bays are AI controlled
-                                );
-                                fighter.faction = 'commonwealth';
-                                fighter.side = 'commonwealth';
-                                fighter.motherShip = capShip; // Track which ship launched this fighter
-                                aircraft.push(fighter);
-                                fighterCount++;
-                                bayIndex++;
-                            }
-                        });
+                    // Check if this is a capital ship
+                    const isCapitalShip = !ship.type.startsWith('Fighter-') &&
+                                         !ship.type.startsWith('Dropship-') &&
+                                         !ship.type.startsWith('Gunship-');
+
+                    if (isCapitalShip) {
+                        // Create capital ship
+                        const capShip = new CapitalShip(togX + 100, y, ship.type, 'tog');
+                        capShip.heading = 270;
+
+                        // Apply missile loadout configuration
+                        if (ship.loadout && ship.loadout.missileArrays) {
+                            capShip.missileLoadout = {
+                                dogfight: ship.loadout.missileArrays.dogfight * 4, // 4 missiles per cell
+                                standard: ship.loadout.missileArrays.standard,     // 1 missile per cell
+                                torpedo: ship.loadout.missileArrays.torpedo        // 1 torpedo per cell
+                            };
+                            console.log(`  ${ship.type} missile loadout:`, capShip.missileLoadout);
+                        }
+
+                        capitalShips.push(capShip);
+                        capitalShipCount++;
+
+                        // Launch fighters from configured bays
+                        if (ship.loadout && ship.loadout.fighterBays) {
+                            let bayIndex = 0;
+                            ship.loadout.fighterBays.forEach((bay, idx) => {
+                                if (bay && bay.type) {
+                                    // Spawn fighter offset from capital ship
+                                    const offsetX = 150 + (bayIndex * 80);
+                                    const offsetY = (bayIndex % 2 === 0 ? -100 : 100);
+
+                                    const fighterName = `TOG ${bay.type.split('-')[1]} ${bayIndex + 1}`;
+                                    const fighter = new Aircraft(
+                                        fighterName,
+                                        bay.type,
+                                        togX + offsetX,
+                                        y + offsetY,
+                                        0,
+                                        270,
+                                        false // Fighters launched from bays are AI controlled
+                                    );
+                                    fighter.faction = 'tog';
+                                    fighter.side = 'tog';
+                                    fighter.motherShip = capShip; // Track which ship launched this fighter
+                                    aircraft.push(fighter);
+                                    fighterCount++;
+                                    bayIndex++;
+                                }
+                            });
+                        }
+                    } else {
+                        // Create standalone fighter, dropship, or gunship
+                        const craftType = ship.type.split('-')[0]; // 'Fighter', 'Dropship', or 'Gunship'
+                        const craftName = ship.type.split('-')[1];
+                        const displayName = `TOG ${craftName}`;
+
+                        const craft = new Aircraft(displayName, ship.type, togX, y, 0, 270, ship.isPlayer);
+                        craft.faction = 'tog';
+                        craft.side = 'tog';
+                        aircraft.push(craft);
+                        fighterCount++;
+
+                        if (ship.isPlayer && !hasPlayerShip) {
+                            selectedAircraft = craft;
+                            hasPlayerShip = true;
+                        }
                     }
-                } else {
-                    // Create standalone fighter, dropship, or gunship
-                    const craftType = ship.type.split('-')[0]; // 'Fighter', 'Dropship', or 'Gunship'
-                    const craftName = ship.type.split('-')[1];
-                    const displayName = `CW ${craftName}`;
 
-                    const craft = new Aircraft(displayName, ship.type, commonwealthX, y, 0, 90, ship.isPlayer);
-                    craft.faction = 'commonwealth';
-                    craft.side = 'commonwealth';
-                    aircraft.push(craft);
-                    fighterCount++;
+                    togX += 150;
+                });
 
-                    if (ship.isPlayer && !hasPlayerShip) {
-                        selectedAircraft = craft;
-                        hasPlayerShip = true;
-                    }
+                // If no player ship was selected, default to first aircraft
+                if (!selectedAircraft && aircraft.length > 0) {
+                    selectedAircraft = aircraft[0];
+                    selectedAircraft.isPlayer = true;
                 }
 
-                commonwealthX += 150;
-            });
-
-            // Create TOG forces
-            let togX = 1500;
-            togShips.forEach((ship, shipIndex) => {
-                const y = 400 + (shipIndex % 3) * 250;
-
-                // Check if this is a capital ship
-                const isCapitalShip = !ship.type.startsWith('Fighter-') &&
-                                     !ship.type.startsWith('Dropship-') &&
-                                     !ship.type.startsWith('Gunship-');
-
-                if (isCapitalShip) {
-                    // Create capital ship
-                    const capShip = new CapitalShip(togX + 100, y, ship.type, 'tog');
-                    capShip.heading = 270;
-
-                    // Apply missile loadout configuration
-                    if (ship.loadout && ship.loadout.missileArrays) {
-                        capShip.missileLoadout = {
-                            dogfight: ship.loadout.missileArrays.dogfight * 4, // 4 missiles per cell
-                            standard: ship.loadout.missileArrays.standard,     // 1 missile per cell
-                            torpedo: ship.loadout.missileArrays.torpedo        // 1 torpedo per cell
-                        };
-                        console.log(`  ${ship.type} missile loadout:`, capShip.missileLoadout);
-                    }
-
-                    capitalShips.push(capShip);
-                    capitalShipCount++;
-
-                    // Launch fighters from configured bays
-                    if (ship.loadout && ship.loadout.fighterBays) {
-                        let bayIndex = 0;
-                        ship.loadout.fighterBays.forEach((bay, idx) => {
-                            if (bay && bay.type) {
-                                // Spawn fighter offset from capital ship
-                                const offsetX = 150 + (bayIndex * 80);
-                                const offsetY = (bayIndex % 2 === 0 ? -100 : 100);
-
-                                const fighterName = `TOG ${bay.type.split('-')[1]} ${bayIndex + 1}`;
-                                const fighter = new Aircraft(
-                                    fighterName,
-                                    bay.type,
-                                    togX + offsetX,
-                                    y + offsetY,
-                                    0,
-                                    270,
-                                    false // Fighters launched from bays are AI controlled
-                                );
-                                fighter.faction = 'tog';
-                                fighter.side = 'tog';
-                                fighter.motherShip = capShip; // Track which ship launched this fighter
-                                aircraft.push(fighter);
-                                fighterCount++;
-                                bayIndex++;
-                            }
-                        });
-                    }
-                } else {
-                    // Create standalone fighter, dropship, or gunship
-                    const craftType = ship.type.split('-')[0]; // 'Fighter', 'Dropship', or 'Gunship'
-                    const craftName = ship.type.split('-')[1];
-                    const displayName = `TOG ${craftName}`;
-
-                    const craft = new Aircraft(displayName, ship.type, togX, y, 0, 270, ship.isPlayer);
-                    craft.faction = 'tog';
-                    craft.side = 'tog';
-                    aircraft.push(craft);
-                    fighterCount++;
-
-                    if (ship.isPlayer && !hasPlayerShip) {
-                        selectedAircraft = craft;
-                        hasPlayerShip = true;
-                    }
-                }
-
-                togX += 150;
-            });
-
-            // If no player ship was selected, default to first aircraft
-            if (!selectedAircraft && aircraft.length > 0) {
-                selectedAircraft = aircraft[0];
-                selectedAircraft.isPlayer = true;
+                console.log('🚀 Renegade Legion Battle Started!');
+                console.log('- Commonwealth ships configured:', commonwealthShips.length);
+                console.log('- TOG ships configured:', togShips.length);
+                console.log('- Capital ships deployed:', capitalShipCount);
+                console.log('- Total fighters/craft:', fighterCount);
+                console.log('- Aircraft array size:', aircraft.length);
+            } catch (e) {
+                console.error('Error creating Renegade Legion forces:', e);
+                alert('Error creating ships and fighters. Check console for details.');
+                return;
             }
 
-            console.log('🚀 Renegade Legion Battle Started!');
-            console.log('- Commonwealth ships configured:', commonwealthShips.length);
-            console.log('- TOG ships configured:', togShips.length);
-            console.log('- Capital ships deployed:', capitalShipCount);
-            console.log('- Total fighters/craft:', fighterCount);
-            console.log('- Aircraft array size:', aircraft.length);
-
             // Start game loop
+            console.log('Starting game loop...');
             gameLoop();
         }
 
