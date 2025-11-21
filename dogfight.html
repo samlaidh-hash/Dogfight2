@@ -9973,7 +9973,7 @@
 
                 // Set missile characteristics based on type
                 if (missileType === 'lrm') {
-                    // Long Range Missile
+                    // Long Range Missile (Standard Missile)
                     this.maxTurnRate = 180; // deg/sec
                     this.acceleration = 30 * 9.81; // 30G in m/s²
                     this.motorBurnTime = 20; // seconds
@@ -9981,8 +9981,9 @@
                     this.damage = 60; // heavy damage
                     this.maxSpeed = this.acceleration * this.motorBurnTime; // Realistic max speed
                     this.proximityFuseRange = 15;
+                    this.damageResistance = 1.0; // Standard resistance
                 } else if (missileType === 'srm') {
-                    // Short Range Missile
+                    // Short Range Missile (Dogfight Missile)
                     this.maxTurnRate = 240; // deg/sec
                     this.acceleration = 60 * 9.81; // 60G in m/s²
                     this.motorBurnTime = 5; // seconds
@@ -9990,15 +9991,18 @@
                     this.damage = 35; // medium damage
                     this.maxSpeed = this.acceleration * this.motorBurnTime;
                     this.proximityFuseRange = 12;
+                    this.damageResistance = 1.0; // Standard resistance
                 } else if (missileType === 'torpedo') {
-                    // Torpedo (anti-ship)
-                    this.maxTurnRate = 90; // deg/sec
-                    this.acceleration = 20 * 9.81; // 20G in m/s²
-                    this.motorBurnTime = 20; // seconds
+                    // Torpedo (anti-capital-ship weapon)
+                    // Specifications: 50% lower thrust, 75% endurance, 2x damage resistance, 2000 damage
+                    this.maxTurnRate = 90; // deg/sec (slower turning)
+                    this.acceleration = 15 * 9.81; // 15G in m/s² (50% of standard missile 30G)
+                    this.motorBurnTime = 15; // seconds (75% of standard missile 20s)
                     this.lockOnTime = 4.0; // very slow lock-on time
-                    this.damage = 120; // 50% of ship missile damage - very high
+                    this.damage = 2000; // Massive anti-ship damage
                     this.maxSpeed = this.acceleration * this.motorBurnTime;
-                    this.proximityFuseRange = 20;
+                    this.proximityFuseRange = 25; // Larger prox fuse for capital ships
+                    this.damageResistance = 2.0; // 2x harder to shoot down (for CIWS/point defense)
                 }
 
                 // Start with shooter's velocity
