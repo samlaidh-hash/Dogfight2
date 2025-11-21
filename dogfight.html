@@ -17407,8 +17407,10 @@
             ctx.fillText(`Version: ${GAME_VERSION}`, scaleBarX, scaleBarY + 20);
 
             // Draw terrain altitude at mouse cursor
-            const terrainHeight = terrain.getHeightAt(mouseX, mouseY);
-            ctx.fillText(`Terrain: ${Math.round(terrainHeight)}m`, scaleBarX, scaleBarY + 40);
+            if (terrain && terrain.getHeightAt) {
+                const terrainHeight = terrain.getHeightAt(mouseX, mouseY);
+                ctx.fillText(`Terrain: ${Math.round(terrainHeight)}m`, scaleBarX, scaleBarY + 40);
+            }
 
             // Draw multi-turn maneuver progress indicators (during EXECUTION only)
             if (gameState === 'EXECUTION') {
@@ -21206,7 +21208,7 @@
             
             // Set game era to WW1
             gameEra = 'WW1';
-            
+
             // Reset game state
             gameState = 'ORDER';
             currentTurn = 1;
@@ -21219,6 +21221,13 @@
             missiles = [];
             selectedAircraft = null;
             ghostAircraft = null;
+
+            // Reset hot-seat mode
+            hotSeatMode = false;
+            currentPlayer = 1;
+            player1Aircraft = [];
+            player2Aircraft = [];
+            awaitingPlayerSwitch = false;
             
             // Reset camera
             zoomLevel = 1;
@@ -21267,8 +21276,11 @@
                     const x = 1500 + index * 200;
                     const y = 400 + (index % 2) * 200;
                     console.log('Creating Central aircraft:', ac.type, 'at', x, y);
-                    const newAircraft = new Aircraft(ac.name, ac.type, x, y, 800, 270, false);
+                    const newAircraft = new Aircraft(ac.name, ac.type, x, y, 800, 270, ac.isPlayer);
                     aircraft.push(newAircraft);
+                    if (ac.isPlayer) {
+                        selectedAircraft = newAircraft;
+                    }
                 });
                 
                 console.log('Total aircraft created:', aircraft.length);
