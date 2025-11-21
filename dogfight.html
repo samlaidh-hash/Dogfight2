@@ -1059,8 +1059,12 @@
                             <div style="font-size: 12px; opacity: 0.8;">WW2 terrain with mountains and ground units</div>
                         </button>
                         <button class="scenario-btn" onclick="selectScenarioMap('ww1-western')" data-map="ww1-western">
-                            <div style="font-size: 18px; font-weight: bold;">🪖 Western Europe</div>
-                            <div style="font-size: 12px; opacity: 0.8;">Hills, villages, ground units (trenches if 1914-1921)</div>
+                            <div style="font-size: 18px; font-weight: bold;">🏞️ Hills</div>
+                            <div style="font-size: 12px; opacity: 0.8;">Rolling hills, villages, ground units (trenches if 1914-1921)</div>
+                        </button>
+                        <button class="scenario-btn" onclick="selectScenarioMap('jungle')" data-map="jungle">
+                            <div style="font-size: 18px; font-weight: bold;">🌴 Jungle</div>
+                            <div style="font-size: 12px; opacity: 0.8;">Dense jungle with hills, rivers, and villages</div>
                         </button>
                         <button class="scenario-btn" onclick="selectScenarioMap('ww1-alps')" data-map="ww1-alps">
                             <div style="font-size: 18px; font-weight: bold;">🏔️ Alps</div>
@@ -20686,7 +20690,8 @@
 
             const mapNames = {
                 'mountains': 'Mountains & Clouds',
-                'ww1-western': 'Western Europe',
+                'ww1-western': 'Hills',
+                'jungle': 'Jungle',
                 'ww1-alps': 'Alps',
                 'sea': 'Sea',
                 'coast': 'Coastal'
@@ -20694,7 +20699,8 @@
 
             const mapDescriptions = {
                 'mountains': 'WW2 terrain with mountains, valleys, and ground targets',
-                'ww1-western': `Western Europe with hills, villages, and ground units${selectedScenarioYear >= 1914 && selectedScenarioYear <= 1921 ? ' (trenches included)' : ''}`,
+                'ww1-western': `Rolling hills with villages and ground units${selectedScenarioYear >= 1914 && selectedScenarioYear <= 1921 ? ' (trenches included)' : ''}`,
+                'jungle': 'Dense jungle terrain with hills, rivers, villages, and ground units',
                 'ww1-alps': 'Alpine terrain with mountains up to 6000m, clouds, and ground units',
                 'sea': 'Open ocean with clouds and naval vessels for both sides',
                 'coast': 'Realistic coastline dividing map - sea with ships on one side, land with ground units on the other'
@@ -20721,6 +20727,50 @@
         // Mission Objectives System
         let sideAObjectives = [];
         let sideBObjectives = [];
+
+        /*
+         * UNIT PLACEMENT RULES FOR OBJECTIVES
+         * ====================================
+         * When objectives are selected, ground units and wet navy vessels are automatically
+         * placed on the map based on the objectives assigned to each side.
+         *
+         * PLACEMENT RULES:
+         * 1. Ground Units:
+         *    - Can be placed on flat terrain, hills, or mountains
+         *    - Unit's effective altitude = terrain height at that position
+         *    - Must not overlap with:
+         *      - Other ground units
+         *      - Villages
+         *      - Trenches (if present)
+         *      - Rivers (jungle terrain)
+         *    - Placed on Side A (left side of map) or Side B (right side of map)
+         *
+         * 2. Wet Navy Ships:
+         *    - Can only be placed on water (sea level, terrain height = 0)
+         *    - Must not overlap with:
+         *      - Other ships
+         *      - Coastline (on coastal maps)
+         *      - Rivers (too shallow for ships)
+         *    - For coastal maps: placed in sea portion only
+         *    - For sea maps: placed anywhere
+         *
+         * 3. Side Markers:
+         *    - Side A units marked with red indicator
+         *    - Side B units marked with blue indicator
+         *    - Markers visible above units at all times
+         *
+         * 4. Objective-Based Spawning:
+         *    - "destroy-ground": Spawns 3-5 ground targets for enemy side
+         *    - "protect-ground": Spawns 3-5 ground targets for friendly side
+         *    - "destroy-ships": Spawns 2-3 ships for enemy side
+         *    - "protect-ships": Spawns 2-3 ships for friendly side
+         *    - "recon": No units spawned, mission is to survive and observe
+         *    - "control-area": Spawns area markers, no units
+         *
+         * IMPLEMENTATION NOTE:
+         * Unit placement will be handled in startCustomBattle() after terrain is created,
+         * using the selectedScenarioMap, sideAObjectives, and sideBObjectives arrays.
+         */
 
         const objectiveDescriptions = {
             'destroy-all': 'Destroy all enemy aircraft',
@@ -21713,13 +21763,18 @@
                     case 'ww1-western':
                         // Include trenches only for years 1914-1921
                         const includeTrenches = selectedScenarioYear >= 1914 && selectedScenarioYear <= 1921;
-                        terrain = new WW1Terrain(false, includeTrenches); // Western Europe
-                        console.log(`Created Western Europe terrain${includeTrenches ? ' with trenches' : ''}`);
+                        terrain = new WW1Terrain(false, includeTrenches); // Hills
+                        console.log(`Created Hills terrain${includeTrenches ? ' with trenches' : ''}`);
+                        break;
+
+                    case 'jungle':
+                        terrain = createJungleTerrain();
+                        console.log('Created jungle terrain');
                         break;
 
                     case 'ww1-alps':
                         terrain = new WW1Terrain(true); // Alps mode
-                        console.log('Created WW1 Alps terrain');
+                        console.log('Created Alps terrain');
                         break;
 
                     case 'sea':
@@ -21874,6 +21929,119 @@
                 });
             }
             return clouds;
+        }
+
+        // Create jungle terrain with dense vegetation and hills
+        function createJungleTerrain() {
+            const hills = [];
+            const clouds = generateClouds(20, 100, 1000);
+            const rivers = [];
+            const villages = [];
+
+            // Generate rolling jungle hills (lower than mountains)
+            for (let i = 0; i < 12; i++) {
+                hills.push({
+                    x: Math.random() * 1800,
+                    y: Math.random() * 1000,
+                    radius: 150 + Math.random() * 300,
+                    height: 100 + Math.random() * 300 // Lower hills for jungle
+                });
+            }
+
+            // Generate rivers (winding paths through jungle)
+            for (let i = 0; i < 3; i++) {
+                const river = {
+                    points: [],
+                    width: 20 + Math.random() * 30
+                };
+                const startY = Math.random() * 1000;
+                for (let x = 0; x < 1800; x += 100) {
+                    const y = startY + Math.sin(x / 200) * 200 + (Math.random() - 0.5) * 100;
+                    river.points.push({ x, y });
+                }
+                rivers.push(river);
+            }
+
+            // Generate villages
+            for (let i = 0; i < 5; i++) {
+                villages.push({
+                    x: Math.random() * 1800,
+                    y: Math.random() * 1000,
+                    size: 30 + Math.random() * 40
+                });
+            }
+
+            return {
+                mountains: [],
+                hills: hills,
+                clouds: clouds,
+                trenches: [],
+                rivers: rivers,
+                villages: villages,
+                getHeightAt: function(x, y) {
+                    // Check hills
+                    for (let hill of this.hills) {
+                        const dx = x - hill.x;
+                        const dy = y - hill.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < hill.radius) {
+                            const heightFactor = 1 - (dist / hill.radius);
+                            return hill.height * heightFactor;
+                        }
+                    }
+                    return 0;
+                },
+                renderBackground: function(ctx) {
+                    // Draw jungle floor (dark green)
+                    ctx.fillStyle = '#1a3a1a';
+                    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+                    // Draw dense foliage pattern
+                    ctx.fillStyle = '#2a4a2a';
+                    for (let x = 0; x < ctx.canvas.width; x += 40) {
+                        for (let y = 0; y < ctx.canvas.height; y += 40) {
+                            if (Math.random() > 0.5) {
+                                ctx.fillRect(x + Math.random() * 20, y + Math.random() * 20, 25, 25);
+                            }
+                        }
+                    }
+
+                    // Draw rivers
+                    ctx.strokeStyle = '#4a8aa8';
+                    ctx.lineWidth = 1;
+                    for (let river of this.rivers) {
+                        ctx.beginPath();
+                        river.points.forEach((point, i) => {
+                            if (i === 0) ctx.moveTo(point.x, point.y);
+                            else ctx.lineTo(point.x, point.y);
+                        });
+                        ctx.lineWidth = river.width;
+                        ctx.stroke();
+                    }
+
+                    // Draw villages
+                    ctx.fillStyle = '#8b6914';
+                    for (let village of this.villages) {
+                        // Draw simple hut representation
+                        for (let i = 0; i < 3; i++) {
+                            const hx = village.x + (Math.random() - 0.5) * village.size;
+                            const hy = village.y + (Math.random() - 0.5) * village.size;
+                            ctx.fillRect(hx - 5, hy - 5, 10, 10);
+                        }
+                    }
+
+                    // Draw jungle vegetation overlay (lighter green spots)
+                    ctx.fillStyle = 'rgba(60, 120, 60, 0.4)';
+                    for (let i = 0; i < 100; i++) {
+                        const x = Math.random() * ctx.canvas.width;
+                        const y = Math.random() * ctx.canvas.height;
+                        const size = 10 + Math.random() * 30;
+                        ctx.beginPath();
+                        ctx.arc(x, y, size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            };
         }
 
         // Load ship images
