@@ -1059,8 +1059,8 @@
                             <div style="font-size: 12px; opacity: 0.8;">WW2 terrain with mountains and ground units</div>
                         </button>
                         <button class="scenario-btn" onclick="selectScenarioMap('ww1-western')" data-map="ww1-western">
-                            <div style="font-size: 18px; font-weight: bold;">🪖 WW1 Western Front</div>
-                            <div style="font-size: 12px; opacity: 0.8;">Trenches, hills, villages, WW1 ground units</div>
+                            <div style="font-size: 18px; font-weight: bold;">🪖 Western Europe</div>
+                            <div style="font-size: 12px; opacity: 0.8;">Hills, villages, ground units (trenches if 1914-1921)</div>
                         </button>
                         <button class="scenario-btn" onclick="selectScenarioMap('ww1-alps')" data-map="ww1-alps">
                             <div style="font-size: 18px; font-weight: bold;">🏔️ Alps</div>
@@ -1096,6 +1096,62 @@
                         <div style="font-size: 12px; opacity: 0.7; margin-top: 5px;">
                             Range: 1914 (WW1) - 2100 (Far Future)
                         </div>
+                    </div>
+                </div>
+
+                <!-- Objectives Selection -->
+                <div style="margin-bottom: 30px;">
+                    <h2 style="font-size: 24px; margin-bottom: 20px; color: #4af;">Mission Objectives</h2>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px;">
+                        <!-- Side A Objectives -->
+                        <div style="background: rgba(255, 80, 80, 0.2); padding: 15px; border-radius: 8px; border: 2px solid #ff5050;">
+                            <h3 style="font-size: 16px; margin-bottom: 10px; color: #ff5050;">Side A Objectives</h3>
+                            <div id="sideAObjectives" style="min-height: 60px; font-size: 14px;">
+                                <div style="opacity: 0.6; font-style: italic;">No objectives assigned</div>
+                            </div>
+                            <select id="objectiveSelectA" style="width: 100%; padding: 8px; margin-top: 10px; background: rgba(0, 0, 0, 0.5); color: white; border: 1px solid #ff5050; border-radius: 4px; font-family: 'Courier New', monospace;">
+                                <option value="">-- Add Objective --</option>
+                                <option value="destroy-all">Destroy all enemy aircraft</option>
+                                <option value="destroy-ground">Destroy ground targets</option>
+                                <option value="destroy-ships">Destroy enemy ships</option>
+                                <option value="protect-ground">Protect ground targets</option>
+                                <option value="protect-ships">Protect friendly ships</option>
+                                <option value="recon">Reconnaissance mission</option>
+                                <option value="survive">Survive for 10 turns</option>
+                                <option value="control-area">Control designated area</option>
+                            </select>
+                            <button onclick="addObjective('A')" class="btn" style="width: 100%; margin-top: 5px; background: #ff5050;">Add</button>
+                        </div>
+
+                        <!-- Side B Objectives -->
+                        <div style="background: rgba(80, 80, 255, 0.2); padding: 15px; border-radius: 8px; border: 2px solid #5050ff;">
+                            <h3 style="font-size: 16px; margin-bottom: 10px; color: #5050ff;">Side B Objectives</h3>
+                            <div id="sideBObjectives" style="min-height: 60px; font-size: 14px;">
+                                <div style="opacity: 0.6; font-style: italic;">No objectives assigned</div>
+                            </div>
+                            <select id="objectiveSelectB" style="width: 100%; padding: 8px; margin-top: 10px; background: rgba(0, 0, 0, 0.5); color: white; border: 1px solid #5050ff; border-radius: 4px; font-family: 'Courier New', monospace;">
+                                <option value="">-- Add Objective --</option>
+                                <option value="destroy-all">Destroy all enemy aircraft</option>
+                                <option value="destroy-ground">Destroy ground targets</option>
+                                <option value="destroy-ships">Destroy enemy ships</option>
+                                <option value="protect-ground">Protect ground targets</option>
+                                <option value="protect-ships">Protect friendly ships</option>
+                                <option value="recon">Reconnaissance mission</option>
+                                <option value="survive">Survive for 10 turns</option>
+                                <option value="control-area">Control designated area</option>
+                            </select>
+                            <button onclick="addObjective('B')" class="btn" style="width: 100%; margin-top: 5px; background: #5050ff;">Add</button>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <button onclick="randomizeObjectives()" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 10px 30px;">
+                            🎲 Randomize Objectives
+                        </button>
+                        <button onclick="clearAllObjectives()" class="btn" style="background: #666; padding: 10px 30px; margin-left: 10px;">
+                            Clear All
+                        </button>
                     </div>
                 </div>
 
@@ -10616,7 +10672,7 @@
 
         // WW1 Terrain class - specialized for WW1 era battles
         class WW1Terrain {
-            constructor(isAlps = false) {
+            constructor(isAlps = false, includeTrenches = true) {
                 this.hills = [];
                 this.clouds = [];
                 this.trenches = [];
@@ -10624,7 +10680,9 @@
                 this.isAlps = isAlps;
                 this.generateHills(isAlps);
                 this.generateClouds(isAlps);
-                this.generateTrenches();
+                if (includeTrenches) {
+                    this.generateTrenches();
+                }
                 this.generateVillages();
             }
 
@@ -20628,7 +20686,7 @@
 
             const mapNames = {
                 'mountains': 'Mountains & Clouds',
-                'ww1-western': 'WW1 Western Front',
+                'ww1-western': 'Western Europe',
                 'ww1-alps': 'Alps',
                 'sea': 'Sea',
                 'coast': 'Coastal'
@@ -20636,7 +20694,7 @@
 
             const mapDescriptions = {
                 'mountains': 'WW2 terrain with mountains, valleys, and ground targets',
-                'ww1-western': 'Western Front with trenches, hills, villages, and WW1 ground units',
+                'ww1-western': `Western Europe with hills, villages, and ground units${selectedScenarioYear >= 1914 && selectedScenarioYear <= 1921 ? ' (trenches included)' : ''}`,
                 'ww1-alps': 'Alpine terrain with mountains up to 6000m, clouds, and ground units',
                 'sea': 'Open ocean with clouds and naval vessels for both sides',
                 'coast': 'Realistic coastline dividing map - sea with ships on one side, land with ground units on the other'
@@ -20658,6 +20716,122 @@
 
             // Show generation selector
             showGenerationSelector();
+        }
+
+        // Mission Objectives System
+        let sideAObjectives = [];
+        let sideBObjectives = [];
+
+        const objectiveDescriptions = {
+            'destroy-all': 'Destroy all enemy aircraft',
+            'destroy-ground': 'Destroy ground targets',
+            'destroy-ships': 'Destroy enemy ships',
+            'protect-ground': 'Protect ground targets',
+            'protect-ships': 'Protect friendly ships',
+            'recon': 'Reconnaissance mission',
+            'survive': 'Survive for 10 turns',
+            'control-area': 'Control designated area'
+        };
+
+        function addObjective(side) {
+            const selectId = side === 'A' ? 'objectiveSelectA' : 'objectiveSelectB';
+            const select = document.getElementById(selectId);
+            const objective = select.value;
+
+            if (!objective) return;
+
+            const objectives = side === 'A' ? sideAObjectives : sideBObjectives;
+
+            // Check if already added
+            if (objectives.includes(objective)) {
+                alert('This objective is already assigned to this side!');
+                return;
+            }
+
+            // Add objective
+            objectives.push(objective);
+
+            // Update display
+            updateObjectivesDisplay();
+
+            // Reset select
+            select.value = '';
+        }
+
+        function removeObjective(side, objective) {
+            const objectives = side === 'A' ? sideAObjectives : sideBObjectives;
+            const index = objectives.indexOf(objective);
+            if (index > -1) {
+                objectives.splice(index, 1);
+                updateObjectivesDisplay();
+            }
+        }
+
+        function updateObjectivesDisplay() {
+            // Update Side A
+            const sideADiv = document.getElementById('sideAObjectives');
+            if (sideAObjectives.length === 0) {
+                sideADiv.innerHTML = '<div style="opacity: 0.6; font-style: italic;">No objectives assigned</div>';
+            } else {
+                sideADiv.innerHTML = sideAObjectives.map(obj => `
+                    <div style="margin: 5px 0; padding: 8px; background: rgba(255, 80, 80, 0.3); border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>• ${objectiveDescriptions[obj]}</span>
+                        <button onclick="removeObjective('A', '${obj}')" style="background: #ff0000; color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;">✕</button>
+                    </div>
+                `).join('');
+            }
+
+            // Update Side B
+            const sideBDiv = document.getElementById('sideBObjectives');
+            if (sideBObjectives.length === 0) {
+                sideBDiv.innerHTML = '<div style="opacity: 0.6; font-style: italic;">No objectives assigned</div>';
+            } else {
+                sideBDiv.innerHTML = sideBObjectives.map(obj => `
+                    <div style="margin: 5px 0; padding: 8px; background: rgba(80, 80, 255, 0.3); border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>• ${objectiveDescriptions[obj]}</span>
+                        <button onclick="removeObjective('B', '${obj}')" style="background: #0000ff; color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;">✕</button>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function randomizeObjectives() {
+            // Clear existing objectives
+            sideAObjectives = [];
+            sideBObjectives = [];
+
+            // All available objectives
+            const allObjectives = [
+                'destroy-all', 'destroy-ground', 'destroy-ships',
+                'protect-ground', 'protect-ships', 'recon',
+                'survive', 'control-area'
+            ];
+
+            // Randomly select 1-3 objectives for each side
+            const numA = 1 + Math.floor(Math.random() * 3); // 1-3
+            const numB = 1 + Math.floor(Math.random() * 3); // 1-3
+
+            // Shuffle and select for Side A
+            const shuffledA = [...allObjectives].sort(() => Math.random() - 0.5);
+            sideAObjectives = shuffledA.slice(0, numA);
+
+            // Shuffle and select for Side B
+            const shuffledB = [...allObjectives].sort(() => Math.random() - 0.5);
+            sideBObjectives = shuffledB.slice(0, numB);
+
+            // Update display
+            updateObjectivesDisplay();
+
+            console.log('Randomized objectives:', {
+                sideA: sideAObjectives.map(o => objectiveDescriptions[o]),
+                sideB: sideBObjectives.map(o => objectiveDescriptions[o])
+            });
+        }
+
+        function clearAllObjectives() {
+            sideAObjectives = [];
+            sideBObjectives = [];
+            updateObjectivesDisplay();
         }
 
         // WW1 Battle Selector Functions
@@ -21537,8 +21711,10 @@
                         break;
 
                     case 'ww1-western':
-                        terrain = new WW1Terrain(false); // Standard WW1 western front
-                        console.log('Created WW1 Western Front terrain');
+                        // Include trenches only for years 1914-1921
+                        const includeTrenches = selectedScenarioYear >= 1914 && selectedScenarioYear <= 1921;
+                        terrain = new WW1Terrain(false, includeTrenches); // Western Europe
+                        console.log(`Created Western Europe terrain${includeTrenches ? ' with trenches' : ''}`);
                         break;
 
                     case 'ww1-alps':
