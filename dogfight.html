@@ -12321,6 +12321,126 @@
                     ctx.restore();
                 }
 
+                // Render ion storms
+                ctx.save();
+                for (let storm of this.ionStorms) {
+                    ctx.save();
+                    ctx.translate(storm.x, storm.y);
+
+                    // Determine color palette
+                    let color1, color2, color3;
+                    if (storm.color === 'purple') {
+                        color1 = 'rgba(128, 0, 255, ';
+                        color2 = 'rgba(200, 100, 255, ';
+                        color3 = 'rgba(255, 150, 255, ';
+                    } else if (storm.color === 'green') {
+                        color1 = 'rgba(0, 255, 128, ';
+                        color2 = 'rgba(100, 255, 200, ';
+                        color3 = 'rgba(150, 255, 150, ';
+                    } else { // blue
+                        color1 = 'rgba(0, 128, 255, ';
+                        color2 = 'rgba(100, 200, 255, ';
+                        color3 = 'rgba(150, 220, 255, ';
+                    }
+
+                    // Pulsing intensity
+                    const pulse = 0.8 + Math.sin(storm.pulsePhase) * 0.2;
+
+                    // Draw multiple layers of swirling energy
+                    for (let layer = 3; layer >= 1; layer--) {
+                        ctx.save();
+                        ctx.rotate(storm.rotation * (layer * 0.5));
+
+                        const layerRadius = storm.radius * (0.3 + layer * 0.25);
+                        const layerAlpha = (0.15 * storm.intensity * pulse) / layer;
+
+                        // Create radial gradient
+                        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, layerRadius);
+                        gradient.addColorStop(0, color1 + (layerAlpha * 0.3) + ')');
+                        gradient.addColorStop(0.4, color2 + layerAlpha + ')');
+                        gradient.addColorStop(0.7, color3 + (layerAlpha * 0.5) + ')');
+                        gradient.addColorStop(1, color1 + '0)');
+
+                        ctx.fillStyle = gradient;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, layerRadius, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Add swirl streaks
+                        ctx.strokeStyle = color2 + (layerAlpha * 0.8) + ')';
+                        ctx.lineWidth = 2;
+                        for (let i = 0; i < 6; i++) {
+                            const angle = (i / 6) * Math.PI * 2;
+                            ctx.beginPath();
+                            ctx.arc(0, 0, layerRadius * 0.7, angle, angle + Math.PI / 6);
+                            ctx.stroke();
+                        }
+
+                        ctx.restore();
+                    }
+
+                    // Draw core
+                    const coreGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, storm.radius * 0.2);
+                    coreGradient.addColorStop(0, color3 + (0.6 * pulse) + ')');
+                    coreGradient.addColorStop(0.5, color2 + (0.4 * pulse) + ')');
+                    coreGradient.addColorStop(1, color1 + '0)');
+                    ctx.fillStyle = coreGradient;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, storm.radius * 0.2, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Draw lightning bolts
+                    const now = Date.now();
+                    // Generate lightning if it's time
+                    if (now >= storm.nextLightning) {
+                        const numBolts = 2 + Math.floor(Math.random() * 3);
+                        storm.lightningBolts = [];
+
+                        for (let b = 0; b < numBolts; b++) {
+                            const numSegments = 5 + Math.floor(Math.random() * 8);
+                            const segments = [];
+                            let currentX = (Math.random() - 0.5) * storm.radius * 0.8;
+                            let currentY = (Math.random() - 0.5) * storm.radius * 0.8;
+
+                            for (let i = 0; i < numSegments; i++) {
+                                const nextX = currentX + (Math.random() - 0.5) * 40;
+                                const nextY = currentY + (Math.random() - 0.5) * 40;
+                                segments.push({ x1: currentX, y1: currentY, x2: nextX, y2: nextY });
+                                currentX = nextX;
+                                currentY = nextY;
+                            }
+
+                            storm.lightningBolts.push({
+                                segments: segments,
+                                expires: now + 150 + Math.random() * 150
+                            });
+                        }
+
+                        storm.nextLightning = now + 800 + Math.random() * 1200;
+                    }
+
+                    // Remove expired lightning
+                    storm.lightningBolts = storm.lightningBolts.filter(bolt => bolt.expires > now);
+
+                    // Draw active lightning bolts
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.shadowColor = color3 + '0.8)';
+                    ctx.shadowBlur = 8;
+                    for (let bolt of storm.lightningBolts) {
+                        for (let segment of bolt.segments) {
+                            ctx.beginPath();
+                            ctx.moveTo(segment.x1, segment.y1);
+                            ctx.lineTo(segment.x2, segment.y2);
+                            ctx.stroke();
+                        }
+                    }
+                    ctx.shadowBlur = 0;
+
+                    ctx.restore();
+                }
+                ctx.restore();
+
                 // Render asteroids
                 for (let asteroid of this.asteroids) {
                     let asteroidX, asteroidY;
@@ -12360,6 +12480,286 @@
 
                     ctx.restore();
                 }
+
+                // Render sensor buoys
+                ctx.save();
+                for (let buoy of this.sensorBuoys) {
+                    ctx.save();
+                    ctx.translate(buoy.x, buoy.y);
+                    ctx.rotate(buoy.rotationAngle);
+
+                    // Faction color
+                    let color, glowColor;
+                    if (buoy.faction === 'tog') {
+                        color = '#cc3333';
+                        glowColor = '#ff4444';
+                    } else if (buoy.faction === 'commonwealth') {
+                        color = '#3399ff';
+                        glowColor = '#44aaff';
+                    } else {
+                        color = '#888888';
+                        glowColor = '#aaaaaa';
+                    }
+
+                    // Draw octahedral body
+                    ctx.strokeStyle = color;
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -buoy.size);
+                    ctx.lineTo(buoy.size, 0);
+                    ctx.lineTo(0, buoy.size);
+                    ctx.lineTo(-buoy.size, 0);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Draw sensor dish
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, buoy.size * 0.6, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    // Blinking status light
+                    const blinkValue = Math.sin(buoy.blinkPhase) * 0.5 + 0.5;
+                    if (buoy.active && blinkValue > 0.7) {
+                        ctx.fillStyle = glowColor;
+                        ctx.shadowColor = glowColor;
+                        ctx.shadowBlur = 5;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, buoy.size * 0.3, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                    }
+
+                    // Antenna
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -buoy.size);
+                    ctx.lineTo(0, -buoy.size * 1.5);
+                    ctx.stroke();
+
+                    ctx.restore();
+                }
+                ctx.restore();
+
+                // Render mine fields
+                ctx.save();
+                for (let field of this.mineFields) {
+                    for (let mine of field.mines) {
+                        if (!mine.active) continue;
+
+                        ctx.save();
+                        ctx.translate(mine.x, mine.y);
+
+                        // Faction color
+                        let color, pulseColor;
+                        if (mine.faction === 'tog') {
+                            color = '#cc3333';
+                            pulseColor = '#ff0000';
+                        } else {
+                            color = '#3399ff';
+                            pulseColor = '#00aaff';
+                        }
+
+                        if (mine.faction === 'tog') {
+                            // TOG mine - spherical with spikes
+                            ctx.fillStyle = color;
+                            ctx.strokeStyle = '#661111';
+                            ctx.lineWidth = 1;
+
+                            // Draw sphere
+                            ctx.beginPath();
+                            ctx.arc(0, 0, mine.size, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.stroke();
+
+                            // Draw spikes
+                            for (let i = 0; i < 8; i++) {
+                                const angle = (i / 8) * Math.PI * 2;
+                                const x = Math.cos(angle) * mine.size;
+                                const y = Math.sin(angle) * mine.size;
+                                const tipX = Math.cos(angle) * mine.size * 1.5;
+                                const tipY = Math.sin(angle) * mine.size * 1.5;
+
+                                ctx.beginPath();
+                                ctx.moveTo(x, y);
+                                ctx.lineTo(tipX, tipY);
+                                ctx.stroke();
+                            }
+                        } else {
+                            // Commonwealth mine - octahedral smart mine
+                            ctx.fillStyle = color;
+                            ctx.strokeStyle = '#113366';
+                            ctx.lineWidth = 1;
+
+                            // Draw octahedron
+                            ctx.beginPath();
+                            ctx.moveTo(0, -mine.size);
+                            ctx.lineTo(mine.size, 0);
+                            ctx.lineTo(0, mine.size);
+                            ctx.lineTo(-mine.size, 0);
+                            ctx.closePath();
+                            ctx.fill();
+                            ctx.stroke();
+
+                            // Draw cross shape for sensors
+                            ctx.strokeStyle = pulseColor;
+                            ctx.lineWidth = 0.5;
+                            ctx.beginPath();
+                            ctx.moveTo(-mine.size * 0.5, 0);
+                            ctx.lineTo(mine.size * 0.5, 0);
+                            ctx.moveTo(0, -mine.size * 0.5);
+                            ctx.lineTo(0, mine.size * 0.5);
+                            ctx.stroke();
+                        }
+
+                        // Sensor pulse effect
+                        const pulseValue = Math.sin(mine.sensorPulsePhase) * 0.5 + 0.5;
+                        if (pulseValue > 0.8) {
+                            ctx.strokeStyle = pulseColor;
+                            ctx.lineWidth = 1;
+                            ctx.globalAlpha = pulseValue * 0.5;
+                            ctx.beginPath();
+                            ctx.arc(0, 0, mine.size * 1.5 * pulseValue, 0, Math.PI * 2);
+                            ctx.stroke();
+                            ctx.globalAlpha = 1;
+                        }
+
+                        ctx.restore();
+                    }
+                }
+                ctx.restore();
+
+                // Render debris fields
+                ctx.save();
+                for (let field of this.debrisFields) {
+                    for (let debris of field.debris) {
+                        ctx.save();
+                        ctx.translate(debris.x, debris.y);
+                        ctx.rotate(debris.rotation);
+
+                        // Color based on faction
+                        let color;
+                        if (field.faction === 'tog') {
+                            color = '#cc3333'; // TOG red
+                        } else if (field.faction === 'commonwealth') {
+                            color = '#3399ff'; // Commonwealth blue
+                        } else {
+                            color = '#888888'; // Mixed/neutral gray
+                        }
+
+                        // Draw debris based on type
+                        if (debris.type === 0) {
+                            // Hull fragment - irregular polygon
+                            ctx.fillStyle = color;
+                            ctx.strokeStyle = '#444444';
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            const points = 6;
+                            for (let i = 0; i < points; i++) {
+                                const angle = (i / points) * Math.PI * 2;
+                                const radius = debris.size * (0.7 + Math.random() * 0.3);
+                                const x = Math.cos(angle) * radius;
+                                const y = Math.sin(angle) * radius;
+                                if (i === 0) ctx.moveTo(x, y);
+                                else ctx.lineTo(x, y);
+                            }
+                            ctx.closePath();
+                            ctx.fill();
+                            ctx.stroke();
+                        } else if (debris.type === 1) {
+                            // Twisted metal - angular shapes
+                            ctx.strokeStyle = color;
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.moveTo(-debris.size, 0);
+                            ctx.lineTo(0, -debris.size * 0.7);
+                            ctx.lineTo(debris.size, 0);
+                            ctx.lineTo(0, debris.size * 0.5);
+                            ctx.closePath();
+                            ctx.stroke();
+                        } else {
+                            // Electronics - box with details
+                            ctx.fillStyle = color;
+                            ctx.strokeStyle = '#666666';
+                            ctx.lineWidth = 1;
+                            ctx.fillRect(-debris.size/2, -debris.size/2, debris.size, debris.size);
+                            ctx.strokeRect(-debris.size/2, -debris.size/2, debris.size, debris.size);
+
+                            // Add circuit-like details
+                            ctx.strokeStyle = '#ffaa00';
+                            ctx.lineWidth = 0.5;
+                            ctx.beginPath();
+                            ctx.moveTo(-debris.size/4, 0);
+                            ctx.lineTo(debris.size/4, 0);
+                            ctx.stroke();
+                        }
+
+                        ctx.restore();
+                    }
+                }
+                ctx.restore();
+
+                // Render derelict ships
+                ctx.save();
+                for (let derelict of this.derelictShips) {
+                    for (let section of derelict.sections) {
+                        ctx.save();
+
+                        // Calculate section position based on derelict rotation
+                        const angle = derelict.rotation;
+                        const rotatedX = section.offsetX * Math.cos(angle) - section.offsetY * Math.sin(angle);
+                        const rotatedY = section.offsetX * Math.sin(angle) + section.offsetY * Math.cos(angle);
+
+                        ctx.translate(derelict.x + rotatedX, derelict.y + rotatedY);
+                        ctx.rotate(derelict.rotation + section.rotation);
+
+                        // Faction color (dimmed for derelict)
+                        let baseColor;
+                        if (derelict.faction === 'tog') {
+                            baseColor = '#661111'; // Dark red
+                        } else if (derelict.faction === 'commonwealth') {
+                            baseColor = '#113366'; // Dark blue
+                        } else {
+                            baseColor = '#333333'; // Unknown gray
+                        }
+
+                        // Draw hull section
+                        ctx.fillStyle = baseColor;
+                        ctx.strokeStyle = '#222222';
+                        ctx.lineWidth = 2;
+                        ctx.fillRect(-section.length/2, -section.width/2, section.length, section.width);
+                        ctx.strokeRect(-section.length/2, -section.width/2, section.length, section.width);
+
+                        // Add damage effects (holes, scorch marks)
+                        ctx.fillStyle = '#000000';
+                        for (let i = 0; i < section.damage * 3; i++) {
+                            const holeX = (Math.random() - 0.5) * section.length * 0.8;
+                            const holeY = (Math.random() - 0.5) * section.width * 0.6;
+                            const holeSize = 3 + Math.random() * 8;
+                            ctx.beginPath();
+                            ctx.arc(holeX, holeY, holeSize, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+
+                        // Add exposed structure lines
+                        ctx.strokeStyle = '#444444';
+                        ctx.lineWidth = 1;
+                        for (let i = 0; i < 4; i++) {
+                            const lineX = (Math.random() - 0.5) * section.length;
+                            ctx.beginPath();
+                            ctx.moveTo(lineX, -section.width/2);
+                            ctx.lineTo(lineX, section.width/2);
+                            ctx.stroke();
+                        }
+
+                        ctx.restore();
+                    }
+                }
+                ctx.restore();
             }
 
             // Check if line of sight between two points is blocked by terrain
