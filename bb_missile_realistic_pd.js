@@ -23,17 +23,17 @@ const DEFENDER = {
     pointDefense: {
         totalTurrets: 20,
         activeTurrets: 10,     // Only 50% can engage from one vector
-        rateOfFire: 10,        // rounds/sec per turret (initial)
-        accuracy: 0.85,
+        rateOfFire: 100,       // CORRECTED: 100 rounds/sec (not 10!)
+        accuracy: 0.15,        // CORRECTED: 15% per round (based on Phalanx/Goalkeeper data)
         damagePerHit: 100,
-        range: 5000,           // 5km
+        range: 3000,           // CORRECTED: 3km effective range
         engagementWindow: 1.5, // 1-2 seconds max (missiles move too fast!)
 
         // Heat model
-        heatPerShot: 5,        // Heat generated per shot
-        coolingRate: 2,        // Heat dissipated per second
+        heatPerShot: 0.5,      // CORRECTED: Lower heat per shot (100 rds/sec sustainable)
+        coolingRate: 10,       // CORRECTED: Higher cooling (must dissipate heat from 100 rds/sec)
         maxHeat: 100,          // Overheat threshold
-        degradationStart: 50,  // Heat level where ROF starts degrading
+        degradationStart: 70,  // Heat level where ROF starts degrading
     },
     shields: {
         faces: 6,
