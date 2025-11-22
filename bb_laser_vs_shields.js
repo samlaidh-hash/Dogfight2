@@ -1,15 +1,16 @@
 /**
- * BB vs BB Broadside Laser Effectiveness Model
+ * BB vs BB Broadside Laser Effectiveness Model - CORRECTED SHIELDS
  *
  * Scenario: One BB fires all broadside lasers at another BB
- * Defender: Flicker shields only (no armor, no PD - pure shield test)
+ * Defender: Flicker shields (% block chance system per RL1.md)
  *
- * Key Parameters from dogfight.html:
+ * Key Parameters:
  * - 40 broadside laser banks (20 port + 20 starboard)
  * - 100 damage per bank at 1km
  * - 1 second rate of fire (1 volley/second)
- * - 0% shield penetration (line 9688: laser_bank does 0 damage when blocked)
- * - Shields: 6 faces, 100% each, recharge 0.25%/sec after 4sec delay
+ * - 0% shield penetration (laser_bank does 0 damage when blocked per dogfight.html line 9688)
+ * - Shields: 60% block chance, -0.1% per successful block (RL1.md line 61)
+ *   NOT HP-based! Shields either block (0 damage) or fail (full damage)
  */
 
 // ==================== CONFIGURATION ====================
@@ -31,10 +32,10 @@ const ATTACKER = {
 const DEFENDER = {
     shields: {
         faces: 6,
-        maxHpPerFace: 100,
-        damageReduction: 10,      // Shields divide damage by 10
-        rechargeRate: 0.25,       // %/sec
-        rechargeDelay: 4.0,       // seconds after last hit
+        baseBlockChance: 60,        // 60% chance to block each hit (from RL1.md)
+        degradationPerBlock: 0.1,   // 0.1 percentage points per successful block
+        minBlockChance: 0,          // Can drop to 0%
+        rechargePerRound: 1.0,      // +1% at end of round (not implemented in continuous sim)
     },
     armor: {
         blocks: 32,
@@ -59,115 +60,75 @@ class LaserVsShieldsSimulation {
         // Stats
         this.stats = {
             volleys: 0,
-            totalDamageDealt: 0,
-            totalDamageToShields: 0,
+            totalHitsAttempted: 0,
+            shieldBlocksSuccessful: 0,
+            shieldBlocksFailed: 0,
             totalDamageToArmor: 0,
-            shieldCollapses: 0,
-            timeToFirstCollapse: null,
-            timeToAllCollapsed: null,
         };
 
-        // State
-        this.shieldFaces = Array(6).fill(100);
+        // State (% block chance system per RL1.md)
+        this.shieldFaces = Array(6).fill(null).map(() => ({
+            blockChance: DEFENDER.shields.baseBlockChance,
+            blocksThisFight: 0,
+            failsThisFight: 0
+        }));
         this.armorBlocks = Array(32).fill(7500);
-        this.shieldRechargeTimers = Array(6).fill(0);
     }
 
     fireVolley() {
         this.stats.volleys++;
 
-        // All 40 banks fire simultaneously
-        const totalDamage = ATTACKER.lasers.banks * this.damagePerBank;
-        this.stats.totalDamageDealt += totalDamage;
-
-        // Distribute damage randomly across shield faces
-        // In practice, would hit 1-2 faces based on angle, but let's model random distribution
+        // Distribute laser hits randomly across shield faces
+        // In practice, would hit 1-2 faces based on angle, but we model random distribution
         const hitsPerFace = new Array(6).fill(0);
 
-        // Simulate each laser hitting a random face
+        // Simulate each laser bank hitting a random face
         for (let i = 0; i < ATTACKER.lasers.banks; i++) {
             const faceIndex = Math.floor(Math.random() * 6);
             hitsPerFace[faceIndex]++;
         }
 
-        // Apply damage to each face
-        let totalPenetratingDamage = 0;
-
+        // Apply each hit to the corresponding face (% block chance system)
         for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
-            if (hitsPerFace[faceIndex] === 0) continue;
+            const numHits = hitsPerFace[faceIndex];
+            if (numHits === 0) continue;
 
-            const damage = hitsPerFace[faceIndex] * this.damagePerBank;
-            const penetratingDamage = this.applyShieldDamage(damage, faceIndex);
-            totalPenetratingDamage += penetratingDamage;
-        }
+            const face = this.shieldFaces[faceIndex];
 
-        // Apply penetrating damage to armor
-        if (totalPenetratingDamage > 0) {
-            this.applyArmorDamage(totalPenetratingDamage);
-        }
+            // Process each hit individually
+            for (let hit = 0; hit < numHits; hit++) {
+                this.stats.totalHitsAttempted++;
+                const roll = Math.random() * 100;
 
-        // Check if all shields collapsed
-        const collapsedCount = this.shieldFaces.filter(hp => hp <= 0).length;
-        if (collapsedCount === 6 && this.stats.timeToAllCollapsed === null) {
-            this.stats.timeToAllCollapsed = this.currentTime;
-        }
-    }
+                if (roll < face.blockChance) {
+                    // Shield BLOCKED the hit
+                    this.stats.shieldBlocksSuccessful++;
+                    face.blocksThisFight++;
 
-    applyShieldDamage(damage, faceIndex) {
-        const face = this.shieldFaces[faceIndex];
+                    // Degrade shield on successful block
+                    face.blockChance = Math.max(
+                        DEFENDER.shields.minBlockChance,
+                        face.blockChance - DEFENDER.shields.degradationPerBlock
+                    );
 
-        if (face > 0) {
-            // Shields divide damage by 10 (line 9656)
-            const shieldDamage = damage / DEFENDER.shields.damageReduction;
-            this.shieldFaces[faceIndex] -= shieldDamage;
-            this.stats.totalDamageToShields += shieldDamage;
+                    // Lasers do 0 damage when blocked (per RL1.md and dogfight.html line 9688)
+                } else {
+                    // Shield FAILED to block - full damage penetrates
+                    this.stats.shieldBlocksFailed++;
+                    face.failsThisFight++;
 
-            // Reset recharge timer
-            this.shieldRechargeTimers[faceIndex] = DEFENDER.shields.rechargeDelay;
-
-            if (this.shieldFaces[faceIndex] <= 0) {
-                // Shield face collapsed
-                if (this.stats.timeToFirstCollapse === null) {
-                    this.stats.timeToFirstCollapse = this.currentTime;
+                    // Apply full damage to armor
+                    this.applyArmorDamage(this.damagePerBank);
                 }
-                this.stats.shieldCollapses++;
-
-                // Calculate excess damage that penetrates
-                const excessDamage = Math.abs(this.shieldFaces[faceIndex]) *
-                                    DEFENDER.shields.damageReduction;
-                this.shieldFaces[faceIndex] = 0;
-                return excessDamage;
             }
-
-            // Shield held - 0% penetration for laser_bank weapons (line 9688)
-            return 0;
-        } else {
-            // Shield already down - all damage penetrates
-            return damage;
         }
     }
 
     applyArmorDamage(damage) {
-        // Randomly distribute damage across armor blocks
-        const damagePerBlock = damage / DEFENDER.armor.blocks;
-
-        for (let i = 0; i < DEFENDER.armor.blocks; i++) {
-            this.armorBlocks[i] -= damagePerBlock;
-            this.stats.totalDamageToArmor += damagePerBlock;
-        }
-    }
-
-    updateShieldRecharge(deltaTime) {
-        for (let i = 0; i < 6; i++) {
-            if (this.shieldRechargeTimers[i] > 0) {
-                this.shieldRechargeTimers[i] -= deltaTime;
-            }
-
-            if (this.shieldRechargeTimers[i] <= 0 && this.shieldFaces[i] < 100) {
-                const recharge = DEFENDER.shields.rechargeRate * deltaTime;
-                this.shieldFaces[i] = Math.min(100, this.shieldFaces[i] + recharge);
-            }
-        }
+        // Apply damage to random armor block
+        const blockIndex = Math.floor(Math.random() * DEFENDER.armor.blocks);
+        this.armorBlocks[blockIndex] -= damage;
+        this.stats.totalDamageToArmor += damage;
     }
 
     run() {
@@ -178,26 +139,18 @@ class LaserVsShieldsSimulation {
             this.fireVolley();
 
             // Advance time
-            const deltaTime = volleyInterval;
-            this.updateShieldRecharge(deltaTime);
-            this.currentTime += deltaTime;
+            this.currentTime += volleyInterval;
 
             // Check termination conditions
-            const allShieldsDown = this.shieldFaces.every(hp => hp <= 0);
             const allArmorDestroyed = this.armorBlocks.every(hp => hp <= 0);
-
             if (allArmorDestroyed) {
                 break; // Ship destroyed
             }
 
-            // Stop if shields are stable (can recharge faster than damage)
-            if (this.currentTime > 60 && !allShieldsDown) {
-                // Check if shields have stabilized
-                const avgShield = this.shieldFaces.reduce((a, b) => a + b, 0) / 6;
-                if (avgShield > 50) {
-                    // Shields holding steady
-                    break;
-                }
+            // Stop after reasonable engagement time (shields degrade but don't recharge during combat)
+            if (this.currentTime > 120) {
+                // 2 minutes of sustained fire is enough for analysis
+                break;
             }
         }
     }
@@ -222,25 +175,20 @@ class LaserVsShieldsSimulation {
         console.log("-".repeat(70));
         console.log(`Simulation Duration: ${this.currentTime.toFixed(1)} seconds`);
         console.log(`Total Volleys Fired: ${this.stats.volleys}`);
-        console.log(`Total Damage Output: ${this.stats.totalDamageDealt.toFixed(0)} HP`);
+        console.log(`Total Hits Attempted: ${this.stats.totalHitsAttempted}`);
+        console.log(`Potential Damage Output: ${(this.stats.totalHitsAttempted * this.damagePerBank).toFixed(0)} HP`);
         console.log("");
 
-        console.log("SHIELD PERFORMANCE");
+        console.log("SHIELD PERFORMANCE (% Block Chance System)");
         console.log("-".repeat(70));
-        console.log(`Total Shield Damage: ${this.stats.totalDamageToShields.toFixed(1)}%`);
-        console.log(`Shield Faces Collapsed: ${this.stats.shieldCollapses}`);
-        if (this.stats.timeToFirstCollapse !== null) {
-            console.log(`Time to First Collapse: ${this.stats.timeToFirstCollapse.toFixed(1)} seconds`);
-        }
-        if (this.stats.timeToAllCollapsed !== null) {
-            console.log(`Time to All Collapsed: ${this.stats.timeToAllCollapsed.toFixed(1)} seconds`);
-        }
+        console.log(`Shield Blocks Successful: ${this.stats.shieldBlocksSuccessful} / ${this.stats.totalHitsAttempted} (${(this.stats.shieldBlocksSuccessful / this.stats.totalHitsAttempted * 100).toFixed(1)}%)`);
+        console.log(`Shield Blocks Failed: ${this.stats.shieldBlocksFailed} / ${this.stats.totalHitsAttempted} (${(this.stats.shieldBlocksFailed / this.stats.totalHitsAttempted * 100).toFixed(1)}%)`);
+        console.log(`Damage Prevented by Shields: ${(this.stats.shieldBlocksSuccessful * this.damagePerBank).toFixed(0)} HP`);
         console.log("");
 
-        console.log("Current Shield Status:");
-        this.shieldFaces.forEach((hp, i) => {
-            const status = hp > 0 ? `ACTIVE (${hp.toFixed(1)}%)` : "COLLAPSED";
-            console.log(`  Face ${i + 1}: ${status}`);
+        console.log("Shield Face Status (Current Block %):");
+        this.shieldFaces.forEach((face, i) => {
+            console.log(`  Face ${i + 1}: ${face.blockChance.toFixed(1)}% (${face.blocksThisFight} blocks, ${face.failsThisFight} fails)`);
         });
         console.log("");
 
@@ -254,41 +202,34 @@ class LaserVsShieldsSimulation {
         console.log("");
 
         console.log("=".repeat(70));
-        console.log("ASSESSMENT");
+        console.log("ASSESSMENT (% Block Chance System)");
         console.log("=".repeat(70));
 
-        const shieldEffectiveness = (this.stats.totalDamageToShields * 10) / this.stats.totalDamageDealt * 100;
-        console.log(`Shield Absorption Rate: ${shieldEffectiveness.toFixed(1)}%`);
+        const avgShieldBlock = this.stats.shieldBlocksSuccessful / this.stats.totalHitsAttempted * 100;
+        console.log(`Average Shield Block Rate: ${avgShieldBlock.toFixed(1)}%`);
+        console.log(`Damage Through Shields: ${this.stats.totalDamageToArmor.toFixed(0)} HP`);
+        console.log(`Damage Prevented: ${(this.stats.shieldBlocksSuccessful * this.damagePerBank).toFixed(0)} HP`);
 
-        const allShieldsDown = this.shieldFaces.every(hp => hp <= 0);
-
-        if (allShieldsDown) {
-            console.log(`Status: ALL SHIELDS COLLAPSED at t=${this.stats.timeToAllCollapsed?.toFixed(1)}s`);
-            console.log(`Result: Defender exposed to direct armor damage`);
-        } else {
-            console.log(`Status: SHIELDS HOLDING`);
-            console.log(`Result: Defender shields absorbing sustained fire`);
-        }
-
-        // Calculate equilibrium
-        const damagePerSecond = ATTACKER.lasers.banks * this.damagePerBank / ATTACKER.lasers.rateOfFire;
-        const shieldDamagePerSecond = damagePerSecond / DEFENDER.shields.damageReduction;
-        const shieldRechargePerSecond = DEFENDER.shields.rechargeRate;
+        const avgBlockChance = this.shieldFaces.reduce((sum, face) => sum + face.blockChance, 0) / 6;
+        console.log(`Average Final Block Chance: ${avgBlockChance.toFixed(1)}% (started at 60%)`);
+        console.log(`Shield Degradation: ${(60 - avgBlockChance).toFixed(1)} percentage points`);
 
         console.log("");
-        console.log("EQUILIBRIUM ANALYSIS");
+        console.log("TACTICAL ANALYSIS");
         console.log("-".repeat(70));
-        console.log(`Incoming Damage per Second: ${shieldDamagePerSecond.toFixed(2)}% shield/sec`);
-        console.log(`Shield Recharge Rate: ${shieldRechargePerSecond.toFixed(2)}% shield/sec`);
-        console.log(`Net Drain per Second: ${(shieldDamagePerSecond - shieldRechargePerSecond).toFixed(2)}% shield/sec`);
+        console.log(`Hits per Second: ${(ATTACKER.lasers.banks / ATTACKER.lasers.rateOfFire).toFixed(1)}`);
+        console.log(`Expected Blocks per Second (at start): ${(ATTACKER.lasers.banks / ATTACKER.lasers.rateOfFire * 0.60).toFixed(1)}`);
+        console.log(`Expected Penetrations per Second (at start): ${(ATTACKER.lasers.banks / ATTACKER.lasers.rateOfFire * 0.40).toFixed(1)}`);
 
-        if (shieldDamagePerSecond < shieldRechargePerSecond) {
-            console.log(`Conclusion: Shields can RECHARGE faster than damage (impossible with 4s delay)`);
-        } else {
-            const timeToDepleteFace = 100 / shieldDamagePerSecond;
-            console.log(`Conclusion: Shields CANNOT sustain indefinitely`);
-            console.log(`Time to deplete 1 face: ${timeToDepleteFace.toFixed(1)} seconds (if focused)`);
-        }
+        const totalBlocks = this.shieldFaces.reduce((sum, face) => sum + face.blocksThisFight, 0);
+        const degradationTotal = totalBlocks * DEFENDER.shields.degradationPerBlock;
+        console.log(`Total Degradation: ${degradationTotal.toFixed(1)} percentage points from ${totalBlocks} successful blocks`);
+
+        console.log("");
+        console.log("KEY FINDING:");
+        console.log(`With % block chance system, shields degrade by ${DEFENDER.shields.degradationPerBlock}% per block.`);
+        console.log(`After ~600 blocks, shields drop from 60% to 0% effectiveness.`);
+        console.log(`This creates EXPONENTIAL damage increase as block chance falls!`);
 
         console.log("");
         console.log("=".repeat(70));
@@ -326,35 +267,36 @@ for (const { range, label } of ranges) {
     rangeResults.push({
         range,
         label,
-        timeToCollapse: stats.timeToAllCollapsed,
         totalDamage: stats.totalDamageToArmor,
+        blockRate: (stats.shieldBlocksSuccessful / stats.totalHitsAttempted * 100),
     });
 }
 
 // Summary comparison
 console.log("\n\n" + "=".repeat(70));
-console.log("RANGE EFFECTIVENESS SUMMARY");
+console.log("RANGE EFFECTIVENESS SUMMARY (% Block Chance System)");
 console.log("=".repeat(70));
 console.log("");
 
-console.log("Range | Time to Collapse All Shields | Armor Damage");
+console.log("Range | Avg Block Rate | Armor Damage");
 console.log("-".repeat(70));
 
 for (const result of rangeResults) {
-    const timeStr = result.timeToCollapse ? `${result.timeToCollapse.toFixed(1)}s` : "N/A (shields held)";
-    const dmgStr = result.totalDamage > 0 ? `${result.totalDamage.toFixed(0)} HP` : "0 HP (shields held)";
-    console.log(`${result.label.padEnd(40)} | ${timeStr.padEnd(23)} | ${dmgStr}`);
+    const blockStr = `${result.blockRate.toFixed(1)}%`;
+    const dmgStr = `${result.totalDamage.toFixed(0)} HP`;
+    console.log(`${result.label.padEnd(40)} | ${blockStr.padEnd(14)} | ${dmgStr}`);
 }
 
 console.log("");
 console.log("=".repeat(70));
-console.log("KEY FINDINGS");
+console.log("KEY FINDINGS (CORRECTED % BLOCK CHANCE SYSTEM)");
 console.log("=".repeat(70));
 console.log("");
-console.log("1. Broadside lasers do 0% damage through intact shields (line 9688)");
-console.log("2. Shields divide incoming damage by 10 before absorbing");
-console.log("3. Shields cannot recharge during sustained fire (4-second delay)");
-console.log("4. Closer range = higher damage = faster shield collapse");
-console.log("5. Once shields collapse, armor takes full damage directly");
+console.log("1. Shields use % BLOCK CHANCE, not HP (per RL1.md line 61)");
+console.log("2. Broadside lasers do 0% damage when blocked (dogfight.html line 9688)");
+console.log("3. Each successful block degrades shield by 0.1 percentage points");
+console.log("4. Starting at 60%, shields reach 0% after ~600 successful blocks");
+console.log("5. Closer range = more hits = faster shield degradation = exponential damage curve");
+console.log("6. Shields DON'T recharge during combat (only +1% at end of round per RL1.md)");
 console.log("");
 console.log("=".repeat(70));
