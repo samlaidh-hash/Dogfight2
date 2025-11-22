@@ -1,11 +1,13 @@
 /**
- * BB vs BB Missile - FINAL ACCURATE MODEL
+ * BB vs BB Missile - FINAL ACCURATE MODEL WITH CORRECTED SHIELDS
  *
- * Based on user specifications:
+ * Based on user specifications and RL1.md:
  * - 32 missiles fired simultaneously, arrive together
  * - 32 PD turrets total, 16 can bear on incoming missiles
  * - Heat: +1 heat per 100 rounds, heat×0.1% shutdown chance/sec, -3 heat/sec cooldown
  * - Missiles: 30G for 20s, coast after burnout, engaging at 10-40km
+ * - Shields: 60% block chance, -0.1% per successful block (RL1.md line 61)
+ *   NOT HP-based! Shields either block (0 damage) or fail (full damage)
  */
 
 // ==================== CONFIGURATION ====================
@@ -35,10 +37,10 @@ const DEFENDER = {
     },
     shields: {
         faces: 6,
-        maxHpPerFace: 100,
-        damageReduction: 10,
-        rechargeRate: 0.25,
-        rechargeDelay: 4.0,
+        baseBlockChance: 60,        // 60% chance to block each hit (from RL1.md)
+        degradationPerBlock: 0.1,   // 0.1 percentage points per successful block
+        minBlockChance: 0,          // Can drop to 0%
+        rechargePerRound: 1.0,      // +1% at end of round (not implemented in this sim)
     },
     armor: {
         blocks: 32,
@@ -106,12 +108,16 @@ class AccurateMissileSimulation {
             missilesDestroyed: 0,
             missilesPenetrated: 0,
             turretShutdowns: 0,
-            totalShieldDamage: 0,
+            shieldBlocksSuccessful: 0,
+            shieldBlocksFailed: 0,
             totalArmorDamage: 0,
         };
 
-        // Shield/armor state
-        this.shieldFaces = Array(6).fill(100);
+        // Shield/armor state (% block chance system per RL1.md)
+        this.shieldFaces = Array(6).fill(null).map(() => ({
+            blockChance: DEFENDER.shields.baseBlockChance,
+            blocksThisFight: 0
+        }));
         this.armorBlocks = Array(32).fill(7500);
     }
 
@@ -183,24 +189,29 @@ class AccurateMissileSimulation {
         for (let i = 0; i < survivors; i++) {
             const damage = ATTACKER.missiles.damage;
             const faceIndex = Math.floor(Math.random() * 6);
+            const face = this.shieldFaces[faceIndex];
 
-            if (this.shieldFaces[faceIndex] > 0) {
-                const shieldDamage = damage / DEFENDER.shields.damageReduction;
-                this.shieldFaces[faceIndex] -= shieldDamage;
-                this.stats.totalShieldDamage += shieldDamage;
+            // Roll for shield block (% chance system per RL1.md)
+            const roll = Math.random() * 100;
 
-                if (this.shieldFaces[faceIndex] <= 0) {
-                    // Shield collapsed - excess penetrates
-                    const excess = Math.abs(this.shieldFaces[faceIndex]) * DEFENDER.shields.damageReduction;
-                    this.shieldFaces[faceIndex] = 0;
+            if (roll < face.blockChance) {
+                // Shield BLOCKED the missile
+                this.stats.shieldBlocksSuccessful++;
+                face.blocksThisFight++;
 
-                    // Apply to armor
-                    const blockIndex = Math.floor(Math.random() * 32);
-                    this.armorBlocks[blockIndex] -= excess;
-                    this.stats.totalArmorDamage += excess;
-                }
+                // Degrade shield on successful block
+                face.blockChance = Math.max(
+                    DEFENDER.shields.minBlockChance,
+                    face.blockChance - DEFENDER.shields.degradationPerBlock
+                );
+
+                // Missiles do 0 damage when blocked (per RL1.md line 61, no penetration)
+                // Note: Railguns would leak 25% but missiles don't
             } else {
-                // Shield down - direct armor hit
+                // Shield FAILED to block - full damage penetrates
+                this.stats.shieldBlocksFailed++;
+
+                // Apply full damage to random armor block
                 const blockIndex = Math.floor(Math.random() * 32);
                 this.armorBlocks[blockIndex] -= damage;
                 this.stats.totalArmorDamage += damage;
@@ -252,17 +263,21 @@ class AccurateMissileSimulation {
 
         console.log("DAMAGE ASSESSMENT");
         console.log("-".repeat(70));
-        console.log(`Shield Damage: ${this.stats.totalShieldDamage.toFixed(1)}%`);
+        console.log(`Shield Blocks Successful: ${this.stats.shieldBlocksSuccessful} / ${this.stats.missilesPenetrated} missiles`);
+        console.log(`Shield Blocks Failed: ${this.stats.shieldBlocksFailed} / ${this.stats.missilesPenetrated} missiles`);
+        console.log(`Shield Block Rate: ${(this.stats.shieldBlocksSuccessful / this.stats.missilesPenetrated * 100).toFixed(1)}%`);
+        console.log("");
 
-        const collapsedFaces = this.shieldFaces.filter(hp => hp <= 0).length;
-        console.log(`Shield Faces Collapsed: ${collapsedFaces} / 6`);
+        console.log("Shield Face Status:");
+        for (let i = 0; i < this.shieldFaces.length; i++) {
+            const face = this.shieldFaces[i];
+            console.log(`  Face ${i+1}: ${face.blockChance.toFixed(1)}% block chance (${face.blocksThisFight} blocks)`);
+        }
+        console.log("");
 
         console.log(`Armor Damage: ${this.stats.totalArmorDamage.toFixed(0)} HP`);
         const blocksDestroyed = this.armorBlocks.filter(hp => hp <= 0).length;
         console.log(`Armor Blocks Destroyed: ${blocksDestroyed} / 32`);
-
-        const totalDamage = this.stats.totalArmorDamage + (this.stats.totalShieldDamage * 10);
-        console.log(`Total Effective Damage: ${totalDamage.toFixed(0)} HP (${(totalDamage / 800000 * 100).toFixed(2)}% of ship)`);
         console.log("");
 
         let status;
@@ -313,8 +328,7 @@ for (let trial = 0; trial < 100; trial++) {
     results.destroyed.push(sim.stats.missilesDestroyed);
     results.penetrated.push(sim.stats.missilesPenetrated);
     results.shutdowns.push(sim.stats.turretShutdowns);
-    const totalDmg = sim.stats.totalArmorDamage + (sim.stats.totalShieldDamage * 10);
-    results.damage.push(totalDmg);
+    results.damage.push(sim.stats.totalArmorDamage);
 }
 
 const avg = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
