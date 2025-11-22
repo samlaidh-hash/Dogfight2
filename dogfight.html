@@ -5993,22 +5993,32 @@
                     };
 
                     // === FLICKER SHIELDS ===
-                    // Multi-facing shields with recharge mechanics
+                    // Multi-facing shields with % block chance (per RL1.md line 61)
                     const shieldFaces = this.type === 'battleship' || this.type === 'battlecruiser' ? 6 :
                                        this.type === 'cruiser' || this.type === 'destroyer' ? 4 :
                                        this.type === 'carrier' ? 1 : 2;  // Corvette gets 1
 
+                    // Block chance by ship class (per RL1.md line 61-67)
+                    let baseBlockChance;
+                    if (this.type === 'battleship') baseBlockChance = 60;
+                    else if (this.type === 'battlecruiser') baseBlockChance = 57;
+                    else if (this.type === 'cruiser') baseBlockChance = 54;
+                    else if (this.type === 'light-cruiser') baseBlockChance = 51;
+                    else if (this.type === 'destroyer') baseBlockChance = 48;
+                    else if (this.type === 'corvette' || this.type === 'carrier') baseBlockChance = 45;
+                    else baseBlockChance = 60; // Default to BB
+
                     this.shields = {
                         faces: shieldFaces,
                         faceHP: Array(shieldFaces).fill(null).map(() => ({
-                            current: 100,       // Percentage (0-100%)
-                            max: 100,
-                            recharging: false,
+                            blockChance: baseBlockChance,  // % chance to block (per RL1.md)
+                            blocksThisRound: 0,
                             lastHitTime: 0      // Time since last hit
                         })),
-                        rechargeRate: 0.25,     // 0.25% per second
+                        baseBlockChance: baseBlockChance,  // For reference/recharge
+                        rechargeRate: 1.0,      // +1% at end of round (per RL1.md)
                         rechargeDelay: 4000,    // 4 seconds after last hit (milliseconds)
-                        degradationRate: 0.001, // -0.1% per armor block damaged
+                        degradationPerBlock: 0.1, // -0.1 percentage points per successful block (per RL1.md)
                         active: true,
                         powerLevel: 3           // 1-5 power allocation (from power management)
                     };
@@ -7019,7 +7029,7 @@
                     }
                 }
 
-                // === RENEGADE LEGION SHIELD RECHARGE ===
+                // === RENEGADE LEGION SHIELD RECHARGE (% Block Chance System) ===
                 if (this.shields && this.shields.active) {
                     const currentTime = Date.now();
                     for (let i = 0; i < this.shields.faceHP.length; i++) {
@@ -7027,25 +7037,12 @@
 
                         // Check if enough time has passed since last hit for recharge
                         const timeSinceHit = currentTime - face.lastHitTime;
-                        if (timeSinceHit >= this.shields.rechargeDelay && face.current < face.max) {
-                            // Recharge this shield face
+                        if (timeSinceHit >= this.shields.rechargeDelay && face.blockChance < this.shields.baseBlockChance) {
+                            // Recharge this shield face (+1% per second approximates "at end of round" from RL1.md)
                             face.recharging = true;
-                            face.current = Math.min(face.max, face.current + this.shields.rechargeRate * dt);
+                            face.blockChance = Math.min(this.shields.baseBlockChance, face.blockChance + this.shields.rechargeRate * dt);
                         } else if (timeSinceHit < this.shields.rechargeDelay) {
                             face.recharging = false;
-                        }
-                    }
-
-                    // Calculate shield degradation based on armor block damage
-                    if (this.armorBlocks) {
-                        const damagedBlocks = this.armorBlocks.filter(block => block.isDestroyed).length;
-                        const degradation = damagedBlocks * this.shields.degradationRate;
-
-                        // Apply degradation to max shield strength
-                        for (let face of this.shields.faceHP) {
-                            const degradedMax = 100 - (degradation * 100);
-                            face.max = Math.max(10, degradedMax); // Minimum 10% max
-                            face.current = Math.min(face.current, face.max);
                         }
                     }
                 }
@@ -9658,39 +9655,36 @@
                 const faceIndex = this.determineShieldFace(target, distance);
                 const face = target.shields.faceHP[faceIndex];
 
-                // Apply damage to shield
-                face.current -= damage / 10; // Shields absorb damage (scaled down)
-                face.lastHitTime = Date.now();
+                // === % BLOCK CHANCE SYSTEM (per RL1.md line 61) ===
+                // Roll to see if shield blocks this hit
+                const roll = Math.random() * 100;
 
-                if (face.current < 0) {
-                    // Shield face collapsed - damage penetrates to armor
-                    const excessDamage = Math.abs(face.current) * 10;
-                    face.current = 0;
-                    this.applyArmorDamage(target, excessDamage, weaponType);
-                    console.log(`  └─ Shield face ${faceIndex+1} COLLAPSED! Excess damage: ${excessDamage.toFixed(0)}`);
-                } else {
-                    // Shield held - apply reduced damage based on weapon type
-                    console.log(`  └─ Shield face ${faceIndex+1} BLOCKED (${face.current.toFixed(1)}% remaining)`);
+                if (roll < face.blockChance) {
+                    // ===  BLOCK SUCCESSFUL ===
+                    console.log(`  └─ Shield face ${faceIndex+1} BLOCKED (${face.blockChance.toFixed(1)}% block chance)`);
 
-                    // Determine damage through shields based on weapon type
-                    let shieldLeakDamage = 0;
+                    // Degrade shield on successful block
+                    face.blockChance = Math.max(0, face.blockChance - 0.1); // -0.1 percentage points per RL1.md
+                    face.blocksThisRound = (face.blocksThisRound || 0) + 1;
+
+                    // Special case: Railgun slugs leak 25% kinetic damage even when blocked (per RL1.md)
                     if (weaponType === 'spinal_railgun') {
-                        // Spinal mounts deal 25% damage through shields
-                        shieldLeakDamage = damage * 0.25;
-                        console.log(`  └─ Spinal mount: ${shieldLeakDamage.toFixed(0)} damage leaks through shields (25%)`);
-                    } else if (weaponType === 'mass_driver' || weaponType === 'laser' || weaponType === 'particle_beam') {
-                        // Turrets deal 10% damage through shields (but not PD turrets)
-                        if (weaponType !== 'point_defense') {
-                            shieldLeakDamage = damage * 0.10;
-                            console.log(`  └─ Turret: ${shieldLeakDamage.toFixed(0)} damage leaks through shields (10%)`);
-                        }
+                        const leakDamage = damage * 0.25;
+                        this.applyArmorDamage(target, leakDamage, weaponType);
+                        console.log(`  └─ Railgun kinetic transfer: ${leakDamage.toFixed(0)} damage leaks through`);
                     }
-                    // Broadside (laser_bank), Chaser (chaser), Missiles (missile), PD (point_defense) do 0 damage when blocked
+                    // All other weapons: 0 damage when blocked per RL1.md
 
-                    if (shieldLeakDamage > 0) {
-                        this.applyArmorDamage(target, shieldLeakDamage, weaponType);
-                    }
+                } else {
+                    // === BLOCK FAILED ===
+                    console.log(`  └─ Shield face ${faceIndex+1} PENETRATED (${face.blockChance.toFixed(1)}% block failed) - Full damage through!`);
+
+                    // Full damage penetrates to armor
+                    this.applyArmorDamage(target, damage, weaponType);
                 }
+
+                // Update last hit time for recharge tracking
+                face.lastHitTime = Date.now();
             }
 
             determineShieldFace(target, distance) {
@@ -18804,11 +18798,11 @@
                 // Calculate HP percentage
                 const hpPercent = ship.health / ship.maxHealth * 100;
 
-                // Calculate shield percentage (average across all faces)
+                // Calculate shield percentage (average block chance across all faces)
                 let shieldPercent = 0;
                 if (ship.shields && ship.shields.active) {
-                    const avgShield = ship.shields.faceHP.reduce((sum, face) => sum + face.current, 0) / ship.shields.faceHP.length;
-                    shieldPercent = avgShield;
+                    const avgBlockChance = ship.shields.faceHP.reduce((sum, face) => sum + face.blockChance, 0) / ship.shields.faceHP.length;
+                    shieldPercent = (avgBlockChance / ship.shields.baseBlockChance) * 100; // Normalize to 0-100% based on base
                 }
 
                 shipEntry.innerHTML = `
@@ -21860,11 +21854,7 @@
                     togX += 150;
                 });
 
-                // If no player ship was selected, default to first aircraft
-                if (!selectedAircraft && aircraft.length > 0) {
-                    selectedAircraft = aircraft[0];
-                    selectedAircraft.isPlayer = true;
-                }
+                // Don't auto-select - let user click to select (which properly initializes ghost)
 
                 console.log('🚀 Renegade Legion Battle Started!');
                 console.log('- Commonwealth ships configured:', commonwealthShips.length);
@@ -23013,9 +23003,7 @@
                     console.log('Creating aircraft:', ac.type, 'at', ac.x, ac.y);
                     const newAircraft = new Aircraft(ac.name || aircraftDatabase[ac.type]?.name || ac.type, ac.type, ac.x, ac.y, ac.altitude, ac.heading, ac.isPlayer);
                     aircraft.push(newAircraft);
-                    if (ac.isPlayer) {
-                        selectedAircraft = newAircraft;
-                    }
+                    // Don't auto-select - let user click to select (which properly initializes ghost)
                 });
                 console.log('Total aircraft created:', aircraft.length);
             } catch (e) {
@@ -23260,11 +23248,9 @@
                     console.log('Creating Allied aircraft:', ac.type, 'at', x, y);
                     const newAircraft = new Aircraft(ac.name, ac.type, x, y, 800, 90, ac.isPlayer);
                     aircraft.push(newAircraft);
-                    if (ac.isPlayer) {
-                        selectedAircraft = newAircraft;
-                    }
+                    // Don't auto-select - let user click to select (which properly initializes ghost)
                 });
-                
+
                 // Add Central Powers aircraft
                 ww1CentralAircraft.forEach((ac, index) => {
                     const x = 1500 + index * 200;
@@ -23272,9 +23258,7 @@
                     console.log('Creating Central aircraft:', ac.type, 'at', x, y);
                     const newAircraft = new Aircraft(ac.name, ac.type, x, y, 800, 270, ac.isPlayer);
                     aircraft.push(newAircraft);
-                    if (ac.isPlayer) {
-                        selectedAircraft = newAircraft;
-                    }
+                    // Don't auto-select - let user click to select (which properly initializes ghost)
                 });
                 
                 console.log('Total aircraft created:', aircraft.length);
