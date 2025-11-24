@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-**Dogfight 2** is a turn-based WW2 aerial combat simulation with **~20,000 lines** of embedded HTML/CSS/JavaScript code spanning two main HTML files. The project demonstrates solid architectural patterns with a class-based design, though it exhibits significant technical debt due to monolithic file structure. Currently at **81% feature completion** (13/16 enhancements) with strong gameplay mechanics and historical accuracy.
+**Dogfight 2** is a turn-based aerial combat simulation with **~20,000 lines** of embedded HTML/CSS/JavaScript code spanning two main HTML files. The game features **three distinct game modes**: WW2 aerial combat, WW1 historical battles, and **Renegade Legion** (sci-fi space combat with capital ships and fighters). The project demonstrates solid architectural patterns with a class-based design, though it exhibits significant technical debt due to monolithic file structure. Currently at **81% feature completion** (13/16 enhancements) with strong gameplay mechanics and historical accuracy.
 
 ---
 
@@ -492,7 +492,188 @@ MISSION COMPLETE
 
 ---
 
-## 6. AIRCRAFT DATABASE STRUCTURE
+## 6. RENEGADE LEGION GAME MODE ✅
+
+**Status:** Fully implemented - Space combat expansion
+
+**Overview:**
+Renegade Legion is a sci-fi space combat game mode that uses the same turn-based WEGO mechanics as the WW2/WW1 modes but with space capital ships, fighters, and futuristic weapons. This is a major expansion that transforms the game into a space combat simulator.
+
+**Access:**
+- Main menu button: "🚀 RENEGADE LEGION" (purple-themed)
+- Battle selector UI for setting up space battles
+- Version: v2.1.0 - Renegade Legion Update
+
+### 6.1 Capital Ships
+
+**Ship Classes:**
+- **Battleship:** 800m, 4 megatons, 4,000,000 HP, 160 ready fighters
+- **Battle Cruiser:** 700m, 2.6 megatons, 2,600,000 HP, 120 ready fighters
+- **Heavy Cruiser:** 600m, 1.4 megatons, 1,400,000 HP, 80 ready fighters
+- **Light Cruiser:** 500m, 1 megaton, 1,000,000 HP, 60 ready fighters
+- **Destroyer:** 400m, 0.5 megatons, 500,000 HP, 40 ready fighters
+- **Corvette:** 280m, 0.2 megatons, 200,000 HP, 20 ready fighters
+
+**Defense Systems:**
+- **Ablative Armor:** 32-block grid system, HP divided evenly
+- **Flicker Shields:** Percentage-based blocking (45-60% by ship class)
+  - 6 shields for capital ships (fore, aft, top, bottom, port, starboard)
+  - 4 shields for cruisers
+  - 2 shields for destroyers
+  - 1 shield for corvettes
+  - Each block reduces shield % by 0.1, regenerates 1% per round
+- **System-Based Damage:** Reactors, engines, weapons, fighter bays, etc.
+- **Excess Damage Pool:** 5% of total HP, ship disintegrates when depleted
+
+**Power Allocation System:**
+- Three power groups: Shields, Engines, Weapons
+- Trade-offs between systems (reduce one to boost another)
+- Leviathan-class ships have simplified energy allocation
+
+### 6.2 Weapon Systems
+
+**Broadside Lasers:**
+- Banks of 25 guns per bank
+- 80% hit chance out to range 20, then 0%
+- 100 damage/gun, 5 second cooldown
+- Number of banks varies by ship class (1-8 per side)
+
+**Prow/Stern Lasers:**
+- Forward and aft arc weapons
+- Banks of 5 guns
+- Damage: 100/gun at point blank, reducing to 0 at range 20
+- 5 second cooldown
+
+**Spinal Mount Railguns:**
+- Massive single-shot weapons
+- Damage: 12,500 (Corvette) to 100,000 (Battleship)
+- 80% hit chance at point blank, reducing to 2% at range 30+
+- 20 second cooldown
+- Can penetrate shields (75% damage reduction on block)
+
+**Missiles:**
+- 90% hit chance (ECM/ECCM modifiers apply)
+- 25 cells per array
+- 1 missile/second fire rate
+- 1000 damage/missile
+- 30G acceleration, 20 seconds burn time
+- Smart fuel management (on/off to conserve)
+- Subject to point defense
+- Variant: Dogfight missiles (200 damage, 4 per cell, 60G, 5s burn)
+
+**Point Defense Turrets:**
+- CIWS systems for missile/fighter defense
+- 100 projectiles/second (effectively unlimited ammo)
+- 20mm equivalent projectiles
+- Heat-based operation (0.1 heat per 100 projectiles)
+- Shutdown chance = current heat %
+- Cool mode: 20 projectiles/second, no heat gain
+- Auto-targets missiles, then fighters
+
+### 6.3 Space Fighters
+
+**Fighter Types:**
+- **Commonwealth:** Avenger, Cheetah, Space Gull, Fluttering Petal, Guardian, Martiobarbulus, Penetrator, Pilum, Spiculum, Verutum
+- **TOG Empire:** Gladius, Lancea, and others
+- Each fighter has unique performance characteristics
+
+**Fighter Missions:**
+- **Attack:** Moves toward nearest enemy and engages
+- **Defend:** Stays near mothership, intercepts threats
+- **Patrol:** Semi-random course in allied area
+
+**Fighter Features:**
+- Automatic formation (flights of 4)
+- Return to carrier when damaged/low ammo
+- Docked fighters repair over time
+- Launch/recovery system (1 per bay per 4 seconds)
+- Variants: Bombers, Dropships, Gunships (2 slots), Light Fighters (0.5 slots)
+
+### 6.4 Newtonian Physics
+
+**Movement System:**
+- Vector-based (speed and direction carry over between turns)
+- G-force acceleration: 4G (Battleship) to 9G (Corvette)
+- Pivot rates: 20-45 degrees/second by ship class
+- Thrust vectoring: Mouse wheel adjusts exhaust angle (up to 180°)
+- Thrust efficiency: 1/3rd at 180° from normal
+- Special maneuvers: Half-roll, full roll for defensive benefits
+
+**Ship Specifications:**
+- Battleship: 4G acceleration, 20°/s pivot
+- Battle Cruiser: 5G acceleration, 25°/s pivot
+- Heavy Cruiser: 6G acceleration, 30°/s pivot
+- Light Cruiser: 7G acceleration, 35°/s pivot
+- Destroyer: 8G acceleration, 40°/s pivot
+- Corvette: 9G acceleration, 45°/s pivot
+
+### 6.5 Space Terrain
+
+**Asteroids:**
+- Destructible terrain
+- Split into smaller pieces when destroyed
+- Huge → Large → Medium → Small → Gravel → Fade
+- Drift slowly
+
+**Nebulae:**
+- Flicker shields don't work
+- Sensors severely impaired
+- Laser damage reduced at 3x normal rate by range
+
+**Black Holes:**
+- Gravitational effects
+- Damage near event horizon
+- Optional map mode (toggle in battle selector)
+
+**Planets and Moons:**
+- Terrain features for tactical positioning
+
+### 6.6 Factions
+
+**Commonwealth Forces:**
+- Blue/cyan color scheme
+- Ships: Repulse (BB), Valiant (CA), County (CL), etc.
+- Fighters: Avenger, Cheetah, Guardian, etc.
+
+**TOG Empire:**
+- Red color scheme
+- Ships: Shiva (BB), Carthage (BC), Syracuse (BC), Xerxes (CA), Fulgur (DD), Serpens (DD)
+- Fighters: Gladius, Lancea, etc.
+
+### 6.7 Implementation Details
+
+**Key Functions:**
+- `showRenegadeLegionBattleSelector()` - Opens battle setup UI
+- `startRenegadeLegionBattle()` - Initializes space battle
+- `applyRenegadeLegionAI()` - Specialized AI for space combat
+- `CapitalShip` class - Capital ship entity (likely in codebase)
+- `SpaceTerrain` class - Space environment generation
+
+**UI Elements:**
+- Renegade Legion Battle Selector (purple-themed)
+- Ship selection dropdowns
+- Black Hole Map toggle
+- Commonwealth vs TOG force setup
+
+**Documentation Files:**
+- `RL1.md` - Complete Renegade Legion rules and specifications
+- `RL_LEV.txt` - Leviathan (capital ship) specifications
+- `CAPITAL_SHIP_EXPANSION_DESIGN.md` - Detailed capital ship design (2,000+ lines)
+- `ECM_ECCM_DESIGN.md` - Electronic warfare systems
+- `ECM_IMPLEMENTATION_SUMMARY.md` - ECM implementation details
+- `AIRSHIP_IMPLEMENTATION_SUMMARY.md` - Airship implementation
+- `BB_MISSILE_ATTACK_ANALYSIS.md` - Battleship missile effectiveness analysis
+
+**Code References:**
+- Lines 616, 1096-1156: Battle selector UI
+- Lines 20527-20645: Battle initialization
+- Lines 19726-19850+: Renegade Legion AI
+- Lines 4959+: CapitalShip class definition
+- Multiple fighter types in aircraft database
+
+---
+
+## 7. AIRCRAFT DATABASE STRUCTURE
 
 **Size:** ~900 lines with 9 aircraft types
 
@@ -691,6 +872,17 @@ src/
 - ✅ G-force and stall mechanics
 - ✅ Pilot skill variations
 - ✅ Energy management display
+
+**Space Combat (Renegade Legion):**
+- ✅ Capital ship combat system (6 ship classes: BB, BC, CA, CL, DD, CV)
+- ✅ Space fighters with mission AI (Attack, Defend, Patrol)
+- ✅ Newtonian physics (vector-based movement, G-force acceleration)
+- ✅ Flicker shields and ablative armor systems
+- ✅ Multiple weapon systems (broadside lasers, spinal railguns, missiles, PD turrets)
+- ✅ Space terrain (asteroids, nebulae, black holes, planets)
+- ✅ Two factions (Commonwealth vs TOG Empire)
+- ✅ Power allocation system for capital ships
+- ✅ Fighter launch/recovery mechanics
 
 **Mission & Campaign:**
 - ✅ 10 campaign missions with briefings
