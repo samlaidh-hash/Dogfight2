@@ -5443,7 +5443,8 @@
                 this.id = `ship_${++_shipIdCounter}`; // Unique ID for detection tracking
                 this.x = x;
                 this.y = y;
-                this.type = type; // 'battleship', 'battlecruiser', 'cruiser', 'destroyer', 'carrier'
+                // Parse type if it's in "Type-Name" format (e.g., "BC-battlecruiser" -> "battlecruiser")
+                this.type = type.includes('-') ? type.split('-')[1] : type;
                 this.faction = faction; // 'commonwealth' or 'terran'
                 this.side = faction;  // For consistency with Aircraft class
                 this.heading = 90; // degrees (0 = north, 90 = east)
@@ -22613,9 +22614,26 @@
                 return;
             }
 
+            // Convert ship type to "Type-Name" format expected by validation
+            // Fighters already have "Fighter-Name" format, capital ships need conversion
+            let formattedType = shipType;
+            if (!shipType.includes('-')) {
+                // Map ship types to Type-Name format
+                const typeMap = {
+                    'battleship': 'BB-battleship',
+                    'battlecruiser': 'BC-battlecruiser',
+                    'cruiser': 'CA-cruiser',
+                    'lightcruiser': 'CL-lightcruiser',
+                    'destroyer': 'DD-destroyer',
+                    'corvette': 'CT-corvette',
+                    'carrier': 'CV-carrier'
+                };
+                formattedType = typeMap[shipType] || shipType;
+            }
+
             // Create ship with default loadout configuration
             const shipConfig = {
-                type: shipType,
+                type: formattedType,
                 isPlayer: false, // Default to AI
                 loadout: {
                     fighterBays: [], // Will be populated in loadout config
