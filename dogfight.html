@@ -1542,32 +1542,67 @@
             }
         };
 
+        // Ship class name mapping: {faction: {type: className}}
+        // Format: {class} {faction} {type}.png (e.g., "repulse cw bb.png")
+        const shipClassNames = {
+            commonwealth: {
+                battleship: 'repulse',
+                battlecruiser: 'syracuse',
+                cruiser: 'xerxes',      // Heavy Cruiser (CA)
+                lightcruiser: 'county', // Light Cruiser (CL) - if needed
+                destroyer: 'serpens',
+                carrier: null           // No carrier image yet
+            },
+            terran: {
+                battleship: 'shiva',
+                battlecruiser: 'carthage',
+                cruiser: 'valiant',     // Heavy Cruiser (CA)
+                lightcruiser: 'bantha', // Light Cruiser (CL) - if needed
+                destroyer: 'fulgur',
+                carrier: null           // No carrier image yet
+            }
+        };
+
         // Function to load ship images
         function loadShipImages() {
-            // When ship images are available, they should follow this naming convention:
-            // commonwealth_dd.png, commonwealth_cl.png, commonwealth_ca.png, commonwealth_bc.png, commonwealth_bb.png
-            // terran_dd.png, terran_cl.png, terran_ca.png, terran_bc.png, terran_bb.png
+            // Ship images follow this naming convention:
+            // {class} {faction} {type}.png (e.g., "repulse cw bb.png", "shiva tog bb.png")
+            // Where faction is "cw" for Commonwealth or "tog" for TOG
+            // And type is "bb", "bc", "ca", "cl", "dd", "cv"
 
             const shipTypes = ['destroyer', 'cruiser', 'battlecruiser', 'battleship', 'carrier'];
             const factions = ['commonwealth', 'terran'];
+            const factionAbbr = { commonwealth: 'cw', terran: 'tog' };
 
             for (let faction of factions) {
                 for (let type of shipTypes) {
                     try {
                         const img = new Image();
-                        // Try loading with expected naming convention
+                        const className = shipClassNames[faction] && shipClassNames[faction][type];
+                        
+                        if (!className) {
+                            // No image available for this type (e.g., carrier)
+                            continue;
+                        }
+
+                        // Convert type to abbreviation
                         const typeAbbr = type === 'destroyer' ? 'dd' :
-                                       type === 'cruiser' ? 'cl' :
+                                       type === 'cruiser' ? 'ca' :
+                                       type === 'lightcruiser' ? 'cl' :
                                        type === 'battlecruiser' ? 'bc' :
                                        type === 'battleship' ? 'bb' : 'cv';
-                        img.src = `${faction}_${typeAbbr}.png`;
+                        
+                        // Format: {class} {faction} {type}.png
+                        const imagePath = `${className} ${factionAbbr[faction]} ${typeAbbr}.png`;
+                        img.src = imagePath;
+                        
                         img.onload = () => {
                             shipImages[faction][type] = img;
-                            console.log(`Loaded ship image: ${faction} ${type}`);
+                            console.log(`Loaded ship image: ${imagePath}`);
                         };
                         img.onerror = () => {
                             // Image not found, will use geometric rendering
-                            console.log(`Ship image not found: ${faction}_${typeAbbr}.png - using geometric rendering`);
+                            console.log(`Ship image not found: ${imagePath} - using geometric rendering`);
                         };
                     } catch (e) {
                         console.log(`Error loading ship image for ${faction} ${type}:`, e);
