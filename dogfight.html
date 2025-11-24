@@ -12940,6 +12940,11 @@
                 // No obstructions found - line of sight is clear
                 return false;
             }
+
+            // Get terrain height at position (space has no terrain, returns 0)
+            getHeightAt(x, y) {
+                return 0; // Space has no terrain elevation
+            }
         }
 
         // Perlin Noise generator for natural terrain
@@ -21867,10 +21872,29 @@
         function validateRLBattleUI() {
             const requiredElements = ['rlLoadoutConfig', 'renegadeLegionBattleSelector',
                                       'gameContainer', 'blackHoleMode', 'splashScreen'];
-            const missing = requiredElements.filter(id => !document.getElementById(id));
+            const missing = requiredElements.filter(id => {
+                const element = document.getElementById(id);
+                if (!element) {
+                    console.warn(`Element '${id}' not found in DOM`);
+                    return true;
+                }
+                return false;
+            });
             if (missing.length > 0) {
                 console.error('Missing UI elements:', missing);
-                alert('UI initialization error. Please refresh the page.');
+                // Try to find elements again after a short delay (DOM might not be ready)
+                setTimeout(() => {
+                    const stillMissing = requiredElements.filter(id => !document.getElementById(id));
+                    if (stillMissing.length > 0) {
+                        console.error('Elements still missing after delay:', stillMissing);
+                        alert('UI initialization error. Please refresh the page.');
+                    }
+                }, 100);
+                // Don't block execution if only rlLoadoutConfig is missing (it might be conditionally rendered)
+                if (missing.length === 1 && missing[0] === 'rlLoadoutConfig') {
+                    console.warn('rlLoadoutConfig missing but continuing - may be conditionally rendered');
+                    return true; // Allow continuation
+                }
                 return false;
             }
             return true;
@@ -22194,7 +22218,8 @@
 
             // Both terrain and forces created successfully - now update UI
             // Hide loadout config screen (may be visible if coming from there)
-            document.getElementById('rlLoadoutConfig').style.display = 'none';
+            const rlLoadout = document.getElementById('rlLoadoutConfig');
+            if (rlLoadout) rlLoadout.style.display = 'none';
             document.getElementById('renegadeLegionBattleSelector').style.display = 'none';
             document.getElementById('splashScreen').style.display = 'none';
             document.getElementById('gameContainer').style.display = 'block';
@@ -22502,14 +22527,20 @@
 
         function showRenegadeLegionBattleSelector() {
             document.getElementById('splashScreen').style.display = 'none';
-            document.getElementById('renegadeLegionBattleSelector').style.display = 'block';
+            const battleSelector = document.getElementById('renegadeLegionBattleSelector');
+            if (battleSelector) {
+                battleSelector.style.display = 'block';
+            }
 
             // Clear previous selections
             commonwealthShips = [];
             togShips = [];
 
             // Hide loadout config screen if visible
-            document.getElementById('rlLoadoutConfig').style.display = 'none';
+            const rlLoadout = document.getElementById('rlLoadoutConfig');
+            if (rlLoadout) {
+                rlLoadout.style.display = 'none';
+            }
 
             updateShipLists();
         }
@@ -22605,16 +22636,25 @@
             }
 
             // Hide ship selection, show loadout config
-            document.getElementById('renegadeLegionBattleSelector').style.display = 'none';
-            document.getElementById('rlLoadoutConfig').style.display = 'block';
+            const battleSelector = document.getElementById('renegadeLegionBattleSelector');
+            const rlLoadout = document.getElementById('rlLoadoutConfig');
+            if (battleSelector) battleSelector.style.display = 'none';
+            if (rlLoadout) {
+                rlLoadout.style.display = 'block';
+            } else {
+                console.error('rlLoadoutConfig element not found!');
+                return;
+            }
 
             // Generate loadout configuration UI
             generateLoadoutConfigUI();
         }
 
         function backToShipSelection() {
-            document.getElementById('rlLoadoutConfig').style.display = 'none';
-            document.getElementById('renegadeLegionBattleSelector').style.display = 'block';
+            const rlLoadout = document.getElementById('rlLoadoutConfig');
+            const battleSelector = document.getElementById('renegadeLegionBattleSelector');
+            if (rlLoadout) rlLoadout.style.display = 'none';
+            if (battleSelector) battleSelector.style.display = 'block';
         }
 
         function generateLoadoutConfigUI() {
