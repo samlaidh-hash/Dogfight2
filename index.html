@@ -1259,7 +1259,9 @@
             volume: 0.7,
             enableFuel: false,
             enableComponentDamage: true,
-            enableWeatherEffects: true
+            enableWeatherEffects: true,
+            criticalHitMultiplier: 2.0, // Damage multiplier for critical hits
+            useAngleBasedComponentDamage: true // Enable realistic component selection based on attack angle
         };
 
         // Campaign state
@@ -11808,6 +11810,11 @@
                 // No obstructions found - line of sight is clear
                 return false;
             }
+
+            // Get terrain height at position (space has no terrain, returns 0)
+            getHeightAt(x, y) {
+                return 0; // Space has no terrain elevation
+            }
         }
 
         // Perlin Noise generator for natural terrain
@@ -13017,7 +13024,8 @@
                             range: weaponRange, // meters - effective range
                             firingCooldown: 0,
                             sound: w.sound,
-                            mount: w.mount || 'front' // front, left, right, rear, turret
+                            mount: w.mount || 'front', // front, left, right, rear, turret
+                            isDestroyed: false // Track if weapon is destroyed by component damage
                         };
                     });
 
@@ -13136,11 +13144,7 @@
                 // Critical hit system
                 this.criticalHitsDealt = 0; // Total critical hits dealt
                 this.criticalHitsTaken = 0; // Total critical hits received
-                this.systemDamage = {
-                    engine: 0,    // 0-1, reduces speed and climb rate
-                    controls: 0,  // 0-1, reduces turn rate
-                    weapons: 0    // 0-1, reduces accuracy and fire rate
-                };
+                // Note: systemDamage removed - using component damage system instead
 
                 // Weight and performance system
                 this.emptyWeight = specs.emptyWeight || 2400; // kg - aircraft empty weight
@@ -14023,8 +14027,11 @@
                     const turnRadius = (state.speed * state.speed) / (g * Math.sqrt(maxSustainableG * maxSustainableG - 1));
                     let maxTurnRatePerSec = (state.speed / turnRadius) * (180 / Math.PI); // Convert to degrees/sec
 
-                    // Apply system damage penalties
-                    const controlPenalty = 1 - (this.systemDamage.controls * 0.5); // Up to 50% turn rate loss
+                    // Apply component damage penalties (wings and tail affect control)
+                    const wingDamagePercent = (this.componentDamage.leftWing + this.componentDamage.rightWing) / 2;
+                    const tailDamagePercent = this.componentDamage.tail;
+                    const controlDamagePercent = Math.max(wingDamagePercent, tailDamagePercent * 0.7); // Tail less critical than wings
+                    const controlPenalty = 1 - (controlDamagePercent / 100 * 0.5); // Up to 50% turn rate loss
                     maxTurnRatePerSec = maxTurnRatePerSec * controlPenalty;
 
                     // Apply rotary engine modifiers (WW1 aircraft)
@@ -14118,8 +14125,10 @@
                         newSpeed -= slipDragPerStep;
                     }
 
-                    // Apply engine damage penalty
-                    const enginePenalty = 1 - (this.systemDamage.engine * 0.4); // Up to 40% speed loss
+                    // Apply engine component damage penalty (redundant with maxSpeed reduction, but keep for consistency)
+                    // Note: Engine damage already reduces maxSpeed in applyComponentDamage, this is additional penalty
+                    const engineDamagePercent = this.componentDamage.engine;
+                    const enginePenalty = 1 - (engineDamagePercent / 100 * 0.2); // Additional 20% speed loss at 100% engine damage
                     newSpeed = newSpeed * enginePenalty;
 
                     // Clamp speed
@@ -15200,13 +15209,15 @@
                 const critTakenDisplay = this.criticalHitsTaken > 0 ?
                     `<div class="stat-line" style="color: #ff4444;">💥 Hit by: ${this.criticalHitsTaken}</div>` : '';
 
-                // Show system damage
-                const engineDamageDisplay = this.systemDamage.engine > 0 ?
-                    `<div class="stat-line" style="color: #ff4444;">🔧 Engine: ${Math.round(this.systemDamage.engine * 100)}%</div>` : '';
-                const controlDamageDisplay = this.systemDamage.controls > 0 ?
-                    `<div class="stat-line" style="color: #ff4444;">⚙ Controls: ${Math.round(this.systemDamage.controls * 100)}%</div>` : '';
-                const weaponDamageDisplay = this.systemDamage.weapons > 0 ?
-                    `<div class="stat-line" style="color: #ff4444;">🎯 Weapons: ${Math.round(this.systemDamage.weapons * 100)}%</div>` : '';
+                // Show destroyed weapons (if any)
+                let destroyedWeaponsDisplay = '';
+                if (this.weaponGroups) {
+                    const destroyedWeapons = this.weaponGroups.filter(wg => wg.isDestroyed);
+                    if (destroyedWeapons.length > 0) {
+                        const weaponNames = destroyedWeapons.map(wg => wg.name || wg.type).join(', ');
+                        destroyedWeaponsDisplay = `<div class="stat-line" style="color: #ff4444;" title="Weapons destroyed by component damage">🎯 Destroyed: ${weaponNames}</div>`;
+                    }
+                }
 
                 return `
                     <div class="stat-line" style="font-size: 11px; color: #aaa;">${this.fullName}</div>
@@ -15221,11 +15232,9 @@
                     ${componentInfo}
                     <div class="stat-line" style="color: ${fireThresholdColor}" title="Minimum hit probability required to open fire. Lower = fires at longer range but wastes ammo. Adjust with Z/X keys.">Fire Min: ${fireThresholdPercent}%</div>
                     ${ordinanceDisplay}
-                    ${critDisplay ? `<div class="stat-line" style="color: #ff8800;" title="Number of critical hits dealt to enemy. Critical hits cause system damage (engine, controls, weapons).">💥 Crits: ${this.criticalHitsDealt}</div>` : ''}
-                    ${critTakenDisplay ? `<div class="stat-line" style="color: #ff4444;" title="Number of critical hits received. These cause permanent system damage until repaired.">💥 Hit by: ${this.criticalHitsTaken}</div>` : ''}
-                    ${engineDamageDisplay ? `<div class="stat-line" style="color: #ff4444;" title="Engine damage from critical hits. Reduces maximum speed and climb rate.">🔧 Engine: ${Math.round(this.systemDamage.engine * 100)}%</div>` : ''}
-                    ${controlDamageDisplay ? `<div class="stat-line" style="color: #ff4444;" title="Control surface damage from critical hits. Reduces turn rate and maneuverability.">⚙ Controls: ${Math.round(this.systemDamage.controls * 100)}%</div>` : ''}
-                    ${weaponDamageDisplay ? `<div class="stat-line" style="color: #ff4444;" title="Weapons system damage from critical hits. Reduces accuracy and rate of fire.">🎯 Weapons: ${Math.round(this.systemDamage.weapons * 100)}%</div>` : ''}
+                    ${critDisplay ? `<div class="stat-line" style="color: #ff8800;" title="Number of critical hits dealt to enemy. Critical hits multiply damage by 2x.">💥 Crits: ${this.criticalHitsDealt}</div>` : ''}
+                    ${critTakenDisplay ? `<div class="stat-line" style="color: #ff4444;" title="Number of critical hits received. Critical hits multiply damage by 2x.">💥 Hit by: ${this.criticalHitsTaken}</div>` : ''}
+                    ${destroyedWeaponsDisplay}
                     ${gForceDisplay}
                     ${gPenaltyDisplay}
                     ${invertedDisplay}
@@ -15259,38 +15268,35 @@
                 critChance -= (shooter.currentGForce - 3.0) * 0.05;
             }
 
-            // Weapon system damage reduces crit chance
-            if (shooter.systemDamage.weapons > 0) {
-                critChance -= shooter.systemDamage.weapons * 0.15;
+            // Weapon damage reduces crit chance (check if weapons are destroyed)
+            if (shooter.weaponGroups) {
+                const destroyedWeapons = shooter.weaponGroups.filter(wg => wg.isDestroyed).length;
+                const totalWeapons = shooter.weaponGroups.length;
+                if (totalWeapons > 0) {
+                    const weaponDamageRatio = destroyedWeapons / totalWeapons;
+                    critChance -= weaponDamageRatio * 0.15; // Up to 15% reduction if all weapons destroyed
+                }
             }
 
-            // Target's control damage increases vulnerability
-            if (target.systemDamage.controls > 0.3) {
+            // Target's wing/tail damage increases vulnerability (damaged aircraft easier to crit)
+            const targetWingDamage = (target.componentDamage.leftWing + target.componentDamage.rightWing) / 2;
+            const targetTailDamage = target.componentDamage.tail;
+            const targetControlDamage = Math.max(targetWingDamage, targetTailDamage);
+            if (targetControlDamage > 30) {
                 critChance += 0.10; // +10% against damaged aircraft
             }
 
             return Math.max(0, Math.min(0.50, critChance)); // Cap between 0-50%
         }
 
-        // Apply critical hit effects
+        // Apply critical hit effects - simplified to just multiply damage
         function applyCriticalHit(target, weapon) {
             target.criticalHitsTaken++;
 
-            // Randomly select which system gets damaged
-            const systems = ['engine', 'controls', 'weapons'];
-            const hitSystem = systems[Math.floor(Math.random() * systems.length)];
+            // Critical hit multiplier (configurable, default 2.0)
+            const criticalMultiplier = gameSettings.criticalHitMultiplier || 2.0;
 
-            // Damage amount based on weapon type
-            let damageAmount = weapon === 'cannon' ? 0.25 : 0.15; // Cannon does more system damage
-
-            // Apply damage (cumulative but capped at 1.0)
-            target.systemDamage[hitSystem] = Math.min(1.0, target.systemDamage[hitSystem] + damageAmount);
-
-            console.log(`💥 CRITICAL HIT! ${target.name} ${hitSystem} damaged: ${Math.round(target.systemDamage[hitSystem] * 100)}%`);
-
-            // Apply extra hull damage for critical hit
-            const bonusDamage = weapon === 'cannon' ? 15 : 8;
-            target.damage += bonusDamage;
+            console.log(`💥 CRITICAL HIT! ${target.name} takes ${criticalMultiplier}x damage!`);
 
             // Create visual feedback
             target.hitEffects.push({
@@ -15300,6 +15306,9 @@
                 time: Date.now(),
                 duration: 1500 // Critical hits show longer
             });
+            
+            // Return multiplier to be applied to damage
+            return criticalMultiplier;
         }
 
         // AI for Me-109 - Tactical Dogfight AI
@@ -15770,6 +15779,9 @@
                                 let weaponsFired = [];
 
                                 for (let weaponGroup of shooter.weaponGroups) {
+                                    // Skip destroyed weapons
+                                    if (weaponGroup.isDestroyed) continue;
+                                    
                                     // Energy weapons don't use ammo, skip ammo check for them
                                     if (weaponGroup.type !== 'laser' && weaponGroup.type !== 'particle_beam') {
                                         if (weaponGroup.ammunition <= 0) continue;
@@ -15993,12 +16005,18 @@
                                     const critChance = calculateCriticalHitChance(shooter, target, distance, angleDiff);
                                     if (Math.random() < critChance) {
                                         const weaponType = totalDamage > 10 ? 'cannon' : 'mg';
-                                        applyCriticalHit(target, weaponType);
+                                        const critMultiplier = applyCriticalHit(target, weaponType);
+                                        damageAmount *= critMultiplier; // Apply critical hit multiplier
                                         shooter.criticalHitsDealt++;
                                     }
 
-                                    // Enhancement #4: Apply component damage
-                                    applyComponentDamage(target, damageAmount);
+                                    // Calculate attack angle for component selection
+                                    const dx = target.x - shooter.x;
+                                    const dy = target.y - shooter.y;
+                                    const attackAngle = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
+                                    
+                                    // Enhancement #4: Apply component damage with angle information
+                                    applyComponentDamage(target, damageAmount, attackAngle, shooter.heading);
                                     target.lastHitBy = shooter.name;
                                     target.lastHitTime = Date.now();
                                     console.log(`  HIT! Total damage: ${damageAmount.toFixed(1)} (${target.damage.toFixed(1)} total)`);
@@ -16070,12 +16088,18 @@
                                 const critChance = calculateCriticalHitChance(shooter, target, distance, angleDiff);
                                 if (Math.random() < critChance) {
                                     const weaponType = shooter.weaponType === 'cannon' ? 'cannon' : 'mg';
-                                    applyCriticalHit(target, weaponType);
+                                    const critMultiplier = applyCriticalHit(target, weaponType);
+                                    damageAmount *= critMultiplier; // Apply 2x damage for critical hit
                                     shooter.criticalHitsDealt++;
                                 }
 
-                                // Enhancement #4: Apply component damage
-                                applyComponentDamage(target, damageAmount);
+                                // Calculate attack angle for component selection
+                                const dx2 = target.x - shooter.x;
+                                const dy2 = target.y - shooter.y;
+                                const attackAngle2 = (Math.atan2(dy2, dx2) * 180 / Math.PI + 90 + 360) % 360;
+                                
+                                // Enhancement #4: Apply component damage with angle information
+                                applyComponentDamage(target, damageAmount, attackAngle2, shooter.heading);
                                 target.lastHitBy = shooter.name;
                                 target.lastHitTime = Date.now();
                                 console.log(`  HIT! ${target.name} took ${damageAmount.toFixed(1)} damage (total: ${target.damage.toFixed(1)})`);
@@ -17529,8 +17553,10 @@
             ctx.fillText(`Version: ${GAME_VERSION}`, scaleBarX, scaleBarY + 20);
 
             // Draw terrain altitude at mouse cursor
-            const terrainHeight = terrain.getHeightAt(mouseX, mouseY);
-            ctx.fillText(`Terrain: ${Math.round(terrainHeight)}m`, scaleBarX, scaleBarY + 40);
+            if (terrain && terrain.getHeightAt) {
+                const terrainHeight = terrain.getHeightAt(mouseX, mouseY);
+                ctx.fillText(`Terrain: ${Math.round(terrainHeight)}m`, scaleBarX, scaleBarY + 40);
+            }
 
             // Draw multi-turn maneuver progress indicators (during EXECUTION only)
             if (gameState === 'EXECUTION') {
@@ -18558,9 +18584,21 @@
                         // Loss of speed due to sudden maneuver cancellation
                         plane.speed = Math.max(plane.minSpeed, plane.speed * 0.85); // Lose 15% speed
 
-                        // Possible control damage
+                        // High G-forces can cause wing damage (realistic - wings stressed under high G)
                         if (plane.currentGForce > 4) {
-                            plane.systemDamage.controls = Math.min(1.0, plane.systemDamage.controls + 0.1);
+                            // Apply wing damage based on G-force stress
+                            const gStressDamage = (plane.currentGForce - 4) * 2; // 2 damage per G over 4
+                            if (Math.random() < 0.5) {
+                                // 50% chance to damage left wing
+                                plane.componentDamage.leftWing += gStressDamage;
+                                plane.asymmetricDamage.left += gStressDamage;
+                            } else {
+                                // 50% chance to damage right wing
+                                plane.componentDamage.rightWing += gStressDamage;
+                                plane.asymmetricDamage.right += gStressDamage;
+                            }
+                            plane.maxTurnRate *= 0.98; // Slight turn rate reduction
+                            console.log(`${plane.name}: Wing stress damage from ${plane.currentGForce.toFixed(1)}G maneuver`);
                         }
 
                         // Pilot becomes disoriented for 1 turn
@@ -19451,42 +19489,238 @@
             return false;
         }
 
+        // Component selection based on attack angle and surface area
+        function selectComponentByAngle(attackAngle, targetHeading) {
+            // Calculate relative angle (0° = dead ahead, 180° = dead behind)
+            let relativeAngle = attackAngle - targetHeading;
+            if (relativeAngle > 180) relativeAngle -= 360;
+            if (relativeAngle < -180) relativeAngle += 360;
+            const absAngle = Math.abs(relativeAngle);
+            
+            // Base surface area percentages (realistic distribution)
+            const baseProbabilities = {
+                leftWing: 0.20,
+                rightWing: 0.20,
+                engine: 0.08,
+                cockpit: 0.03,
+                fuelTank: 0.04,
+                tail: 0.15,
+                wings: 0.30  // Generic wings (if left/right not used)
+            };
+            
+            // Angle modifiers (multipliers)
+            let angleModifiers = {};
+            
+            // Determine angle category
+            if (absAngle < 30) {
+                // Dead ahead (0° ± 30°)
+                angleModifiers = {
+                    engine: 2.0,      // +200%
+                    cockpit: 1.0,     // +100%
+                    leftWing: -0.25,  // -25%
+                    rightWing: -0.25,
+                    tail: -0.75,     // -75%
+                    fuelTank: 0.25   // +25%
+                };
+            } else if (absAngle < 60) {
+                // Front quarter (30° - 60°)
+                angleModifiers = {
+                    engine: 1.5,
+                    cockpit: 0.75,
+                    leftWing: 0.5,
+                    rightWing: 0.5,
+                    tail: -0.5,
+                    fuelTank: 0.25
+                };
+            } else if (absAngle < 120) {
+                // Side (60° - 120°)
+                angleModifiers = {
+                    engine: 0.5,
+                    cockpit: 0.25,
+                    leftWing: 1.5,   // +150% (wings are largest target from side)
+                    rightWing: 1.5,
+                    tail: -0.25,
+                    fuelTank: 0.5
+                };
+            } else if (absAngle < 150) {
+                // Rear quarter (120° - 150°)
+                angleModifiers = {
+                    engine: -0.25,
+                    cockpit: -0.5,
+                    leftWing: 0.25,
+                    rightWing: 0.25,
+                    tail: 1.5,       // +150%
+                    fuelTank: 0.25
+                };
+            } else {
+                // Dead behind (150° - 180°)
+                angleModifiers = {
+                    engine: -0.5,
+                    cockpit: -0.75,
+                    leftWing: -0.25,
+                    rightWing: -0.25,
+                    tail: 2.0,       // +200%
+                    fuelTank: 0.25
+                };
+            }
+            
+            // Account for left vs right side
+            if (relativeAngle < 0) {
+                // Attacking from left side - left wing more likely
+                angleModifiers.leftWing = (angleModifiers.leftWing || 0) + 0.3;
+                angleModifiers.rightWing = (angleModifiers.rightWing || 0) - 0.2;
+            } else if (relativeAngle > 0) {
+                // Attacking from right side - right wing more likely
+                angleModifiers.rightWing = (angleModifiers.rightWing || 0) + 0.3;
+                angleModifiers.leftWing = (angleModifiers.leftWing || 0) - 0.2;
+            }
+            
+            // Calculate final probabilities
+            const finalProbabilities = {};
+            let totalProbability = 0;
+            
+            for (let component in baseProbabilities) {
+                const modifier = angleModifiers[component] || 0;
+                finalProbabilities[component] = baseProbabilities[component] * (1 + modifier);
+                totalProbability += finalProbabilities[component];
+            }
+            
+            // Normalize to 100%
+            for (let component in finalProbabilities) {
+                finalProbabilities[component] /= totalProbability;
+            }
+            
+            // Select component using weighted random
+            const rand = Math.random();
+            let cumulative = 0;
+            for (let component in finalProbabilities) {
+                cumulative += finalProbabilities[component];
+                if (rand <= cumulative) {
+                    return component;
+                }
+            }
+            
+            // Fallback (shouldn't happen)
+            return 'wings';
+        }
+
         // Enhancement #4: Apply Component Damage
-        function applyComponentDamage(aircraft, damage) {
+        function applyComponentDamage(aircraft, damage, attackAngle = null, attackerHeading = null) {
             if (!gameSettings.enableComponentDamage) {
                 aircraft.damage += damage;
                 return;
             }
 
-            // Randomly hit different components
-            const component = ['engine', 'wings', 'tail', 'cockpit', 'fuelTank', 'leftWing', 'rightWing'][Math.floor(Math.random() * 7)];
+            // Select component based on attack angle if provided, otherwise random
+            let component;
+            if (attackAngle !== null && attackerHeading !== null) {
+                component = selectComponentByAngle(attackAngle, aircraft.heading);
+            } else {
+                // Fallback to random selection (backward compatibility)
+                component = ['engine', 'wings', 'tail', 'cockpit', 'fuelTank', 'leftWing', 'rightWing'][Math.floor(Math.random() * 7)];
+            }
+            
             aircraft.componentDamage[component] += damage;
 
             // Engine damage reduces max speed and acceleration
             if (component === 'engine') {
                 aircraft.maxSpeed *= 0.95;
                 aircraft.maxAcceleration *= 0.9;
+                
+                // Damage nose-mounted/synchronized guns (front-mounted weapons)
+                if (aircraft.weaponGroups) {
+                    for (let weaponGroup of aircraft.weaponGroups) {
+                        if (weaponGroup.mount === 'front' && !weaponGroup.isDestroyed && Math.random() < 0.25) {
+                            weaponGroup.isDestroyed = true;
+                            weaponGroup.count = 0; // Disable weapon
+                            console.log(`${aircraft.name}: ${weaponGroup.name} destroyed (engine damage)`);
+                        }
+                    }
+                }
             }
 
             // Wing damage affects turn rate
             if (component === 'leftWing') {
                 aircraft.asymmetricDamage.left += damage;
                 aircraft.maxTurnRate *= 0.95;
+                
+                // Damage left wing-mounted weapons
+                if (aircraft.weaponGroups) {
+                    for (let weaponGroup of aircraft.weaponGroups) {
+                        if (weaponGroup.mount === 'left' && !weaponGroup.isDestroyed && Math.random() < 0.3) {
+                            weaponGroup.isDestroyed = true;
+                            weaponGroup.count = 0; // Disable weapon
+                            console.log(`${aircraft.name}: ${weaponGroup.name} destroyed (left wing damage)`);
+                        }
+                    }
+                }
             } else if (component === 'rightWing') {
                 aircraft.asymmetricDamage.right += damage;
                 aircraft.maxTurnRate *= 0.95;
+                
+                // Damage right wing-mounted weapons
+                if (aircraft.weaponGroups) {
+                    for (let weaponGroup of aircraft.weaponGroups) {
+                        if (weaponGroup.mount === 'right' && !weaponGroup.isDestroyed && Math.random() < 0.3) {
+                            weaponGroup.isDestroyed = true;
+                            weaponGroup.count = 0; // Disable weapon
+                            console.log(`${aircraft.name}: ${weaponGroup.name} destroyed (right wing damage)`);
+                        }
+                    }
+                }
+            } else if (component === 'wings') {
+                // Generic wings damage - split between left and right
+                aircraft.asymmetricDamage.left += damage * 0.5;
+                aircraft.asymmetricDamage.right += damage * 0.5;
+                aircraft.maxTurnRate *= 0.95;
+                
+                // Damage wing-mounted weapons (either side)
+                if (aircraft.weaponGroups) {
+                    for (let weaponGroup of aircraft.weaponGroups) {
+                        if ((weaponGroup.mount === 'left' || weaponGroup.mount === 'right') && !weaponGroup.isDestroyed && Math.random() < 0.15) {
+                            weaponGroup.isDestroyed = true;
+                            weaponGroup.count = 0; // Disable weapon
+                            console.log(`${aircraft.name}: ${weaponGroup.name} destroyed (wing damage)`);
+                        }
+                    }
+                }
             }
 
-            // Tail damage affects stability
+            // Tail damage affects stability and control
             if (component === 'tail') {
                 aircraft.maxClimbRate *= 0.9;
+                aircraft.maxTurnRate *= 0.95; // Tail has rudder - affects yaw control
+                
+                // Damage rear-mounted weapons (if any)
+                if (aircraft.weaponGroups) {
+                    for (let weaponGroup of aircraft.weaponGroups) {
+                        if (weaponGroup.mount === 'rear' && !weaponGroup.isDestroyed && Math.random() < 0.2) {
+                            weaponGroup.isDestroyed = true;
+                            weaponGroup.count = 0; // Disable weapon
+                            console.log(`${aircraft.name}: ${weaponGroup.name} destroyed (tail damage)`);
+                        }
+                    }
+                }
             }
 
-            // Cockpit damage can wound pilot
-            if (component === 'cockpit' && Math.random() < 0.3) {
-                aircraft.pilotWounded = true;
-                aircraft.pilotSkill *= 0.7;
-                aircraft.gunnerySkill *= 0.7;
+            // Cockpit damage can wound pilot and affect nose-mounted guns
+            if (component === 'cockpit') {
+                if (Math.random() < 0.3) {
+                    aircraft.pilotWounded = true;
+                    aircraft.pilotSkill *= 0.7;
+                    aircraft.gunnerySkill *= 0.7;
+                }
+                
+                // Damage nose-mounted/synchronized guns (front-mounted weapons)
+                if (aircraft.weaponGroups) {
+                    for (let weaponGroup of aircraft.weaponGroups) {
+                        if (weaponGroup.mount === 'front' && !weaponGroup.isDestroyed && Math.random() < 0.15) {
+                            weaponGroup.isDestroyed = true;
+                            weaponGroup.count = 0; // Disable weapon
+                            console.log(`${aircraft.name}: ${weaponGroup.name} destroyed (cockpit damage)`);
+                        }
+                    }
+                }
             }
 
             // Fuel tank damage creates leak
