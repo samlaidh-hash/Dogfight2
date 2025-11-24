@@ -1108,9 +1108,21 @@
                         <div class="setting-row" style="margin-bottom: 10px;">
                             <select id="commonwealthShipSelect" style="width: 100%; padding: 8px;">
                                 <option value="">Select Ship...</option>
-                                <option value="Fighter-Avenger">Avenger Fighter</option>
-                                <option value="Fighter-Cheetah">Cheetah Fighter</option>
-                                <option value="cruiser">Cruiser (Capital Ship)</option>
+                                <optgroup label="Fighters">
+                                    <option value="Fighter-Avenger">Avenger Fighter</option>
+                                    <option value="Fighter-Cheetah">Cheetah Fighter</option>
+                                    <option value="Fighter-Penetrator">Penetrator Fighter</option>
+                                    <option value="Fighter-Guardian">Guardian Fighter</option>
+                                    <option value="Fighter-Space Gull">Space Gull Fighter</option>
+                                    <option value="Fighter-Fluttering Petal">Fluttering Petal Fighter</option>
+                                </optgroup>
+                                <optgroup label="Capital Ships">
+                                    <option value="battleship">Battleship (BB)</option>
+                                    <option value="battlecruiser">Battlecruiser (BC)</option>
+                                    <option value="cruiser">Heavy Cruiser (CA)</option>
+                                    <option value="destroyer">Destroyer (DD)</option>
+                                    <option value="carrier">Carrier (CT)</option>
+                                </optgroup>
                             </select>
                         </div>
                         <button class="btn" onclick="addCommonwealthShip()" style="width: 100%;">ADD SHIP</button>
@@ -1125,9 +1137,21 @@
                         <div class="setting-row" style="margin-bottom: 10px;">
                             <select id="togShipSelect" style="width: 100%; padding: 8px;">
                                 <option value="">Select Ship...</option>
-                                <option value="Fighter-Gladius">Gladius Fighter</option>
-                                <option value="Fighter-Lancea">Lancea Fighter</option>
-                                <option value="destroyer">Destroyer (Capital Ship)</option>
+                                <optgroup label="Fighters">
+                                    <option value="Fighter-Gladius">Gladius Fighter</option>
+                                    <option value="Fighter-Lancea">Lancea Fighter</option>
+                                    <option value="Fighter-Martiobarbulus">Martiobarbulus Fighter</option>
+                                    <option value="Fighter-Pilum">Pilum Fighter</option>
+                                    <option value="Fighter-Spiculum">Spiculum Fighter</option>
+                                    <option value="Fighter-Verutum">Verutum Fighter</option>
+                                </optgroup>
+                                <optgroup label="Capital Ships">
+                                    <option value="battleship">Battleship (BB)</option>
+                                    <option value="battlecruiser">Battlecruiser (BC)</option>
+                                    <option value="cruiser">Heavy Cruiser (CA)</option>
+                                    <option value="destroyer">Destroyer (DD)</option>
+                                    <option value="carrier">Carrier (CT)</option>
+                                </optgroup>
                             </select>
                         </div>
                         <button class="btn" onclick="addTogShip()" style="width: 100%;">ADD SHIP</button>

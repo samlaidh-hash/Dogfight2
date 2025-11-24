@@ -1308,11 +1308,20 @@
                         </div>
                         <div class="setting-row" style="margin-bottom: 10px;">
                             <select id="commonwealthShipSelect" style="width: 100%; padding: 8px; background: rgba(0, 0, 0, 0.5); color: white; border: 1px solid #0088ff; border-radius: 4px; font-family: 'Courier New', monospace;">
-                                <option value="">-- Select Capital Ship --</option>
-                                <option value="battleship">Battleship (BB)</option>
-                                <option value="battlecruiser">Battlecruiser (BC)</option>
-                                <option value="cruiser">Heavy Cruiser (CA)</option>
-                                <option value="lightcruiser">Light Cruiser (CL)</option>
+                                <option value="">-- Select Ship --</option>
+                                <optgroup label="Fighters">
+                                    <option value="Fighter-Avenger">Avenger Fighter</option>
+                                    <option value="Fighter-Cheetah">Cheetah Fighter</option>
+                                    <option value="Fighter-Penetrator">Penetrator Fighter</option>
+                                    <option value="Fighter-Guardian">Guardian Fighter</option>
+                                    <option value="Fighter-Space Gull">Space Gull Fighter</option>
+                                    <option value="Fighter-Fluttering Petal">Fluttering Petal Fighter</option>
+                                </optgroup>
+                                <optgroup label="Capital Ships">
+                                    <option value="battleship">Battleship (BB)</option>
+                                    <option value="battlecruiser">Battlecruiser (BC)</option>
+                                    <option value="cruiser">Heavy Cruiser (CA)</option>
+                                    <option value="lightcruiser">Light Cruiser (CL)</option>
                                 <option value="destroyer">Destroyer (DD)</option>
                                 <option value="corvette">Corvette (CT)</option>
                             </select>
@@ -1329,13 +1338,23 @@
                         </div>
                         <div class="setting-row" style="margin-bottom: 10px;">
                             <select id="togShipSelect" style="width: 100%; padding: 8px; background: rgba(0, 0, 0, 0.5); color: white; border: 1px solid #ff4444; border-radius: 4px; font-family: 'Courier New', monospace;">
-                                <option value="">-- Select Capital Ship --</option>
-                                <option value="battleship">Battleship (BB)</option>
-                                <option value="battlecruiser">Battlecruiser (BC)</option>
-                                <option value="cruiser">Heavy Cruiser (CA)</option>
-                                <option value="lightcruiser">Light Cruiser (CL)</option>
-                                <option value="destroyer">Destroyer (DD)</option>
-                                <option value="corvette">Corvette (CT)</option>
+                                <option value="">-- Select Ship --</option>
+                                <optgroup label="Fighters">
+                                    <option value="Fighter-Gladius">Gladius Fighter</option>
+                                    <option value="Fighter-Lancea">Lancea Fighter</option>
+                                    <option value="Fighter-Martiobarbulus">Martiobarbulus Fighter</option>
+                                    <option value="Fighter-Pilum">Pilum Fighter</option>
+                                    <option value="Fighter-Spiculum">Spiculum Fighter</option>
+                                    <option value="Fighter-Verutum">Verutum Fighter</option>
+                                </optgroup>
+                                <optgroup label="Capital Ships">
+                                    <option value="battleship">Battleship (BB)</option>
+                                    <option value="battlecruiser">Battlecruiser (BC)</option>
+                                    <option value="cruiser">Heavy Cruiser (CA)</option>
+                                    <option value="lightcruiser">Light Cruiser (CL)</option>
+                                    <option value="destroyer">Destroyer (DD)</option>
+                                    <option value="corvette">Corvette (CT)</option>
+                                </optgroup>
                             </select>
                         </div>
                         <button class="btn" onclick="addRLShip('tog')" style="width: 100%; background: #ff4444;">ADD SHIP</button>
