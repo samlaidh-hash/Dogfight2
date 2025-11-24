@@ -835,7 +835,7 @@
 
         <div id="realisticModeToggle" style="position: absolute; top: 10px; right: 270px; background: rgba(0, 0, 0, 0.7); padding: 10px; border-radius: 5px; z-index: 150;">
             <label style="cursor: pointer; font-size: 14px;">
-                <input type="checkbox" id="realisticModeCheckbox" style="margin-right: 8px; cursor: pointer;">
+                <input type="checkbox" id="realisticModeCheckbox" checked style="margin-right: 8px; cursor: pointer;">
                 Realistic AI Display
             </label>
             <div style="font-size: 11px; color: #aaa; margin-top: 5px; max-width: 200px;">
@@ -1431,6 +1431,11 @@
 
         const CANVAS_WIDTH = 1800;
         const CANVAS_HEIGHT = 1000;
+        
+        // World scale factor: 6x increase for better visual detail
+        // 1 pixel = 0.167 meters (6x more detail than original 1 pixel = 1 meter)
+        const WORLD_SCALE = 6.0;
+        
         let executionTime = 4000; // milliseconds - can be changed by player (2s, 4s, 6s, 8s)
         let turnTime = 4; // seconds - matches executionTime / 1000
         const ALTITUDE_MIN = 0;
@@ -1444,7 +1449,7 @@
         let selectedCapitalShip = null; // Currently selected capital ship for power management
         let ghostAircraft = null;
         let aiPredictedGhost = null; // Predicted AI position based on last turn
-        let realisticMode = false; // Toggle for realistic AI display
+        let realisticMode = true; // Toggle for realistic AI display (default: ON)
         let executionStartTime = 0;
         let executionRecording = [];
         let isPaused = false;
@@ -5162,6 +5167,11 @@
             }
 
             render() {
+                // Scale positions and sizes by WORLD_SCALE for rendering
+                const x = this.x * WORLD_SCALE;
+                const y = this.y * WORLD_SCALE;
+                const size = this.size * WORLD_SCALE;
+                
                 // Render flak bursts (Quick Win #3)
                 const now = Date.now();
                 this.flakEffects = this.flakEffects.filter(flak => now - flak.time < flak.duration);
@@ -5172,16 +5182,16 @@
 
                     // Black smoke puff
                     ctx.fillStyle = `rgba(40, 40, 40, ${alpha * 0.6})`;
-                    const size = 15 + progress * 20;
+                    const flakSize = (15 + progress * 20) * WORLD_SCALE;
                     ctx.beginPath();
-                    ctx.arc(flak.x, flak.y, size, 0, Math.PI * 2);
+                    ctx.arc(flak.x * WORLD_SCALE, flak.y * WORLD_SCALE, flakSize, 0, Math.PI * 2);
                     ctx.fill();
 
                     // Orange flash at start
                     if (progress < 0.2) {
                         ctx.fillStyle = `rgba(255, 150, 0, ${(1 - progress / 0.2) * 0.8})`;
                         ctx.beginPath();
-                        ctx.arc(flak.x, flak.y, size * 0.6, 0, Math.PI * 2);
+                        ctx.arc(flak.x * WORLD_SCALE, flak.y * WORLD_SCALE, flakSize * 0.6, 0, Math.PI * 2);
                         ctx.fill();
                     }
                 }
@@ -5190,55 +5200,55 @@
                     // Render destroyed target
                     ctx.fillStyle = 'rgba(50, 50, 50, 0.6)';
                     ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.size * 0.8, 0, Math.PI * 2);
+                    ctx.arc(x, y, size * 0.8, 0, Math.PI * 2);
                     ctx.fill();
 
                     // Smoke
                     for (let i = 0; i < 3; i++) {
                         ctx.fillStyle = `rgba(40, 40, 40, ${0.4 - i * 0.1})`;
                         ctx.beginPath();
-                        ctx.arc(this.x + (Math.random() - 0.5) * 10, this.y - 10 - i * 8, 6 + i * 2, 0, Math.PI * 2);
+                        ctx.arc(x + (Math.random() - 0.5) * 10 * WORLD_SCALE, y - 10 * WORLD_SCALE - i * 8 * WORLD_SCALE, (6 + i * 2) * WORLD_SCALE, 0, Math.PI * 2);
                         ctx.fill();
                     }
                 } else {
                     // Render active target based on type
                     if (this.type === 'truck') {
                         ctx.fillStyle = '#886644';
-                        ctx.fillRect(this.x - 10, this.y - 6, 20, 12);
-                        ctx.fillRect(this.x - 6, this.y - 10, 8, 8);
+                        ctx.fillRect(x - 10 * WORLD_SCALE, y - 6 * WORLD_SCALE, 20 * WORLD_SCALE, 12 * WORLD_SCALE);
+                        ctx.fillRect(x - 6 * WORLD_SCALE, y - 10 * WORLD_SCALE, 8 * WORLD_SCALE, 8 * WORLD_SCALE);
                     } else if (this.type === 'aa_gun') {
                         ctx.fillStyle = '#555555';
                         ctx.beginPath();
-                        ctx.arc(this.x, this.y, 12, 0, Math.PI * 2);
+                        ctx.arc(x, y, 12 * WORLD_SCALE, 0, Math.PI * 2);
                         ctx.fill();
                         ctx.strokeStyle = '#333333';
-                        ctx.lineWidth = 3;
+                        ctx.lineWidth = 3 * WORLD_SCALE;
                         ctx.beginPath();
-                        ctx.moveTo(this.x, this.y);
-                        ctx.lineTo(this.x, this.y - 15);
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(x, y - 15 * WORLD_SCALE);
                         ctx.stroke();
                     } else if (this.type === 'fuel_depot') {
                         ctx.fillStyle = '#aa8844';
                         for (let i = 0; i < 3; i++) {
                             ctx.beginPath();
-                            ctx.arc(this.x - 20 + i * 20, this.y, 15, 0, Math.PI * 2);
+                            ctx.arc(x - 20 * WORLD_SCALE + i * 20 * WORLD_SCALE, y, 15 * WORLD_SCALE, 0, Math.PI * 2);
                             ctx.fill();
                         }
                     } else if (this.type === 'bridge') {
                         ctx.fillStyle = '#998877';
-                        ctx.fillRect(this.x - 30, this.y - 8, 60, 16);
+                        ctx.fillRect(x - 30 * WORLD_SCALE, y - 8 * WORLD_SCALE, 60 * WORLD_SCALE, 16 * WORLD_SCALE);
                         ctx.fillStyle = '#667755';
                         for (let i = 0; i < 4; i++) {
-                            ctx.fillRect(this.x - 25 + i * 17, this.y - 12, 8, 24);
+                            ctx.fillRect(x - 25 * WORLD_SCALE + i * 17 * WORLD_SCALE, y - 12 * WORLD_SCALE, 8 * WORLD_SCALE, 24 * WORLD_SCALE);
                         }
                     }
 
                     // Health bar
                     if (this.health < 100) {
                         ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
-                        ctx.fillRect(this.x - 15, this.y - this.size - 10, 30 * (this.health / 100), 4);
+                        ctx.fillRect(x - 15 * WORLD_SCALE, y - size - 10 * WORLD_SCALE, 30 * WORLD_SCALE * (this.health / 100), 4 * WORLD_SCALE);
                         ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-                        ctx.strokeRect(this.x - 15, this.y - this.size - 10, 30, 4);
+                        ctx.strokeRect(x - 15 * WORLD_SCALE, y - size - 10 * WORLD_SCALE, 30 * WORLD_SCALE, 4 * WORLD_SCALE);
                     }
                 }
             }
@@ -9293,31 +9303,33 @@
                     if (elapsed < 1000) {
                         const progress = elapsed / 1000;
                         const alpha = 1 - progress;
-                        const size = 20 + progress * 40;
+                        const size = (20 + progress * 40) * WORLD_SCALE;
+                        const x = this.x * WORLD_SCALE;
+                        const y = this.y * WORLD_SCALE;
 
                         // Orange fireball
                         ctx.fillStyle = `rgba(255, 150, 0, ${alpha * 0.8})`;
                         ctx.beginPath();
-                        ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+                        ctx.arc(x, y, size, 0, Math.PI * 2);
                         ctx.fill();
 
                         // Yellow core
                         ctx.fillStyle = `rgba(255, 255, 100, ${alpha})`;
                         ctx.beginPath();
-                        ctx.arc(this.x, this.y, size * 0.5, 0, Math.PI * 2);
+                        ctx.arc(x, y, size * 0.5, 0, Math.PI * 2);
                         ctx.fill();
 
                         // Smoke
                         ctx.fillStyle = `rgba(40, 40, 40, ${alpha * 0.5})`;
                         ctx.beginPath();
-                        ctx.arc(this.x, this.y, size * 1.2, 0, Math.PI * 2);
+                        ctx.arc(x, y, size * 1.2, 0, Math.PI * 2);
                         ctx.fill();
                     }
                 } else if (this.isActive) {
                     // Render falling bomb
                     ctx.fillStyle = '#444444';
                     ctx.beginPath();
-                    ctx.ellipse(this.x, this.y, 3, 6, this.velocityY / this.velocityX, 0, Math.PI * 2);
+                    ctx.ellipse(this.x * WORLD_SCALE, this.y * WORLD_SCALE, 3 * WORLD_SCALE, 6 * WORLD_SCALE, this.velocityY / this.velocityX, 0, Math.PI * 2);
                     ctx.fill();
                 }
             }
@@ -9463,28 +9475,30 @@
                 } else if (this.isActive) {
                     // Render rocket
                     const angle = this.heading * Math.PI / 180;
+                    const x = this.x * WORLD_SCALE;
+                    const y = this.y * WORLD_SCALE;
 
                     // Rocket body
                     ctx.save();
-                    ctx.translate(this.x, this.y);
+                    ctx.translate(x, y);
                     ctx.rotate(angle);
                     ctx.fillStyle = '#666666';
-                    ctx.fillRect(-2, -6, 4, 12);
+                    ctx.fillRect(-2 * WORLD_SCALE, -6 * WORLD_SCALE, 4 * WORLD_SCALE, 12 * WORLD_SCALE);
 
                     // Rocket fins
                     ctx.fillStyle = '#555555';
                     ctx.beginPath();
-                    ctx.moveTo(-4, 6);
-                    ctx.lineTo(0, 4);
-                    ctx.lineTo(4, 6);
+                    ctx.moveTo(-4 * WORLD_SCALE, 6 * WORLD_SCALE);
+                    ctx.lineTo(0, 4 * WORLD_SCALE);
+                    ctx.lineTo(4 * WORLD_SCALE, 6 * WORLD_SCALE);
                     ctx.fill();
 
                     // Rocket exhaust
                     ctx.fillStyle = '#ff8800';
                     ctx.beginPath();
-                    ctx.moveTo(-2, 6);
-                    ctx.lineTo(0, 10);
-                    ctx.lineTo(2, 6);
+                    ctx.moveTo(-2 * WORLD_SCALE, 6 * WORLD_SCALE);
+                    ctx.lineTo(0, 10 * WORLD_SCALE);
+                    ctx.lineTo(2 * WORLD_SCALE, 6 * WORLD_SCALE);
                     ctx.fill();
 
                     ctx.restore();
@@ -14557,7 +14571,7 @@
 
             renderSVG(isGhost = false, ghostState = 'valid') {
                 ctx.save();
-                ctx.translate(this.x, this.y);
+                ctx.translate(this.x * WORLD_SCALE, this.y * WORLD_SCALE);
                 ctx.rotate((this.heading * Math.PI) / 180);
 
                 const scale = this.getScaleForAltitude();
@@ -14700,7 +14714,7 @@
                     // Draw the aircraft SVG image centered with transparency
                     // Scale to match real dimensions based on actual wingspan
                     // At 1 pixel ≈ 1 meter scale, use 15 pixels base for visibility
-                    const baseSize = 15;
+                    const baseSize = 90; // 6x increase (from 15px) for better image detail
                     const sizeMultiplier = aircraftDatabase[this.type]?.sizeMultiplier || 1.0;
                     const imgWidth = baseSize * sizeMultiplier;
                     const imgHeight = baseSize * sizeMultiplier;
@@ -16902,7 +16916,20 @@
             // Reset firing states and clear old hit warnings
             for (let plane of aircraft) {
                 plane.isFiring = false;
-                plane.firingWeapons = []; // Track which weapons are firing this frame
+                // Filter out expired firing weapons (based on duration)
+                const now = Date.now();
+                if (plane.firingWeapons) {
+                    plane.firingWeapons = plane.firingWeapons.filter(weapon => {
+                        const age = now - (weapon.startTime || now);
+                        return age < (weapon.duration || 2000); // Default 2s if no duration set
+                    });
+                    // Set isFiring if any weapons are still firing
+                    if (plane.firingWeapons.length > 0) {
+                        plane.isFiring = true;
+                    }
+                } else {
+                    plane.firingWeapons = []; // Track which weapons are firing this frame
+                }
                 if (plane.firingCooldown > 0) plane.firingCooldown--;
 
                 // Update ECM suite
@@ -17163,12 +17190,15 @@
                                     weaponsFired.push(weaponGroup.name);
 
                                     // Track this weapon for tracer rendering
+                                    const burstDuration = weaponGroup.type === 'mg' ? 1.5 : 2.0; // LMG: 1.5s, others: 2.0s
                                     shooter.firingWeapons.push({
                                         mount: mount,
                                         type: weaponGroup.type,
                                         count: weaponGroup.count,
                                         targetX: target.x,
-                                        targetY: target.y
+                                        targetY: target.y,
+                                        startTime: Date.now(),
+                                        duration: burstDuration * 1000 // Convert to milliseconds
                                     });
 
                                     // Play appropriate sound
@@ -17309,12 +17339,15 @@
                                 shooter.firingCooldown = shooter.rateOfFire;
 
                                 // Track weapon for tracer rendering (assume front mount for legacy weapons)
+                                const burstDuration = shooter.weaponType === 'mg' ? 1.5 : 2.0; // LMG: 1.5s, others: 2.0s
                                 shooter.firingWeapons.push({
                                     mount: 'front',
                                     type: shooter.weaponType,
                                     count: 1,
                                     targetX: target.x,
-                                    targetY: target.y
+                                    targetY: target.y,
+                                    startTime: Date.now(),
+                                    duration: burstDuration * 1000 // Convert to milliseconds
                                 });
 
                                 console.log(`${shooter.name} FIRING at ${target.name}! Distance: ${Math.round(distance)}m, Angle: ${angleDiff.toFixed(1)}°, Hit chance: ${(hitChance * 100).toFixed(1)}%`);
