@@ -543,6 +543,52 @@
             text-decoration: underline dotted;
         }
 
+        /* Aircraft damage display */
+        .damage-display {
+            margin: 8px 0;
+            padding: 5px;
+            background: rgba(20, 30, 40, 0.5);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .damage-display svg {
+            width: 120px;
+            height: 60px;
+        }
+
+        .damage-component {
+            transition: fill 0.3s ease;
+        }
+
+        .damage-component.healthy {
+            fill: #1a3a1a;
+            stroke: #3a7a3a;
+            opacity: 0.6;
+        }
+
+        .damage-component.light {
+            fill: #5a4a2a;
+            stroke: #9a8a4a;
+        }
+
+        .damage-component.moderate {
+            fill: #8a5a2a;
+            stroke: #ffaa44;
+        }
+
+        .damage-component.severe {
+            fill: #8a2a2a;
+            stroke: #ff4444;
+        }
+
+        .damage-component.critical {
+            fill: #5a0a0a;
+            stroke: #ff0000;
+        }
+
         /* Controls panel grid items */
         .control-section {
             font-size: 11px;
@@ -1788,6 +1834,7 @@
                 canCarryRockets: true,
                 durability: 0.85, // Very rugged and well-protected
                 heavyArmour: true, // Famous for absorbing damage
+                toughness: 1.25, // Exceptional structural integrity - legendary for ruggedness
                 emptyWeight: 4500, // kg - P-47D empty weight (heavy fighter)
                 color: '#0077cc'
             },
@@ -1965,6 +2012,7 @@
                 fuelCapacity: 518,
                 fuelConsumption: 0.35, // Very fuel efficient
                 durability: 1.4, // Fragile - takes extra damage
+                toughness: 0.75, // Fragile construction - lightweight materials
                 emptyWeight: 1680, // kg - Zero empty weight (very light)
                 color: '#ff6666'
             },
@@ -3012,6 +3060,7 @@
                 rocketCapacity: 8,
                 durability: 0.7, // Heavily armoured - takes less damage
                 heavyArmour: true, // Famous for its armour protection
+                toughness: 1.3, // Exceptional toughness - "flying tank"
                 defensiveTurret: {
                     weaponType: 'mg',
                     weaponName: '12.7mm UBT',
@@ -14037,6 +14086,13 @@
                 this.role = specs.role;
                 this.era = specs.era || 'WW2';
                 this.isBiplane = specs.isBiplane || false;
+                // Store base performance values (before damage modifiers)
+                this.baseMaxSpeed = specs.maxSpeed;
+                this.baseMaxTurnRate = specs.maxTurnRate;
+                this.baseMaxClimbRate = specs.maxClimbRate;
+                this.baseMaxAcceleration = specs.maxAcceleration;
+                
+                // Current performance (modified by damage)
                 this.maxSpeed = specs.maxSpeed;
                 this.minSpeed = specs.minSpeed;
                 this.maxTurnRate = specs.maxTurnRate;
@@ -14141,17 +14197,66 @@
                     this.ecmSuite = null;
                 }
 
-                // Component damage system (Enhancement #4)
+                // Component damage system (Enhancement #4) - Now with HP system
                 this.damage = 0;
-                this.componentDamage = {
-                    engine: 0,
-                    wings: 0,
-                    tail: 0,
-                    cockpit: 0,
-                    fuelTank: 0,
-                    leftWing: 0,
-                    rightWing: 0
+                
+                // Base component HP values (representing component size/durability)
+                // Larger components can absorb more damage before being degraded
+                const baseComponentHP = {
+                    engine: 80,        // Engine: large, critical component
+                    wings: 120,        // Wings: largest surface area, can take more hits
+                    leftWing: 60,      // Individual wing: half of total wings
+                    rightWing: 60,     // Individual wing: half of total wings
+                    tail: 40,          // Tail: smaller, more fragile
+                    cockpit: 30,       // Cockpit: small, critical, well-protected
+                    fuelTank: 50       // Fuel tank: medium size, vulnerable
                 };
+                
+                // Scale component HP by aircraft weight and structural toughness
+                // Heavier aircraft (P-47) have more robust components due to larger size
+                // Lighter aircraft (Zero) have smaller, more fragile components
+                // Toughness represents structural integrity/reputation for ruggedness (separate from durability)
+                // NOTE: Durability is NOT used here - it's applied to incoming damage instead
+                const emptyWeight = specs.emptyWeight || 2500; // Default to average fighter weight (kg)
+                const weightMultiplier = Math.sqrt(emptyWeight / 2500); // Square root scaling (diminishing returns)
+                
+                // Toughness factor: represents structural integrity and reputation for ruggedness
+                // P-47: 1.2 (very rugged), Zero: 0.8 (fragile construction), Average: 1.0
+                const toughness = specs.toughness !== undefined ? specs.toughness : 
+                                 (specs.heavyArmour ? 1.15 : 1.0); // Heavy armor aircraft get bonus toughness
+                
+                const hpMultiplier = weightMultiplier * toughness;
+                
+                // Component armor values (damage reduction before HP loss)
+                // Different components have different armor protection
+                // Armor reduces incoming damage by a percentage before it hits component HP
+                const baseComponentArmor = {
+                    engine: 0.10,      // Engine: 10% damage reduction (some protection)
+                    wings: 0.05,       // Wings: 5% damage reduction (thin skin, large area)
+                    leftWing: 0.05,    // Individual wing: same as wings
+                    rightWing: 0.05,   // Individual wing: same as wings
+                    tail: 0.05,        // Tail: 5% damage reduction (thin, fragile)
+                    cockpit: 0.25,     // Cockpit: 25% damage reduction (well-protected, armored)
+                    fuelTank: 0.15     // Fuel tank: 15% damage reduction (some protection)
+                };
+                
+                // Scale armor by aircraft armor rating
+                // Heavy armor aircraft (P-47, Il-2) get bonus armor on all components
+                const armorMultiplier = specs.heavyArmour ? 1.5 : 1.0;
+                
+                // Initialize component HP and armor system
+                this.componentDamage = {};
+                this.componentMaxHP = {};
+                this.componentArmor = {};
+                for (const [component, baseHP] of Object.entries(baseComponentHP)) {
+                    this.componentMaxHP[component] = Math.round(baseHP * hpMultiplier);
+                    this.componentDamage[component] = this.componentMaxHP[component]; // Start at full HP
+                    
+                    // Set armor (damage reduction percentage)
+                    const baseArmor = baseComponentArmor[component] || 0;
+                    this.componentArmor[component] = Math.min(0.6, baseArmor * armorMultiplier); // Cap at 60% reduction
+                }
+                
                 this.fuelLeak = false;
                 this.asymmetricDamage = { left: 0, right: 0 }; // Wing damage affecting turn
 
@@ -16208,6 +16313,89 @@
                 return true;
             }
 
+            getDamageDisplaySVG() {
+                if (!gameSettings.enableComponentDamage) {
+                    return '';
+                }
+
+                // Helper function to get damage level class based on HP percentage
+                const getDamageClass = (currentHP, maxHP) => {
+                    if (!maxHP || maxHP === 0) {
+                        // Fallback for old system (treat as percentage)
+                        if (currentHP === 0) return 'healthy';
+                        if (currentHP < 25) return 'light';
+                        if (currentHP < 50) return 'moderate';
+                        if (currentHP < 75) return 'severe';
+                        return 'critical';
+                    }
+                    
+                    // New HP system: calculate damage percentage
+                    const damagePercent = ((maxHP - currentHP) / maxHP) * 100;
+                    if (damagePercent === 0) return 'healthy';
+                    if (damagePercent < 25) return 'light';
+                    if (damagePercent < 50) return 'moderate';
+                    if (damagePercent < 75) return 'severe';
+                    return 'critical';
+                };
+
+                // Get damage values - now using HP system
+                const engineHP = this.componentDamage.engine || 0;
+                const engineMaxHP = this.componentMaxHP?.engine || 0;
+                const leftWingHP = this.componentDamage.leftWing || 0;
+                const leftWingMaxHP = this.componentMaxHP?.leftWing || 0;
+                const rightWingHP = this.componentDamage.rightWing || 0;
+                const rightWingMaxHP = this.componentMaxHP?.rightWing || 0;
+                const tailHP = this.componentDamage.tail || 0;
+                const tailMaxHP = this.componentMaxHP?.tail || 0;
+                const cockpitHP = this.componentDamage.cockpit || 0;
+                const cockpitMaxHP = this.componentMaxHP?.cockpit || 0;
+                const fuelTankHP = this.componentDamage.fuelTank || 0;
+                const fuelTankMaxHP = this.componentMaxHP?.fuelTank || 0;
+
+                // Use wings damage if leftWing/rightWing not available (backward compatibility)
+                const wingsHP = this.componentDamage.wings || 0;
+                const wingsMaxHP = this.componentMaxHP?.wings || 0;
+                const finalLeftWingHP = leftWingMaxHP > 0 ? leftWingHP : (wingsMaxHP > 0 ? wingsHP : 0);
+                const finalLeftWingMaxHP = leftWingMaxHP || wingsMaxHP;
+                const finalRightWingHP = rightWingMaxHP > 0 ? rightWingHP : (wingsMaxHP > 0 ? wingsHP : 0);
+                const finalRightWingMaxHP = rightWingMaxHP || wingsMaxHP;
+
+                return `
+                    <div class="damage-display" title="Component damage status - Green: Healthy, Yellow: Light, Orange: Moderate, Red: Severe, Dark Red: Critical">
+                        <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Background outline (always visible) -->
+                            <path d="M 20 50 L 0 30 L 0 70 L 20 50 Z M 40 40 L 40 60 L 150 60 L 150 40 Z M 150 50 L 200 30 L 200 70 L 150 50 Z M 150 50 L 190 30 L 190 70 L 150 50 Z" 
+                                  fill="none" stroke="#333" stroke-width="2" opacity="0.3" />
+                            
+                            <!-- Left Wing -->
+                            <path class="damage-component ${getDamageClass(finalLeftWingHP, finalLeftWingMaxHP)}" 
+                                  d="M 20 50 L 0 30 L 0 70 L 20 50 Z" 
+                                  stroke-width="2" />
+                            
+                            <!-- Fuselage (includes cockpit and fuel tank) -->
+                            <rect class="damage-component ${getDamageClass(Math.min(cockpitHP, fuelTankHP), Math.max(cockpitMaxHP, fuelTankMaxHP))}" 
+                                  x="40" y="40" width="110" height="20" 
+                                  rx="2" stroke-width="2" />
+                            
+                            <!-- Engine (front of fuselage) -->
+                            <circle class="damage-component ${getDamageClass(engineHP, engineMaxHP)}" 
+                                    cx="45" cy="50" r="10" 
+                                    stroke-width="2" />
+                            
+                            <!-- Right Wing -->
+                            <path class="damage-component ${getDamageClass(finalRightWingHP, finalRightWingMaxHP)}" 
+                                  d="M 150 50 L 200 30 L 200 70 L 150 50 Z" 
+                                  stroke-width="2" />
+                            
+                            <!-- Tail -->
+                            <path class="damage-component ${getDamageClass(tailHP, tailMaxHP)}" 
+                                  d="M 150 50 L 190 30 L 190 70 L 150 50 Z" 
+                                  stroke-width="2" />
+                        </svg>
+                    </div>
+                `;
+            }
+
             getStatsHTML() {
                 const ammoColor = this.ammunition < 100 ? 'color: #ff4444;' : '';
                 const ammoPercent = Math.round((this.ammunition / this.maxAmmunition) * 100);
@@ -16222,16 +16410,37 @@
                 const fuelLeakWarning = this.fuelLeak ?
                     `<div class="stat-line" style="color: #ff4444;" title="Fuel tank is leaking! Fuel draining rapidly from damage.">⚠ FUEL LEAK!</div>` : '';
 
-                // Enhancement #4: Component damage display
+                // Enhancement #4: Component damage display (now using HP system)
                 let componentInfo = '';
-                if (gameSettings.enableComponentDamage && (this.componentDamage.engine > 10 || this.componentDamage.wings > 10 || this.componentDamage.cockpit > 10)) {
-                    componentInfo = '<div class="stat-line" style="font-size: 11px; color: #ffaa00;">';
-                    if (this.componentDamage.engine > 10) componentInfo += `Engine: ${Math.round(this.componentDamage.engine)}% `;
-                    if (this.componentDamage.leftWing > 10 || this.componentDamage.rightWing > 10) {
-                        componentInfo += `Wings: L${Math.round(this.componentDamage.leftWing)}%/R${Math.round(this.componentDamage.rightWing)}% `;
+                if (gameSettings.enableComponentDamage) {
+                    // Calculate damage percentages from HP
+                    const getDamagePercent = (currentHP, maxHP) => {
+                        if (!maxHP || maxHP === 0) {
+                            // Fallback: treat as old cumulative damage system
+                            return currentHP;
+                        }
+                        return ((maxHP - currentHP) / maxHP) * 100;
+                    };
+                    
+                    const engineDamage = getDamagePercent(this.componentDamage.engine || 0, this.componentMaxHP?.engine || 0);
+                    const leftWingDamage = getDamagePercent(this.componentDamage.leftWing || 0, this.componentMaxHP?.leftWing || 0);
+                    const rightWingDamage = getDamagePercent(this.componentDamage.rightWing || 0, this.componentMaxHP?.rightWing || 0);
+                    const wingsDamage = getDamagePercent(this.componentDamage.wings || 0, this.componentMaxHP?.wings || 0);
+                    const cockpitDamage = getDamagePercent(this.componentDamage.cockpit || 0, this.componentMaxHP?.cockpit || 0);
+                    const tailDamage = getDamagePercent(this.componentDamage.tail || 0, this.componentMaxHP?.tail || 0);
+                    
+                    if (engineDamage > 10 || leftWingDamage > 10 || rightWingDamage > 10 || wingsDamage > 10 || cockpitDamage > 10 || tailDamage > 10) {
+                        componentInfo = '<div class="stat-line" style="font-size: 11px; color: #ffaa00;">';
+                        if (engineDamage > 10) componentInfo += `Engine: ${Math.round(engineDamage)}% `;
+                        if (leftWingDamage > 10 || rightWingDamage > 10) {
+                            componentInfo += `Wings: L${Math.round(leftWingDamage)}%/R${Math.round(rightWingDamage)}% `;
+                        } else if (wingsDamage > 10) {
+                            componentInfo += `Wings: ${Math.round(wingsDamage)}% `;
+                        }
+                        if (cockpitDamage > 10) componentInfo += `Cockpit: ${Math.round(cockpitDamage)}% `;
+                        if (tailDamage > 10) componentInfo += `Tail: ${Math.round(tailDamage)}% `;
+                        componentInfo += '</div>';
                     }
-                    if (this.componentDamage.cockpit > 10) componentInfo += `Cockpit: ${Math.round(this.componentDamage.cockpit)}% `;
-                    componentInfo += '</div>';
                 }
 
                 // Show G-force during execution
@@ -16277,8 +16486,12 @@
                 const weaponDamageDisplay = this.systemDamage.weapons > 0 ?
                     `<div class="stat-line" style="color: #ff4444;">🎯 Weapons: ${Math.round(this.systemDamage.weapons * 100)}%</div>` : '';
 
+                // Damage display visualization
+                const damageDisplay = this.getDamageDisplaySVG();
+
                 return `
                     <div class="stat-line" style="font-size: 11px; color: #aaa;">${this.fullName}</div>
+                    ${damageDisplay}
                     <div class="stat-line" title="Altitude above ground in meters">Alt: ${Math.round(this.altitude)}m</div>
                     <div class="stat-line" title="Current airspeed in meters per second">Speed: ${Math.round(this.speed)} m/s</div>
                     <div class="stat-line" title="Engine throttle setting (affects speed and fuel consumption)">Throttle: ${Math.round(this.throttle * 100)}%</div>
@@ -20548,49 +20761,107 @@
 
             // Randomly hit different components
             const component = ['engine', 'wings', 'tail', 'cockpit', 'fuelTank', 'leftWing', 'rightWing'][Math.floor(Math.random() * 7)];
-            aircraft.componentDamage[component] += damage;
+            
+            // Apply armor reduction before reducing component HP
+            let effectiveDamage = damage;
+            if (aircraft.componentArmor && aircraft.componentArmor[component] !== undefined) {
+                const armorReduction = aircraft.componentArmor[component]; // Percentage (0.0 to 0.6)
+                effectiveDamage = damage * (1 - armorReduction); // Reduce damage by armor percentage
+            }
+            
+            // Reduce component HP instead of adding damage
+            if (aircraft.componentMaxHP && aircraft.componentMaxHP[component]) {
+                aircraft.componentDamage[component] = Math.max(0, aircraft.componentDamage[component] - effectiveDamage);
+                
+                // Calculate damage percentage for performance effects
+                const maxHP = aircraft.componentMaxHP[component];
+                const currentHP = aircraft.componentDamage[component];
+                const damagePercent = ((maxHP - currentHP) / maxHP) * 100;
+                
+                // Recalculate all performance modifiers based on current component HP
+                // This ensures damage from multiple components stacks correctly
+                let engineDamagePercent = 0;
+                let leftWingDamagePercent = 0;
+                let rightWingDamagePercent = 0;
+                let tailDamagePercent = 0;
+                
+                if (aircraft.componentMaxHP) {
+                    if (aircraft.componentMaxHP.engine) {
+                        const engineHP = aircraft.componentDamage.engine || 0;
+                        engineDamagePercent = ((aircraft.componentMaxHP.engine - engineHP) / aircraft.componentMaxHP.engine) * 100;
+                    }
+                    if (aircraft.componentMaxHP.leftWing) {
+                        const leftWingHP = aircraft.componentDamage.leftWing || 0;
+                        leftWingDamagePercent = ((aircraft.componentMaxHP.leftWing - leftWingHP) / aircraft.componentMaxHP.leftWing) * 100;
+                    }
+                    if (aircraft.componentMaxHP.rightWing) {
+                        const rightWingHP = aircraft.componentDamage.rightWing || 0;
+                        rightWingDamagePercent = ((aircraft.componentMaxHP.rightWing - rightWingHP) / aircraft.componentMaxHP.rightWing) * 100;
+                    }
+                    if (aircraft.componentMaxHP.tail) {
+                        const tailHP = aircraft.componentDamage.tail || 0;
+                        tailDamagePercent = ((aircraft.componentMaxHP.tail - tailHP) / aircraft.componentMaxHP.tail) * 100;
+                    }
+                }
+                
+                // Apply performance degradation based on damage percentage
+                // Engine damage reduces max speed and acceleration
+                if (aircraft.baseMaxSpeed) {
+                    aircraft.maxSpeed = aircraft.baseMaxSpeed * (1 - engineDamagePercent / 100 * 0.5); // Up to 50% speed loss
+                }
+                if (aircraft.baseMaxAcceleration) {
+                    aircraft.maxAcceleration = aircraft.baseMaxAcceleration * (1 - engineDamagePercent / 100 * 0.6); // Up to 60% acceleration loss
+                }
 
-            // Engine damage reduces max speed and acceleration
-            if (component === 'engine') {
-                aircraft.maxSpeed *= 0.95;
-                aircraft.maxAcceleration *= 0.9;
+                // Wing damage affects turn rate (use worst wing)
+                const maxWingDamage = Math.max(leftWingDamagePercent, rightWingDamagePercent);
+                aircraft.asymmetricDamage.left = leftWingDamagePercent;
+                aircraft.asymmetricDamage.right = rightWingDamagePercent;
+                if (aircraft.baseMaxTurnRate) {
+                    aircraft.maxTurnRate = aircraft.baseMaxTurnRate * (1 - maxWingDamage / 100 * 0.4); // Up to 40% turn rate loss
+                }
+
+                // Tail damage affects stability
+                if (aircraft.baseMaxClimbRate) {
+                    aircraft.maxClimbRate = aircraft.baseMaxClimbRate * (1 - tailDamagePercent / 100 * 0.5); // Up to 50% climb rate loss
+                }
+
+                // Cockpit damage can wound pilot (chance increases with damage)
+                if (component === 'cockpit' && damagePercent > 30 && Math.random() < (damagePercent / 100)) {
+                    aircraft.pilotWounded = true;
+                    aircraft.pilotSkill *= 0.7;
+                    aircraft.gunnerySkill *= 0.7;
+                }
+
+                // Fuel tank damage creates leak (chance increases with damage)
+                if (component === 'fuelTank' && damagePercent > 20 && Math.random() < (damagePercent / 100)) {
+                    aircraft.fuelLeak = true;
+                }
+            } else {
+                // Fallback for aircraft without HP system (backward compatibility)
+                aircraft.componentDamage[component] = (aircraft.componentDamage[component] || 0) + damage;
             }
 
-            // Wing damage affects turn rate
-            if (component === 'leftWing') {
-                aircraft.asymmetricDamage.left += damage;
-                aircraft.maxTurnRate *= 0.95;
-            } else if (component === 'rightWing') {
-                aircraft.asymmetricDamage.right += damage;
-                aircraft.maxTurnRate *= 0.95;
+            // Update overall damage as percentage of worst component
+            if (aircraft.componentMaxHP) {
+                let worstDamagePercent = 0;
+                for (const [comp, maxHP] of Object.entries(aircraft.componentMaxHP)) {
+                    const currentHP = aircraft.componentDamage[comp] || 0;
+                    const damagePercent = ((maxHP - currentHP) / maxHP) * 100;
+                    worstDamagePercent = Math.max(worstDamagePercent, damagePercent);
+                }
+                aircraft.damage = worstDamagePercent;
+            } else {
+                // Fallback: use old system
+                aircraft.damage = Math.max(
+                    aircraft.componentDamage.engine || 0,
+                    aircraft.componentDamage.wings || 0,
+                    aircraft.componentDamage.tail || 0,
+                    aircraft.componentDamage.cockpit || 0,
+                    aircraft.componentDamage.fuelTank || 0,
+                    (aircraft.componentDamage.leftWing || 0) + (aircraft.componentDamage.rightWing || 0)
+                );
             }
-
-            // Tail damage affects stability
-            if (component === 'tail') {
-                aircraft.maxClimbRate *= 0.9;
-            }
-
-            // Cockpit damage can wound pilot
-            if (component === 'cockpit' && Math.random() < 0.3) {
-                aircraft.pilotWounded = true;
-                aircraft.pilotSkill *= 0.7;
-                aircraft.gunnerySkill *= 0.7;
-            }
-
-            // Fuel tank damage creates leak
-            if (component === 'fuelTank') {
-                aircraft.fuelLeak = true;
-            }
-
-            // Update overall damage
-            aircraft.damage = Math.max(
-                aircraft.componentDamage.engine,
-                aircraft.componentDamage.wings,
-                aircraft.componentDamage.tail,
-                aircraft.componentDamage.cockpit,
-                aircraft.componentDamage.fuelTank,
-                aircraft.componentDamage.leftWing + aircraft.componentDamage.rightWing
-            );
         }
 
         // Enhancement #9: Energy Management UI
