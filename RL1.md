@@ -58,7 +58,7 @@ Defenses
 Ablative Armour: armour HP's are divided evenly around the ships hull, arranged into blocks (e.g. a battleship has armour blocks on each of top, bottom, port, starboard and 4 on fore and aft on the aft, this is 32 blocks in total. It has 1,200,000 armour HP, so each block has 37500 HP).
 Other ship types have proportionately few blocks (less area to cover) and, usually, less HP per block (thinner).
 
-Flicker Shields, % chance to block each attack. Capital ships have 6 Flicker shields (fore, aft, top, bottom, port, starbpard), Cruisers have 4 (each ship covers one side and the respective top and bottom), Destroyers have 2 (port and starboard), Corvettes have 1 (covers entire ship). Each successful block reduces % by 0.1, flicker shields regain 1% each at the end of the round. Flicker shields can block railgun slugs but some of kinetic energy is still transferred so a successful block reduces damage by 75%.
+Flicker Shields, % chance to block each attack. Capital ships have 6 Flicker shields (fore, aft, top, bottom, port, starbpard), Cruisers have 4 (each ship covers one side and the respective top and bottom), Destroyers have 2 (port and starboard), Corvettes have 1 (covers entire ship). Each successful block reduces % by 0.1. Shield recharge: each shield face regains 1% per second, but recharge only begins after 4 seconds of that face not being hit (any hit to a face resets its 4-second recharge timer). Flicker shields can block railgun slugs but some of kinetic energy is still transferred so a successful block reduces damage by 75%.
 Battle ships have 60% block chance
 Battle Cruisers have 57% block chance
 Heavy Cruisers have 54% block chance
