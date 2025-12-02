@@ -9805,6 +9805,12 @@
                 // Set cooldown
                 weapon.fireCooldown = weapon.rateOfFire;
 
+                // Play laser sound effect
+                if (typeof soundLaser !== 'undefined') {
+                    soundLaser.currentTime = 0;
+                    soundLaser.play().catch(e => console.log('Laser sound failed:', e));
+                }
+
                 console.log(`${this.type} ${weapon.name} [${weapon.fireMode.toUpperCase()}] fired at ${targetType}: ${totalDamage.toFixed(0)} damage @ ${(distance/1000).toFixed(1)}km`);
             }
 
@@ -9928,6 +9934,12 @@
                 // Hit! Apply damage
                 this.applyRLDamage(target, weapon.damage, weapon.weaponType, distance);
                 weapon.fireCooldown = weapon.rateOfFire;
+
+                // Play point defense sound (use HMG as placeholder for rapid-fire turret)
+                if (typeof soundHMG !== 'undefined') {
+                    soundHMG.currentTime = 0;
+                    soundHMG.play().catch(e => console.log('PD sound failed:', e));
+                }
 
                 console.log(`${this.type} Point Defense HIT ${targetType}: ${weapon.damage} damage @ ${(distance/1000).toFixed(1)}km`);
             }
