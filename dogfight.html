@@ -10291,11 +10291,67 @@
                 // Reactor goes critical - ship explodes
                 console.log(`⚠️ REACTOR CRITICAL! ${this.type.toUpperCase()} EXPLODING!`);
 
+                // Calculate explosion power based on ship size (use maxHealth as proxy for reactor size)
+                const explosionPower = this.maxHealth * 0.1; // 10% of ship's max HP as explosion damage
+                const maxBlastRadius = this.length * 5; // Blast radius is 5x ship length
+                const minDamageThreshold = 100; // Minimum damage to be worth applying
+
+                // Apply damage to nearby ships using inverse square law
+                if (window.capitalShips) {
+                    for (let ship of window.capitalShips) {
+                        if (ship === this || ship.isDestroyed) continue;
+
+                        const distance = this.distanceTo(ship);
+                        if (distance > maxBlastRadius) continue; // Out of blast range
+
+                        // Inverse square law: damage = power / (distance²)
+                        // Add minimum distance to avoid division by zero and extreme damage at point-blank
+                        const effectiveDistance = Math.max(distance, this.length * 0.5);
+                        const damage = explosionPower / (effectiveDistance * effectiveDistance / 1000000); // Scale for reasonable damage
+
+                        if (damage < minDamageThreshold) continue;
+
+                        // Apply explosion damage (ignores shields, hits hull directly)
+                        ship.health -= damage;
+                        console.log(`💥 Explosion damaged ${ship.type} for ${damage.toFixed(0)} @ ${(distance/1000).toFixed(1)}km`);
+
+                        if (ship.health <= 0) {
+                            ship.health = 0;
+                            ship.isDestroyed = true;
+                            console.log(`💀 ${ship.type} destroyed by explosion chain reaction!`);
+                        }
+                    }
+                }
+
+                // Damage nearby aircraft from explosion
+                if (window.aircraft) {
+                    for (let plane of window.aircraft) {
+                        if (!plane || plane.isDestroyed) continue;
+
+                        const dx = plane.x - this.x;
+                        const dy = plane.y - this.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance > maxBlastRadius * 0.5) continue; // Aircraft more fragile, smaller blast radius
+
+                        const effectiveDistance = Math.max(distance, this.length * 0.5);
+                        const damage = (explosionPower * 0.5) / (effectiveDistance * effectiveDistance / 1000000);
+
+                        if (damage < 10) continue;
+
+                        plane.health -= damage;
+                        console.log(`💥 Explosion damaged ${plane.model} for ${damage.toFixed(0)} @ ${(distance/1000).toFixed(1)}km`);
+
+                        if (plane.health <= 0) {
+                            plane.health = 0;
+                            plane.isDestroyed = true;
+                            console.log(`💀 ${plane.model} destroyed by explosion!`);
+                        }
+                    }
+                }
+
                 this.isDestroyed = true;
                 this.health = 0;
-
-                // TODO: Apply explosion damage to nearby ships (inverse square law)
-                // For now, just destroy this ship
             }
 
             // === NEWTONIAN MOVEMENT FOR RL SHIPS ===
