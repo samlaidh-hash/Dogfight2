@@ -6020,7 +6020,8 @@
                         rechargeDelay: 4000,    // 4 seconds after last hit (milliseconds)
                         degradationPerBlock: 0.1, // -0.1 percentage points per successful block (per RL1.md)
                         active: true,
-                        powerLevel: 3           // 1-5 power allocation (from power management)
+                        powerLevel: 3,          // 1-5 power allocation (from power management)
+                        shieldArcs: []          // Visual effects when shields block attacks
                     };
 
                     // === ARMOR SHUTTERS ===
@@ -7045,6 +7046,9 @@
                             face.recharging = false;
                         }
                     }
+
+                    // Clean up old shield arc visual effects (fade after 500ms)
+                    this.shields.shieldArcs = this.shields.shieldArcs.filter(arc => currentTime - arc.time < 500);
                 }
 
                 // === RENEGADE LEGION REACTOR CRITICALITY ===
@@ -7527,6 +7531,44 @@
                     ctx.beginPath();
                     ctx.arc(arc.x, arc.y, 5, 0, Math.PI * 2);
                     ctx.fill();
+                }
+
+                // === RENEGADE LEGION: SHIELD ARCS (% Block Chance System) ===
+                if (this.shields && this.shields.shieldArcs) {
+                    // Render shield arcs when RL shields block attacks
+                    for (let arc of this.shields.shieldArcs) {
+                        const age = (Date.now() - arc.time) / 500;
+                        const arcAlpha = 1 - age;
+
+                        // Counter-rotate to world coordinates
+                        ctx.save();
+                        ctx.rotate(-this.heading * Math.PI / 180);
+                        ctx.translate(-this.x, -this.y);
+
+                        // Draw shield arc
+                        ctx.strokeStyle = `rgba(100, 200, 255, ${arcAlpha * 0.8})`;
+                        ctx.lineWidth = 6;
+                        ctx.beginPath();
+                        const arcRad = 50;
+                        const arcAngle = arc.angle * Math.PI / 180;
+                        ctx.arc(arc.x, arc.y, arcRad, arcAngle - Math.PI / 3, arcAngle + Math.PI / 3);
+                        ctx.stroke();
+
+                        // Impact flash at center
+                        ctx.fillStyle = `rgba(255, 255, 255, ${arcAlpha * 0.7})`;
+                        ctx.beginPath();
+                        ctx.arc(arc.x, arc.y, 8, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Ripple effect
+                        ctx.strokeStyle = `rgba(100, 200, 255, ${arcAlpha * 0.4})`;
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.arc(arc.x, arc.y, arcRad + 20 * age, 0, Math.PI * 2);
+                        ctx.stroke();
+
+                        ctx.restore();
+                    }
                 }
 
                 ctx.restore();
@@ -9669,6 +9711,18 @@
 
                     // Reset recharge timer - recharge stops when shield blocks a hit
                     face.lastHitTime = Date.now();
+
+                    // Create shield arc visual effect
+                    const dx = this.x - target.x;
+                    const dy = this.y - target.y;
+                    const impactAngle = Math.atan2(dx, -dy) * 180 / Math.PI;
+                    target.shields.shieldArcs.push({
+                        x: target.x + dx * 0.1,
+                        y: target.y + dy * 0.1,
+                        angle: impactAngle,
+                        time: Date.now(),
+                        faceIndex: faceIndex
+                    });
 
                     // Special case: Railgun slugs leak 25% kinetic damage even when blocked (per RL1.md)
                     if (weaponType === 'spinal_railgun') {
