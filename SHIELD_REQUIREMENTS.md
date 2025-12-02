@@ -28,28 +28,46 @@ Flicker shields use a **% block chance system** (NOT HP-based). Each hit is eith
 ### Requirement 3: Shield Recharge Delay ⚡
 **CRITICAL CLARIFICATION:**
 
-**Shield recharge only begins after 4 seconds of the shield face not being hit**
+**Shield recharge only begins after 4 seconds of the shield face not BLOCKING a hit**
+
+**IMPORTANT:** The recharge timer is ONLY reset when a shield successfully BLOCKS a hit, NOT when a hit penetrates!
 
 Implementation details:
-1. Each shield face tracks `lastHitTime` (timestamp of last hit)
-2. When a face is hit, set `face.lastHitTime = Date.now()`
-3. In update loop, calculate `timeSinceHit = currentTime - face.lastHitTime`
-4. **Only begin recharge if `timeSinceHit >= 4000ms`** (4 seconds)
-5. Once recharge begins: +1% block chance per second (continuous)
-6. Recharge stops when face returns to base block chance
-7. Any new hit to a face **resets the 4-second timer** for that face
+1. Each shield face tracks `lastHitTime` (timestamp of last successful block)
+2. When a face BLOCKS a hit: set `face.lastHitTime = Date.now()` (resets timer)
+3. When a face FAILS to block (penetration): do NOT update `lastHitTime` (timer continues)
+4. In update loop, calculate `timeSinceHit = currentTime - face.lastHitTime`
+5. **Only begin recharge if `timeSinceHit >= 4000ms`** (4 seconds)
+6. Once recharge begins: +1% block chance per second (continuous)
+7. Recharge stops when face returns to base block chance
+8. Only successful blocks **reset the 4-second timer** for that face
 
-**Code Reference:** dogfight.html lines 7038-7046
+**Combat Implication:** A degraded shield (e.g., 10% block chance) can begin recharging even while under fire, since most hits penetrate and don't reset the timer. Only the occasional successful block will reset it.
 
+**Code Reference:**
+- Update loop (dogfight.html lines 7038-7046):
 ```javascript
 const timeSinceHit = currentTime - face.lastHitTime;
 
-// Recharge ONLY after 4 seconds of not being hit
+// Recharge ONLY after 4 seconds of not BLOCKING a hit
 if (timeSinceHit >= this.shields.rechargeDelay && face.blockChance < this.shields.baseBlockChance) {
     face.recharging = true;
     face.blockChance = Math.min(this.shields.baseBlockChance, face.blockChance + this.shields.rechargeRate * dt);
 } else if (timeSinceHit < this.shields.rechargeDelay) {
     face.recharging = false;
+}
+```
+
+- Shield hit logic (dogfight.html lines 9662-9689):
+```javascript
+if (roll < face.blockChance) {
+    // BLOCK SUCCESSFUL
+    face.blockChance -= 0.1;
+    face.lastHitTime = Date.now(); // ← Reset timer ONLY on successful block
+} else {
+    // BLOCK FAILED (penetrates)
+    this.applyArmorDamage(target, damage, weaponType);
+    // NOTE: lastHitTime NOT updated - penetrations don't stop recharge!
 }
 ```
 
@@ -101,6 +119,8 @@ if (timeSinceHit >= this.shields.rechargeDelay && face.blockChance < this.shield
 1. **Pause in Fire**: If attacker stops firing for >4 seconds, defender's shields begin recovering
 2. **Multi-Vector Attack**: Hitting different faces spreads degradation but allows recharge
 3. **Shield Management**: Unlike HP shields, can't "save" shield strength - use it or lose it
+4. **Degradation Recovery**: A heavily degraded shield (low block %) can recover while under fire, since most hits penetrate and don't reset the recharge timer
+5. **Focus Fire vs Spread**: Focusing on one face degrades it quickly, but other faces can recharge. Spreading fire keeps more faces active but allows partial recovery.
 
 ## Implementation Status
 

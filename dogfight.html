@@ -9667,6 +9667,9 @@
                     face.blockChance = Math.max(0, face.blockChance - 0.1); // -0.1 percentage points per RL1.md
                     face.blocksThisRound = (face.blocksThisRound || 0) + 1;
 
+                    // Reset recharge timer - recharge stops when shield blocks a hit
+                    face.lastHitTime = Date.now();
+
                     // Special case: Railgun slugs leak 25% kinetic damage even when blocked (per RL1.md)
                     if (weaponType === 'spinal_railgun') {
                         const leakDamage = damage * 0.25;
@@ -9681,10 +9684,9 @@
 
                     // Full damage penetrates to armor
                     this.applyArmorDamage(target, damage, weaponType);
-                }
 
-                // Update last hit time for recharge tracking
-                face.lastHitTime = Date.now();
+                    // NOTE: lastHitTime NOT updated - penetrating hits don't stop shield recharge
+                }
             }
 
             determineShieldFace(target, distance) {
