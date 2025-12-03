@@ -9443,6 +9443,41 @@
                 this.explosionTime = Date.now();
                 this.isActive = false;
 
+                // Create explosion particles for enhanced visual effect
+                const particleCount = 30 + Math.floor(Math.random() * 20); // 30-50 particles
+                for (let i = 0; i < particleCount; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 40 + Math.random() * 80; // 40-120 m/s
+                    const size = 3 + Math.random() * 5; // 3-8 size
+                    const life = 0.8 + Math.random() * 0.7; // 0.8-1.5 seconds
+                    const type = Math.random() < 0.4 ? 'debris' : (Math.random() < 0.7 ? 'fire' : 'smoke');
+
+                    explosionParticles.push({
+                        x: this.x,
+                        y: this.y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        size: size,
+                        life: life,
+                        maxLife: life,
+                        type: type,
+                        createdAt: Date.now()
+                    });
+                }
+
+                // Create shockwave ring
+                explosionParticles.push({
+                    x: this.x,
+                    y: this.y,
+                    vx: 0,
+                    vy: 0,
+                    size: 5,
+                    life: 0.5,
+                    maxLife: 0.5,
+                    type: 'shockwave',
+                    createdAt: Date.now()
+                });
+
                 // Damage ground targets in radius
                 for (let target of groundTargets) {
                     if (target.isDestroyed) continue;
@@ -19310,6 +19345,63 @@
             for (let rocket of rockets) {
                 rocket.render();
             }
+
+            // Render explosion particles
+            ctx.save();
+            const now = Date.now();
+            for (let i = explosionParticles.length - 1; i >= 0; i--) {
+                const p = explosionParticles[i];
+                const age = (now - p.createdAt) / 1000; // Age in seconds
+
+                if (age > p.life) {
+                    explosionParticles.splice(i, 1);
+                    continue;
+                }
+
+                const lifeRatio = age / p.life;
+                const alpha = 1 - lifeRatio;
+
+                // Update position
+                const dt = 1/60; // Approximate frame time
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                p.vy += 9.8 * dt; // Gravity for debris
+
+                if (p.type === 'fire') {
+                    // Fire particles - orange to red
+                    const fireSize = p.size * (1 + lifeRatio * 0.5);
+                    ctx.fillStyle = `rgba(255, ${150 - lifeRatio * 100}, 0, ${alpha * 0.9})`;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, fireSize, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Inner glow
+                    ctx.fillStyle = `rgba(255, 255, 100, ${alpha * 0.6})`;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, fireSize * 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (p.type === 'smoke') {
+                    // Smoke particles - dark gray, expanding
+                    const smokeSize = p.size * (1 + lifeRatio * 2);
+                    ctx.fillStyle = `rgba(40, 40, 40, ${alpha * 0.5})`;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, smokeSize, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (p.type === 'debris') {
+                    // Debris particles - brown/gray chunks
+                    ctx.fillStyle = `rgba(100, 80, 60, ${alpha})`;
+                    ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+                } else if (p.type === 'shockwave') {
+                    // Expanding shockwave ring
+                    const waveSize = p.size + (1 - alpha) * 100;
+                    ctx.strokeStyle = `rgba(255, 200, 100, ${alpha * 0.7})`;
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, waveSize, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+            ctx.restore();
 
             // Render ship-launched missiles
             for (let missile of missiles) {
