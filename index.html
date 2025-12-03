@@ -19928,8 +19928,9 @@
                 const dt = 1 / 60; // Assume 60 FPS for physics
 
                 // Update space terrain (asteroids, lightning, orbits) if it's a SpaceTerrain
+                // Use dt (frame time in seconds) instead of elapsed (total time in ms)
                 if (terrain && typeof terrain.update === 'function') {
-                    terrain.update(elapsed, gameState);
+                    terrain.update(dt, gameState);
                 }
 
                 for (let i = bombs.length - 1; i >= 0; i--) {
