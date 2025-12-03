@@ -9820,81 +9820,154 @@
                 const weapon = position === 'prow' ? this.rlWeapons.prowChasers : this.rlWeapons.sternChasers;
                 if (!weapon || weapon.isDestroyed || weapon.fireCooldown > 0) return;
 
-                for (let target of targets) {
-                    const inArc = this.checkWeaponArc(target, weapon.arcCenter, weapon.arc);
-                    if (!inArc) continue;
+                let target, targetType, distance;
 
-                    const distance = this.distanceTo(target);
-                    if (distance < weapon.minRange || distance > weapon.maxRange) continue;
+                // Check fire mode
+                if (weapon.fireMode === 'defensive') {
+                    // DEFENSIVE MODE: Target missiles → fighters → ships
+                    const defensiveTarget = this.findDefensiveTargetRL(weapon, weapon.arcCenter, weapon.arc);
+                    if (!defensiveTarget) return;
+                    target = defensiveTarget.target;
+                    targetType = defensiveTarget.targetType;
+                    distance = defensiveTarget.distance;
+                } else {
+                    // OFFENSIVE MODE: Target enemy ships only
+                    for (let t of targets) {
+                        const inArc = this.checkWeaponArc(t, weapon.arcCenter, weapon.arc);
+                        if (!inArc) continue;
 
-                    const damage = this.calculateLaserDamage(weapon.baseDamage, distance, weapon.minRange, weapon.maxRange);
-                    if (damage <= 0) continue;
+                        const dist = this.distanceTo(t);
+                        if (dist < weapon.minRange || dist > weapon.maxRange) continue;
 
-                    const totalDamage = damage * weapon.guns;
-                    this.applyRLDamage(target, totalDamage, weapon.weaponType, distance);
-
-                    weapon.fireCooldown = weapon.rateOfFire;
-
-                    console.log(`${this.type} ${weapon.name} fired: ${totalDamage.toFixed(0)} damage @ ${(distance/1000).toFixed(1)}km`);
-                    break;
+                        target = t;
+                        distance = dist;
+                        targetType = 'ship';
+                        break;
+                    }
                 }
+
+                if (!target) return;
+
+                const damage = this.calculateLaserDamage(weapon.baseDamage, distance, weapon.minRange, weapon.maxRange);
+                if (damage <= 0) return;
+
+                const totalDamage = damage * weapon.guns;
+                this.applyRLDamage(target, totalDamage, weapon.weaponType, distance);
+
+                weapon.fireCooldown = weapon.rateOfFire;
+
+                // Play laser sound effect
+                if (typeof soundLaser !== 'undefined') {
+                    soundLaser.currentTime = 0;
+                    soundLaser.play().catch(e => console.log('Laser sound failed:', e));
+                }
+
+                console.log(`${this.type} ${weapon.name} [${weapon.fireMode.toUpperCase()}] fired at ${targetType}: ${totalDamage.toFixed(0)} damage @ ${(distance/1000).toFixed(1)}km`);
             }
 
             fireRLSpinal(targets) {
                 const weapon = this.rlWeapons.spinalMount;
                 if (!weapon || weapon.isDestroyed || weapon.fireCooldown > 0) return;
 
-                // Spinal mounts fire straight ahead
-                for (let target of targets) {
-                    const inArc = this.checkWeaponArc(target, 0, 15); // 15° arc ahead
-                    if (!inArc) continue;
+                let target, targetType, distance;
 
-                    const distance = this.distanceTo(target);
+                // Check fire mode
+                if (weapon.fireMode === 'defensive') {
+                    // DEFENSIVE MODE: Target missiles → fighters → ships
+                    const defensiveTarget = this.findDefensiveTargetRL(weapon, 0, 15); // 15° arc ahead
+                    if (!defensiveTarget) return;
+                    target = defensiveTarget.target;
+                    targetType = defensiveTarget.targetType;
+                    distance = defensiveTarget.distance;
+                } else {
+                    // OFFENSIVE MODE: Target enemy ships only
+                    // Spinal mounts fire straight ahead
+                    for (let t of targets) {
+                        const inArc = this.checkWeaponArc(t, 0, 15); // 15° arc ahead
+                        if (!inArc) continue;
 
-                    // Calculate accuracy with falloff
-                    let accuracy = weapon.baseAccuracy;
-                    if (distance > weapon.range30km) {
-                        accuracy = weapon.accuracyLong; // 2%
-                    } else if (distance > weapon.range15km) {
-                        // Interpolate between 50% at 15km and 2% at 30km
-                        const t = (distance - weapon.range15km) / (weapon.range30km - weapon.range15km);
-                        accuracy = weapon.accuracyMid + (weapon.accuracyLong - weapon.accuracyMid) * t;
-                    } else if (distance > weapon.range1km) {
-                        // Interpolate between 80% at 1km and 50% at 15km
-                        const t = (distance - weapon.range1km) / (weapon.range15km - weapon.range1km);
-                        accuracy = weapon.baseAccuracy + (weapon.accuracyMid - weapon.baseAccuracy) * t;
-                    }
-
-                    // Roll for hit
-                    if (Math.random() > accuracy) {
-                        console.log(`${this.type} Spinal Railgun MISSED ${target.type} @ ${(distance/1000).toFixed(1)}km (${(accuracy*100).toFixed(0)}% accuracy)`);
-                        weapon.fireCooldown = weapon.rateOfFire;
+                        const dist = this.distanceTo(t);
+                        target = t;
+                        distance = dist;
+                        targetType = 'ship';
                         break;
                     }
-
-                    // Hit! Apply damage with shield penetration
-                    this.applyRLDamage(target, weapon.damage, weapon.weaponType, distance, weapon.shieldPenetration);
-
-                    weapon.fireCooldown = weapon.rateOfFire;
-
-                    console.log(`${this.type} Spinal Railgun HIT ${target.type}: ${weapon.damage} damage @ ${(distance/1000).toFixed(1)}km`);
-                    break;
                 }
+
+                if (!target) return;
+
+                // Calculate accuracy with falloff
+                let accuracy = weapon.baseAccuracy;
+                if (distance > weapon.range30km) {
+                    accuracy = weapon.accuracyLong; // 2%
+                } else if (distance > weapon.range15km) {
+                    // Interpolate between 50% at 15km and 2% at 30km
+                    const t = (distance - weapon.range15km) / (weapon.range30km - weapon.range15km);
+                    accuracy = weapon.accuracyMid + (weapon.accuracyLong - weapon.accuracyMid) * t;
+                } else if (distance > weapon.range1km) {
+                    // Interpolate between 80% at 1km and 50% at 15km
+                    const t = (distance - weapon.range1km) / (weapon.range15km - weapon.range1km);
+                    accuracy = weapon.baseAccuracy + (weapon.accuracyMid - weapon.baseAccuracy) * t;
+                }
+
+                // Roll for hit
+                if (Math.random() > accuracy) {
+                    console.log(`${this.type} Spinal Railgun [${weapon.fireMode.toUpperCase()}] MISSED ${targetType} @ ${(distance/1000).toFixed(1)}km (${(accuracy*100).toFixed(0)}% accuracy)`);
+                    weapon.fireCooldown = weapon.rateOfFire;
+                    return;
+                }
+
+                // Hit! Apply damage with shield penetration
+                this.applyRLDamage(target, weapon.damage, weapon.weaponType, distance, weapon.shieldPenetration);
+
+                weapon.fireCooldown = weapon.rateOfFire;
+
+                console.log(`${this.type} Spinal Railgun [${weapon.fireMode.toUpperCase()}] HIT ${targetType}: ${weapon.damage} damage @ ${(distance/1000).toFixed(1)}km`);
             }
 
             fireRLMissiles(targets) {
                 const weapon = this.rlWeapons.missiles;
                 if (!weapon || weapon.isDestroyed || weapon.fireCooldown > 0 || weapon.currentMissiles <= 0) return;
 
-                // Find closest target in range
                 let closestTarget = null;
                 let closestDist = Infinity;
+                let targetType = 'ship';
 
-                for (let target of targets) {
-                    const distance = this.distanceTo(target);
-                    if (distance < weapon.range && distance < closestDist) {
-                        closestTarget = target;
-                        closestDist = distance;
+                // Check fire mode
+                if (weapon.fireMode === 'defensive') {
+                    // DEFENSIVE MODE: Prioritize fighters, then ships
+                    // Check for enemy fighters first
+                    if (window.aircraft) {
+                        for (let plane of window.aircraft) {
+                            if (!plane || plane.isDestroyed || plane.side === this.faction) continue;
+                            const distance = this.distanceTo(plane);
+                            if (distance < weapon.range && distance < closestDist) {
+                                closestTarget = plane;
+                                closestDist = distance;
+                                targetType = 'fighter';
+                            }
+                        }
+                    }
+
+                    // If no fighters, target ships
+                    if (!closestTarget) {
+                        for (let target of targets) {
+                            const distance = this.distanceTo(target);
+                            if (distance < weapon.range && distance < closestDist) {
+                                closestTarget = target;
+                                closestDist = distance;
+                                targetType = 'ship';
+                            }
+                        }
+                    }
+                } else {
+                    // OFFENSIVE MODE: Target enemy ships only
+                    for (let target of targets) {
+                        const distance = this.distanceTo(target);
+                        if (distance < weapon.range && distance < closestDist) {
+                            closestTarget = target;
+                            closestDist = distance;
+                        }
                     }
                 }
 
@@ -9904,7 +9977,13 @@
                 weapon.currentMissiles--;
                 weapon.fireCooldown = weapon.rateOfFire;
 
-                console.log(`${this.type} launched missile at ${closestTarget.type} @ ${(closestDist/1000).toFixed(1)}km (${weapon.currentMissiles}/${weapon.totalCells} remaining)`);
+                // Play missile launch sound
+                if (typeof soundMissile !== 'undefined') {
+                    soundMissile.currentTime = 0;
+                    soundMissile.play().catch(e => console.log('Missile sound failed:', e));
+                }
+
+                console.log(`${this.type} [${weapon.fireMode.toUpperCase()}] launched missile at ${targetType} @ ${(closestDist/1000).toFixed(1)}km (${weapon.currentMissiles}/${weapon.totalCells} remaining)`);
 
                 // TODO: Create actual missile object to track in flight
                 // For now, apply damage directly with ECM/ECCM contest
