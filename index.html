@@ -6208,7 +6208,13 @@
                 }
 
                 // Assign ship name based on faction
-                this.name = this.generateShipName(faction, type);
+                // If shipName was provided in Type-Name format, use it; otherwise generate one
+                if (this.shipName) {
+                    const prefix = faction === 'tog' ? 'TIS' : 'CWS';
+                    this.name = `${prefix} ${this.shipName}`;
+                } else {
+                    this.name = this.generateShipName(faction, this.type);
+                }
 
                 // Initialize AA batteries with cooldowns (wet navy only)
                 this.aaBatteries = (spec.aaBatteries || []).map(battery => ({
