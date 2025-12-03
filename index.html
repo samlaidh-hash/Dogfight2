@@ -5875,6 +5875,217 @@
             }
         }
 
+        // === RENEGADE LEGION MISSILE CLASS ===
+        class RLMissile {
+            constructor(launchShip, target, missileType, maxRange) {
+                this.x = launchShip.x;
+                this.y = launchShip.y;
+                this.launchShip = launchShip;
+                this.target = target;
+                this.missileType = missileType; // 'standard' or 'dogfight'
+                this.maxRange = maxRange;
+
+                // Physics properties - initialized below based on type
+                this.velocityX = 0;
+                this.velocityY = 0;
+                this.speed = 0;
+
+                // Configure missile specs based on type (Official RL specifications)
+                if (missileType === 'dogfight') {
+                    // Dogfight Missiles: Close-in defense, high acceleration, short burn
+                    this.damage = 200;
+                    this.acceleration = 60 * 9.81; // 60G = 588.6 m/s²
+                    this.motorBurnTime = 5; // seconds
+                    this.maxTurnRate = 240; // deg/sec - very agile
+                    this.fuelConsumptionRate = 1.0; // burns fuel faster
+                } else {
+                    // Standard Missiles: Primary anti-ship, moderate acceleration, long burn
+                    this.damage = 1000;
+                    this.acceleration = 30 * 9.81; // 30G = 294.3 m/s²
+                    this.motorBurnTime = 20; // seconds
+                    this.maxTurnRate = 180; // deg/sec - maneuverable
+                    this.fuelConsumptionRate = 0.5; // efficient fuel use
+                }
+
+                // Calculate max speed from acceleration and burn time
+                this.maxSpeed = this.acceleration * this.motorBurnTime;
+
+                // Fuel management (normalized to burn time)
+                this.maxFuel = this.motorBurnTime; // Fuel in "seconds of thrust"
+                this.currentFuel = this.maxFuel;
+
+                // Guidance
+                this.heading = 0; // Current heading in degrees
+
+                // State
+                this.isActive = true;
+                this.hasDetonated = false;
+                this.distanceTraveled = 0;
+                this.timeAlive = 0;
+
+                // Smart fuel management
+                this.coastingMode = false; // Saves fuel when close enough
+                this.proximityDetonationRange = 10; // meters
+
+                // Calculate initial heading towards target
+                const dx = target.x - this.x;
+                const dy = target.y - this.y;
+                this.heading = Math.atan2(dx, -dy) * 180 / Math.PI;
+            }
+
+            update(dt) {
+                if (!this.isActive || this.hasDetonated) return;
+
+                this.timeAlive += dt;
+
+                // Check if target still valid
+                if (!this.target || this.target.isDestroyed) {
+                    this.isActive = false;
+                    return;
+                }
+
+                // Calculate distance and direction to target
+                const dx = this.target.x - this.x;
+                const dy = this.target.y - this.y;
+                const distanceToTarget = Math.sqrt(dx * dx + dy * dy);
+                const angleToTarget = Math.atan2(dx, -dy) * 180 / Math.PI;
+
+                // Check proximity detonation
+                if (distanceToTarget < this.proximityDetonationRange) {
+                    this.detonate();
+                    return;
+                }
+
+                // Check max range
+                if (this.distanceTraveled > this.maxRange) {
+                    this.isActive = false;
+                    return;
+                }
+
+                // Smart fuel management
+                // Estimate time to target and fuel needed
+                const timeToTarget = distanceToTarget / (this.speed > 0 ? this.speed : this.maxSpeed);
+                const fuelNeeded = timeToTarget * this.fuelConsumptionRate;
+
+                // Decide whether to thrust or coast
+                let shouldThrust = false;
+                if (this.currentFuel > 0) {
+                    if (this.speed < this.maxSpeed * 0.8) {
+                        // Not at cruising speed, thrust to accelerate
+                        shouldThrust = true;
+                    } else if (distanceToTarget > this.maxRange * 0.5 && this.currentFuel > fuelNeeded * 1.5) {
+                        // Far from target and plenty of fuel, thrust
+                        shouldThrust = true;
+                    } else if (distanceToTarget < this.maxRange * 0.3) {
+                        // Close to target, use remaining fuel aggressively
+                        shouldThrust = true;
+                    }
+                }
+
+                // Turn towards target
+                let angleDiff = angleToTarget - this.heading;
+                while (angleDiff > 180) angleDiff -= 360;
+                while (angleDiff < -180) angleDiff += 360;
+
+                const maxTurn = this.maxTurnRate * dt;
+                if (Math.abs(angleDiff) < maxTurn) {
+                    this.heading = angleToTarget;
+                } else {
+                    this.heading += Math.sign(angleDiff) * maxTurn;
+                }
+
+                // Normalize heading
+                while (this.heading > 180) this.heading -= 360;
+                while (this.heading < -180) this.heading += 360;
+
+                // Apply thrust or coast
+                if (shouldThrust) {
+                    // Accelerate
+                    const accelX = Math.sin(this.heading * Math.PI / 180) * this.acceleration * dt;
+                    const accelY = -Math.cos(this.heading * Math.PI / 180) * this.acceleration * dt;
+                    this.velocityX += accelX;
+                    this.velocityY += accelY;
+
+                    // Consume fuel
+                    this.currentFuel -= this.fuelConsumptionRate * dt;
+                    this.currentFuel = Math.max(0, this.currentFuel);
+                    this.coastingMode = false;
+                } else {
+                    // Coast - maintain current velocity
+                    this.coastingMode = true;
+                }
+
+                // Limit to max speed
+                this.speed = Math.sqrt(this.velocityX * this.velocityX + this.velocityY * this.velocityY);
+                if (this.speed > this.maxSpeed) {
+                    const ratio = this.maxSpeed / this.speed;
+                    this.velocityX *= ratio;
+                    this.velocityY *= ratio;
+                    this.speed = this.maxSpeed;
+                }
+
+                // Update position
+                this.x += this.velocityX * dt;
+                this.y += this.velocityY * dt;
+                this.distanceTraveled += this.speed * dt;
+            }
+
+            detonate() {
+                if (this.hasDetonated) return;
+                this.hasDetonated = true;
+                this.isActive = false;
+
+                // Apply damage to target
+                if (this.target && !this.target.isDestroyed) {
+                    const distance = Math.sqrt(
+                        (this.target.x - this.x) ** 2 +
+                        (this.target.y - this.y) ** 2
+                    );
+
+                    // Use the launch ship's damage application method
+                    if (this.launchShip && this.launchShip.applyRLDamage) {
+                        this.launchShip.applyRLDamage(this.target, this.damage, 'missile', distance);
+                    }
+
+                    console.log(`RL Missile detonated on ${this.target.type || 'target'}: ${this.damage} damage`);
+                }
+            }
+
+            render() {
+                if (!this.isActive) return;
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.heading * Math.PI / 180);
+
+                // Missile body
+                ctx.fillStyle = '#ffaa00';
+                ctx.fillRect(-2, -6, 4, 12);
+
+                // Missile nose
+                ctx.fillStyle = '#ff4400';
+                ctx.beginPath();
+                ctx.moveTo(0, -6);
+                ctx.lineTo(-2, -4);
+                ctx.lineTo(2, -4);
+                ctx.closePath();
+                ctx.fill();
+
+                // Exhaust trail (if thrusting)
+                if (!this.coastingMode && this.currentFuel > 0) {
+                    ctx.fillStyle = 'rgba(255, 150, 0, 0.8)';
+                    ctx.beginPath();
+                    ctx.moveTo(-1.5, 6);
+                    ctx.lineTo(0, 12);
+                    ctx.lineTo(1.5, 6);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
         // Capital Ship class - Large naval vessels with AA batteries
         // Global ship ID counter for unique identification
         let _shipIdCounter = 0;
@@ -6388,16 +6599,22 @@
                         },
 
                         // MISSILE ARRAYS
-                        // 50 cells each, doubled count (2 arrays = 100 cells total)
+                        // Official RL specifications: Standard (90%) and Dogfight (10%) missiles
                         missiles: {
                             arrays: rlCounts.missileArrays,
-                            cellsPerArray: 50,
-                            totalCells: rlCounts.missileArrays * 50,
-                            currentMissiles: rlCounts.missileArrays * 50,
-                            damage: 200,
-                            range: 50000,              // 50km range
-                            speed: 500,                // m/s
-                            rateOfFire: 2,             // 2 seconds between launches
+                            cellsPerArray: 25,
+                            totalCells: rlCounts.missileArrays * 25,
+
+                            // Standard missiles: 90% of cells (1 missile per cell)
+                            standardMissiles: Math.floor(rlCounts.missileArrays * 25 * 0.9),
+                            currentStandard: Math.floor(rlCounts.missileArrays * 25 * 0.9),
+
+                            // Dogfight missiles: 10% of cells (4 missiles per cell)
+                            dogfightMissiles: Math.floor(rlCounts.missileArrays * 25 * 0.1) * 4,
+                            currentDogfight: Math.floor(rlCounts.missileArrays * 25 * 0.1) * 4,
+
+                            range: 50000,              // 50km range (both types)
+                            rateOfFire: 1,             // 1 missile/second (official RL spec)
                             fireCooldown: 0,
                             ecm: this.type === 'battleship' ? 0.21 :
                                  this.type === 'battlecruiser' ? 0.18 :
@@ -6411,6 +6628,7 @@
                                   0.05,  // Half of ECM
                             weaponType: 'missile',
                             isDestroyed: false,
+                            fireMode: 'offensive',     // offensive or defensive
                             name: 'Missile Arrays'
                         },
 
@@ -7601,6 +7819,15 @@
 
                 this.torpedoes.forEach(t => t.update(dt));
                 this.torpedoes = this.torpedoes.filter(t => t.isActive);
+
+                // === RENEGADE LEGION MISSILES ===
+                // Update RL missiles (Standard and Dogfight types)
+                if (this.activeMissiles && this.activeMissiles.length > 0) {
+                    // Update each missile
+                    this.activeMissiles.forEach(m => m.update(dt));
+                    // Remove inactive missiles
+                    this.activeMissiles = this.activeMissiles.filter(m => m.isActive);
+                }
 
                 // === SENSOR DETECTION SYSTEM ===
                 this.updateSensorDetection(dt);
@@ -10091,34 +10318,89 @@
 
             fireRLMissiles(targets) {
                 const weapon = this.rlWeapons.missiles;
-                if (!weapon || weapon.isDestroyed || weapon.fireCooldown > 0 || weapon.currentMissiles <= 0) return;
+                if (!weapon || weapon.isDestroyed || weapon.fireCooldown > 0) return;
 
-                // Find closest target in range
                 let closestTarget = null;
                 let closestDist = Infinity;
+                let targetType = 'ship';
 
-                for (let target of targets) {
-                    const distance = this.distanceTo(target);
-                    if (distance < weapon.range && distance < closestDist) {
-                        closestTarget = target;
-                        closestDist = distance;
+                // Check fire mode
+                if (weapon.fireMode === 'defensive') {
+                    // DEFENSIVE MODE: Prioritize fighters, then ships
+                    // Check for enemy fighters first
+                    if (window.aircraft) {
+                        for (let plane of window.aircraft) {
+                            if (!plane || plane.isDestroyed || plane.side === this.faction) continue;
+                            const distance = this.distanceTo(plane);
+                            if (distance < weapon.range && distance < closestDist) {
+                                closestTarget = plane;
+                                closestDist = distance;
+                                targetType = 'fighter';
+                            }
+                        }
+                    }
+
+                    // If no fighters, target ships
+                    if (!closestTarget) {
+                        for (let target of targets) {
+                            const distance = this.distanceTo(target);
+                            if (distance < weapon.range && distance < closestDist) {
+                                closestTarget = target;
+                                closestDist = distance;
+                                targetType = 'ship';
+                            }
+                        }
+                    }
+                } else {
+                    // OFFENSIVE MODE: Target enemy ships only
+                    for (let target of targets) {
+                        const distance = this.distanceTo(target);
+                        if (distance < weapon.range && distance < closestDist) {
+                            closestTarget = target;
+                            closestDist = distance;
+                        }
                     }
                 }
 
                 if (!closestTarget) return;
 
-                // Launch missile
-                weapon.currentMissiles--;
+                // Select missile type: Dogfight for close defense, Standard for long range
+                // Dogfight missiles: High acceleration, short burn, close range (< 10km)
+                // Standard missiles: Moderate acceleration, long burn, primary anti-ship
+                let missileType = 'standard';
+                if (weapon.fireMode === 'defensive' && closestDist < 10000 && weapon.currentDogfight > 0) {
+                    // Use dogfight missiles for close-in defense
+                    missileType = 'dogfight';
+                    weapon.currentDogfight--;
+                } else if (weapon.currentStandard > 0) {
+                    // Use standard missiles for normal engagement
+                    missileType = 'standard';
+                    weapon.currentStandard--;
+                } else if (weapon.currentDogfight > 0) {
+                    // Fallback to dogfight if standard depleted
+                    missileType = 'dogfight';
+                    weapon.currentDogfight--;
+                } else {
+                    // No missiles available
+                    return;
+                }
+
                 weapon.fireCooldown = weapon.rateOfFire;
 
-                console.log(`${this.type} launched missile at ${closestTarget.type} @ ${(closestDist/1000).toFixed(1)}km (${weapon.currentMissiles}/${weapon.totalCells} remaining)`);
-
-                // TODO: Create actual missile object to track in flight
-                // For now, apply damage directly with ECM/ECCM contest
-                const hitChance = 0.70; // Base 70% hit chance
-                if (Math.random() < hitChance) {
-                    this.applyRLDamage(closestTarget, weapon.damage, weapon.weaponType, closestDist);
+                // Play missile launch sound
+                if (typeof soundMissile !== 'undefined') {
+                    soundMissile.currentTime = 0;
+                    soundMissile.play().catch(e => console.log('Missile sound failed:', e));
                 }
+
+                console.log(`${this.type} [${weapon.fireMode.toUpperCase()}] launched ${missileType.toUpperCase()} missile at ${targetType} @ ${(closestDist/1000).toFixed(1)}km (S:${weapon.currentStandard} D:${weapon.currentDogfight})`);
+
+                // Create actual missile object with full physics
+                const missile = new RLMissile(this, closestTarget, missileType, weapon.range);
+
+                // Store missile in ship's active missiles array
+                if (!this.activeMissiles) this.activeMissiles = [];
+                this.activeMissiles.push(missile);
             }
 
             fireRLPointDefense(targets) {
@@ -18400,37 +18682,13 @@
                 window.laserBeams = window.laserBeams.filter(b => now - b.time < b.duration);
             }
 
-            // Render capital ship missiles
+            // Render capital ship missiles (RL missiles)
             for (let ship of capitalShips) {
                 if (ship.activeMissiles) {
-                    ctx.save();
                     for (let missile of ship.activeMissiles) {
-                        // Draw missile
-                        ctx.fillStyle = 'rgba(255, 200, 0, 0.9)';
-                        ctx.beginPath();
-                        ctx.arc(missile.x, missile.y, 3, 0, Math.PI * 2);
-                        ctx.fill();
-
-                        // Draw exhaust trail
-                        const dx = missile.targetX - missile.x;
-                        const dy = missile.targetY - missile.y;
-                        const dist = Math.sqrt(dx * dx + dy * dy);
-                        const trailLength = 15;
-                        const trailX = missile.x - (dx / dist) * trailLength;
-                        const trailY = missile.y - (dy / dist) * trailLength;
-
-                        const gradient = ctx.createLinearGradient(missile.x, missile.y, trailX, trailY);
-                        gradient.addColorStop(0, 'rgba(255, 150, 0, 0.8)');
-                        gradient.addColorStop(1, 'rgba(255, 50, 0, 0)');
-
-                        ctx.strokeStyle = gradient;
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.moveTo(missile.x, missile.y);
-                        ctx.lineTo(trailX, trailY);
-                        ctx.stroke();
+                        // Use RLMissile's render method
+                        missile.render();
                     }
-                    ctx.restore();
                 }
             }
 
