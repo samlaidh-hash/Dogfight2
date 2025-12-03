@@ -1504,8 +1504,8 @@
         console.log('%c  • Mac: Cmd+Shift+R', 'color: #ffaa00;');
         console.log('%c  • Or clear browser cache completely', 'color: #ffaa00;');
 
-        const CANVAS_WIDTH = 1800;
-        const CANVAS_HEIGHT = 1000;
+        let CANVAS_WIDTH = window.innerWidth;
+        let CANVAS_HEIGHT = window.innerHeight;
         
         // World scale factor: 6x increase for better visual detail
         // 1 pixel = 0.167 meters (6x more detail than original 1 pixel = 1 meter)
@@ -1622,6 +1622,13 @@
                 battlecruiser: null,    // BC
                 battleship: null,       // BB
                 carrier: null
+            },
+            tog: {  // TOG Empire (alias for Renegade Legion)
+                destroyer: null,
+                cruiser: null,
+                battlecruiser: null,
+                battleship: null,
+                carrier: null
             }
         };
 
@@ -1643,6 +1650,14 @@
                 lightcruiser: 'bantha', // Light Cruiser (CL) - if needed
                 destroyer: 'fulgur',
                 carrier: null           // No carrier image yet
+            },
+            tog: {  // TOG Empire (same as terran for Renegade Legion)
+                battleship: 'shiva',
+                battlecruiser: 'carthage',
+                cruiser: 'valiant',
+                lightcruiser: 'bantha',
+                destroyer: 'fulgur',
+                carrier: null
             }
         };
 
@@ -1654,8 +1669,8 @@
             // And type is "bb", "bc", "ca", "cl", "dd", "cv"
 
             const shipTypes = ['destroyer', 'cruiser', 'battlecruiser', 'battleship', 'carrier'];
-            const factions = ['commonwealth', 'terran'];
-            const factionAbbr = { commonwealth: 'cw', terran: 'tog' };
+            const factions = ['commonwealth', 'terran', 'tog'];
+            const factionAbbr = { commonwealth: 'cw', terran: 'tog', tog: 'tog' };
 
             for (let faction of factions) {
                 for (let type of shipTypes) {
@@ -11473,6 +11488,16 @@
         const minimapCanvas = document.getElementById('minimap');
         const minimapCtx = minimapCanvas.getContext('2d');
 
+        // Resize canvas to match window size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            CANVAS_WIDTH = window.innerWidth;
+            CANVAS_HEIGHT = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
         // Load aircraft SVG images
         const aircraftImages = {
             // WW2+ aircraft images
@@ -12496,7 +12521,7 @@
                             orbitalSpeed: orbitalSpeed,
                             size: size,
                             rotation: Math.random() * Math.PI * 2,
-                            rotationSpeed: (Math.random() - 0.5) * 0.001
+                            rotationSpeed: (Math.random() - 0.5) * 0.00001 // Slow rotation
                         });
                     } else {
                         // Asteroids drift slowly
@@ -12507,7 +12532,7 @@
                             driftVx: (Math.random() - 0.5) * 0.02, // -0.01 to 0.01 m/ms
                             driftVy: (Math.random() - 0.5) * 0.02,
                             rotation: Math.random() * Math.PI * 2,
-                            rotationSpeed: (Math.random() - 0.5) * 0.001
+                            rotationSpeed: (Math.random() - 0.5) * 0.00001 // Slow rotation: ~0.5 deg/sec
                         });
                     }
                 }
@@ -12683,7 +12708,7 @@
                         faction: faction,
                         sections: [],
                         rotation: Math.random() * Math.PI * 2,
-                        rotationSpeed: (Math.random() - 0.5) * 0.0002
+                        rotationSpeed: (Math.random() - 0.5) * 0.000002 // Slow rotation
                     };
 
                     // Create ship sections
@@ -12735,7 +12760,7 @@
                             y: field.y + Math.sin(angle) * distance,
                             size: size,
                             rotation: Math.random() * Math.PI * 2,
-                            rotationSpeed: (Math.random() - 0.5) * 0.0005,
+                            rotationSpeed: (Math.random() - 0.5) * 0.000005, // Slow rotation
                             driftVx: (Math.random() - 0.5) * 0.01,
                             driftVy: (Math.random() - 0.5) * 0.01,
                             type: Math.floor(Math.random() * 3) // 0=hull fragment, 1=twisted metal, 2=electronics
@@ -12788,7 +12813,7 @@
                         radius: 400 + Math.random() * 400, // 400-800m diameter
                         intensity: 0.6 + Math.random() * 0.4, // 0.6-1.0
                         rotation: Math.random() * Math.PI * 2,
-                        rotationSpeed: 0.0002 + Math.random() * 0.0003,
+                        rotationSpeed: 0.000002 + Math.random() * 0.000003, // Slow rotation
                         pulsePhase: Math.random() * Math.PI * 2,
                         color: Math.random() < 0.33 ? 'purple' : (Math.random() < 0.5 ? 'green' : 'blue'),
                         lightningBolts: [],
