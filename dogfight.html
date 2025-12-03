@@ -5526,8 +5526,16 @@
                 this.id = `ship_${++_shipIdCounter}`; // Unique ID for detection tracking
                 this.x = x;
                 this.y = y;
-                // Parse type if it's in "Type-Name" format (e.g., "BC-battlecruiser" -> "battlecruiser")
-                this.type = type.includes('-') ? type.split('-')[1] : type;
+                // Parse type if it's in "Type-Name" format (e.g., "Battleship-Repulse" -> "battleship")
+                // Extract ship class from format, convert to lowercase for specs lookup
+                if (type.includes('-')) {
+                    const shipClass = type.split('-')[0].toLowerCase();
+                    this.type = shipClass;
+                    this.shipName = type.split('-')[1]; // Store ship name separately
+                } else {
+                    this.type = type.toLowerCase();
+                    this.shipName = null;
+                }
                 this.faction = faction; // 'commonwealth' or 'terran'
                 this.side = faction;  // For consistency with Aircraft class
                 this.heading = 90; // degrees (0 = north, 90 = east)
@@ -5865,7 +5873,7 @@
                 };
                 } // End of wet navy specs
 
-                const spec = specs[type];
+                const spec = specs[this.type]; // Use this.type (already parsed and lowercased)
                 this.length = spec.length;
                 this.beam = spec.beam;
                 this.compartments = spec.compartments;
@@ -6067,16 +6075,23 @@
                         },
 
                         // MISSILE ARRAYS
-                        // 50 cells each, doubled count (2 arrays = 100 cells total)
+                        // Official RL specs: 25 cells/array, 1 standard or 4 dogfight per cell
+                        // 10% cells loaded with dogfight missiles for close defense
                         missiles: {
                             arrays: rlCounts.missileArrays,
-                            cellsPerArray: 50,
-                            totalCells: rlCounts.missileArrays * 50,
-                            currentMissiles: rlCounts.missileArrays * 50,
-                            damage: 200,
-                            range: 50000,              // 50km range
-                            speed: 500,                // m/s
-                            rateOfFire: 2,             // 2 seconds between launches
+                            cellsPerArray: 25,
+                            totalCells: rlCounts.missileArrays * 25,
+
+                            // Standard missiles: 90% of cells (1 missile per cell)
+                            standardMissiles: Math.floor(rlCounts.missileArrays * 25 * 0.9),
+                            currentStandard: Math.floor(rlCounts.missileArrays * 25 * 0.9),
+
+                            // Dogfight missiles: 10% of cells (4 missiles per cell)
+                            dogfightMissiles: Math.floor(rlCounts.missileArrays * 25 * 0.1) * 4,
+                            currentDogfight: Math.floor(rlCounts.missileArrays * 25 * 0.1) * 4,
+
+                            range: 50000,              // 50km range (both types)
+                            rateOfFire: 1,             // 1 missile/second (official RL spec)
                             fireCooldown: 0,
                             ecm: this.type === 'battleship' ? 0.21 :
                                  this.type === 'battlecruiser' ? 0.18 :
@@ -9730,29 +9745,45 @@
 
         // === RENEGADE LEGION MISSILE CLASS ===
         class RLMissile {
-            constructor(launchShip, target, damage, maxRange) {
+            constructor(launchShip, target, missileType, maxRange) {
                 this.x = launchShip.x;
                 this.y = launchShip.y;
                 this.launchShip = launchShip;
                 this.target = target;
-                this.damage = damage;
+                this.missileType = missileType; // 'standard' or 'dogfight'
                 this.maxRange = maxRange;
 
-                // Physics properties
+                // Physics properties - initialized below based on type
                 this.velocityX = 0;
                 this.velocityY = 0;
                 this.speed = 0;
-                this.maxSpeed = 500; // m/s - fast missiles
-                this.acceleration = 150; // m/s² - high acceleration
 
-                // Fuel management
-                this.maxFuel = 100; // arbitrary units
+                // Configure missile specs based on type (Official RL specifications)
+                if (missileType === 'dogfight') {
+                    // Dogfight Missiles: Close-in defense, high acceleration, short burn
+                    this.damage = 200;
+                    this.acceleration = 60 * 9.81; // 60G = 588.6 m/s²
+                    this.motorBurnTime = 5; // seconds
+                    this.maxTurnRate = 240; // deg/sec - very agile
+                    this.fuelConsumptionRate = 1.0; // burns fuel faster
+                } else {
+                    // Standard Missiles: Primary anti-ship, moderate acceleration, long burn
+                    this.damage = 1000;
+                    this.acceleration = 30 * 9.81; // 30G = 294.3 m/s²
+                    this.motorBurnTime = 20; // seconds
+                    this.maxTurnRate = 180; // deg/sec - maneuverable
+                    this.fuelConsumptionRate = 0.5; // efficient fuel use
+                }
+
+                // Calculate max speed from acceleration and burn time
+                this.maxSpeed = this.acceleration * this.motorBurnTime;
+
+                // Fuel management (normalized to burn time)
+                this.maxFuel = this.motorBurnTime; // Fuel in "seconds of thrust"
                 this.currentFuel = this.maxFuel;
-                this.fuelConsumptionRate = 0.5; // units per second when thrusting
 
                 // Guidance
                 this.heading = 0; // Current heading in degrees
-                this.maxTurnRate = 180; // degrees per second - very maneuverable
 
                 // State
                 this.isActive = true;
@@ -10160,7 +10191,7 @@
 
             fireRLMissiles(targets) {
                 const weapon = this.rlWeapons.missiles;
-                if (!weapon || weapon.isDestroyed || weapon.fireCooldown > 0 || weapon.currentMissiles <= 0) return;
+                if (!weapon || weapon.isDestroyed || weapon.fireCooldown > 0) return;
 
                 let closestTarget = null;
                 let closestDist = Infinity;
@@ -10206,8 +10237,27 @@
 
                 if (!closestTarget) return;
 
-                // Launch missile
-                weapon.currentMissiles--;
+                // Select missile type: Dogfight for close defense, Standard for long range
+                // Dogfight missiles: High acceleration, short burn, close range (< 10km)
+                // Standard missiles: Moderate acceleration, long burn, primary anti-ship
+                let missileType = 'standard';
+                if (weapon.fireMode === 'defensive' && closestDist < 10000 && weapon.currentDogfight > 0) {
+                    // Use dogfight missiles for close-in defense
+                    missileType = 'dogfight';
+                    weapon.currentDogfight--;
+                } else if (weapon.currentStandard > 0) {
+                    // Use standard missiles for normal engagement
+                    missileType = 'standard';
+                    weapon.currentStandard--;
+                } else if (weapon.currentDogfight > 0) {
+                    // Fallback to dogfight if standard depleted
+                    missileType = 'dogfight';
+                    weapon.currentDogfight--;
+                } else {
+                    // No missiles available
+                    return;
+                }
+
                 weapon.fireCooldown = weapon.rateOfFire;
 
                 // Play missile launch sound
@@ -10216,10 +10266,10 @@
                     soundMissile.play().catch(e => console.log('Missile sound failed:', e));
                 }
 
-                console.log(`${this.type} [${weapon.fireMode.toUpperCase()}] launched missile at ${targetType} @ ${(closestDist/1000).toFixed(1)}km (${weapon.currentMissiles}/${weapon.totalCells} remaining)`);
+                console.log(`${this.type} [${weapon.fireMode.toUpperCase()}] launched ${missileType.toUpperCase()} missile at ${targetType} @ ${(closestDist/1000).toFixed(1)}km (S:${weapon.currentStandard} D:${weapon.currentDogfight})`);
 
                 // Create actual missile object with full physics
-                const missile = new RLMissile(this, closestTarget, weapon.damage, weapon.range);
+                const missile = new RLMissile(this, closestTarget, missileType, weapon.range);
 
                 // Store missile in ship's active missiles array
                 if (!this.activeMissiles) this.activeMissiles = [];

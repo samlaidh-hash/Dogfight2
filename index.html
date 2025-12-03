@@ -5881,7 +5881,16 @@
                 this.id = `ship_${++_shipIdCounter}`; // Unique ID for detection tracking
                 this.x = x;
                 this.y = y;
-                this.type = type; // 'battleship', 'battlecruiser', 'cruiser', 'destroyer', 'carrier'
+                // Parse type if it's in "Type-Name" format (e.g., "Battleship-Repulse" -> "battleship")
+                // Extract ship class from format, convert to lowercase for specs lookup
+                if (type.includes('-')) {
+                    const shipClass = type.split('-')[0].toLowerCase();
+                    this.type = shipClass;
+                    this.shipName = type.split('-')[1]; // Store ship name separately
+                } else {
+                    this.type = type.toLowerCase();
+                    this.shipName = null;
+                }
                 this.faction = faction; // 'commonwealth' or 'terran'
                 this.heading = 90; // degrees (0 = north, 90 = east)
 
@@ -6173,7 +6182,7 @@
                 };
                 } // End of wet navy specs
 
-                const spec = specs[type];
+                const spec = specs[this.type]; // Use this.type (already parsed and lowercased)
                 this.length = spec.length;
                 this.beam = spec.beam;
                 this.compartments = spec.compartments;
