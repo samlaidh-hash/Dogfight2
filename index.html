@@ -5875,6 +5875,217 @@
             }
         }
 
+        // === RENEGADE LEGION MISSILE CLASS ===
+        class RLMissile {
+            constructor(launchShip, target, missileType, maxRange) {
+                this.x = launchShip.x;
+                this.y = launchShip.y;
+                this.launchShip = launchShip;
+                this.target = target;
+                this.missileType = missileType; // 'standard' or 'dogfight'
+                this.maxRange = maxRange;
+
+                // Physics properties - initialized below based on type
+                this.velocityX = 0;
+                this.velocityY = 0;
+                this.speed = 0;
+
+                // Configure missile specs based on type (Official RL specifications)
+                if (missileType === 'dogfight') {
+                    // Dogfight Missiles: Close-in defense, high acceleration, short burn
+                    this.damage = 200;
+                    this.acceleration = 60 * 9.81; // 60G = 588.6 m/s²
+                    this.motorBurnTime = 5; // seconds
+                    this.maxTurnRate = 240; // deg/sec - very agile
+                    this.fuelConsumptionRate = 1.0; // burns fuel faster
+                } else {
+                    // Standard Missiles: Primary anti-ship, moderate acceleration, long burn
+                    this.damage = 1000;
+                    this.acceleration = 30 * 9.81; // 30G = 294.3 m/s²
+                    this.motorBurnTime = 20; // seconds
+                    this.maxTurnRate = 180; // deg/sec - maneuverable
+                    this.fuelConsumptionRate = 0.5; // efficient fuel use
+                }
+
+                // Calculate max speed from acceleration and burn time
+                this.maxSpeed = this.acceleration * this.motorBurnTime;
+
+                // Fuel management (normalized to burn time)
+                this.maxFuel = this.motorBurnTime; // Fuel in "seconds of thrust"
+                this.currentFuel = this.maxFuel;
+
+                // Guidance
+                this.heading = 0; // Current heading in degrees
+
+                // State
+                this.isActive = true;
+                this.hasDetonated = false;
+                this.distanceTraveled = 0;
+                this.timeAlive = 0;
+
+                // Smart fuel management
+                this.coastingMode = false; // Saves fuel when close enough
+                this.proximityDetonationRange = 10; // meters
+
+                // Calculate initial heading towards target
+                const dx = target.x - this.x;
+                const dy = target.y - this.y;
+                this.heading = Math.atan2(dx, -dy) * 180 / Math.PI;
+            }
+
+            update(dt) {
+                if (!this.isActive || this.hasDetonated) return;
+
+                this.timeAlive += dt;
+
+                // Check if target still valid
+                if (!this.target || this.target.isDestroyed) {
+                    this.isActive = false;
+                    return;
+                }
+
+                // Calculate distance and direction to target
+                const dx = this.target.x - this.x;
+                const dy = this.target.y - this.y;
+                const distanceToTarget = Math.sqrt(dx * dx + dy * dy);
+                const angleToTarget = Math.atan2(dx, -dy) * 180 / Math.PI;
+
+                // Check proximity detonation
+                if (distanceToTarget < this.proximityDetonationRange) {
+                    this.detonate();
+                    return;
+                }
+
+                // Check max range
+                if (this.distanceTraveled > this.maxRange) {
+                    this.isActive = false;
+                    return;
+                }
+
+                // Smart fuel management
+                // Estimate time to target and fuel needed
+                const timeToTarget = distanceToTarget / (this.speed > 0 ? this.speed : this.maxSpeed);
+                const fuelNeeded = timeToTarget * this.fuelConsumptionRate;
+
+                // Decide whether to thrust or coast
+                let shouldThrust = false;
+                if (this.currentFuel > 0) {
+                    if (this.speed < this.maxSpeed * 0.8) {
+                        // Not at cruising speed, thrust to accelerate
+                        shouldThrust = true;
+                    } else if (distanceToTarget > this.maxRange * 0.5 && this.currentFuel > fuelNeeded * 1.5) {
+                        // Far from target and plenty of fuel, thrust
+                        shouldThrust = true;
+                    } else if (distanceToTarget < this.maxRange * 0.3) {
+                        // Close to target, use remaining fuel aggressively
+                        shouldThrust = true;
+                    }
+                }
+
+                // Turn towards target
+                let angleDiff = angleToTarget - this.heading;
+                while (angleDiff > 180) angleDiff -= 360;
+                while (angleDiff < -180) angleDiff += 360;
+
+                const maxTurn = this.maxTurnRate * dt;
+                if (Math.abs(angleDiff) < maxTurn) {
+                    this.heading = angleToTarget;
+                } else {
+                    this.heading += Math.sign(angleDiff) * maxTurn;
+                }
+
+                // Normalize heading
+                while (this.heading > 180) this.heading -= 360;
+                while (this.heading < -180) this.heading += 360;
+
+                // Apply thrust or coast
+                if (shouldThrust) {
+                    // Accelerate
+                    const accelX = Math.sin(this.heading * Math.PI / 180) * this.acceleration * dt;
+                    const accelY = -Math.cos(this.heading * Math.PI / 180) * this.acceleration * dt;
+                    this.velocityX += accelX;
+                    this.velocityY += accelY;
+
+                    // Consume fuel
+                    this.currentFuel -= this.fuelConsumptionRate * dt;
+                    this.currentFuel = Math.max(0, this.currentFuel);
+                    this.coastingMode = false;
+                } else {
+                    // Coast - maintain current velocity
+                    this.coastingMode = true;
+                }
+
+                // Limit to max speed
+                this.speed = Math.sqrt(this.velocityX * this.velocityX + this.velocityY * this.velocityY);
+                if (this.speed > this.maxSpeed) {
+                    const ratio = this.maxSpeed / this.speed;
+                    this.velocityX *= ratio;
+                    this.velocityY *= ratio;
+                    this.speed = this.maxSpeed;
+                }
+
+                // Update position
+                this.x += this.velocityX * dt;
+                this.y += this.velocityY * dt;
+                this.distanceTraveled += this.speed * dt;
+            }
+
+            detonate() {
+                if (this.hasDetonated) return;
+                this.hasDetonated = true;
+                this.isActive = false;
+
+                // Apply damage to target
+                if (this.target && !this.target.isDestroyed) {
+                    const distance = Math.sqrt(
+                        (this.target.x - this.x) ** 2 +
+                        (this.target.y - this.y) ** 2
+                    );
+
+                    // Use the launch ship's damage application method
+                    if (this.launchShip && this.launchShip.applyRLDamage) {
+                        this.launchShip.applyRLDamage(this.target, this.damage, 'missile', distance);
+                    }
+
+                    console.log(`RL Missile detonated on ${this.target.type || 'target'}: ${this.damage} damage`);
+                }
+            }
+
+            render() {
+                if (!this.isActive) return;
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.heading * Math.PI / 180);
+
+                // Missile body
+                ctx.fillStyle = '#ffaa00';
+                ctx.fillRect(-2, -6, 4, 12);
+
+                // Missile nose
+                ctx.fillStyle = '#ff4400';
+                ctx.beginPath();
+                ctx.moveTo(0, -6);
+                ctx.lineTo(-2, -4);
+                ctx.lineTo(2, -4);
+                ctx.closePath();
+                ctx.fill();
+
+                // Exhaust trail (if thrusting)
+                if (!this.coastingMode && this.currentFuel > 0) {
+                    ctx.fillStyle = 'rgba(255, 150, 0, 0.8)';
+                    ctx.beginPath();
+                    ctx.moveTo(-1.5, 6);
+                    ctx.lineTo(0, 12);
+                    ctx.lineTo(1.5, 6);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
         // Capital Ship class - Large naval vessels with AA batteries
         // Global ship ID counter for unique identification
         let _shipIdCounter = 0;
@@ -6388,16 +6599,22 @@
                         },
 
                         // MISSILE ARRAYS
-                        // 50 cells each, doubled count (2 arrays = 100 cells total)
+                        // Official RL specifications: Standard (90%) and Dogfight (10%) missiles
                         missiles: {
                             arrays: rlCounts.missileArrays,
-                            cellsPerArray: 50,
-                            totalCells: rlCounts.missileArrays * 50,
-                            currentMissiles: rlCounts.missileArrays * 50,
-                            damage: 200,
-                            range: 50000,              // 50km range
-                            speed: 500,                // m/s
-                            rateOfFire: 2,             // 2 seconds between launches
+                            cellsPerArray: 25,
+                            totalCells: rlCounts.missileArrays * 25,
+
+                            // Standard missiles: 90% of cells (1 missile per cell)
+                            standardMissiles: Math.floor(rlCounts.missileArrays * 25 * 0.9),
+                            currentStandard: Math.floor(rlCounts.missileArrays * 25 * 0.9),
+
+                            // Dogfight missiles: 10% of cells (4 missiles per cell)
+                            dogfightMissiles: Math.floor(rlCounts.missileArrays * 25 * 0.1) * 4,
+                            currentDogfight: Math.floor(rlCounts.missileArrays * 25 * 0.1) * 4,
+
+                            range: 50000,              // 50km range (both types)
+                            rateOfFire: 1,             // 1 missile/second (official RL spec)
                             fireCooldown: 0,
                             ecm: this.type === 'battleship' ? 0.21 :
                                  this.type === 'battlecruiser' ? 0.18 :
@@ -6411,6 +6628,7 @@
                                   0.05,  // Half of ECM
                             weaponType: 'missile',
                             isDestroyed: false,
+                            fireMode: 'offensive',     // offensive or defensive
                             name: 'Missile Arrays'
                         },
 
@@ -7601,6 +7819,15 @@
 
                 this.torpedoes.forEach(t => t.update(dt));
                 this.torpedoes = this.torpedoes.filter(t => t.isActive);
+
+                // === RENEGADE LEGION MISSILES ===
+                // Update RL missiles (Standard and Dogfight types)
+                if (this.activeMissiles && this.activeMissiles.length > 0) {
+                    // Update each missile
+                    this.activeMissiles.forEach(m => m.update(dt));
+                    // Remove inactive missiles
+                    this.activeMissiles = this.activeMissiles.filter(m => m.isActive);
+                }
 
                 // === SENSOR DETECTION SYSTEM ===
                 this.updateSensorDetection(dt);
@@ -10091,34 +10318,89 @@
 
             fireRLMissiles(targets) {
                 const weapon = this.rlWeapons.missiles;
-                if (!weapon || weapon.isDestroyed || weapon.fireCooldown > 0 || weapon.currentMissiles <= 0) return;
+                if (!weapon || weapon.isDestroyed || weapon.fireCooldown > 0) return;
 
-                // Find closest target in range
                 let closestTarget = null;
                 let closestDist = Infinity;
+                let targetType = 'ship';
 
-                for (let target of targets) {
-                    const distance = this.distanceTo(target);
-                    if (distance < weapon.range && distance < closestDist) {
-                        closestTarget = target;
-                        closestDist = distance;
+                // Check fire mode
+                if (weapon.fireMode === 'defensive') {
+                    // DEFENSIVE MODE: Prioritize fighters, then ships
+                    // Check for enemy fighters first
+                    if (window.aircraft) {
+                        for (let plane of window.aircraft) {
+                            if (!plane || plane.isDestroyed || plane.side === this.faction) continue;
+                            const distance = this.distanceTo(plane);
+                            if (distance < weapon.range && distance < closestDist) {
+                                closestTarget = plane;
+                                closestDist = distance;
+                                targetType = 'fighter';
+                            }
+                        }
+                    }
+
+                    // If no fighters, target ships
+                    if (!closestTarget) {
+                        for (let target of targets) {
+                            const distance = this.distanceTo(target);
+                            if (distance < weapon.range && distance < closestDist) {
+                                closestTarget = target;
+                                closestDist = distance;
+                                targetType = 'ship';
+                            }
+                        }
+                    }
+                } else {
+                    // OFFENSIVE MODE: Target enemy ships only
+                    for (let target of targets) {
+                        const distance = this.distanceTo(target);
+                        if (distance < weapon.range && distance < closestDist) {
+                            closestTarget = target;
+                            closestDist = distance;
+                        }
                     }
                 }
 
                 if (!closestTarget) return;
 
-                // Launch missile
-                weapon.currentMissiles--;
+                // Select missile type: Dogfight for close defense, Standard for long range
+                // Dogfight missiles: High acceleration, short burn, close range (< 10km)
+                // Standard missiles: Moderate acceleration, long burn, primary anti-ship
+                let missileType = 'standard';
+                if (weapon.fireMode === 'defensive' && closestDist < 10000 && weapon.currentDogfight > 0) {
+                    // Use dogfight missiles for close-in defense
+                    missileType = 'dogfight';
+                    weapon.currentDogfight--;
+                } else if (weapon.currentStandard > 0) {
+                    // Use standard missiles for normal engagement
+                    missileType = 'standard';
+                    weapon.currentStandard--;
+                } else if (weapon.currentDogfight > 0) {
+                    // Fallback to dogfight if standard depleted
+                    missileType = 'dogfight';
+                    weapon.currentDogfight--;
+                } else {
+                    // No missiles available
+                    return;
+                }
+
                 weapon.fireCooldown = weapon.rateOfFire;
 
-                console.log(`${this.type} launched missile at ${closestTarget.type} @ ${(closestDist/1000).toFixed(1)}km (${weapon.currentMissiles}/${weapon.totalCells} remaining)`);
-
-                // TODO: Create actual missile object to track in flight
-                // For now, apply damage directly with ECM/ECCM contest
-                const hitChance = 0.70; // Base 70% hit chance
-                if (Math.random() < hitChance) {
-                    this.applyRLDamage(closestTarget, weapon.damage, weapon.weaponType, closestDist);
+                // Play missile launch sound
+                if (typeof soundMissile !== 'undefined') {
+                    soundMissile.currentTime = 0;
+                    soundMissile.play().catch(e => console.log('Missile sound failed:', e));
                 }
+
+                console.log(`${this.type} [${weapon.fireMode.toUpperCase()}] launched ${missileType.toUpperCase()} missile at ${targetType} @ ${(closestDist/1000).toFixed(1)}km (S:${weapon.currentStandard} D:${weapon.currentDogfight})`);
+
+                // Create actual missile object with full physics
+                const missile = new RLMissile(this, closestTarget, missileType, weapon.range);
+
+                // Store missile in ship's active missiles array
+                if (!this.activeMissiles) this.activeMissiles = [];
+                this.activeMissiles.push(missile);
             }
 
             fireRLPointDefense(targets) {
@@ -10370,32 +10652,28 @@
             }
 
             generateShipName(faction, type) {
-                // TOG ships: historical names (places, people, events from Earth history)
-                const togNames = [
-                    'Achilles', 'Sparta', 'Trajan', 'Kursk', 'Tiber', 'Danube',
-                    'Marathon', 'Thermopylae', 'Caesar', 'Hannibal', 'Napoleon', 'Wellington',
-                    'Waterloo', 'Gettysburg', 'Stalingrad', 'Midway', 'Trafalgar', 'Austerlitz',
-                    'Thames', 'Rhine', 'Seine', 'Nile', 'Amazon', 'Mississippi',
-                    'Everest', 'Olympus', 'Kilimanjaro', 'Vesuvius', 'Etna', 'Fuji',
-                    'Alexander', 'Leonidas', 'Scipio', 'Agincourt', 'Hastings', 'Salamis',
-                    'Verdun', 'Somme', 'Guadalcanal', 'Iwo Jima', 'El Alamein', 'Normandy'
-                ];
+                // TOG ships: historical names organized by ship class
+                const togNames = {
+                    battleship: ['Caesar', 'Alexander', 'Napoleon', 'Hannibal', 'Leonidas', 'Trajan', 'Spartacus', 'Attila', 'Charlemagne', 'Genghis'],
+                    battlecruiser: ['Waterloo', 'Stalingrad', 'Austerlitz', 'Trafalgar', 'Midway', 'Kursk', 'Gettysburg', 'Verdun', 'Salamis', 'Marathon'],
+                    cruiser: ['Rhine', 'Danube', 'Nile', 'Amazon', 'Thames', 'Seine', 'Volga', 'Ganges', 'Euphrates', 'Yangtze'],
+                    destroyer: ['Achilles', 'Ajax', 'Hector', 'Perseus', 'Hercules', 'Odysseus', 'Theseus', 'Jason', 'Orion', 'Apollo'],
+                    carrier: ['Olympus', 'Everest', 'Vesuvius', 'Etna', 'Fuji', 'Kilimanjaro', 'Ararat', 'Sinai', 'Parnassus', 'Helicon']
+                };
 
-                // Commonwealth ships: abstract nouns and verbs
-                const commonwealthNames = [
-                    'Daring', 'Illustrious', 'Revenge', 'Adamant', 'Endurance',
-                    'Resolute', 'Intrepid', 'Valiant', 'Defiant', 'Relentless',
-                    'Indomitable', 'Invincible', 'Formidable', 'Tremendous', 'Audacious',
-                    'Courageous', 'Glorious', 'Victorious', 'Magnificent', 'Majestic',
-                    'Fearless', 'Dauntless', 'Undaunted', 'Reliant', 'Steadfast',
-                    'Vigilant', 'Dominant', 'Triumphant', 'Resurgent', 'Ascendant',
-                    'Vengeance', 'Justice', 'Liberty', 'Freedom', 'Unity',
-                    'Stalwart', 'Tenacious', 'Indefatigable', 'Inexorable', 'Implacable'
-                ];
+                // Commonwealth ships: abstract nouns organized by ship class
+                const commonwealthNames = {
+                    battleship: ['Invincible', 'Indomitable', 'Formidable', 'Implacable', 'Inexorable', 'Magnificent', 'Tremendous', 'Colossus', 'Leviathan', 'Behemoth'],
+                    battlecruiser: ['Glorious', 'Victorious', 'Illustrious', 'Courageous', 'Furious', 'Audacious', 'Outrageous', 'Conqueror', 'Renown', 'Repulse'],
+                    cruiser: ['Valiant', 'Adamant', 'Resolute', 'Steadfast', 'Stalwart', 'Intrepid', 'Dauntless', 'Undaunted', 'Fearless', 'Reliant'],
+                    destroyer: ['Daring', 'Defiant', 'Relentless', 'Vengeful', 'Vigilant', 'Swift', 'Lightning', 'Thunder', 'Tempest', 'Hurricane'],
+                    carrier: ['Endurance', 'Enterprise', 'Endeavour', 'Expeditionary', 'Vanguard', 'Bulwark', 'Ark Royal', 'Eagle', 'Hermes', 'Argus']
+                };
 
                 const prefix = faction === 'tog' ? 'TIS' : 'CWS';
                 const namePool = faction === 'tog' ? togNames : commonwealthNames;
-                const randomName = namePool[Math.floor(Math.random() * namePool.length)];
+                const classNames = namePool[type] || namePool['cruiser']; // Default to cruiser if type not found
+                const randomName = classNames[Math.floor(Math.random() * classNames.length)];
 
                 return `${prefix} ${randomName}`;
             }
@@ -12190,7 +12468,7 @@
                             orbitalSpeed: orbitalSpeed,
                             size: size,
                             rotation: Math.random() * Math.PI * 2,
-                            rotationSpeed: (Math.random() - 0.5) * 0.001
+                            rotationSpeed: (Math.random() - 0.5) * 0.00001 // Slow rotation
                         });
                     } else {
                         // Asteroids drift slowly
@@ -12201,7 +12479,7 @@
                             driftVx: (Math.random() - 0.5) * 0.02, // -0.01 to 0.01 m/ms
                             driftVy: (Math.random() - 0.5) * 0.02,
                             rotation: Math.random() * Math.PI * 2,
-                            rotationSpeed: (Math.random() - 0.5) * 0.001
+                            rotationSpeed: (Math.random() - 0.5) * 0.00001 // Slow rotation: ~0.5 deg/sec
                         });
                     }
                 }
@@ -12282,9 +12560,9 @@
                                              (5 + Math.random() * 10);
 
                             planet.moons.push({
-                                distance: radius + 40 + m * 50 + Math.random() * 50,
+                                distance: radius + 100 + m * 150 + Math.random() * 100, // Much wider spacing
                                 angle: Math.random() * Math.PI * 2,
-                                orbitalSpeed: (0.0002 + Math.random() * 0.0005) / (1 + m * 0.5), // Outer moons slower
+                                orbitalSpeed: (0.000002 + Math.random() * 0.000005) / (1 + m * 0.5), // Slow orbital motion (100x slower)
                                 radius: moonRadius,
                                 color: Math.random() > 0.5 ? '#aaaaaa' : '#998877' // Gray or brownish
                             });
@@ -12308,10 +12586,25 @@
 
             // Generate nebulae with lightning
             generateNebulae(isBlackHole) {
-                const numNebulae = isBlackHole ? (5 + Math.floor(Math.random() * 5)) : (2 + Math.floor(Math.random() * 3));
+                const numNebulae = isBlackHole ? (5 + Math.floor(Math.random() * 4)) : (2 + Math.floor(Math.random() * 2)); // 5-8 for black hole, 2-3 standard
                 const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
 
                 for (let i = 0; i < numNebulae; i++) {
+                    const baseRadius = 80 + Math.random() * 120;
+
+                    // Generate cloudlike blobs for irregular shape
+                    const numBlobs = 5 + Math.floor(Math.random() * 8); // 5-12 overlapping circles
+                    const cloudBlobs = [];
+                    for (let b = 0; b < numBlobs; b++) {
+                        const angle = (b / numBlobs) * Math.PI * 2 + Math.random() * 0.5;
+                        const distance = (Math.random() * 0.6) * baseRadius; // Within 60% of base radius
+                        cloudBlobs.push({
+                            offsetX: Math.cos(angle) * distance,
+                            offsetY: Math.sin(angle) * distance,
+                            radius: baseRadius * (0.4 + Math.random() * 0.4) // 40-80% of base size
+                        });
+                    }
+
                     if (isBlackHole) {
                         // Nebulae orbit the black hole
                         const distance = 300 + Math.random() * 350;
@@ -12322,7 +12615,8 @@
                             orbitDistance: distance,
                             orbitAngle: angle,
                             orbitalSpeed: orbitalSpeed,
-                            radius: 80 + Math.random() * 120,
+                            radius: baseRadius,
+                            cloudBlobs: cloudBlobs,
                             lightningBolts: [],
                             nextLightning: Date.now() + Math.random() * 2000
                         });
@@ -12330,7 +12624,8 @@
                         this.nebulae.push({
                             x: Math.random() * TERRAIN_WIDTH - CANVAS_WIDTH,
                             y: Math.random() * CANVAS_HEIGHT,
-                            radius: 80 + Math.random() * 120,
+                            radius: baseRadius,
+                            cloudBlobs: cloudBlobs,
                             lightningBolts: [],
                             nextLightning: Date.now() + Math.random() * 2000
                         });
@@ -12584,16 +12879,29 @@
                         nebulaY = nebula.y;
                     }
 
-                    // Nebula cloud with bluish tinge
-                    const gradient = ctx.createRadialGradient(nebulaX, nebulaY, 0, nebulaX, nebulaY, nebula.radius);
-                    gradient.addColorStop(0, 'rgba(100, 100, 255, 0.4)');
-                    gradient.addColorStop(0.5, 'rgba(80, 80, 200, 0.3)');
-                    gradient.addColorStop(1, 'rgba(60, 60, 150, 0)');
+                    // Render cloudlike nebula using multiple overlapping blobs
+                    ctx.save();
+                    ctx.globalAlpha = 0.6;
 
-                    ctx.fillStyle = gradient;
-                    ctx.beginPath();
-                    ctx.arc(nebulaX, nebulaY, nebula.radius, 0, Math.PI * 2);
-                    ctx.fill();
+                    // Draw each blob to create irregular cloud shape
+                    for (let blob of nebula.cloudBlobs) {
+                        const blobX = nebulaX + blob.offsetX;
+                        const blobY = nebulaY + blob.offsetY;
+
+                        // Nebula cloud with bluish tinge (varying colors for depth)
+                        const gradient = ctx.createRadialGradient(blobX, blobY, 0, blobX, blobY, blob.radius);
+                        const hue = 200 + Math.random() * 80; // Blue to purple range
+                        gradient.addColorStop(0, `rgba(100, 100, ${Math.floor(hue)}, 0.5)`);
+                        gradient.addColorStop(0.5, `rgba(80, 80, ${Math.floor(hue * 0.8)}, 0.35)`);
+                        gradient.addColorStop(1, `rgba(60, 60, ${Math.floor(hue * 0.6)}, 0)`);
+
+                        ctx.fillStyle = gradient;
+                        ctx.beginPath();
+                        ctx.arc(blobX, blobY, blob.radius, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    ctx.restore();
 
                     // Lightning bolts (purple)
                     ctx.save();
@@ -18374,37 +18682,13 @@
                 window.laserBeams = window.laserBeams.filter(b => now - b.time < b.duration);
             }
 
-            // Render capital ship missiles
+            // Render capital ship missiles (RL missiles)
             for (let ship of capitalShips) {
                 if (ship.activeMissiles) {
-                    ctx.save();
                     for (let missile of ship.activeMissiles) {
-                        // Draw missile
-                        ctx.fillStyle = 'rgba(255, 200, 0, 0.9)';
-                        ctx.beginPath();
-                        ctx.arc(missile.x, missile.y, 3, 0, Math.PI * 2);
-                        ctx.fill();
-
-                        // Draw exhaust trail
-                        const dx = missile.targetX - missile.x;
-                        const dy = missile.targetY - missile.y;
-                        const dist = Math.sqrt(dx * dx + dy * dy);
-                        const trailLength = 15;
-                        const trailX = missile.x - (dx / dist) * trailLength;
-                        const trailY = missile.y - (dy / dist) * trailLength;
-
-                        const gradient = ctx.createLinearGradient(missile.x, missile.y, trailX, trailY);
-                        gradient.addColorStop(0, 'rgba(255, 150, 0, 0.8)');
-                        gradient.addColorStop(1, 'rgba(255, 50, 0, 0)');
-
-                        ctx.strokeStyle = gradient;
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.moveTo(missile.x, missile.y);
-                        ctx.lineTo(trailX, trailY);
-                        ctx.stroke();
+                        // Use RLMissile's render method
+                        missile.render();
                     }
-                    ctx.restore();
                 }
             }
 
@@ -18474,7 +18758,25 @@
             ctx.globalAlpha = 1.0; // Ensure full opacity
             ctx.globalCompositeOperation = 'source-over'; // Ensure normal blending
 
-            const scaleBarLength = 100; // Represents 100 meters
+            // Calculate actual scale bar length accounting for WORLD_SCALE and zoom
+            // WORLD_SCALE = 6.0 means 1 meter = 6 pixels in world coordinates
+            // We want a 100-pixel bar on screen
+            const scaleBarPixels = 100; // Screen pixels
+            const metersRepresented = scaleBarPixels / (WORLD_SCALE * zoomLevel);
+
+            // Round to nice numbers for display
+            let displayDistance, displayUnit;
+            if (metersRepresented >= 1000) {
+                displayDistance = (metersRepresented / 1000).toFixed(1);
+                displayUnit = 'km';
+            } else if (metersRepresented >= 1) {
+                displayDistance = Math.round(metersRepresented);
+                displayUnit = 'm';
+            } else {
+                displayDistance = Math.round(metersRepresented * 100);
+                displayUnit = 'cm';
+            }
+
             const infoBoxX = canvas.width - 240; // Position from right edge
             const infoBoxY = canvas.height - 240;
 
@@ -18493,7 +18795,7 @@
 
             ctx.beginPath();
             ctx.moveTo(scaleBarX, scaleBarY);
-            ctx.lineTo(scaleBarX + scaleBarLength, scaleBarY);
+            ctx.lineTo(scaleBarX + scaleBarPixels, scaleBarY);
             ctx.stroke();
 
             // Draw end caps
@@ -18501,13 +18803,13 @@
             ctx.beginPath();
             ctx.moveTo(scaleBarX, scaleBarY - 5);
             ctx.lineTo(scaleBarX, scaleBarY + 5);
-            ctx.moveTo(scaleBarX + scaleBarLength, scaleBarY - 5);
-            ctx.lineTo(scaleBarX + scaleBarLength, scaleBarY + 5);
+            ctx.moveTo(scaleBarX + scaleBarPixels, scaleBarY - 5);
+            ctx.lineTo(scaleBarX + scaleBarPixels, scaleBarY + 5);
             ctx.stroke();
 
-            // Draw scale label
+            // Draw scale label with actual distance
             ctx.font = '12px Courier New';
-            ctx.fillText('Scale: 100m', scaleBarX, scaleBarY - 10);
+            ctx.fillText(`Scale: ${displayDistance}${displayUnit}`, scaleBarX, scaleBarY - 10);
 
             // Draw zoom level
             ctx.fillText(`Zoom: ${zoomLevel.toFixed(1)}x`, scaleBarX + 110, scaleBarY - 10);
