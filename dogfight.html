@@ -1542,6 +1542,8 @@
         let rockets = []; // Active rockets (both ground and air-to-air)
         let missiles = []; // Active guided missiles (SAMs from ships)
         let aerialUnits = []; // Aerial units (clouds, balloons, etc.)
+        let explosionParticles = []; // Particle effects for explosions
+        let impactEffects = []; // Hit impact effects (sparks, flares, penetration)
 
         // Hot-seat multiplayer (Enhancement #14)
         let hotSeatMode = false;
@@ -17376,10 +17378,10 @@
         // Combat system
         function processCombat(dt) {
             // Reset firing states and clear old hit warnings
+            const now = Date.now();
             for (let plane of aircraft) {
                 plane.isFiring = false;
                 // Filter out expired firing weapons (based on duration)
-                const now = Date.now();
                 if (plane.firingWeapons) {
                     plane.firingWeapons = plane.firingWeapons.filter(weapon => {
                         const age = now - (weapon.startTime || now);
@@ -17400,25 +17402,30 @@
                 }
 
                 // Clear hit warning after 2 seconds
-                if (plane.lastHitBy && (Date.now() - plane.lastHitTime) > 2000) {
+                if (plane.lastHitBy && (now - plane.lastHitTime) > 2000) {
                     plane.lastHitBy = null;
                 }
             }
 
-            // Check if aircraft can fire at each other
-            for (let shooter of aircraft) {
-                if (shooter.isDestroyed) continue; // Dead aircraft can't shoot
-                if (shooter.ammunition <= 0) continue;
-                if (shooter.firingCooldown > 0) continue;
+            // OPTIMIZATION: Pre-filter active shooters and targets to reduce loop iterations
+            const activeShooters = aircraft.filter(a => !a.isDestroyed && a.ammunition > 0 && a.firingCooldown <= 0);
+            const activeTargets = aircraft.filter(a => !a.isDestroyed);
 
-                for (let target of aircraft) {
+            // Check if aircraft can fire at each other
+            for (let shooter of activeShooters) {
+                for (let target of activeTargets) {
                     if (shooter === target) continue;
-                    if (target.isDestroyed) continue; // Don't shoot at wreckage
 
                     // Calculate if target is in firing arc
                     const dx = target.x - shooter.x;
                     const dy = target.y - shooter.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    // OPTIMIZATION: Quick distance check before expensive sqrt
+                    const distanceSquared = dx * dx + dy * dy;
+                    const maxRange = 5000; // Maximum possible weapon range
+                    if (distanceSquared > maxRange * maxRange) continue; // Skip if definitely out of range
+
+                    const distance = Math.sqrt(distanceSquared);
 
                     // Get shooter's FLIGHT heading (not nose heading which includes slip)
                     // During execution, the aircraft is flying in the direction of the path, not where nose points
@@ -18700,8 +18707,11 @@
                 unit.render();
             }
 
-            // Render aircraft
+            // Render aircraft - OPTIMIZED with viewport culling
             for (let plane of aircraft) {
+                // OPTIMIZATION: Skip rendering aircraft that are far off-screen
+                if (!isInViewport(plane.x, plane.y, 200)) continue;
+
                 plane.renderSVG();
 
                 // Draw performance indicators if there's a loadout penalty
@@ -18715,7 +18725,10 @@
             // Render ECM visual effects
             for (let plane of aircraft) {
                 if (plane.isDestroyed || !plane.ecmSuite || !plane.ecmSuite.isActive) continue;
-                
+
+                // OPTIMIZATION: Skip rendering ECM effects for off-screen aircraft
+                if (!isInViewport(plane.x, plane.y, 100)) continue;
+
                 ctx.save();
                 
                 // Jamming aura
@@ -18939,9 +18952,17 @@
                 }
             }
 
-            // Render hit effects
+            // Render hit effects - OPTIMIZED
             const now = Date.now();
             for (let plane of aircraft) {
+                // OPTIMIZATION: Skip if no hit effects or off-screen
+                if (!plane.hitEffects || plane.hitEffects.length === 0) continue;
+                if (!isInViewport(plane.x, plane.y, 100)) {
+                    // Still clean up old effects even if off-screen
+                    plane.hitEffects = plane.hitEffects.filter(effect => now - effect.time < effect.duration);
+                    continue;
+                }
+
                 // Clean up old hit effects
                 plane.hitEffects = plane.hitEffects.filter(effect => now - effect.time < effect.duration);
 
@@ -19040,8 +19061,12 @@
                 }
             }
 
-            // Render gun fire effects (tracers, muzzle flash, and standard rounds)
+            // Render gun fire effects (tracers, muzzle flash, and standard rounds) - OPTIMIZED
             for (let plane of aircraft) {
+                // OPTIMIZATION: Skip if not firing or off-screen
+                if (!plane.isFiring || !plane.firingWeapons || plane.firingWeapons.length === 0) continue;
+                if (!isInViewport(plane.x, plane.y, 150)) continue;
+
                 if (plane.isFiring && plane.firingWeapons && plane.firingWeapons.length > 0) {
                     ctx.save();
                     ctx.translate(plane.x, plane.y);
@@ -20673,6 +20698,9 @@
 
         // Main game loop
         function gameLoop() {
+            // Start performance tracking
+            const frameStartTime = startPerformanceTimer('frame');
+
             // Manage engine sounds based on game state and aircraft status
             // Only for WW2 mode (spitfire/me109 exist)
             if (gameState === 'EXECUTION') {
@@ -20696,6 +20724,7 @@
             }
 
             if (gameState === 'EXECUTION') {
+                const logicStartTime = startPerformanceTimer('logic');
                 const elapsed = Date.now() - executionStartTime;
                 const progress = Math.min(1, elapsed / executionTime);
 
@@ -20708,37 +20737,44 @@
 
                 // Update bombs and rockets (Enhancement #8)
                 const dt = 1 / 60; // Assume 60 FPS for physics
+                const currentTime = Date.now();
 
                 // Update space terrain (asteroids, lightning, orbits) if it's a SpaceTerrain
                 if (terrain && typeof terrain.update === 'function') {
                     terrain.update(elapsed, gameState);
                 }
 
+                // OPTIMIZED: Update bombs with batched time check
                 for (let i = bombs.length - 1; i >= 0; i--) {
-                    bombs[i].update(dt);
+                    const bomb = bombs[i];
+                    bomb.update(dt);
                     // Remove inactive bombs after explosion animation completes
-                    if (bombs[i].hasExploded && Date.now() - bombs[i].explosionTime > 1000) {
+                    if (bomb.hasExploded && currentTime - bomb.explosionTime > 1000) {
                         bombs.splice(i, 1);
                     }
                 }
+
+                // OPTIMIZED: Update rockets with batched time check
                 for (let i = rockets.length - 1; i >= 0; i--) {
-                    rockets[i].update(dt);
+                    const rocket = rockets[i];
+                    rocket.update(dt);
                     // Remove inactive rockets after explosion animation completes
-                    if (rockets[i].hasExploded && Date.now() - rockets[i].explosionTime > 600) {
+                    if (rocket.hasExploded && currentTime - rocket.explosionTime > 600) {
                         rockets.splice(i, 1);
-                    } else if (!rockets[i].isActive && !rockets[i].hasExploded) {
+                    } else if (!rocket.isActive && !rocket.hasExploded) {
                         // Remove rockets that went out of range
                         rockets.splice(i, 1);
                     }
                 }
 
-                // Update ship-launched missiles
+                // OPTIMIZED: Update ship-launched missiles
                 for (let i = missiles.length - 1; i >= 0; i--) {
-                    missiles[i].update(dt);
+                    const missile = missiles[i];
+                    missile.update(dt);
                     // Remove inactive missiles after explosion
-                    if (missiles[i].hasExploded && Date.now() - missiles[i].explosionTime > 1000) {
+                    if (missile.hasExploded && currentTime - missile.explosionTime > 1000) {
                         missiles.splice(i, 1);
-                    } else if (!missiles[i].isActive && !missiles[i].hasExploded) {
+                    } else if (!missile.isActive && !missile.hasExploded) {
                         missiles.splice(i, 1);
                     }
                 }
@@ -20879,6 +20915,9 @@
                         document.getElementById('nextPhase8s').style.display = 'block';
                     }
                 }
+
+                // End logic timing
+                endPerformanceTimer(logicStartTime, 'logic');
             }
 
             // Update AI preview paths during ORDER phase
@@ -20886,8 +20925,29 @@
                 updateAIPreviewPaths();
             }
 
+            // Time rendering
+            const renderStartTime = startPerformanceTimer('render');
             render();
+            endPerformanceTimer(renderStartTime, 'render');
+
             updateUI();
+
+            // Update and display performance stats
+            updatePerformanceStats();
+
+            // Draw performance overlay (top-right corner)
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform for UI
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(CANVAS_WIDTH - 160, 0, 160, 100);
+            ctx.fillStyle = '#00ff00';
+            ctx.font = '12px Courier New';
+            ctx.textAlign = 'left';
+            ctx.fillText(`FPS: ${performanceStats.fps}`, CANVAS_WIDTH - 150, 20);
+            ctx.fillText(`Frame: ${performanceStats.frameTime}ms`, CANVAS_WIDTH - 150, 40);
+            ctx.fillText(`Render: ${performanceStats.renderTime}ms`, CANVAS_WIDTH - 150, 60);
+            ctx.fillText(`Logic: ${performanceStats.logicTime}ms`, CANVAS_WIDTH - 150, 80);
+            ctx.restore();
 
             // Game over screen - drawn AFTER render() so it appears on top
             if (gameState === 'GAMEOVER') {
