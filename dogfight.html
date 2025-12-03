@@ -9726,6 +9726,204 @@
                     ctx.restore();
                 }
             }
+        }
+
+        // === RENEGADE LEGION MISSILE CLASS ===
+        class RLMissile {
+            constructor(launchShip, target, damage, maxRange) {
+                this.x = launchShip.x;
+                this.y = launchShip.y;
+                this.launchShip = launchShip;
+                this.target = target;
+                this.damage = damage;
+                this.maxRange = maxRange;
+
+                // Physics properties
+                this.velocityX = 0;
+                this.velocityY = 0;
+                this.speed = 0;
+                this.maxSpeed = 500; // m/s - fast missiles
+                this.acceleration = 150; // m/s² - high acceleration
+
+                // Fuel management
+                this.maxFuel = 100; // arbitrary units
+                this.currentFuel = this.maxFuel;
+                this.fuelConsumptionRate = 0.5; // units per second when thrusting
+
+                // Guidance
+                this.heading = 0; // Current heading in degrees
+                this.maxTurnRate = 180; // degrees per second - very maneuverable
+
+                // State
+                this.isActive = true;
+                this.hasDetonated = false;
+                this.distanceTraveled = 0;
+                this.timeAlive = 0;
+
+                // Smart fuel management
+                this.coastingMode = false; // Saves fuel when close enough
+                this.proximityDetonationRange = 10; // meters
+
+                // Calculate initial heading towards target
+                const dx = target.x - this.x;
+                const dy = target.y - this.y;
+                this.heading = Math.atan2(dx, -dy) * 180 / Math.PI;
+            }
+
+            update(dt) {
+                if (!this.isActive || this.hasDetonated) return;
+
+                this.timeAlive += dt;
+
+                // Check if target still valid
+                if (!this.target || this.target.isDestroyed) {
+                    this.isActive = false;
+                    return;
+                }
+
+                // Calculate distance and direction to target
+                const dx = this.target.x - this.x;
+                const dy = this.target.y - this.y;
+                const distanceToTarget = Math.sqrt(dx * dx + dy * dy);
+                const angleToTarget = Math.atan2(dx, -dy) * 180 / Math.PI;
+
+                // Check proximity detonation
+                if (distanceToTarget < this.proximityDetonationRange) {
+                    this.detonate();
+                    return;
+                }
+
+                // Check max range
+                if (this.distanceTraveled > this.maxRange) {
+                    this.isActive = false;
+                    return;
+                }
+
+                // Smart fuel management
+                // Estimate time to target and fuel needed
+                const timeToTarget = distanceToTarget / (this.speed > 0 ? this.speed : this.maxSpeed);
+                const fuelNeeded = timeToTarget * this.fuelConsumptionRate;
+
+                // Decide whether to thrust or coast
+                let shouldThrust = false;
+                if (this.currentFuel > 0) {
+                    if (this.speed < this.maxSpeed * 0.8) {
+                        // Not at cruising speed, thrust to accelerate
+                        shouldThrust = true;
+                    } else if (distanceToTarget > this.maxRange * 0.5 && this.currentFuel > fuelNeeded * 1.5) {
+                        // Far from target and plenty of fuel, thrust
+                        shouldThrust = true;
+                    } else if (distanceToTarget < this.maxRange * 0.3) {
+                        // Close to target, use remaining fuel aggressively
+                        shouldThrust = true;
+                    }
+                }
+
+                // Turn towards target
+                let angleDiff = angleToTarget - this.heading;
+                while (angleDiff > 180) angleDiff -= 360;
+                while (angleDiff < -180) angleDiff += 360;
+
+                const maxTurn = this.maxTurnRate * dt;
+                if (Math.abs(angleDiff) < maxTurn) {
+                    this.heading = angleToTarget;
+                } else {
+                    this.heading += Math.sign(angleDiff) * maxTurn;
+                }
+
+                // Normalize heading
+                while (this.heading > 180) this.heading -= 360;
+                while (this.heading < -180) this.heading += 360;
+
+                // Apply thrust or coast
+                if (shouldThrust) {
+                    // Accelerate
+                    const accelX = Math.sin(this.heading * Math.PI / 180) * this.acceleration * dt;
+                    const accelY = -Math.cos(this.heading * Math.PI / 180) * this.acceleration * dt;
+                    this.velocityX += accelX;
+                    this.velocityY += accelY;
+
+                    // Consume fuel
+                    this.currentFuel -= this.fuelConsumptionRate * dt;
+                    this.currentFuel = Math.max(0, this.currentFuel);
+                    this.coastingMode = false;
+                } else {
+                    // Coast - maintain current velocity
+                    this.coastingMode = true;
+                }
+
+                // Limit to max speed
+                this.speed = Math.sqrt(this.velocityX * this.velocityX + this.velocityY * this.velocityY);
+                if (this.speed > this.maxSpeed) {
+                    const ratio = this.maxSpeed / this.speed;
+                    this.velocityX *= ratio;
+                    this.velocityY *= ratio;
+                    this.speed = this.maxSpeed;
+                }
+
+                // Update position
+                this.x += this.velocityX * dt;
+                this.y += this.velocityY * dt;
+                this.distanceTraveled += this.speed * dt;
+            }
+
+            detonate() {
+                if (this.hasDetonated) return;
+                this.hasDetonated = true;
+                this.isActive = false;
+
+                // Apply damage to target
+                if (this.target && !this.target.isDestroyed) {
+                    const distance = Math.sqrt(
+                        (this.target.x - this.x) ** 2 +
+                        (this.target.y - this.y) ** 2
+                    );
+
+                    // Use the launch ship's damage application method
+                    if (this.launchShip && this.launchShip.applyRLDamage) {
+                        this.launchShip.applyRLDamage(this.target, this.damage, 'missile', distance);
+                    }
+
+                    console.log(`RL Missile detonated on ${this.target.type || 'target'}: ${this.damage} damage`);
+                }
+            }
+
+            render() {
+                if (!this.isActive) return;
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.heading * Math.PI / 180);
+
+                // Missile body
+                ctx.fillStyle = '#ffaa00';
+                ctx.fillRect(-2, -6, 4, 12);
+
+                // Missile nose
+                ctx.fillStyle = '#ff4400';
+                ctx.beginPath();
+                ctx.moveTo(0, -6);
+                ctx.lineTo(-2, -4);
+                ctx.lineTo(2, -4);
+                ctx.closePath();
+                ctx.fill();
+
+                // Exhaust trail (if thrusting)
+                if (!this.coastingMode && this.currentFuel > 0) {
+                    ctx.fillStyle = 'rgba(255, 150, 0, 0.8)';
+                    ctx.beginPath();
+                    ctx.moveTo(-1.5, 6);
+                    ctx.lineTo(0, 12);
+                    ctx.lineTo(1.5, 6);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        class CapitalShip {
 
             // === RENEGADE LEGION WEAPON FIRING METHODS ===
 
@@ -10020,12 +10218,12 @@
 
                 console.log(`${this.type} [${weapon.fireMode.toUpperCase()}] launched missile at ${targetType} @ ${(closestDist/1000).toFixed(1)}km (${weapon.currentMissiles}/${weapon.totalCells} remaining)`);
 
-                // TODO: Create actual missile object to track in flight
-                // For now, apply damage directly with ECM/ECCM contest
-                const hitChance = 0.70; // Base 70% hit chance
-                if (Math.random() < hitChance) {
-                    this.applyRLDamage(closestTarget, weapon.damage, weapon.weaponType, closestDist);
-                }
+                // Create actual missile object with full physics
+                const missile = new RLMissile(this, closestTarget, weapon.damage, weapon.range);
+
+                // Store missile in ship's active missiles array
+                if (!this.activeMissiles) this.activeMissiles = [];
+                this.activeMissiles.push(missile);
             }
 
             fireRLPointDefense(targets) {
@@ -19274,28 +19472,139 @@
                 ship.render();
             }
 
-            // === POWER MANAGEMENT: Render Laser Beams ===
+            // Render fire mode icons for selected RL ship
+            if (selectedCapitalShip && selectedCapitalShip.rlWeapons) {
+                const ship = selectedCapitalShip;
+                const iconSize = 12;
+                const iconSpacing = 20;
+
+                // Clear icon cache from previous frame
+                ship.fireModeIcons = [];
+
+                ctx.save();
+
+                // Define weapon icon positions relative to ship
+                const weaponIcons = [
+                    { weapon: ship.rlWeapons.broadsidePort, x: ship.x - ship.width/2 - iconSpacing, y: ship.y, label: 'P' },
+                    { weapon: ship.rlWeapons.broadsideStarboard, x: ship.x + ship.width/2 + iconSpacing, y: ship.y, label: 'S' },
+                    { weapon: ship.rlWeapons.prowChasers, x: ship.x, y: ship.y - ship.length/2 - iconSpacing, label: 'PC' },
+                    { weapon: ship.rlWeapons.sternChasers, x: ship.x, y: ship.y + ship.length/2 + iconSpacing, label: 'SC' },
+                    { weapon: ship.rlWeapons.spinalMount, x: ship.x, y: ship.y - ship.length/2 - iconSpacing * 2, label: 'SP' },
+                    { weapon: ship.rlWeapons.missiles, x: ship.x + ship.width/2 + iconSpacing, y: ship.y - ship.length/4, label: 'M' },
+                    { weapon: ship.rlWeapons.pointDefense, x: ship.x - ship.width/2 - iconSpacing, y: ship.y - ship.length/4, label: 'PD' }
+                ];
+
+                for (let icon of weaponIcons) {
+                    if (!icon.weapon || icon.weapon.isDestroyed) continue;
+
+                    const isOffensive = icon.weapon.fireMode === 'offensive';
+                    const color = isOffensive ? '#ff3333' : '#33ff33';
+                    const bgColor = isOffensive ? 'rgba(255, 51, 51, 0.3)' : 'rgba(51, 255, 51, 0.3)';
+
+                    // Draw icon background circle
+                    ctx.fillStyle = bgColor;
+                    ctx.beginPath();
+                    ctx.arc(icon.x, icon.y, iconSize, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Draw icon border
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Draw weapon label
+                    ctx.fillStyle = color;
+                    ctx.font = 'bold 8px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(icon.label, icon.x, icon.y);
+
+                    // Store icon bounds for click detection
+                    if (!ship.fireModeIcons) ship.fireModeIcons = [];
+                    ship.fireModeIcons.push({
+                        weapon: icon.weapon,
+                        x: icon.x,
+                        y: icon.y,
+                        radius: iconSize,
+                        label: icon.label
+                    });
+                }
+
+                ctx.restore();
+            }
+
+            // === POWER MANAGEMENT: Render Laser Beams - ENHANCED ===
             if (window.laserBeams) {
                 const now = Date.now();
                 ctx.save();
                 for (let beam of window.laserBeams) {
                     const age = now - beam.time;
                     if (age < beam.duration) {
-                        const alpha = 1 - (age / beam.duration);
-                        ctx.strokeStyle = beam.color.replace(/[\d.]+\)$/, `${alpha * 0.9})`);
-                        ctx.lineWidth = 4;
+                        const progress = age / beam.duration;
+                        const alpha = 1 - progress;
+
+                        // Outer glow
+                        ctx.strokeStyle = beam.color.replace(/[\d.]+\)$/, `${alpha * 0.4})`);
+                        ctx.lineWidth = 8;
                         ctx.shadowColor = beam.color;
+                        ctx.shadowBlur = 25;
+                        ctx.beginPath();
+                        ctx.moveTo(beam.fromX, beam.fromY);
+                        ctx.lineTo(beam.toX, beam.toY);
+                        ctx.stroke();
+
+                        // Core beam (brighter)
+                        ctx.strokeStyle = beam.color.replace(/[\d.]+\)$/, `${alpha * 0.95})`);
+                        ctx.lineWidth = 3;
                         ctx.shadowBlur = 15;
                         ctx.beginPath();
                         ctx.moveTo(beam.fromX, beam.fromY);
                         ctx.lineTo(beam.toX, beam.toY);
                         ctx.stroke();
 
-                        // Draw impact flash at target
-                        ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.8})`;
+                        // Inner bright core
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.6})`;
+                        ctx.lineWidth = 1;
+                        ctx.shadowBlur = 8;
                         ctx.beginPath();
-                        ctx.arc(beam.toX, beam.toY, 8, 0, Math.PI * 2);
+                        ctx.moveTo(beam.fromX, beam.fromY);
+                        ctx.lineTo(beam.toX, beam.toY);
+                        ctx.stroke();
+
+                        // Muzzle flash at origin
+                        if (progress < 0.3) {
+                            const muzzleAlpha = (1 - progress / 0.3);
+                            ctx.fillStyle = `rgba(255, 220, 180, ${muzzleAlpha * 0.8})`;
+                            ctx.shadowColor = beam.color;
+                            ctx.shadowBlur = 20;
+                            ctx.beginPath();
+                            ctx.arc(beam.fromX, beam.fromY, 6 * (1 + progress * 2), 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+
+                        // Enhanced impact flash at target
+                        ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.9})`;
+                        ctx.shadowColor = '#ffffff';
+                        ctx.shadowBlur = 20;
+                        ctx.beginPath();
+                        ctx.arc(beam.toX, beam.toY, 10 * (1 + progress * 0.5), 0, Math.PI * 2);
                         ctx.fill();
+
+                        // Impact sparks
+                        if (progress < 0.4) {
+                            for (let i = 0; i < 6; i++) {
+                                const angle = (i / 6) * Math.PI * 2 + progress * Math.PI;
+                                const sparkDist = 8 + progress * 15;
+                                const sparkX = beam.toX + Math.cos(angle) * sparkDist;
+                                const sparkY = beam.toY + Math.sin(angle) * sparkDist;
+                                const sparkAlpha = (1 - progress / 0.4);
+
+                                ctx.fillStyle = `rgba(255, 200, 100, ${sparkAlpha * 0.7})`;
+                                ctx.beginPath();
+                                ctx.arc(sparkX, sparkY, 2, 0, Math.PI * 2);
+                                ctx.fill();
+                            }
+                        }
                     }
                 }
                 ctx.restore();
@@ -20295,8 +20604,6 @@
         });
 
         canvas.addEventListener('click', (e) => {
-            if (gameState !== 'ORDER') return;
-
             const rect = canvas.getBoundingClientRect();
             const screenX = e.clientX - rect.left;
             const screenY = e.clientY - rect.top;
@@ -20305,6 +20612,27 @@
             const canvasCoords = screenToCanvas(screenX, screenY);
             const clickX = canvasCoords.x;
             const clickY = canvasCoords.y;
+
+            // Check for fire mode icon clicks (works in any game state)
+            if (selectedCapitalShip && selectedCapitalShip.fireModeIcons) {
+                for (let icon of selectedCapitalShip.fireModeIcons) {
+                    const dx = clickX - icon.x;
+                    const dy = clickY - icon.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance <= icon.radius) {
+                        // Toggle fire mode
+                        icon.weapon.fireMode = icon.weapon.fireMode === 'offensive' ? 'defensive' : 'offensive';
+                        console.log(`${icon.label} fire mode changed to: ${icon.weapon.fireMode.toUpperCase()}`);
+
+                        // Clear icon cache so it updates next frame
+                        selectedCapitalShip.fireModeIcons = [];
+                        return; // Don't process other clicks
+                    }
+                }
+            }
+
+            if (gameState !== 'ORDER') return;
 
             console.log('Click at:', clickX, clickY, 'Ghost active:', !!ghostAircraft, 'State:', ghostAircraft?.state);
 
