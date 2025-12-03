@@ -21946,6 +21946,368 @@
             document.getElementById('gameContainer').style.display = 'block';
         }
 
+        function validateRLBattleUI() {
+            const requiredElements = ['rlLoadoutConfig', 'renegadeLegionBattleSelector',
+                                      'gameContainer', 'blackHoleMode', 'splashScreen'];
+            const missing = requiredElements.filter(id => {
+                const element = document.getElementById(id);
+                if (!element) {
+                    console.warn(`Element '${id}' not found in DOM`);
+                    return true;
+                }
+                return false;
+            });
+            if (missing.length > 0) {
+                console.error('Missing UI elements:', missing);
+                // Try to find elements again after a short delay (DOM might not be ready)
+                setTimeout(() => {
+                    const stillMissing = requiredElements.filter(id => !document.getElementById(id));
+                    if (stillMissing.length > 0) {
+                        console.error('Elements still missing after delay:', stillMissing);
+                        alert('UI initialization error. Please refresh the page.');
+                    }
+                }, 100);
+                // Don't block execution if only rlLoadoutConfig is missing (it might be conditionally rendered)
+                if (missing.length === 1 && missing[0] === 'rlLoadoutConfig') {
+                    console.warn('rlLoadoutConfig missing but continuing - may be conditionally rendered');
+                    return true; // Allow continuation
+                }
+                return false;
+            }
+            return true;
+        }
+
+        // Cleanup function for error recovery
+        function cleanupRLBattleError() {
+            // Restore UI state to battle selector
+            const rlLoadout = document.getElementById('rlLoadoutConfig');
+            const battleSelector = document.getElementById('renegadeLegionBattleSelector');
+            const gameContainer = document.getElementById('gameContainer');
+            const splashScreen = document.getElementById('splashScreen');
+
+            if (rlLoadout) rlLoadout.style.display = 'none';
+            if (battleSelector) battleSelector.style.display = 'block';
+            if (gameContainer) gameContainer.style.display = 'none';
+            if (splashScreen) splashScreen.style.display = 'none';
+
+            console.log('Battle initialization failed - UI restored to ship selection');
+        }
+
+        // Validate ship configurations
+        function validateShipConfiguration(ships, sideName) {
+            if (!Array.isArray(ships)) {
+                alert(`${sideName} ships must be an array!`);
+                return false;
+            }
+
+            for (let i = 0; i < ships.length; i++) {
+                const ship = ships[i];
+                if (!ship || !ship.type || typeof ship.type !== 'string') {
+                    alert(`${sideName} ship at index ${i} has invalid configuration!`);
+                    console.error('Invalid ship:', ship);
+                    return false;
+                }
+
+                if (!ship.type.includes('-')) {
+                    alert(`${sideName} ship "${ship.type}" has invalid format. Expected: "Type-Name"`);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        function startRenegadeLegionBattle() {
+            // Step 1: Validate UI elements are present
+            if (!validateRLBattleUI()) {
+                return;
+            }
+
+            // Step 2: Validate at least one ship per side
+            if (commonwealthShips.length === 0 || togShips.length === 0) {
+                alert('Please add at least one ship to each side!');
+                return;
+            }
+
+            // Step 3: Validate ship configurations
+            if (!validateShipConfiguration(commonwealthShips, 'Commonwealth')) {
+                return;
+            }
+            if (!validateShipConfiguration(togShips, 'TOG')) {
+                return;
+            }
+
+            // Set game era to Renegade Legion
+            gameEra = 'Renegade Legion';
+
+            // Reset game state
+            gameState = 'ORDER';
+            currentTurn = 1;
+            groundTargets = [];
+            capitalShips = [];
+            executionRecording = [];
+            aerialUnits = [];
+            bombs = [];
+            rockets = [];
+            missiles = [];
+            aircraft = [];
+            selectedAircraft = null;
+            selectedCapitalShip = null;
+            ghostAircraft = null;
+
+            // Reset AI/execution state
+            aiPredictedGhost = null;
+            executionStartTime = 0;
+            isPaused = false;
+            pausedTime = 0;
+
+            // Reset weather state
+            weatherState = {
+                windSpeed: 0,
+                windDirection: 0,
+                rainfall: 0,
+                visibility: 1.0
+            };
+
+            // Reset camera panning state
+            isPanning = false;
+            lastPanX = 0;
+            lastPanY = 0;
+
+            // Clear legacy aircraft references
+            spitfire = null;
+            me109 = null;
+
+            // Reset hot-seat mode
+            hotSeatMode = false;
+            currentPlayer = 1;
+            player1Aircraft = [];
+            player2Aircraft = [];
+            awaitingPlayerSwitch = false;
+
+            // Reset camera
+            zoomLevel = 1;
+            panX = 0;
+            panY = 0;
+
+            // Reset squadron/formation system
+            squadron = {
+                formation: 'finger_four',
+                leader: null,
+                wingmen: [],
+                inFormation: false,
+                formationBonus: 0
+            };
+            activeWingmanCommand = null;
+
+            // Create space terrain with black hole toggle
+            try {
+                const isBlackHole = document.getElementById('blackHoleMode').checked;
+                terrain = new SpaceTerrain(isBlackHole);
+
+                console.log('🚀 Space Terrain created:',
+                    isBlackHole ? 'BLACK HOLE MODE' : 'Standard Space',
+                    terrain.stars.length, 'stars,',
+                    terrain.asteroids.length, 'asteroids,',
+                    terrain.planets ? terrain.planets.length : 0, 'planets,',
+                    terrain.nebulae.length, 'nebulae');
+            } catch (e) {
+                console.error('Error creating space terrain:', e);
+                alert('Error creating space terrain. Check console for details.');
+                cleanupRLBattleError();
+                return;
+            }
+
+            // Create Commonwealth and TOG forces
+            let commonwealthX = 300;
+            let hasPlayerShip = false;
+            let fighterCount = 0;
+            let capitalShipCount = 0;
+
+            try {
+                // Create Commonwealth forces
+                commonwealthShips.forEach((ship, shipIndex) => {
+                    const y = 400 + (shipIndex % 3) * 250;
+
+                    // Check if this is a capital ship
+                    const isCapitalShip = !ship.type.startsWith('Fighter-') &&
+                                         !ship.type.startsWith('Dropship-') &&
+                                         !ship.type.startsWith('Gunship-');
+
+                    if (isCapitalShip) {
+                        // Create capital ship
+                        const capShip = new CapitalShip(commonwealthX - 100, y, ship.type, 'commonwealth');
+                        capShip.heading = 90;
+                        capShip.isPlayer = true; // Commonwealth ships are player-controlled
+
+                        // Apply missile loadout configuration
+                        if (ship.loadout && ship.loadout.missileArrays) {
+                            capShip.missileLoadout = {
+                                dogfight: ship.loadout.missileArrays.dogfight * 4, // 4 missiles per cell
+                                standard: ship.loadout.missileArrays.standard,     // 1 missile per cell
+                                torpedo: ship.loadout.missileArrays.torpedo        // 1 torpedo per cell
+                            };
+                            console.log(`  ${ship.type} missile loadout:`, capShip.missileLoadout);
+                        }
+
+                        capitalShips.push(capShip);
+                        capitalShipCount++;
+
+                        // Launch fighters from configured bays
+                        if (ship.loadout && ship.loadout.fighterBays) {
+                            let bayIndex = 0;
+                            ship.loadout.fighterBays.forEach((bay, idx) => {
+                                if (bay && bay.type) {
+                                    // Spawn fighter offset from capital ship
+                                    const offsetX = -150 - (bayIndex * 80);
+                                    const offsetY = (bayIndex % 2 === 0 ? -100 : 100);
+
+                                    const fighterName = `CW ${bay.type.split('-')[1]} ${bayIndex + 1}`;
+                                    const fighter = new Aircraft(
+                                        fighterName,
+                                        bay.type,
+                                        commonwealthX + offsetX,
+                                        y + offsetY,
+                                        0,
+                                        90,
+                                        false // Fighters launched from bays are AI controlled
+                                    );
+                                    fighter.faction = 'commonwealth';
+                                    fighter.side = 'commonwealth';
+                                    fighter.motherShip = capShip; // Track which ship launched this fighter
+                                    aircraft.push(fighter);
+                                    fighterCount++;
+                                    bayIndex++;
+                                }
+                            });
+                        }
+                    } else {
+                        // Create standalone fighter, dropship, or gunship
+                        const craftType = ship.type.split('-')[0]; // 'Fighter', 'Dropship', or 'Gunship'
+                        const craftName = ship.type.split('-')[1];
+                        const displayName = `CW ${craftName}`;
+
+                        const craft = new Aircraft(displayName, ship.type, commonwealthX, y, 0, 90, ship.isPlayer);
+                        craft.faction = 'commonwealth';
+                        craft.side = 'commonwealth';
+                        aircraft.push(craft);
+                        fighterCount++;
+
+                        if (ship.isPlayer && !hasPlayerShip) {
+                            selectedAircraft = craft;
+                            hasPlayerShip = true;
+                        }
+                    }
+
+                    commonwealthX += 150;
+                });
+
+                // Create TOG forces
+                let togX = 1500;
+                togShips.forEach((ship, shipIndex) => {
+                    const y = 400 + (shipIndex % 3) * 250;
+
+                    // Check if this is a capital ship
+                    const isCapitalShip = !ship.type.startsWith('Fighter-') &&
+                                         !ship.type.startsWith('Dropship-') &&
+                                         !ship.type.startsWith('Gunship-');
+
+                    if (isCapitalShip) {
+                        // Create capital ship
+                        const capShip = new CapitalShip(togX + 100, y, ship.type, 'tog');
+                        capShip.heading = 270;
+                        capShip.isPlayer = false; // TOG ships are AI-controlled
+
+                        // Apply missile loadout configuration
+                        if (ship.loadout && ship.loadout.missileArrays) {
+                            capShip.missileLoadout = {
+                                dogfight: ship.loadout.missileArrays.dogfight * 4, // 4 missiles per cell
+                                standard: ship.loadout.missileArrays.standard,     // 1 missile per cell
+                                torpedo: ship.loadout.missileArrays.torpedo        // 1 torpedo per cell
+                            };
+                            console.log(`  ${ship.type} missile loadout:`, capShip.missileLoadout);
+                        }
+
+                        capitalShips.push(capShip);
+                        capitalShipCount++;
+
+                        // Launch fighters from configured bays
+                        if (ship.loadout && ship.loadout.fighterBays) {
+                            let bayIndex = 0;
+                            ship.loadout.fighterBays.forEach((bay, idx) => {
+                                if (bay && bay.type) {
+                                    // Spawn fighter offset from capital ship
+                                    const offsetX = 150 + (bayIndex * 80);
+                                    const offsetY = (bayIndex % 2 === 0 ? -100 : 100);
+
+                                    const fighterName = `TOG ${bay.type.split('-')[1]} ${bayIndex + 1}`;
+                                    const fighter = new Aircraft(
+                                        fighterName,
+                                        bay.type,
+                                        togX + offsetX,
+                                        y + offsetY,
+                                        0,
+                                        270,
+                                        false // Fighters launched from bays are AI controlled
+                                    );
+                                    fighter.faction = 'tog';
+                                    fighter.side = 'tog';
+                                    fighter.motherShip = capShip; // Track which ship launched this fighter
+                                    aircraft.push(fighter);
+                                    fighterCount++;
+                                    bayIndex++;
+                                }
+                            });
+                        }
+                    } else {
+                        // Create standalone fighter, dropship, or gunship
+                        const craftType = ship.type.split('-')[0]; // 'Fighter', 'Dropship', or 'Gunship'
+                        const craftName = ship.type.split('-')[1];
+                        const displayName = `TOG ${craftName}`;
+
+                        const craft = new Aircraft(displayName, ship.type, togX, y, 0, 270, ship.isPlayer);
+                        craft.faction = 'tog';
+                        craft.side = 'tog';
+                        aircraft.push(craft);
+                        fighterCount++;
+
+                        if (ship.isPlayer && !hasPlayerShip) {
+                            selectedAircraft = craft;
+                            hasPlayerShip = true;
+                        }
+                    }
+
+                    togX += 150;
+                });
+
+                // Don't auto-select - let user click to select (which properly initializes ghost)
+
+                console.log('🚀 Renegade Legion Battle Started!');
+                console.log('- Commonwealth ships configured:', commonwealthShips.length);
+                console.log('- TOG ships configured:', togShips.length);
+                console.log('- Capital ships deployed:', capitalShipCount);
+                console.log('- Total fighters/craft:', fighterCount);
+                console.log('- Aircraft array size:', aircraft.length);
+            } catch (e) {
+                console.error('Error creating Renegade Legion forces:', e);
+                alert('Error creating ships and fighters. Check console for details.');
+                cleanupRLBattleError();
+                return;
+            }
+
+            // Both terrain and forces created successfully - now update UI
+            // Hide loadout config screen (may be visible if coming from there)
+            const rlLoadout = document.getElementById('rlLoadoutConfig');
+            if (rlLoadout) rlLoadout.style.display = 'none';
+            document.getElementById('renegadeLegionBattleSelector').style.display = 'none';
+            document.getElementById('splashScreen').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
+
+            // Start game loop
+            console.log('Starting game loop...');
+            gameLoop();
+        }
+
         function startQuickBattle() {
             hideSplashScreen();
 
