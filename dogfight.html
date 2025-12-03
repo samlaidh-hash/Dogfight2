@@ -10642,32 +10642,28 @@
             }
 
             generateShipName(faction, type) {
-                // TOG ships: historical names (places, people, events from Earth history)
-                const togNames = [
-                    'Achilles', 'Sparta', 'Trajan', 'Kursk', 'Tiber', 'Danube',
-                    'Marathon', 'Thermopylae', 'Caesar', 'Hannibal', 'Napoleon', 'Wellington',
-                    'Waterloo', 'Gettysburg', 'Stalingrad', 'Midway', 'Trafalgar', 'Austerlitz',
-                    'Thames', 'Rhine', 'Seine', 'Nile', 'Amazon', 'Mississippi',
-                    'Everest', 'Olympus', 'Kilimanjaro', 'Vesuvius', 'Etna', 'Fuji',
-                    'Alexander', 'Leonidas', 'Scipio', 'Agincourt', 'Hastings', 'Salamis',
-                    'Verdun', 'Somme', 'Guadalcanal', 'Iwo Jima', 'El Alamein', 'Normandy'
-                ];
+                // TOG ships: historical names organized by ship class
+                const togNames = {
+                    battleship: ['Caesar', 'Alexander', 'Napoleon', 'Hannibal', 'Leonidas', 'Trajan', 'Spartacus', 'Attila', 'Charlemagne', 'Genghis'],
+                    battlecruiser: ['Waterloo', 'Stalingrad', 'Austerlitz', 'Trafalgar', 'Midway', 'Kursk', 'Gettysburg', 'Verdun', 'Salamis', 'Marathon'],
+                    cruiser: ['Rhine', 'Danube', 'Nile', 'Amazon', 'Thames', 'Seine', 'Volga', 'Ganges', 'Euphrates', 'Yangtze'],
+                    destroyer: ['Achilles', 'Ajax', 'Hector', 'Perseus', 'Hercules', 'Odysseus', 'Theseus', 'Jason', 'Orion', 'Apollo'],
+                    carrier: ['Olympus', 'Everest', 'Vesuvius', 'Etna', 'Fuji', 'Kilimanjaro', 'Ararat', 'Sinai', 'Parnassus', 'Helicon']
+                };
 
-                // Commonwealth ships: abstract nouns and verbs
-                const commonwealthNames = [
-                    'Daring', 'Illustrious', 'Revenge', 'Adamant', 'Endurance',
-                    'Resolute', 'Intrepid', 'Valiant', 'Defiant', 'Relentless',
-                    'Indomitable', 'Invincible', 'Formidable', 'Tremendous', 'Audacious',
-                    'Courageous', 'Glorious', 'Victorious', 'Magnificent', 'Majestic',
-                    'Fearless', 'Dauntless', 'Undaunted', 'Reliant', 'Steadfast',
-                    'Vigilant', 'Dominant', 'Triumphant', 'Resurgent', 'Ascendant',
-                    'Vengeance', 'Justice', 'Liberty', 'Freedom', 'Unity',
-                    'Stalwart', 'Tenacious', 'Indefatigable', 'Inexorable', 'Implacable'
-                ];
+                // Commonwealth ships: abstract nouns organized by ship class
+                const commonwealthNames = {
+                    battleship: ['Invincible', 'Indomitable', 'Formidable', 'Implacable', 'Inexorable', 'Magnificent', 'Tremendous', 'Colossus', 'Leviathan', 'Behemoth'],
+                    battlecruiser: ['Glorious', 'Victorious', 'Illustrious', 'Courageous', 'Furious', 'Audacious', 'Outrageous', 'Conqueror', 'Renown', 'Repulse'],
+                    cruiser: ['Valiant', 'Adamant', 'Resolute', 'Steadfast', 'Stalwart', 'Intrepid', 'Dauntless', 'Undaunted', 'Fearless', 'Reliant'],
+                    destroyer: ['Daring', 'Defiant', 'Relentless', 'Vengeful', 'Vigilant', 'Swift', 'Lightning', 'Thunder', 'Tempest', 'Hurricane'],
+                    carrier: ['Endurance', 'Enterprise', 'Endeavour', 'Expeditionary', 'Vanguard', 'Bulwark', 'Ark Royal', 'Eagle', 'Hermes', 'Argus']
+                };
 
                 const prefix = faction === 'tog' ? 'TIS' : 'CWS';
                 const namePool = faction === 'tog' ? togNames : commonwealthNames;
-                const randomName = namePool[Math.floor(Math.random() * namePool.length)];
+                const classNames = namePool[type] || namePool['cruiser']; // Default to cruiser if type not found
+                const randomName = classNames[Math.floor(Math.random() * classNames.length)];
 
                 return `${prefix} ${randomName}`;
             }
@@ -12613,9 +12609,9 @@
                                              (5 + Math.random() * 10);
 
                             planet.moons.push({
-                                distance: radius + 40 + m * 50 + Math.random() * 50,
+                                distance: radius + 100 + m * 150 + Math.random() * 100, // Much wider spacing
                                 angle: Math.random() * Math.PI * 2,
-                                orbitalSpeed: (0.0002 + Math.random() * 0.0005) / (1 + m * 0.5), // Outer moons slower
+                                orbitalSpeed: (0.000002 + Math.random() * 0.000005) / (1 + m * 0.5), // Slow orbital motion (100x slower)
                                 radius: moonRadius,
                                 color: Math.random() > 0.5 ? '#aaaaaa' : '#998877' // Gray or brownish
                             });
@@ -12643,6 +12639,21 @@
                 const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
 
                 for (let i = 0; i < numNebulae; i++) {
+                    const baseRadius = 80 + Math.random() * 120;
+
+                    // Generate cloudlike blobs for irregular shape
+                    const numBlobs = 5 + Math.floor(Math.random() * 8); // 5-12 overlapping circles
+                    const cloudBlobs = [];
+                    for (let b = 0; b < numBlobs; b++) {
+                        const angle = (b / numBlobs) * Math.PI * 2 + Math.random() * 0.5;
+                        const distance = (Math.random() * 0.6) * baseRadius; // Within 60% of base radius
+                        cloudBlobs.push({
+                            offsetX: Math.cos(angle) * distance,
+                            offsetY: Math.sin(angle) * distance,
+                            radius: baseRadius * (0.4 + Math.random() * 0.4) // 40-80% of base size
+                        });
+                    }
+
                     if (isBlackHole) {
                         // Nebulae orbit the black hole
                         const distance = 300 + Math.random() * 350;
@@ -12653,7 +12664,8 @@
                             orbitDistance: distance,
                             orbitAngle: angle,
                             orbitalSpeed: orbitalSpeed,
-                            radius: 80 + Math.random() * 120,
+                            radius: baseRadius,
+                            cloudBlobs: cloudBlobs,
                             lightningBolts: [],
                             nextLightning: Date.now() + Math.random() * 2000
                         });
@@ -12661,7 +12673,8 @@
                         this.nebulae.push({
                             x: Math.random() * TERRAIN_WIDTH - CANVAS_WIDTH,
                             y: Math.random() * CANVAS_HEIGHT,
-                            radius: 80 + Math.random() * 120,
+                            radius: baseRadius,
+                            cloudBlobs: cloudBlobs,
                             lightningBolts: [],
                             nextLightning: Date.now() + Math.random() * 2000
                         });
@@ -13155,16 +13168,29 @@
                         nebulaY = nebula.y;
                     }
 
-                    // Nebula cloud with bluish tinge
-                    const gradient = ctx.createRadialGradient(nebulaX, nebulaY, 0, nebulaX, nebulaY, nebula.radius);
-                    gradient.addColorStop(0, 'rgba(100, 100, 255, 0.4)');
-                    gradient.addColorStop(0.5, 'rgba(80, 80, 200, 0.3)');
-                    gradient.addColorStop(1, 'rgba(60, 60, 150, 0)');
+                    // Render cloudlike nebula using multiple overlapping blobs
+                    ctx.save();
+                    ctx.globalAlpha = 0.6;
 
-                    ctx.fillStyle = gradient;
-                    ctx.beginPath();
-                    ctx.arc(nebulaX, nebulaY, nebula.radius, 0, Math.PI * 2);
-                    ctx.fill();
+                    // Draw each blob to create irregular cloud shape
+                    for (let blob of nebula.cloudBlobs) {
+                        const blobX = nebulaX + blob.offsetX;
+                        const blobY = nebulaY + blob.offsetY;
+
+                        // Nebula cloud with bluish tinge (varying colors for depth)
+                        const gradient = ctx.createRadialGradient(blobX, blobY, 0, blobX, blobY, blob.radius);
+                        const hue = 200 + Math.random() * 80; // Blue to purple range
+                        gradient.addColorStop(0, `rgba(100, 100, ${Math.floor(hue)}, 0.5)`);
+                        gradient.addColorStop(0.5, `rgba(80, 80, ${Math.floor(hue * 0.8)}, 0.35)`);
+                        gradient.addColorStop(1, `rgba(60, 60, ${Math.floor(hue * 0.6)}, 0)`);
+
+                        ctx.fillStyle = gradient;
+                        ctx.beginPath();
+                        ctx.arc(blobX, blobY, blob.radius, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    ctx.restore();
 
                     // Lightning bolts (purple)
                     ctx.save();
@@ -19851,7 +19877,25 @@
             ctx.globalAlpha = 1.0; // Ensure full opacity
             ctx.globalCompositeOperation = 'source-over'; // Ensure normal blending
 
-            const scaleBarLength = 100; // Represents 100 meters
+            // Calculate actual scale bar length accounting for WORLD_SCALE and zoom
+            // WORLD_SCALE = 6.0 means 1 meter = 6 pixels in world coordinates
+            // We want a 100-pixel bar on screen
+            const scaleBarPixels = 100; // Screen pixels
+            const metersRepresented = scaleBarPixels / (WORLD_SCALE * zoomLevel);
+
+            // Round to nice numbers for display
+            let displayDistance, displayUnit;
+            if (metersRepresented >= 1000) {
+                displayDistance = (metersRepresented / 1000).toFixed(1);
+                displayUnit = 'km';
+            } else if (metersRepresented >= 1) {
+                displayDistance = Math.round(metersRepresented);
+                displayUnit = 'm';
+            } else {
+                displayDistance = Math.round(metersRepresented * 100);
+                displayUnit = 'cm';
+            }
+
             const infoBoxX = canvas.width - 240; // Position from right edge
             const infoBoxY = canvas.height - 240;
 
@@ -19870,7 +19914,7 @@
 
             ctx.beginPath();
             ctx.moveTo(scaleBarX, scaleBarY);
-            ctx.lineTo(scaleBarX + scaleBarLength, scaleBarY);
+            ctx.lineTo(scaleBarX + scaleBarPixels, scaleBarY);
             ctx.stroke();
 
             // Draw end caps
@@ -19878,13 +19922,13 @@
             ctx.beginPath();
             ctx.moveTo(scaleBarX, scaleBarY - 5);
             ctx.lineTo(scaleBarX, scaleBarY + 5);
-            ctx.moveTo(scaleBarX + scaleBarLength, scaleBarY - 5);
-            ctx.lineTo(scaleBarX + scaleBarLength, scaleBarY + 5);
+            ctx.moveTo(scaleBarX + scaleBarPixels, scaleBarY - 5);
+            ctx.lineTo(scaleBarX + scaleBarPixels, scaleBarY + 5);
             ctx.stroke();
 
-            // Draw scale label
+            // Draw scale label with actual distance
             ctx.font = '12px Courier New';
-            ctx.fillText('Scale: 100m', scaleBarX, scaleBarY - 10);
+            ctx.fillText(`Scale: ${displayDistance}${displayUnit}`, scaleBarX, scaleBarY - 10);
 
             // Draw zoom level
             ctx.fillText(`Zoom: ${zoomLevel.toFixed(1)}x`, scaleBarX + 110, scaleBarY - 10);
@@ -23235,6 +23279,7 @@
                         // Create capital ship
                         const capShip = new CapitalShip(commonwealthX - 100, y, ship.type, 'commonwealth');
                         capShip.heading = 90;
+                        capShip.isPlayer = true; // Commonwealth ships are player-controlled
 
                         // Apply missile loadout configuration
                         if (ship.loadout && ship.loadout.missileArrays) {
@@ -23312,6 +23357,7 @@
                         // Create capital ship
                         const capShip = new CapitalShip(togX + 100, y, ship.type, 'tog');
                         capShip.heading = 270;
+                        capShip.isPlayer = false; // TOG ships are AI-controlled
 
                         // Apply missile loadout configuration
                         if (ship.loadout && ship.loadout.missileArrays) {
