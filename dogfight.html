@@ -5526,8 +5526,16 @@
                 this.id = `ship_${++_shipIdCounter}`; // Unique ID for detection tracking
                 this.x = x;
                 this.y = y;
-                // Parse type if it's in "Type-Name" format (e.g., "BC-battlecruiser" -> "battlecruiser")
-                this.type = type.includes('-') ? type.split('-')[1] : type;
+                // Parse type if it's in "Type-Name" format (e.g., "Battleship-Repulse" -> "battleship")
+                // Extract ship class from format, convert to lowercase for specs lookup
+                if (type.includes('-')) {
+                    const shipClass = type.split('-')[0].toLowerCase();
+                    this.type = shipClass;
+                    this.shipName = type.split('-')[1]; // Store ship name separately
+                } else {
+                    this.type = type.toLowerCase();
+                    this.shipName = null;
+                }
                 this.faction = faction; // 'commonwealth' or 'terran'
                 this.side = faction;  // For consistency with Aircraft class
                 this.heading = 90; // degrees (0 = north, 90 = east)
