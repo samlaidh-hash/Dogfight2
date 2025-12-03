@@ -1504,8 +1504,8 @@
         console.log('%c  • Mac: Cmd+Shift+R', 'color: #ffaa00;');
         console.log('%c  • Or clear browser cache completely', 'color: #ffaa00;');
 
-        const CANVAS_WIDTH = 1800;
-        const CANVAS_HEIGHT = 1000;
+        let CANVAS_WIDTH = window.innerWidth;
+        let CANVAS_HEIGHT = window.innerHeight;
         
         // World scale factor: 6x increase for better visual detail
         // 1 pixel = 0.167 meters (6x more detail than original 1 pixel = 1 meter)
@@ -11487,6 +11487,16 @@
         const ctx = canvas.getContext('2d');
         const minimapCanvas = document.getElementById('minimap');
         const minimapCtx = minimapCanvas.getContext('2d');
+
+        // Resize canvas to match window size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            CANVAS_WIDTH = window.innerWidth;
+            CANVAS_HEIGHT = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
 
         // Load aircraft SVG images
         const aircraftImages = {
