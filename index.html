@@ -6182,7 +6182,7 @@
                 };
                 } // End of wet navy specs
 
-                const spec = specs[type];
+                const spec = specs[this.type]; // Use this.type (already parsed and lowercased)
                 this.length = spec.length;
                 this.beam = spec.beam;
                 this.compartments = spec.compartments;
