@@ -21363,8 +21363,9 @@
                 const currentTime = Date.now();
 
                 // Update space terrain (asteroids, lightning, orbits) if it's a SpaceTerrain
+                // Use dt (frame time in seconds) instead of elapsed (total time in ms)
                 if (terrain && typeof terrain.update === 'function') {
-                    terrain.update(elapsed, gameState);
+                    terrain.update(dt, gameState);
                 }
 
                 // OPTIMIZED: Update bombs with batched time check
