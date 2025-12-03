@@ -24648,40 +24648,41 @@
        - Velocity vector tracking
        - Pivot speed based on hull size
 
-    TODO - INTEGRATION NEEDED:
-    1. ⏳ Add click handler for capital ships
-       - Detect ship clicks in canvas click event
-       - Open power allocation modal
-       - Populate radio buttons dynamically
+    INTEGRATION STATUS - ALL COMPLETE:
+    1. ✅ Add click handler for capital ships
+       - ✅ Detect ship clicks in canvas click event (line ~20291)
+       - ✅ Open power allocation modal (openPowerAllocationModal function)
+       - ✅ Populate radio buttons dynamically
 
-    2. ⏳ Add power level change handlers
-       - Radio button click validation
-       - Apply power changes to ship
-       - Update UI to reflect changes
+    2. ✅ Add power level change handlers
+       - ✅ Radio button click validation
+       - ✅ Apply power changes to ship
+       - ✅ Update UI to reflect changes
 
-    3. ⏳ Add keyboard controls for ship maneuver
-       - W/S: Increase/decrease thrust
-       - A/D: Rotate ship (pivot)
-       - Q/E: Pitch up/down
-       - Mouse wheel: Change exhaust facing
-       - Right-click: Set priority target
+    3. ✅ Add keyboard controls for ship maneuver (lines 20476-20511)
+       - ✅ W/S: Increase/decrease thrust
+       - ✅ A/D: Rotate ship (pivot)
+       - ✅ Q/E: Pitch up/down
+       - ✅ Mouse wheel: Change exhaust facing
+       - ✅ Right-click: Set priority target
 
-    4. ⏳ Integrate laser weapon firing into game loop
-       - Call ship.fireLaserWeapons(capitalShips, dt) during execution
-       - Apply hits to target ships
-       - Create visual laser beam effects
-       - Check shield flicker state to block/reduce damage
+    4. ✅ Integrate laser weapon firing into game loop
+       - ✅ Call ship.fireLaserWeapons(capitalShips, dt) during execution (line 18326)
+       - ✅ Call ship.fireRLWeapons(capitalShips, dt) for RL ships (line 18449)
+       - ✅ Apply hits to target ships
+       - ✅ Create visual laser beam effects (line 19139+)
+       - ✅ Check shield state to block/reduce damage
 
-    5. ⏳ Shield damage blocking logic
-       - Check shields.flickerState when ship takes damage
-       - Block laser/missile damage if shields ON
-       - Reduce railgun damage by 50%
-       - Create shield arc visual on block
+    5. ✅ Shield damage blocking logic
+       - ✅ Check shield state when ship takes damage
+       - ✅ Block laser/missile damage based on flicker shields
+       - ✅ Shield penetration for railguns implemented
+       - ✅ Create shield arc visual on block
 
-    6. ⏳ Missile firing integration
-       - Update active missiles each frame
-       - Render missile trails
-       - Apply hits when missiles reach targets
+    6. ✅ Missile firing integration
+       - ✅ Update active missiles each frame
+       - ✅ Render missile trails (line 19169+)
+       - ✅ Apply hits when missiles reach targets
 
     USAGE NOTES:
     - All capital ships start with balanced power (level 2 in all groups)
