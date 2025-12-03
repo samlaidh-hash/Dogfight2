@@ -19526,6 +19526,74 @@
                 ctx.fillText('J:Toggle N:Noise M:Decoy B:Barrage', panelX + 10, panelY + panelHeight - 5);
             }
 
+            // Keyboard Shortcuts Display for Selected RL Capital Ship
+            if (selectedCapitalShip && selectedCapitalShip.rlWeapons) {
+                const panelX = 20;
+                const panelY = canvas.height - 200;
+                const panelWidth = 280;
+                const panelHeight = 185;
+
+                // Panel background
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+                ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
+                ctx.strokeStyle = '#d4af37'; // Gold border for RL ships
+                ctx.lineWidth = 2;
+                ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
+
+                // Title
+                ctx.fillStyle = '#d4af37';
+                ctx.font = 'bold 16px Courier New';
+                ctx.textAlign = 'left';
+                ctx.fillText('⌨ SHIP CONTROLS', panelX + 10, panelY + 22);
+
+                // Ship name
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '12px Courier New';
+                ctx.fillText(selectedCapitalShip.name, panelX + 10, panelY + 40);
+
+                // Keyboard shortcuts
+                ctx.fillStyle = '#aaaaaa';
+                ctx.font = '11px Courier New';
+                let yPos = panelY + 60;
+                const shortcuts = [
+                    'W / S    : Increase / Decrease Thrust',
+                    'A / D    : Rotate Ship Left / Right',
+                    'Q / E    : Pitch Down / Up',
+                    'Wheel    : Change Exhaust Facing',
+                    'Right-Click : Set Priority Target',
+                    '',
+                    'ESC      : Lock Orders & Close Modal'
+                ];
+
+                for (let shortcut of shortcuts) {
+                    if (shortcut === '') {
+                        yPos += 8;
+                        continue;
+                    }
+                    // Highlight the key
+                    const colonIndex = shortcut.indexOf(':');
+                    if (colonIndex > 0) {
+                        const keyPart = shortcut.substring(0, colonIndex);
+                        const descPart = shortcut.substring(colonIndex);
+
+                        ctx.fillStyle = '#00ff88'; // Cyan for keys
+                        ctx.fillText(keyPart, panelX + 10, yPos);
+                        ctx.fillStyle = '#cccccc'; // White for description
+                        ctx.fillText(descPart, panelX + 10 + ctx.measureText(keyPart).width, yPos);
+                    } else {
+                        ctx.fillStyle = '#cccccc';
+                        ctx.fillText(shortcut, panelX + 10, yPos);
+                    }
+                    yPos += 16;
+                }
+
+                // Footer hint
+                ctx.fillStyle = '#666666';
+                ctx.font = '9px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText('Click ship to select • Click elsewhere to deselect', panelX + panelWidth / 2, panelY + panelHeight - 8);
+            }
+
             ctx.restore(); // Restore state after drawing UI elements
         }
 
