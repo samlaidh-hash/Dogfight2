@@ -19533,28 +19533,78 @@
                 ctx.restore();
             }
 
-            // === POWER MANAGEMENT: Render Laser Beams ===
+            // === POWER MANAGEMENT: Render Laser Beams - ENHANCED ===
             if (window.laserBeams) {
                 const now = Date.now();
                 ctx.save();
                 for (let beam of window.laserBeams) {
                     const age = now - beam.time;
                     if (age < beam.duration) {
-                        const alpha = 1 - (age / beam.duration);
-                        ctx.strokeStyle = beam.color.replace(/[\d.]+\)$/, `${alpha * 0.9})`);
-                        ctx.lineWidth = 4;
+                        const progress = age / beam.duration;
+                        const alpha = 1 - progress;
+
+                        // Outer glow
+                        ctx.strokeStyle = beam.color.replace(/[\d.]+\)$/, `${alpha * 0.4})`);
+                        ctx.lineWidth = 8;
                         ctx.shadowColor = beam.color;
+                        ctx.shadowBlur = 25;
+                        ctx.beginPath();
+                        ctx.moveTo(beam.fromX, beam.fromY);
+                        ctx.lineTo(beam.toX, beam.toY);
+                        ctx.stroke();
+
+                        // Core beam (brighter)
+                        ctx.strokeStyle = beam.color.replace(/[\d.]+\)$/, `${alpha * 0.95})`);
+                        ctx.lineWidth = 3;
                         ctx.shadowBlur = 15;
                         ctx.beginPath();
                         ctx.moveTo(beam.fromX, beam.fromY);
                         ctx.lineTo(beam.toX, beam.toY);
                         ctx.stroke();
 
-                        // Draw impact flash at target
-                        ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.8})`;
+                        // Inner bright core
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.6})`;
+                        ctx.lineWidth = 1;
+                        ctx.shadowBlur = 8;
                         ctx.beginPath();
-                        ctx.arc(beam.toX, beam.toY, 8, 0, Math.PI * 2);
+                        ctx.moveTo(beam.fromX, beam.fromY);
+                        ctx.lineTo(beam.toX, beam.toY);
+                        ctx.stroke();
+
+                        // Muzzle flash at origin
+                        if (progress < 0.3) {
+                            const muzzleAlpha = (1 - progress / 0.3);
+                            ctx.fillStyle = `rgba(255, 220, 180, ${muzzleAlpha * 0.8})`;
+                            ctx.shadowColor = beam.color;
+                            ctx.shadowBlur = 20;
+                            ctx.beginPath();
+                            ctx.arc(beam.fromX, beam.fromY, 6 * (1 + progress * 2), 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+
+                        // Enhanced impact flash at target
+                        ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.9})`;
+                        ctx.shadowColor = '#ffffff';
+                        ctx.shadowBlur = 20;
+                        ctx.beginPath();
+                        ctx.arc(beam.toX, beam.toY, 10 * (1 + progress * 0.5), 0, Math.PI * 2);
                         ctx.fill();
+
+                        // Impact sparks
+                        if (progress < 0.4) {
+                            for (let i = 0; i < 6; i++) {
+                                const angle = (i / 6) * Math.PI * 2 + progress * Math.PI;
+                                const sparkDist = 8 + progress * 15;
+                                const sparkX = beam.toX + Math.cos(angle) * sparkDist;
+                                const sparkY = beam.toY + Math.sin(angle) * sparkDist;
+                                const sparkAlpha = (1 - progress / 0.4);
+
+                                ctx.fillStyle = `rgba(255, 200, 100, ${sparkAlpha * 0.7})`;
+                                ctx.beginPath();
+                                ctx.arc(sparkX, sparkY, 2, 0, Math.PI * 2);
+                                ctx.fill();
+                            }
+                        }
                     }
                 }
                 ctx.restore();
