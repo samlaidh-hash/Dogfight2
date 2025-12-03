@@ -19274,6 +19274,67 @@
                 ship.render();
             }
 
+            // Render fire mode icons for selected RL ship
+            if (selectedCapitalShip && selectedCapitalShip.rlWeapons) {
+                const ship = selectedCapitalShip;
+                const iconSize = 12;
+                const iconSpacing = 20;
+
+                // Clear icon cache from previous frame
+                ship.fireModeIcons = [];
+
+                ctx.save();
+
+                // Define weapon icon positions relative to ship
+                const weaponIcons = [
+                    { weapon: ship.rlWeapons.broadsidePort, x: ship.x - ship.width/2 - iconSpacing, y: ship.y, label: 'P' },
+                    { weapon: ship.rlWeapons.broadsideStarboard, x: ship.x + ship.width/2 + iconSpacing, y: ship.y, label: 'S' },
+                    { weapon: ship.rlWeapons.prowChasers, x: ship.x, y: ship.y - ship.length/2 - iconSpacing, label: 'PC' },
+                    { weapon: ship.rlWeapons.sternChasers, x: ship.x, y: ship.y + ship.length/2 + iconSpacing, label: 'SC' },
+                    { weapon: ship.rlWeapons.spinalMount, x: ship.x, y: ship.y - ship.length/2 - iconSpacing * 2, label: 'SP' },
+                    { weapon: ship.rlWeapons.missiles, x: ship.x + ship.width/2 + iconSpacing, y: ship.y - ship.length/4, label: 'M' },
+                    { weapon: ship.rlWeapons.pointDefense, x: ship.x - ship.width/2 - iconSpacing, y: ship.y - ship.length/4, label: 'PD' }
+                ];
+
+                for (let icon of weaponIcons) {
+                    if (!icon.weapon || icon.weapon.isDestroyed) continue;
+
+                    const isOffensive = icon.weapon.fireMode === 'offensive';
+                    const color = isOffensive ? '#ff3333' : '#33ff33';
+                    const bgColor = isOffensive ? 'rgba(255, 51, 51, 0.3)' : 'rgba(51, 255, 51, 0.3)';
+
+                    // Draw icon background circle
+                    ctx.fillStyle = bgColor;
+                    ctx.beginPath();
+                    ctx.arc(icon.x, icon.y, iconSize, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Draw icon border
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Draw weapon label
+                    ctx.fillStyle = color;
+                    ctx.font = 'bold 8px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(icon.label, icon.x, icon.y);
+
+                    // Store icon bounds for click detection
+                    if (!ship.fireModeIcons) ship.fireModeIcons = [];
+                    ship.fireModeIcons.push({
+                        weapon: icon.weapon,
+                        x: icon.x,
+                        y: icon.y,
+                        radius: iconSize,
+                        label: icon.label
+                    });
+                }
+
+                ctx.restore();
+            }
+
             // === POWER MANAGEMENT: Render Laser Beams ===
             if (window.laserBeams) {
                 const now = Date.now();
@@ -20295,8 +20356,6 @@
         });
 
         canvas.addEventListener('click', (e) => {
-            if (gameState !== 'ORDER') return;
-
             const rect = canvas.getBoundingClientRect();
             const screenX = e.clientX - rect.left;
             const screenY = e.clientY - rect.top;
@@ -20305,6 +20364,27 @@
             const canvasCoords = screenToCanvas(screenX, screenY);
             const clickX = canvasCoords.x;
             const clickY = canvasCoords.y;
+
+            // Check for fire mode icon clicks (works in any game state)
+            if (selectedCapitalShip && selectedCapitalShip.fireModeIcons) {
+                for (let icon of selectedCapitalShip.fireModeIcons) {
+                    const dx = clickX - icon.x;
+                    const dy = clickY - icon.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance <= icon.radius) {
+                        // Toggle fire mode
+                        icon.weapon.fireMode = icon.weapon.fireMode === 'offensive' ? 'defensive' : 'offensive';
+                        console.log(`${icon.label} fire mode changed to: ${icon.weapon.fireMode.toUpperCase()}`);
+
+                        // Clear icon cache so it updates next frame
+                        selectedCapitalShip.fireModeIcons = [];
+                        return; // Don't process other clicks
+                    }
+                }
+            }
+
+            if (gameState !== 'ORDER') return;
 
             console.log('Click at:', clickX, clickY, 'Ghost active:', !!ghostAircraft, 'State:', ghostAircraft?.state);
 
