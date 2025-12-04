@@ -18963,22 +18963,29 @@
             document.getElementById('currentPhase').textContent = phaseText;
             document.getElementById('currentTurn').textContent = currentTurn;
 
-            // Update aircraft stats - dynamically handle different game modes
-            // In WW2: spitfire vs me109, in WW1: different aircraft, etc.
-            if (spitfire && me109) {
-                // WW2 mode
-                document.getElementById('spitfireStats').innerHTML = spitfire.getStatsHTML();
-                document.getElementById('me109Stats').innerHTML = me109.getStatsHTML();
-            } else if (aircraft.length >= 2) {
-                // Other modes (WW1, Renegade Legion, etc.) - show first two aircraft
-                const playerAircraft = aircraft.filter(a => a.isPlayer);
-                const enemyAircraft = aircraft.filter(a => !a.isPlayer);
+            // Hide aircraft panel in Renegade Legion mode (ships panel is used instead)
+            if (gameEra === 'Renegade Legion') {
+                document.getElementById('aircraftPanel').style.display = 'none';
+            } else {
+                document.getElementById('aircraftPanel').style.display = 'block';
 
-                if (playerAircraft.length > 0) {
-                    document.getElementById('spitfireStats').innerHTML = playerAircraft[0].getStatsHTML();
-                }
-                if (enemyAircraft.length > 0) {
-                    document.getElementById('me109Stats').innerHTML = enemyAircraft[0].getStatsHTML();
+                // Update aircraft stats - dynamically handle different game modes
+                // In WW2: spitfire vs me109, in WW1: different aircraft, etc.
+                if (spitfire && me109) {
+                    // WW2 mode
+                    document.getElementById('spitfireStats').innerHTML = spitfire.getStatsHTML();
+                    document.getElementById('me109Stats').innerHTML = me109.getStatsHTML();
+                } else if (aircraft.length >= 2) {
+                    // Other modes (WW1, etc.) - show first two aircraft
+                    const playerAircraft = aircraft.filter(a => a.isPlayer);
+                    const enemyAircraft = aircraft.filter(a => !a.isPlayer);
+
+                    if (playerAircraft.length > 0) {
+                        document.getElementById('spitfireStats').innerHTML = playerAircraft[0].getStatsHTML();
+                    }
+                    if (enemyAircraft.length > 0) {
+                        document.getElementById('me109Stats').innerHTML = enemyAircraft[0].getStatsHTML();
+                    }
                 }
             }
 
