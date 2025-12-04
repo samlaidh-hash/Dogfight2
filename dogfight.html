@@ -19942,10 +19942,14 @@
             ctx.globalCompositeOperation = 'source-over'; // Ensure normal blending
 
             // Calculate actual scale bar length accounting for WORLD_SCALE and zoom
-            // WORLD_SCALE = 6.0 means 1 meter = 6 pixels in world coordinates
+            // For space battles with capital ships, use a much smaller scale
+            // For aircraft, use normal WORLD_SCALE = 6.0
+            const isSpaceBattle = (terrain instanceof SpaceTerrain) || (capitalShips.length > 0);
+            const effectiveWorldScale = isSpaceBattle ? 0.05 : WORLD_SCALE; // 0.05 for space (1m = 0.05px), 6.0 for aircraft
+
             // We want a 100-pixel bar on screen
             const scaleBarPixels = 100; // Screen pixels
-            const metersRepresented = scaleBarPixels / (WORLD_SCALE * zoomLevel);
+            const metersRepresented = scaleBarPixels / (effectiveWorldScale * zoomLevel);
 
             // Round to nice numbers for display
             let displayDistance, displayUnit;
