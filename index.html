@@ -6800,7 +6800,11 @@
                 this.fireLocations = [];
 
                 // === PHASE 3: HIT LOCATION SYSTEM ===
-                this.initializeHitLocations();
+                // Only initialize hit locations for wet navy ships
+                // RL ships use the percentage-based systemHP and armorBlocks instead
+                if (!isRenegadeLegion) {
+                    this.initializeHitLocations();
+                }
 
                 // === PHASE 3: CRITICAL HP POOL ===
                 this.criticalHP = {
