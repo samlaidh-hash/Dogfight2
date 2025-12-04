@@ -12465,7 +12465,7 @@
             // Generate asteroids that drift slowly
             generateAsteroids() {
                 const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
-                const numAsteroids = 15 + Math.floor(Math.random() * 10); // 15-25 asteroids
+                const numAsteroids = this.isBlackHole ? (10 + Math.floor(Math.random() * 6)) : (8 + Math.floor(Math.random() * 5)); // 10-15 for black hole, 8-12 standard
 
                 for (let i = 0; i < numAsteroids; i++) {
                     const x = Math.random() * TERRAIN_WIDTH - CANVAS_WIDTH;
@@ -12506,7 +12506,7 @@
             // Generate planets and moons with realistic sizes
             generatePlanets() {
                 const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
-                const numPlanets = 1 + Math.floor(Math.random() * 3); // 1-3 planets
+                const numPlanets = 1 + Math.floor(Math.random() * 2); // 1-2 planets
 
                 // Planet size categories (reduced sizes)
                 const sizeCategories = [
