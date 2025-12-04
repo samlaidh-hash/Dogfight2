@@ -22320,6 +22320,24 @@
             groundTargets = [];
             capitalShips = [];
             executionRecording = [];
+            aerialUnits = [];
+            bombs = [];
+            rockets = [];
+            missiles = [];
+            selectedAircraft = null;
+            ghostAircraft = null;
+
+            // Reset hot-seat mode
+            hotSeatMode = false;
+            currentPlayer = 1;
+            player1Aircraft = [];
+            player2Aircraft = [];
+            awaitingPlayerSwitch = false;
+
+            // Reset camera
+            zoomLevel = 1;
+            panX = 0;
+            panY = 0;
 
             // Create WW2 terrain
             terrain = new Terrain();
@@ -23276,7 +23294,18 @@
             missiles = [];
             selectedAircraft = null;
             ghostAircraft = null;
-            
+
+            // Clear legacy aircraft references (WW2)
+            spitfire = null;
+            me109 = null;
+
+            // Reset hot-seat mode
+            hotSeatMode = false;
+            currentPlayer = 1;
+            player1Aircraft = [];
+            player2Aircraft = [];
+            awaitingPlayerSwitch = false;
+
             // Reset camera
             zoomLevel = 1;
             panX = 0;
@@ -23357,6 +23386,24 @@
             groundTargets = [];
             capitalShips = [];
             executionRecording = [];
+            aerialUnits = [];
+            bombs = [];
+            rockets = [];
+            missiles = [];
+            selectedAircraft = null;
+            ghostAircraft = null;
+
+            // Reset hot-seat mode
+            hotSeatMode = false;
+            currentPlayer = 1;
+            player1Aircraft = [];
+            player2Aircraft = [];
+            awaitingPlayerSwitch = false;
+
+            // Reset camera
+            zoomLevel = 1;
+            panX = 0;
+            panY = 0;
 
             // Create WW2 terrain
             terrain = new Terrain();
