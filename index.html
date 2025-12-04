@@ -11444,6 +11444,8 @@
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            canvas.style.width = window.innerWidth + 'px';
+            canvas.style.height = window.innerHeight + 'px';
             CANVAS_WIDTH = window.innerWidth;
             CANVAS_HEIGHT = window.innerHeight;
         }
@@ -18794,7 +18796,7 @@
             }
 
             const infoBoxX = canvas.width - 240; // Position from right edge
-            const infoBoxY = canvas.height - 240;
+            const infoBoxY = canvas.height - 120; // Moved down to avoid overlapping minimap
 
             // Draw semi-transparent background for entire info box
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
