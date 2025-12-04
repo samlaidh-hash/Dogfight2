@@ -22254,7 +22254,7 @@
                         // Create capital ship
                         const capShip = new CapitalShip(commonwealthX - 100, y, ship.type, 'commonwealth');
                         capShip.heading = 90;
-                        capShip.isPlayer = true; // Commonwealth ships are player-controlled
+                        capShip.isPlayer = ship.isPlayer || false;
 
                         // Apply missile loadout configuration
                         if (ship.loadout && ship.loadout.missileArrays) {
@@ -22268,6 +22268,12 @@
 
                         capitalShips.push(capShip);
                         capitalShipCount++;
+
+                        // Check if this is the player's capital ship
+                        if (ship.isPlayer && !hasPlayerShip) {
+                            selectedCapitalShip = capShip;
+                            hasPlayerShip = true;
+                        }
 
                         // Launch fighters from configured bays
                         if (ship.loadout && ship.loadout.fighterBays) {
@@ -22332,7 +22338,7 @@
                         // Create capital ship
                         const capShip = new CapitalShip(togX + 100, y, ship.type, 'tog');
                         capShip.heading = 270;
-                        capShip.isPlayer = false; // TOG ships are AI-controlled
+                        capShip.isPlayer = ship.isPlayer || false;
 
                         // Apply missile loadout configuration
                         if (ship.loadout && ship.loadout.missileArrays) {
@@ -22346,6 +22352,12 @@
 
                         capitalShips.push(capShip);
                         capitalShipCount++;
+
+                        // Check if this is the player's capital ship
+                        if (ship.isPlayer && !hasPlayerShip) {
+                            selectedCapitalShip = capShip;
+                            hasPlayerShip = true;
+                        }
 
                         // Launch fighters from configured bays
                         if (ship.loadout && ship.loadout.fighterBays) {
@@ -22396,7 +22408,19 @@
                     togX += 150;
                 });
 
-                // Don't auto-select - let user click to select (which properly initializes ghost)
+                // Auto-select player ship if one was marked
+                // If no player ship was selected, default to first aircraft or capital ship
+                if (!hasPlayerShip) {
+                    if (aircraft.length > 0) {
+                        selectedAircraft = aircraft[0];
+                        selectedAircraft.isPlayer = true;
+                        hasPlayerShip = true;
+                    } else if (capitalShips.length > 0) {
+                        selectedCapitalShip = capitalShips[0];
+                        selectedCapitalShip.isPlayer = true;
+                        hasPlayerShip = true;
+                    }
+                }
 
                 console.log('🚀 Renegade Legion Battle Started!');
                 console.log('- Commonwealth ships configured:', commonwealthShips.length);
@@ -22512,14 +22536,12 @@
             document.getElementById('splashScreen').style.display = 'none';
             document.getElementById('renegadeLegionBattleSelector').style.display = 'block';
 
-            // Set up default forces
+            // Set up default forces - Shiva BB (player) vs Repulse BB (AI)
             commonwealthShips = [
-                { type: 'Fighter-Avenger', isPlayer: true },
-                { type: 'Fighter-Cheetah', isPlayer: false }
+                { type: 'Battleship-Repulse', isPlayer: false }  // Repulse Battleship (AI)
             ];
             togShips = [
-                { type: 'Fighter-Gladius', isPlayer: false },
-                { type: 'Fighter-Lancea', isPlayer: false }
+                { type: 'Battleship-Shiva', isPlayer: true }  // Shiva Battleship (player)
             ];
 
             updateShipLists();
