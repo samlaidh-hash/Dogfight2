@@ -5926,35 +5926,44 @@
                     this.name = this.generateShipName(faction, this.type);
                 }
 
-                // Initialize AA batteries with cooldowns (wet navy only)
-                this.aaBatteries = (spec.aaBatteries || []).map(battery => ({
-                    ...battery,
-                    fireCooldown: 0,
-                    isDestroyed: false
-                }));
+                // Initialize wet navy weapon systems (only for non-RL ships)
+                if (!isRenegadeLegion) {
+                    // Initialize AA batteries with cooldowns
+                    this.aaBatteries = (spec.aaBatteries || []).map(battery => ({
+                        ...battery,
+                        fireCooldown: 0,
+                        isDestroyed: false
+                    }));
 
-                // Initialize SAM launchers
-                this.samLaunchers = (spec.samLaunchers || []).map(launcher => ({
-                    ...launcher,
-                    fireCooldown: 0,
-                    reloadCooldown: 0,
-                    isDestroyed: false,
-                    trackedTarget: null,
-                    trackingTime: 0,
-                    minTrackTime: 1.5 // Seconds needed to lock on
-                }));
+                    // Initialize SAM launchers
+                    this.samLaunchers = (spec.samLaunchers || []).map(launcher => ({
+                        ...launcher,
+                        fireCooldown: 0,
+                        reloadCooldown: 0,
+                        isDestroyed: false,
+                        trackedTarget: null,
+                        trackingTime: 0,
+                        minTrackTime: 1.5 // Seconds needed to lock on
+                    }));
 
-                // Initialize CIWS systems
-                this.ciwsSystems = (spec.ciws || []).map(ciws => ({
-                    ...ciws,
-                    fireCooldown: 0,
-                    isDestroyed: false,
-                    burstMode: false,
-                    burstTime: 0
-                }));
+                    // Initialize CIWS systems
+                    this.ciwsSystems = (spec.ciws || []).map(ciws => ({
+                        ...ciws,
+                        fireCooldown: 0,
+                        isDestroyed: false,
+                        burstMode: false,
+                        burstTime: 0
+                    }));
 
-                // Track launched missiles
-                this.launchedMissiles = [];
+                    // Track launched missiles
+                    this.launchedMissiles = [];
+                } else {
+                    // RL ships don't use wet navy weapons
+                    this.aaBatteries = [];
+                    this.samLaunchers = [];
+                    this.ciwsSystems = [];
+                    this.launchedMissiles = [];
+                }
 
                 // === RENEGADE LEGION SPACE WEAPONS ===
                 // Standard RL faction uses banks, chasers, spinal mounts, missiles, and PD
@@ -6308,7 +6317,11 @@
                 this.fireLocations = [];
 
                 // === PHASE 3: HIT LOCATION SYSTEM ===
-                this.initializeHitLocations();
+                // Only initialize hit locations for wet navy ships
+                // RL ships use the percentage-based systemHP and armorBlocks instead
+                if (!isRenegadeLegion) {
+                    this.initializeHitLocations();
+                }
 
                 // === PHASE 3: CRITICAL HP POOL ===
                 this.criticalHP = {
@@ -6403,6 +6416,13 @@
                         weapons: 50,
                         hull: { bow: 400, midship: 600, stern: 350 }
                     },
+                    battlecruiser: {
+                        propulsion: 250,
+                        commandControl: 220,
+                        sensors: 180,
+                        weapons: 45,
+                        hull: { bow: 350, midship: 500, stern: 300 }
+                    },
                     carrier: {
                         propulsion: 250,
                         flightDeck: 300,
@@ -6436,6 +6456,13 @@
                         sensors: 60,
                         weapons: { navalGun: 150, aaBattery: 30, samLauncher: 50, ciws: 25 },
                         hull: { bow: 100, midship: 150, stern: 80 }
+                    },
+                    battlecruiser: {
+                        propulsion: 100,
+                        commandControl: 90,
+                        sensors: 55,
+                        weapons: { navalGun: 130, aaBattery: 28, samLauncher: 45, ciws: 22 },
+                        hull: { bow: 85, midship: 130, stern: 70 }
                     },
                     carrier: {
                         propulsion: 80,
