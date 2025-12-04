@@ -6436,35 +6436,44 @@
                     this.name = this.generateShipName(faction, this.type);
                 }
 
-                // Initialize AA batteries with cooldowns (wet navy only)
-                this.aaBatteries = (spec.aaBatteries || []).map(battery => ({
-                    ...battery,
-                    fireCooldown: 0,
-                    isDestroyed: false
-                }));
+                // Initialize wet navy weapon systems (only for non-RL ships)
+                if (!isRenegadeLegion) {
+                    // Initialize AA batteries with cooldowns
+                    this.aaBatteries = (spec.aaBatteries || []).map(battery => ({
+                        ...battery,
+                        fireCooldown: 0,
+                        isDestroyed: false
+                    }));
 
-                // Initialize SAM launchers
-                this.samLaunchers = (spec.samLaunchers || []).map(launcher => ({
-                    ...launcher,
-                    fireCooldown: 0,
-                    reloadCooldown: 0,
-                    isDestroyed: false,
-                    trackedTarget: null,
-                    trackingTime: 0,
-                    minTrackTime: 1.5 // Seconds needed to lock on
-                }));
+                    // Initialize SAM launchers
+                    this.samLaunchers = (spec.samLaunchers || []).map(launcher => ({
+                        ...launcher,
+                        fireCooldown: 0,
+                        reloadCooldown: 0,
+                        isDestroyed: false,
+                        trackedTarget: null,
+                        trackingTime: 0,
+                        minTrackTime: 1.5 // Seconds needed to lock on
+                    }));
 
-                // Initialize CIWS systems
-                this.ciwsSystems = (spec.ciws || []).map(ciws => ({
-                    ...ciws,
-                    fireCooldown: 0,
-                    isDestroyed: false,
-                    burstMode: false,
-                    burstTime: 0
-                }));
+                    // Initialize CIWS systems
+                    this.ciwsSystems = (spec.ciws || []).map(ciws => ({
+                        ...ciws,
+                        fireCooldown: 0,
+                        isDestroyed: false,
+                        burstMode: false,
+                        burstTime: 0
+                    }));
 
-                // Track launched missiles
-                this.launchedMissiles = [];
+                    // Track launched missiles
+                    this.launchedMissiles = [];
+                } else {
+                    // RL ships don't use wet navy weapons
+                    this.aaBatteries = [];
+                    this.samLaunchers = [];
+                    this.ciwsSystems = [];
+                    this.launchedMissiles = [];
+                }
 
                 // === RENEGADE LEGION SPACE WEAPONS ===
                 // Standard RL faction uses banks, chasers, spinal mounts, missiles, and PD
