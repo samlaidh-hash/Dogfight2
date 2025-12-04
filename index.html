@@ -1434,12 +1434,15 @@
         const soundMe109Cannon = new Audio('sounds/AC.mp3');
         const soundSpitfireEngine = new Audio('sounds/SPITFIRE.mp3');
         const soundMe109Engine = new Audio('sounds/BF109.mp3');
+        const soundBiplaneEngine = new Audio('sounds/biplane.mp3');
 
         // Configure engine sounds to loop
         soundSpitfireEngine.loop = true;
         soundMe109Engine.loop = true;
+        soundBiplaneEngine.loop = true;
         soundSpitfireEngine.volume = 0.3; // Keep engine sounds subtle
         soundMe109Engine.volume = 0.3;
+        soundBiplaneEngine.volume = 0.3;
 
         // Configure weapon sounds
         soundSpitfireMG.volume = 0.6;
@@ -12511,15 +12514,40 @@
                         const angle = Math.random() * Math.PI * 2;
                         const orbitalSpeed = 0.5 + Math.random() * 1.5; // radians per second (converted from ms)
 
+                        // Pre-generate asteroid shape to avoid regenerating every frame
+                        const numPoints = 6 + Math.floor(Math.random() * 3);
+                        const shapePoints = [];
+                        for (let i = 0; i < numPoints; i++) {
+                            const angle = (i / numPoints) * Math.PI * 2;
+                            const radiusVar = 0.7 + Math.random() * 0.3;
+                            shapePoints.push({
+                                angle: angle,
+                                radiusVar: radiusVar
+                            });
+                        }
+
                         this.asteroids.push({
                             orbitDistance: distance,
                             orbitAngle: angle,
                             orbitalSpeed: orbitalSpeed,
                             size: size,
                             rotation: Math.random() * Math.PI * 2,
-                            rotationSpeed: (Math.random() - 0.5) * 0.01 // Slow rotation: ~3 deg/sec
+                            rotationSpeed: (Math.random() - 0.5) * 0.01, // Slow rotation: ~3 deg/sec
+                            shapePoints: shapePoints
                         });
                     } else {
+                        // Pre-generate asteroid shape to avoid regenerating every frame
+                        const numPoints = 6 + Math.floor(Math.random() * 3);
+                        const shapePoints = [];
+                        for (let i = 0; i < numPoints; i++) {
+                            const angle = (i / numPoints) * Math.PI * 2;
+                            const radiusVar = 0.7 + Math.random() * 0.3;
+                            shapePoints.push({
+                                angle: angle,
+                                radiusVar: radiusVar
+                            });
+                        }
+
                         // Asteroids drift slowly
                         this.asteroids.push({
                             x: x,
@@ -12528,7 +12556,8 @@
                             driftVx: (Math.random() - 0.5) * 5, // ±2.5 pixels/second for slow drift
                             driftVy: (Math.random() - 0.5) * 5,
                             rotation: Math.random() * Math.PI * 2,
-                            rotationSpeed: (Math.random() - 0.5) * 0.01 // Slow rotation: ~3 deg/sec
+                            rotationSpeed: (Math.random() - 0.5) * 0.01, // Slow rotation: ~3 deg/sec
+                            shapePoints: shapePoints
                         });
                     }
                 }
@@ -12985,18 +13014,17 @@
                     ctx.translate(asteroidX, asteroidY);
                     ctx.rotate(asteroid.rotation);
 
-                    // Draw irregular asteroid shape
+                    // Draw irregular asteroid shape using pre-generated points
                     ctx.fillStyle = '#8b7355';
                     ctx.strokeStyle = '#5a4a3a';
                     ctx.lineWidth = 1;
 
                     ctx.beginPath();
-                    const numPoints = 6 + Math.floor(Math.random() * 3);
-                    for (let i = 0; i < numPoints; i++) {
-                        const angle = (i / numPoints) * Math.PI * 2;
-                        const radiusVar = 0.7 + Math.random() * 0.3;
-                        const x = Math.cos(angle) * asteroid.size * radiusVar;
-                        const y = Math.sin(angle) * asteroid.size * radiusVar;
+                    // Use pre-generated shape points instead of random generation each frame
+                    for (let i = 0; i < asteroid.shapePoints.length; i++) {
+                        const point = asteroid.shapePoints[i];
+                        const x = Math.cos(point.angle) * asteroid.size * point.radiusVar;
+                        const y = Math.sin(point.angle) * asteroid.size * point.radiusVar;
                         if (i === 0) {
                             ctx.moveTo(x, y);
                         } else {
@@ -20253,25 +20281,53 @@
         // Main game loop
         function gameLoop() {
             // Manage engine sounds based on game state and aircraft status
-            // Only for WW2 mode (spitfire/me109 exist)
             if (gameState === 'EXECUTION') {
-                if (spitfire && !spitfire.isDestroyed && soundSpitfireEngine.paused) {
-                    soundSpitfireEngine.play().catch(e => console.log('Engine audio failed:', e));
-                }
-                if (me109 && !me109.isDestroyed && soundMe109Engine.paused) {
-                    soundMe109Engine.play().catch(e => console.log('Engine audio failed:', e));
+                // Check if we're in biplane mode (WW1 aircraft)
+                const hasBiplanes = (spitfire && spitfire.isBiplane) || (me109 && me109.isBiplane);
+
+                if (hasBiplanes) {
+                    // Play biplane sound for WW1 aircraft
+                    if ((spitfire && !spitfire.isDestroyed) || (me109 && !me109.isDestroyed)) {
+                        if (soundBiplaneEngine.paused) {
+                            soundBiplaneEngine.play().catch(e => console.log('Engine audio failed:', e));
+                        }
+                    }
+                    // Pause WW2 sounds
+                    if (!soundSpitfireEngine.paused) soundSpitfireEngine.pause();
+                    if (!soundMe109Engine.paused) soundMe109Engine.pause();
+                } else {
+                    // Play WW2 sounds
+                    if (spitfire && !spitfire.isDestroyed && soundSpitfireEngine.paused) {
+                        soundSpitfireEngine.play().catch(e => console.log('Engine audio failed:', e));
+                    }
+                    if (me109 && !me109.isDestroyed && soundMe109Engine.paused) {
+                        soundMe109Engine.play().catch(e => console.log('Engine audio failed:', e));
+                    }
+                    // Pause biplane sound
+                    if (!soundBiplaneEngine.paused) soundBiplaneEngine.pause();
                 }
             } else {
+                // Pause all engine sounds when not in execution
                 if (!soundSpitfireEngine.paused) soundSpitfireEngine.pause();
                 if (!soundMe109Engine.paused) soundMe109Engine.pause();
+                if (!soundBiplaneEngine.paused) soundBiplaneEngine.pause();
             }
 
             // Stop engine sounds for destroyed aircraft
-            if (spitfire && spitfire.isDestroyed && !soundSpitfireEngine.paused) {
-                soundSpitfireEngine.pause();
-            }
-            if (me109 && me109.isDestroyed && !soundMe109Engine.paused) {
-                soundMe109Engine.pause();
+            const hasBiplanes = (spitfire && spitfire.isBiplane) || (me109 && me109.isBiplane);
+            if (hasBiplanes) {
+                // Stop biplane sound if both aircraft destroyed
+                if ((!spitfire || spitfire.isDestroyed) && (!me109 || me109.isDestroyed)) {
+                    if (!soundBiplaneEngine.paused) soundBiplaneEngine.pause();
+                }
+            } else {
+                // Stop WW2 sounds individually
+                if (spitfire && spitfire.isDestroyed && !soundSpitfireEngine.paused) {
+                    soundSpitfireEngine.pause();
+                }
+                if (me109 && me109.isDestroyed && !soundMe109Engine.paused) {
+                    soundMe109Engine.pause();
+                }
             }
 
             if (gameState === 'EXECUTION') {
