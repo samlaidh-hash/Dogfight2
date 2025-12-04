@@ -12515,7 +12515,7 @@
                         const centerY = CANVAS_HEIGHT / 2;
                         const distance = 200 + Math.random() * 400;
                         const angle = Math.random() * Math.PI * 2;
-                        const orbitalSpeed = 0.0005 + Math.random() * 0.0015; // radians per ms
+                        const orbitalSpeed = 0.5 + Math.random() * 1.5; // radians per second (converted from ms)
 
                         this.asteroids.push({
                             orbitDistance: distance,
@@ -12523,7 +12523,7 @@
                             orbitalSpeed: orbitalSpeed,
                             size: size,
                             rotation: Math.random() * Math.PI * 2,
-                            rotationSpeed: (Math.random() - 0.5) * 0.00001 // Slow rotation
+                            rotationSpeed: (Math.random() - 0.5) * 0.01 // Slow rotation: ~3 deg/sec
                         });
                     } else {
                         // Asteroids drift slowly
@@ -12531,10 +12531,10 @@
                             x: x,
                             y: y,
                             size: size,
-                            driftVx: (Math.random() - 0.5) * 0.02, // -0.01 to 0.01 m/ms
-                            driftVy: (Math.random() - 0.5) * 0.02,
+                            driftVx: (Math.random() - 0.5) * 5, // ±2.5 pixels/second for slow drift
+                            driftVy: (Math.random() - 0.5) * 5,
                             rotation: Math.random() * Math.PI * 2,
-                            rotationSpeed: (Math.random() - 0.5) * 0.00001 // Slow rotation: ~0.5 deg/sec
+                            rotationSpeed: (Math.random() - 0.5) * 0.01 // Slow rotation: ~3 deg/sec
                         });
                     }
                 }
@@ -12545,11 +12545,11 @@
                 const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
                 const numPlanets = 1 + Math.floor(Math.random() * 2); // 1-2 planets
 
-                // Planet size categories
+                // Planet size categories (reduced sizes)
                 const sizeCategories = [
-                    { name: 'small', radius: [30, 50], types: ['rocky', 'ice'], moonChance: 0.3, maxMoons: 1 }, // Mercury, Pluto
-                    { name: 'medium', radius: [60, 100], types: ['rocky', 'desert', 'ocean'], moonChance: 0.6, maxMoons: 2 }, // Earth, Mars, Venus
-                    { name: 'large', radius: [120, 200], types: ['gas_giant'], moonChance: 0.9, maxMoons: 4 } // Jupiter, Saturn
+                    { name: 'small', radius: [20, 35], types: ['rocky', 'ice'], moonChance: 0.3, maxMoons: 1 }, // Mercury, Pluto
+                    { name: 'medium', radius: [40, 70], types: ['rocky', 'desert', 'ocean'], moonChance: 0.6, maxMoons: 2 }, // Earth, Mars, Venus
+                    { name: 'large', radius: [80, 120], types: ['gas_giant'], moonChance: 0.9, maxMoons: 4 } // Jupiter, Saturn
                 ];
 
                 for (let i = 0; i < numPlanets; i++) {
@@ -12606,18 +12606,18 @@
                         };
                     }
 
-                    // Add moons based on planet size
+                    // Add moons based on planet size (moons are relatively larger now)
                     if (Math.random() < category.moonChance) {
                         const numMoons = 1 + Math.floor(Math.random() * category.maxMoons);
                         for (let m = 0; m < numMoons; m++) {
-                            const moonRadius = category.name === 'large' ? (15 + Math.random() * 20) :
-                                             category.name === 'medium' ? (10 + Math.random() * 15) :
-                                             (5 + Math.random() * 10);
+                            const moonRadius = category.name === 'large' ? (20 + Math.random() * 30) :
+                                             category.name === 'medium' ? (15 + Math.random() * 20) :
+                                             (10 + Math.random() * 15);
 
                             planet.moons.push({
-                                distance: radius + 100 + m * 150 + Math.random() * 100, // Much wider spacing
+                                distance: radius + 80 + m * 120 + Math.random() * 80, // Closer spacing
                                 angle: Math.random() * Math.PI * 2,
-                                orbitalSpeed: (0.000002 + Math.random() * 0.000005) / (1 + m * 0.5), // Slow orbital motion (100x slower)
+                                orbitalSpeed: (0.002 + Math.random() * 0.005) / (1 + m * 0.5), // Orbital speed in radians/second
                                 radius: moonRadius,
                                 color: Math.random() > 0.5 ? '#aaaaaa' : '#998877' // Gray or brownish
                             });
@@ -12645,7 +12645,7 @@
                 const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
 
                 for (let i = 0; i < numNebulae; i++) {
-                    const baseRadius = 80 + Math.random() * 120;
+                    const baseRadius = 150 + Math.random() * 200; // Increased from 80-200 to 150-350
 
                     // Generate cloudlike blobs for irregular shape
                     const numBlobs = 5 + Math.floor(Math.random() * 8); // 5-12 overlapping circles
@@ -12921,7 +12921,7 @@
 
                         // Rotate black hole accretion disk
                         if (this.blackHole) {
-                            this.blackHole.rotationAngle += 0.0005 * dt;
+                            this.blackHole.rotationAngle += 0.5 * dt; // Converted from per-ms to per-second
                         }
                     } else {
                         // Update drifting asteroids
