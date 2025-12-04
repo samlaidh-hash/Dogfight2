@@ -1649,15 +1649,7 @@
                 destroyer: 'serpens',
                 carrier: null           // No carrier image yet
             },
-            terran: {
-                battleship: 'shiva',
-                battlecruiser: 'carthage',
-                cruiser: 'valiant',     // Heavy Cruiser (CA)
-                lightcruiser: 'bantha', // Light Cruiser (CL) - if needed
-                destroyer: 'fulgur',
-                carrier: null           // No carrier image yet
-            },
-            tog: {  // TOG Empire (same as terran for Renegade Legion)
+            tog: {  // TOG Empire (Renegade Legion)
                 battleship: 'shiva',
                 battlecruiser: 'carthage',
                 cruiser: 'valiant',
@@ -1675,8 +1667,8 @@
             // And type is "bb", "bc", "ca", "cl", "dd", "cv"
 
             const shipTypes = ['destroyer', 'cruiser', 'battlecruiser', 'battleship', 'carrier'];
-            const factions = ['commonwealth', 'terran', 'tog'];
-            const factionAbbr = { commonwealth: 'cw', terran: 'tog', tog: 'tog' };
+            const factions = ['commonwealth', 'tog'];
+            const factionAbbr = { commonwealth: 'cw', tog: 'tog' };
 
             for (let faction of factions) {
                 for (let type of shipTypes) {
