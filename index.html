@@ -8086,10 +8086,14 @@
                 const hullAlpha = this.isSinking ? Math.max(0.3, 1 - this.sinkProgress) : 1;
 
                 if (useImage) {
-                    // Draw ship image
+                    // Draw ship image using natural aspect ratio
                     ctx.globalAlpha = hullAlpha;
+
+                    // Use ship length as the primary dimension, scale height proportionally
                     const imgWidth = this.length;
-                    const imgHeight = this.beam * 2; // Adjust aspect ratio as needed
+                    const naturalAspectRatio = shipImage.naturalWidth / shipImage.naturalHeight;
+                    const imgHeight = imgWidth / naturalAspectRatio;
+
                     ctx.drawImage(
                         shipImage,
                         -imgWidth / 2,
