@@ -2200,7 +2200,7 @@
                 destroyer: 'serpens',
                 carrier: null           // No carrier image yet
             },
-            terran: {
+            tog: {
                 battleship: 'shiva',
                 battlecruiser: 'carthage',
                 cruiser: 'valiant',     // Heavy Cruiser (CA)
@@ -2218,8 +2218,8 @@
             // And type is "bb", "bc", "ca", "cl", "dd", "cv"
 
             const shipTypes = ['destroyer', 'cruiser', 'battlecruiser', 'battleship', 'carrier'];
-            const factions = ['commonwealth', 'terran'];
-            const factionAbbr = { commonwealth: 'cw', terran: 'tog' };
+            const factions = ['commonwealth', 'tog'];
+            const factionAbbr = { commonwealth: 'cw', tog: 'tog' };
 
             for (let faction of factions) {
                 for (let type of shipTypes) {
