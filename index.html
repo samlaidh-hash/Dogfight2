@@ -19203,9 +19203,10 @@
                         ${ship.reactor ? `
                             <div>Reactor: ${Math.floor(ship.reactor.stability)}%</div>
                         ` : ''}
-                        <div>Heading: ${Math.floor(ship.heading)}°</div>
-                        <div>Pitch: ${Math.floor(ship.pitch || 0)}°</div>
-                        <div>Roll: ${Math.floor(ship.roll || 0)}°</div>
+                        <div>Heading: ${Math.floor(ship.orderedEndHeading || ship.heading)}° / ${Math.floor(ship.heading)}°</div>
+                        <div>Pitch: ${Math.floor(ship.orderedPitch || ship.pitch || 0)}° / ${Math.floor(ship.pitch || 0)}°</div>
+                        <div>Roll: ${Math.floor(ship.orderedRoll || ship.roll || 0)}° / ${Math.floor(ship.roll || 0)}°</div>
+                        <div>Thrust: ${ship.orderedThrust >= 0 ? '+' : ''}${ship.orderedThrust}G / ${ship.currentThrust >= 0 ? '+' : ''}${ship.currentThrust.toFixed(1)}G</div>
                         <div>Velocity: ${Math.floor(Math.sqrt(ship.vx * ship.vx + ship.vy * ship.vy))} m/s</div>
                         <div>Direction: ${Math.floor(Math.atan2(ship.vy, ship.vx) * 180 / Math.PI + 360) % 360}°</div>
                     </div>
