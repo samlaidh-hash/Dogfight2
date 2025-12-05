@@ -20198,7 +20198,7 @@
                 if (e.deltaY < 0) {
                     zoomLevel = Math.min(3.0, zoomLevel * 1.1); // Max 3x zoom
                 } else {
-                    zoomLevel = Math.max(0.5, zoomLevel / 1.1); // Min 0.5x zoom
+                    zoomLevel = Math.max(0.1, zoomLevel / 1.1); // Min 0.1x zoom
                 }
             }
         });
