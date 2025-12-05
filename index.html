@@ -8034,6 +8034,15 @@
                 const shipImage = shipImages[this.faction] ? shipImages[this.faction][this.type] : null;
                 const useImage = shipImage && shipImage.complete && shipImage.naturalWidth > 0;
 
+                // Debug: Log ship rendering info (once per ship)
+                if (!this._loggedImageStatus) {
+                    console.log(`Ship ${this.id}: faction="${this.faction}", type="${this.type}", hasImage=${!!shipImage}, useImage=${useImage}`);
+                    if (shipImage) {
+                        console.log(`  Image complete=${shipImage.complete}, naturalWidth=${shipImage.naturalWidth}`);
+                    }
+                    this._loggedImageStatus = true;
+                }
+
                 // Render flak bursts and CIWS tracers
                 const now = Date.now();
                 this.flakEffects = this.flakEffects.filter(flak => now - flak.time < flak.duration);
@@ -12805,9 +12814,8 @@
             }
 
             render() {
-                // Render black background
-                ctx.fillStyle = '#000000';
-                ctx.fillRect(-CANVAS_WIDTH, 0, CANVAS_WIDTH * 3, CANVAS_HEIGHT);
+                // Black background is now drawn in screen coordinates before transform
+                // (see render() function)
 
                 // Render stars
                 ctx.save();
@@ -18127,6 +18135,12 @@
         function render() {
             ctx.fillStyle = '#3d5235';
             ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // For space terrain, draw black background in screen coordinates before transform
+            if (terrain && terrain instanceof SpaceTerrain) {
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            }
 
             // Apply zoom and pan transform
             ctx.save();
