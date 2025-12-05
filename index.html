@@ -8101,8 +8101,14 @@
                     // Draw ship image using natural aspect ratio
                     ctx.globalAlpha = hullAlpha;
 
+                    // For Renegade Legion ships, scale from meters to world units
+                    // RL ships have length in meters (e.g., 800m), but world coordinates need scaling
+                    // Using 0.05 scale (1m = 0.05 world units) to match space battle scale
+                    const isRenegadeLegion = (this.faction === 'commonwealth' || this.faction === 'tog');
+                    const lengthScale = isRenegadeLegion ? 0.05 : 1.0;
+
                     // Use ship length as the primary dimension, scale height proportionally
-                    const imgWidth = this.length;
+                    const imgWidth = this.length * lengthScale;
                     const naturalAspectRatio = shipImage.naturalWidth / shipImage.naturalHeight;
                     const imgHeight = imgWidth / naturalAspectRatio;
 
