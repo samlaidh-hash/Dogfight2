@@ -8303,28 +8303,55 @@
                 for (let weaponName of activeWeapons) {
                     const weapon = weaponName === 'broadside' ? null : this.laserWeapons[weaponName];
                     if (!weapon || !weapon.banks) {
-                        // Handle broadside - glow both sides
+                        // Handle broadside - draw rectangles for each bank
                         if (weaponName === 'broadside') {
-                            // Port side glow
-                            ctx.fillStyle = 'rgba(255, 50, 50, 0.3)';
-                            ctx.beginPath();
-                            ctx.arc(-this.beam * 0.4, 0, 8, 0, Math.PI * 2);
-                            ctx.fill();
-                            // Starboard side glow
-                            ctx.beginPath();
-                            ctx.arc(this.beam * 0.4, 0, 8, 0, Math.PI * 2);
-                            ctx.fill();
+                            // Port broadside banks
+                            if (this.laserWeapons.broadside_port) {
+                                for (let bank of this.laserWeapons.broadside_port.banks) {
+                                    const glowAlpha = bank.cooldown > 0 ? 0.2 : 0.5;
+                                    ctx.fillStyle = this.laserWeapons.broadside_port.color.replace(/[\d.]+\)$/, `${glowAlpha})`);
+                                    const rectLength = bank.gunsPerBank * 2; // 2 pixels per gun
+                                    const rectWidth = 4;
+                                    ctx.fillRect(bank.x - rectWidth / 2, bank.y - rectLength / 2, rectWidth, rectLength);
+                                }
+                            }
+                            // Starboard broadside banks
+                            if (this.laserWeapons.broadside_starboard) {
+                                for (let bank of this.laserWeapons.broadside_starboard.banks) {
+                                    const glowAlpha = bank.cooldown > 0 ? 0.2 : 0.5;
+                                    ctx.fillStyle = this.laserWeapons.broadside_starboard.color.replace(/[\d.]+\)$/, `${glowAlpha})`);
+                                    const rectLength = bank.gunsPerBank * 2; // 2 pixels per gun
+                                    const rectWidth = 4;
+                                    ctx.fillRect(bank.x - rectWidth / 2, bank.y - rectLength / 2, rectWidth, rectLength);
+                                }
+                            }
                         }
                         continue;
                     }
 
                     for (let bank of weapon.banks) {
-                        // Glow active weapon hardpoints
                         const glowAlpha = bank.cooldown > 0 ? 0.2 : 0.5; // Dim when cooling
                         ctx.fillStyle = weapon.color.replace(/[\d.]+\)$/, `${glowAlpha})`);
-                        ctx.beginPath();
-                        ctx.arc(bank.x, bank.y, 5, 0, Math.PI * 2);
-                        ctx.fill();
+
+                        // Determine shape based on weapon type and gun count
+                        const gunsPerBank = bank.gunsPerBank || 1;
+
+                        if (weaponName === 'missiles' || weaponName === 'missile_arrays') {
+                            // Missiles: rectangular blocks
+                            const rectLength = 12;
+                            const rectWidth = 6;
+                            ctx.fillRect(bank.x - rectWidth / 2, bank.y - rectLength / 2, rectWidth, rectLength);
+                        } else if (gunsPerBank >= 10) {
+                            // Chasers (10 guns) or large banks: rectangles
+                            const rectLength = gunsPerBank * 2; // 2 pixels per gun
+                            const rectWidth = 4;
+                            ctx.fillRect(bank.x - rectWidth / 2, bank.y - rectLength / 2, rectWidth, rectLength);
+                        } else {
+                            // Spinal mounts (1 gun) and turrets (2 guns): points
+                            ctx.beginPath();
+                            ctx.arc(bank.x, bank.y, 5, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
                     }
                 }
 
