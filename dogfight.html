@@ -6391,6 +6391,30 @@
                 }
                 this.detectedShips = new Set(); // Set of detected ship/aircraft IDs
                 this.detectionState = new Map(); // Map of ship ID -> detection state for hysteresis
+
+                // === ADVANCED RADAR SYSTEM ===
+                this.radarSystem = {
+                    mode: 'search', // 'search' or 'track'
+                    trackedTarget: null, // Target being tracked
+                    rangeScale: 100000, // Current radar range scale (meters)
+                    rangeScales: [25000, 50000, 100000, 200000, 350000], // Available range scales
+                    currentScaleIndex: 2, // Index into rangeScales
+                    updateRate: 2.0, // Seconds between radar sweeps
+                    trackUpdateRate: 0.5, // Faster update rate in track mode
+                    sweepTimer: 0,
+                    sweepAngle: 0, // Current radar sweep angle (degrees)
+                    contacts: [], // Array of radar contacts {id, x, y, bearing, range, classification, strength}
+                    groundClutter: [], // Array of ground clutter returns
+                    clutterIntensity: 0, // 0-1, based on terrain and altitude
+                    // Radar Warning Receiver (RWR)
+                    rwr: {
+                        threats: [], // Array of {id, bearing, type, strength, lockStatus}
+                        isBeingPainted: false,
+                        isBeingTracked: false,
+                        missileWarning: false,
+                        lastWarningTime: 0
+                    }
+                };
             }
 
             initializeHitLocations() {
@@ -7338,6 +7362,12 @@
                 this.torpedoes.forEach(t => t.update(dt));
                 this.torpedoes = this.torpedoes.filter(t => t.isActive);
 
+                // === RENEGADE LEGION: UPDATE ACTIVE MISSILES ===
+                if (this.activeMissiles) {
+                    this.activeMissiles.forEach(m => m.update(dt));
+                    this.activeMissiles = this.activeMissiles.filter(m => m.isActive);
+                }
+
                 // === SENSOR DETECTION SYSTEM ===
                 this.updateSensorDetection(dt);
             }
@@ -7368,12 +7398,21 @@
                     // Sensors destroyed - lose all detections gradually
                     this.detectedShips.clear();
                     this.detectionState.clear();
+                    if (this.radarSystem) {
+                        this.radarSystem.contacts = [];
+                        this.radarSystem.rwr.threats = [];
+                    }
                     return;
                 }
 
                 // Calculate effective sensor range based on sensor efficiency
                 const sensorEfficiency = this.hitLocations.sensors ? this.hitLocations.sensors.efficiency : 1.0;
                 const effectiveSensorRange = this.sensorRange * sensorEfficiency;
+
+                // === ADVANCED RADAR UPDATE ===
+                if (this.radarSystem) {
+                    this.updateAdvancedRadar(dt, effectiveSensorRange);
+                }
 
                 // Update detection decay timers for all tracked ships
                 for (let [shipId, state] of this.detectionState.entries()) {
@@ -8825,6 +8864,7 @@
                                     target: targetShip,
                                     damage: finalDamage,
                                     weaponType: actualWeaponName,
+                                    weaponClass: weaponSystem.weaponType, // 'laser', 'particle_beam', 'mass_driver'
                                     bankName: bank.name,
                                     sourceX: bankWorldX,
                                     sourceY: bankWorldY,
@@ -8888,6 +8928,7 @@
                                 target: target,
                                 damage: finalDamage,
                                 weaponType: actualWeaponName,
+                                weaponClass: weaponSystem.weaponType, // 'laser', 'particle_beam', 'mass_driver'
                                 bankName: bank.name,
                                 sourceX: bankWorldX,
                                 sourceY: bankWorldY,
@@ -18837,8 +18878,10 @@
                         toX: hit.target.x,
                         toY: hit.target.y,
                         color: hit.color,
+                        weaponClass: hit.weaponClass, // 'laser', 'particle_beam', 'mass_driver'
+                        isCritical: hit.isCritical || false,
                         time: Date.now(),
-                        duration: 100 // 100ms laser beam visual
+                        duration: hit.weaponClass === 'particle_beam' ? 150 : 100 // Particle beams last longer
                     });
                 }
             }
@@ -19789,37 +19832,12 @@
                 window.laserBeams = window.laserBeams.filter(b => now - b.time < b.duration);
             }
 
-            // Render capital ship missiles
+            // Render Renegade Legion missiles (using their own render method)
             for (let ship of capitalShips) {
                 if (ship.activeMissiles) {
-                    ctx.save();
                     for (let missile of ship.activeMissiles) {
-                        // Draw missile
-                        ctx.fillStyle = 'rgba(255, 200, 0, 0.9)';
-                        ctx.beginPath();
-                        ctx.arc(missile.x, missile.y, 3, 0, Math.PI * 2);
-                        ctx.fill();
-
-                        // Draw exhaust trail
-                        const dx = missile.targetX - missile.x;
-                        const dy = missile.targetY - missile.y;
-                        const dist = Math.sqrt(dx * dx + dy * dy);
-                        const trailLength = 15;
-                        const trailX = missile.x - (dx / dist) * trailLength;
-                        const trailY = missile.y - (dy / dist) * trailLength;
-
-                        const gradient = ctx.createLinearGradient(missile.x, missile.y, trailX, trailY);
-                        gradient.addColorStop(0, 'rgba(255, 150, 0, 0.8)');
-                        gradient.addColorStop(1, 'rgba(255, 50, 0, 0)');
-
-                        ctx.strokeStyle = gradient;
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.moveTo(missile.x, missile.y);
-                        ctx.lineTo(trailX, trailY);
-                        ctx.stroke();
+                        missile.render();
                     }
-                    ctx.restore();
                 }
             }
 
