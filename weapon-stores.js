@@ -986,23 +986,597 @@ function createRocketFromStore(store, x, y, altitude, heading, target = null) {
 }
 
 /**
- * Create a Missile instance from a missile store
- * Note: Missile class needs to be created
+ * Missile Class
+ * Represents a guided missile in flight with fuel management, guidance systems, and physics
  */
-function createMissileFromStore(store, x, y, altitude, heading, target) {
+class Missile {
+    /**
+     * @param {Object} config - Missile configuration
+     * @param {string} config.missileType - Type identifier (e.g., 'AIM9_SIDEWINDER', 'RL_CAPITAL_SHIP')
+     * @param {number} config.x - Launch position X
+     * @param {number} config.y - Launch position Y
+     * @param {number} config.altitude - Launch altitude
+     * @param {number} config.heading - Initial heading in degrees
+     * @param {Object} config.target - Target object to track
+     * @param {number} config.launchVelocity - Initial velocity from launch platform
+     */
+    constructor(config) {
+        // Position and kinematics
+        this.x = config.x;
+        this.y = config.y;
+        this.altitude = config.altitude;
+        this.heading = config.heading;
+
+        // Velocity components (inherit from launch platform)
+        const launchVel = config.launchVelocity || 0;
+        this.velocityX = launchVel * Math.sin(this.heading * Math.PI / 180);
+        this.velocityY = -launchVel * Math.cos(this.heading * Math.PI / 180);
+        this.speed = launchVel;
+
+        // Missile type and properties (from MISSILE_TYPES)
+        this.missileType = config.missileType;
+        const type = MISSILE_TYPES[this.missileType];
+
+        if (!type) {
+            console.error(`Unknown missile type: ${this.missileType}`);
+            return;
+        }
+
+        // Combat properties
+        this.damage = type.damage;
+        this.warheadType = type.warheadType;
+        this.explosionRadius = type.explosionRadius;
+
+        // Performance properties
+        this.maxSpeed = type.maxSpeed;
+        this.acceleration = type.acceleration; // m/s²
+        this.maxG = type.maxG; // Maximum G-force for turning
+        this.maneuverability = type.maneuverability; // 0.0 - 1.0 rating
+
+        // Fuel system
+        this.fuelCapacity = type.fuelCapacity; // kg
+        this.currentFuel = type.fuelCapacity;
+        this.fuelConsumptionRate = type.fuelConsumptionRate; // kg/s at full thrust
+        this.burnTime = type.burnTime; // seconds of fuel
+        this.throttle = 0.0; // 0.0 to 1.0, missile controls this smartly
+
+        // Guidance system
+        this.guidanceType = type.guidanceType; // 'heat-seeking', 'radar-guided', 'beam-riding', 'inertial'
+        this.guidanceEffectiveness = type.guidanceEffectiveness; // 0.0 - 1.0
+        this.lockStrength = 1.0; // Can be degraded by ECM
+        this.hasLock = true;
+        this.seekerFOV = type.seekerFOV || 30; // Field of view in degrees
+
+        // Target tracking
+        this.target = config.target;
+        this.lastKnownTargetX = this.target?.x || 0;
+        this.lastKnownTargetY = this.target?.y || 0;
+        this.targetLostTime = 0;
+
+        // Flight state
+        this.isActive = true;
+        this.hasExploded = false;
+        this.explosionTime = 0;
+        this.timeAlive = 0;
+        this.distanceTraveled = 0;
+        this.maxRange = type.maxRange || (this.maxSpeed * this.burnTime * 0.8); // Estimate if not specified
+
+        // Smart fuel management
+        this.smartFuel = type.smartFuel !== false; // Default true for modern missiles
+        this.coastPhase = false; // Missile can coast to save fuel
+
+        // Proximity fuse
+        this.proximityFuse = type.proximityFuse !== false;
+        this.proximityRange = type.proximityRange || 10; // meters
+
+        // Visual properties
+        this.color = type.color || '#ffffff';
+        this.exhaustColor = type.exhaustColor || '#ff6600';
+    }
+
+    /**
+     * Update missile state
+     * @param {number} dt - Delta time in seconds
+     */
+    update(dt) {
+        if (!this.isActive || this.hasExploded) return;
+
+        this.timeAlive += dt;
+
+        // Check if out of fuel
+        if (this.currentFuel <= 0) {
+            this.throttle = 0;
+            this.coastPhase = true;
+        }
+
+        // Smart fuel management: conserve fuel if target is far
+        if (this.smartFuel && !this.coastPhase) {
+            this.updateSmartThrottle();
+        } else if (!this.coastPhase) {
+            this.throttle = 1.0; // Dumb missile: full burn
+        }
+
+        // Guidance and targeting
+        this.updateGuidance(dt);
+
+        // Physics update
+        this.updatePhysics(dt);
+
+        // Check for detonation conditions
+        this.checkDetonation();
+
+        // Check if missile exceeded range or lifetime
+        if (this.distanceTraveled > this.maxRange || this.timeAlive > this.burnTime * 3) {
+            this.isActive = false;
+        }
+    }
+
+    /**
+     * Smart throttle management to conserve fuel
+     */
+    updateSmartThrottle() {
+        if (!this.target || this.target.isDestroyed) {
+            this.throttle = 0.5; // Reduced power if no target
+            return;
+        }
+
+        const dx = this.target.x - this.x;
+        const dy = this.target.y - this.y;
+        const distanceToTarget = Math.sqrt(dx * dx + dy * dy);
+
+        // Calculate if we need to burn or can coast
+        const timeToTarget = distanceToTarget / (this.speed || 1);
+        const fuelTimeRemaining = this.currentFuel / this.fuelConsumptionRate;
+
+        if (fuelTimeRemaining > timeToTarget * 2) {
+            // Plenty of fuel, can coast or low power
+            this.throttle = 0.3;
+            this.coastPhase = true;
+        } else if (distanceToTarget > 500) {
+            // Long range, moderate power
+            this.throttle = 0.7;
+            this.coastPhase = false;
+        } else {
+            // Close range, full power for intercept
+            this.throttle = 1.0;
+            this.coastPhase = false;
+        }
+    }
+
+    /**
+     * Update guidance system and adjust heading
+     * @param {number} dt - Delta time
+     */
+    updateGuidance(dt) {
+        if (!this.target || this.target.isDestroyed) {
+            // Lost target, continue on last known heading
+            this.targetLostTime += dt;
+            if (this.targetLostTime > 2.0) {
+                // Give up after 2 seconds
+                this.hasLock = false;
+            }
+            return;
+        }
+
+        // Calculate angle to target
+        const dx = this.target.x - this.x;
+        const dy = this.target.y - this.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Update last known position
+        this.lastKnownTargetX = this.target.x;
+        this.lastKnownTargetY = this.target.y;
+
+        // Calculate intercept point with proportional navigation
+        let targetX = this.target.x;
+        let targetY = this.target.y;
+
+        if (this.guidanceType === 'heat-seeking' || this.guidanceType === 'radar-guided') {
+            // Lead the target
+            const targetVelX = this.target.speed * Math.sin(this.target.heading * Math.PI / 180);
+            const targetVelY = -this.target.speed * Math.cos(this.target.heading * Math.PI / 180);
+            const closingSpeed = this.speed + this.target.speed;
+            const timeToIntercept = distance / (closingSpeed || 1);
+
+            targetX += targetVelX * timeToIntercept * this.guidanceEffectiveness;
+            targetY += targetVelY * timeToIntercept * this.guidanceEffectiveness;
+        }
+
+        // Calculate desired heading
+        const desiredHeading = Math.atan2(targetX - this.x, -(targetY - this.y)) * 180 / Math.PI;
+
+        // Check if target is within seeker FOV
+        let headingDiff = desiredHeading - this.heading;
+        while (headingDiff > 180) headingDiff -= 360;
+        while (headingDiff < -180) headingDiff += 360;
+
+        if (Math.abs(headingDiff) > this.seekerFOV / 2) {
+            // Target outside seeker cone
+            this.targetLostTime += dt;
+        } else {
+            this.targetLostTime = 0;
+            this.hasLock = true;
+        }
+
+        // Apply turn rate limits based on maneuverability
+        const maxTurnRate = this.maneuverability * this.maxG * 9.8 / (this.speed || 1) * 180 / Math.PI; // deg/s
+        const maxTurn = maxTurnRate * dt;
+
+        if (Math.abs(headingDiff) > maxTurn) {
+            this.heading += Math.sign(headingDiff) * maxTurn;
+        } else {
+            this.heading = desiredHeading;
+        }
+
+        // Normalize heading
+        while (this.heading < 0) this.heading += 360;
+        while (this.heading >= 360) this.heading -= 360;
+    }
+
+    /**
+     * Update physics (velocity, position, fuel)
+     * @param {number} dt - Delta time
+     */
+    updatePhysics(dt) {
+        // Apply thrust acceleration
+        if (this.currentFuel > 0 && this.throttle > 0) {
+            const thrustAccel = this.acceleration * this.throttle;
+            const accelX = thrustAccel * Math.sin(this.heading * Math.PI / 180);
+            const accelY = -thrustAccel * Math.cos(this.heading * Math.PI / 180);
+
+            this.velocityX += accelX * dt;
+            this.velocityY += accelY * dt;
+
+            // Consume fuel
+            this.currentFuel -= this.fuelConsumptionRate * this.throttle * dt;
+            if (this.currentFuel < 0) this.currentFuel = 0;
+        }
+
+        // Calculate speed and limit to maxSpeed
+        this.speed = Math.sqrt(this.velocityX * this.velocityX + this.velocityY * this.velocityY);
+        if (this.speed > this.maxSpeed) {
+            const scale = this.maxSpeed / this.speed;
+            this.velocityX *= scale;
+            this.velocityY *= scale;
+            this.speed = this.maxSpeed;
+        }
+
+        // Update position
+        const dx = this.velocityX * dt;
+        const dy = this.velocityY * dt;
+        this.x += dx;
+        this.y += dy;
+        this.distanceTraveled += Math.sqrt(dx * dx + dy * dy);
+    }
+
+    /**
+     * Check for detonation conditions
+     */
+    checkDetonation() {
+        if (!this.target || this.target.isDestroyed) return;
+
+        const dx = this.target.x - this.x;
+        const dy = this.target.y - this.y;
+        const dz = (this.target.altitude || 0) - this.altitude;
+        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+        // Proximity fuse
+        if (this.proximityFuse && distance <= this.proximityRange) {
+            this.detonate();
+        }
+
+        // Direct hit (very close)
+        if (distance <= 2) {
+            this.detonate();
+        }
+    }
+
+    /**
+     * Detonate the missile
+     */
+    detonate() {
+        this.hasExploded = true;
+        this.isActive = false;
+        this.explosionTime = 0;
+
+        // Apply damage to target if close enough
+        if (this.target && !this.target.isDestroyed) {
+            const dx = this.target.x - this.x;
+            const dy = this.target.y - this.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance <= this.explosionRadius) {
+                const damageRatio = 1.0 - (distance / this.explosionRadius);
+                const actualDamage = this.damage * damageRatio;
+
+                if (this.target.takeDamage) {
+                    this.target.takeDamage(actualDamage, this.warheadType);
+                }
+            }
+        }
+    }
+
+    /**
+     * Render the missile
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     */
+    render(ctx) {
+        if (!this.isActive) return;
+
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.heading * Math.PI / 180);
+
+        // Missile body
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 2, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Exhaust plume if burning
+        if (this.throttle > 0 && this.currentFuel > 0) {
+            const plumeLength = 10 * this.throttle;
+            const gradient = ctx.createLinearGradient(0, 4, 0, 4 + plumeLength);
+            gradient.addColorStop(0, this.exhaustColor);
+            gradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.moveTo(-1, 4);
+            ctx.lineTo(1, 4);
+            ctx.lineTo(0.5, 4 + plumeLength);
+            ctx.lineTo(-0.5, 4 + plumeLength);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
+}
+
+// ============================================================================
+// MISSILE TYPE DATABASE
+// ============================================================================
+// Defines missile performance characteristics based on real-world and
+// Renegade Legion specifications
+// ============================================================================
+
+const MISSILE_TYPES = {
+    // Air-to-air missiles (Heat-seeking)
+    'AIM9_SIDEWINDER': {
+        damage: 60,
+        warheadType: 'HE-FRAG', // High explosive fragmentation
+        explosionRadius: 25,
+        maxSpeed: 680, // m/s (Mach 2)
+        acceleration: 250, // 25G
+        maxG: 25,
+        maneuverability: 0.75,
+        fuelCapacity: 8, // kg
+        fuelConsumptionRate: 2, // kg/s
+        burnTime: 4,
+        guidanceType: 'heat-seeking',
+        guidanceEffectiveness: 0.80,
+        seekerFOV: 30,
+        maxRange: 18000,
+        smartFuel: true,
+        proximityFuse: true,
+        proximityRange: 10,
+        color: '#e0e0e0',
+        exhaustColor: '#ff6600'
+    },
+
+    'AIM9L': {
+        damage: 65,
+        warheadType: 'HE-FRAG',
+        explosionRadius: 28,
+        maxSpeed: 680,
+        acceleration: 300, // 30G - all aspect capability
+        maxG: 30,
+        maneuverability: 0.85,
+        fuelCapacity: 8,
+        fuelConsumptionRate: 2,
+        burnTime: 4,
+        guidanceType: 'heat-seeking',
+        guidanceEffectiveness: 0.90,
+        seekerFOV: 60, // All-aspect
+        maxRange: 18000,
+        smartFuel: true,
+        proximityFuse: true,
+        proximityRange: 12,
+        color: '#e8e8e8',
+        exhaustColor: '#ff6600'
+    },
+
+    'R60_APHID': {
+        damage: 50,
+        warheadType: 'HE-FRAG',
+        explosionRadius: 20,
+        maxSpeed: 650,
+        acceleration: 280,
+        maxG: 28,
+        maneuverability: 0.80,
+        fuelCapacity: 5,
+        fuelConsumptionRate: 2.5,
+        burnTime: 2,
+        guidanceType: 'heat-seeking',
+        guidanceEffectiveness: 0.75,
+        seekerFOV: 25,
+        maxRange: 8000,
+        smartFuel: true,
+        proximityFuse: true,
+        proximityRange: 8,
+        color: '#c0c0c0',
+        exhaustColor: '#ff4400'
+    },
+
+    // Radar-guided missiles
+    'AIM120_AMRAAM': {
+        damage: 75,
+        warheadType: 'HE-FRAG',
+        explosionRadius: 30,
+        maxSpeed: 1200, // Mach 4
+        acceleration: 300,
+        maxG: 30,
+        maneuverability: 0.90,
+        fuelCapacity: 20,
+        fuelConsumptionRate: 3,
+        burnTime: 6.5,
+        guidanceType: 'radar-guided',
+        guidanceEffectiveness: 0.95,
+        seekerFOV: 90,
+        maxRange: 100000,
+        smartFuel: true,
+        proximityFuse: true,
+        proximityRange: 15,
+        color: '#d0d0d0',
+        exhaustColor: '#ff8800'
+    },
+
+    'AIM7_SPARROW': {
+        damage: 70,
+        warheadType: 'HE-FRAG',
+        explosionRadius: 28,
+        maxSpeed: 1200,
+        acceleration: 250,
+        maxG: 25,
+        maneuverability: 0.70,
+        fuelCapacity: 18,
+        fuelConsumptionRate: 3,
+        burnTime: 6,
+        guidanceType: 'beam-riding',
+        guidanceEffectiveness: 0.85,
+        seekerFOV: 45,
+        maxRange: 70000,
+        smartFuel: false, // Vietnam-era
+        proximityFuse: true,
+        proximityRange: 12,
+        color: '#c8c8c8',
+        exhaustColor: '#ff6600'
+    },
+
+    'R27_ALAMO': {
+        damage: 85,
+        warheadType: 'HE-FRAG',
+        explosionRadius: 35,
+        maxSpeed: 1300,
+        acceleration: 280,
+        maxG: 28,
+        maneuverability: 0.85,
+        fuelCapacity: 25,
+        fuelConsumptionRate: 3.5,
+        burnTime: 7,
+        guidanceType: 'radar-guided',
+        guidanceEffectiveness: 0.90,
+        seekerFOV: 80,
+        maxRange: 80000,
+        smartFuel: true,
+        proximityFuse: true,
+        proximityRange: 14,
+        color: '#b8b8b8',
+        exhaustColor: '#ff5500'
+    },
+
+    // Renegade Legion Capital Ship Missiles
+    'RL_CAPITAL_SHIP': {
+        damage: 1000,
+        warheadType: 'HE', // High explosive
+        explosionRadius: 50,
+        maxSpeed: 800, // ~30G acceleration capability
+        acceleration: 294, // 30G
+        maxG: 30,
+        maneuverability: 0.70,
+        fuelCapacity: 60,
+        fuelConsumptionRate: 3, // 20 seconds burn time
+        burnTime: 20,
+        guidanceType: 'radar-guided',
+        guidanceEffectiveness: 0.90,
+        seekerFOV: 120, // Space missile, wide seeker
+        maxRange: 15000, // Can reach quite far in space
+        smartFuel: true, // Intelligent fuel management
+        proximityFuse: true,
+        proximityRange: 25,
+        color: '#888888',
+        exhaustColor: '#6666ff'
+    },
+
+    // Renegade Legion Dogfight Missiles (anti-fighter)
+    'RL_DOGFIGHT': {
+        damage: 200,
+        warheadType: 'HE-FRAG',
+        explosionRadius: 15,
+        maxSpeed: 1200, // 60G acceleration
+        acceleration: 588, // 60G
+        maxG: 60,
+        maneuverability: 0.95, // Very agile
+        fuelCapacity: 6,
+        fuelConsumptionRate: 1.2, // 5 seconds burn time
+        burnTime: 5,
+        guidanceType: 'heat-seeking',
+        guidanceEffectiveness: 0.92,
+        seekerFOV: 90,
+        maxRange: 5000,
+        smartFuel: true,
+        proximityFuse: true,
+        proximityRange: 8,
+        color: '#999999',
+        exhaustColor: '#4444ff'
+    },
+
+    // Armor-piercing variant (for capital ships)
+    'RL_CAPITAL_AP': {
+        damage: 800,
+        warheadType: 'ARMOR-PIERCING',
+        explosionRadius: 30, // Shaped charge, smaller radius
+        maxSpeed: 900,
+        acceleration: 294,
+        maxG: 30,
+        maneuverability: 0.65,
+        fuelCapacity: 60,
+        fuelConsumptionRate: 3,
+        burnTime: 20,
+        guidanceType: 'radar-guided',
+        guidanceEffectiveness: 0.95,
+        seekerFOV: 120,
+        maxRange: 15000,
+        smartFuel: true,
+        proximityFuse: false, // Contact fuse only for AP
+        proximityRange: 2,
+        color: '#777777',
+        exhaustColor: '#8888ff'
+    }
+};
+
+/**
+ * Create a Missile instance from a missile store
+ */
+function createMissileFromStore(store, x, y, altitude, heading, target, launchVelocity = 0) {
     if (store.type !== 'missile') {
         console.error('Store is not a missile type');
         return null;
     }
 
-    // This will use a Missile class when it's created
-    // For now, return a placeholder or use modified Rocket class
-    console.warn('Missile class not yet implemented');
+    // Map store ID to missile type
+    // Default to using store ID as missile type, or map specific ones
+    let missileType = store.id;
+
+    // Create missile configuration
+    const config = {
+        missileType: missileType,
+        x: x,
+        y: y,
+        altitude: altitude,
+        heading: heading,
+        target: target,
+        launchVelocity: launchVelocity
+    };
+
+    // Create the missile
+    const missile = new Missile(config);
 
     // Mark store as used
     store.use();
 
-    return null;  // TODO: Implement Missile class
+    return missile;
 }
 
 // ============================================================================
@@ -1014,6 +1588,8 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         WeaponStore,
         WEAPON_STORES,
+        Missile,
+        MISSILE_TYPES,
         createStore,
         getStoresByType,
         getStoresByEra,
