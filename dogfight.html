@@ -7501,6 +7501,363 @@
                     }
                 }
             }
+            // === ADVANCED RADAR SYSTEM METHODS ===
+            updateAdvancedRadar(dt, effectiveSensorRange) {
+                const radar = this.radarSystem;
+
+                // Update sweep angle for search mode
+                if (radar.mode === 'search') {
+                    radar.sweepAngle = (radar.sweepAngle + (180 * dt)) % 360; // 180 deg/sec sweep
+                    radar.sweepTimer += dt;
+
+                    // Update contacts at radar update rate
+                    if (radar.sweepTimer >= radar.updateRate) {
+                        radar.sweepTimer = 0;
+                        this.performRadarSweep(effectiveSensorRange);
+                    }
+                } else if (radar.mode === 'track' && radar.trackedTarget) {
+                    radar.sweepTimer += dt;
+
+                    // Update tracked target more frequently
+                    if (radar.sweepTimer >= radar.trackUpdateRate) {
+                        radar.sweepTimer = 0;
+                        this.performRadarTrack(effectiveSensorRange);
+                    }
+                }
+
+                // Update RWR (check if being scanned by enemy radars)
+                this.updateRWR(dt);
+
+                // Simulate ground clutter
+                this.updateGroundClutter(dt);
+            }
+
+            performRadarSweep(effectiveSensorRange) {
+                const radar = this.radarSystem;
+                radar.contacts = [];
+
+                // Scan for all targets (ships and aircraft)
+                const allTargets = [];
+
+                if (typeof capitalShips !== 'undefined') {
+                    for (let ship of capitalShips) {
+                        if (ship !== this && !ship.isDestroyed) {
+                            allTargets.push({ obj: ship, type: 'ship', id: ship.id });
+                        }
+                    }
+                }
+
+                if (typeof aircraft !== 'undefined') {
+                    for (let plane of aircraft) {
+                        if (!plane.isDestroyed) {
+                            allTargets.push({ obj: plane, type: 'aircraft', id: `plane_${plane.name}` });
+                        }
+                    }
+                }
+
+                // Check if missiles exist and scan for them
+                if (typeof missiles !== 'undefined') {
+                    for (let missile of missiles) {
+                        if (!missile.hasDetonated) {
+                            allTargets.push({ obj: missile, type: 'missile', id: `missile_${Date.now()}` });
+                        }
+                    }
+                }
+
+                // Process each target
+                for (let target of allTargets) {
+                    const dx = target.obj.x - this.x;
+                    const dy = target.obj.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    // Calculate bearing
+                    let bearing = Math.atan2(dx, -dy) * 180 / Math.PI;
+                    if (bearing < 0) bearing += 360;
+
+                    // Check if within radar range
+                    if (distance <= Math.min(effectiveSensorRange, radar.rangeScale)) {
+                        // Calculate detection probability based on various factors
+                        let detectionProb = 1.0;
+
+                        // ECM jamming effects
+                        if (target.obj.ecmSuite && target.obj.ecmSuite.isActive) {
+                            const jammingEffect = this.calculateRadarJammingEffect(target.obj, distance);
+                            detectionProb *= (1 - jammingEffect * 0.7);
+                        }
+
+                        // Ground clutter interference (altitude-based)
+                        if (target.obj.altitude && target.obj.altitude < 500) {
+                            const clutterEffect = (500 - target.obj.altitude) / 500 * radar.clutterIntensity;
+                            detectionProb *= (1 - clutterEffect * 0.5);
+                        }
+
+                        // Size/RCS effects (smaller targets harder to detect)
+                        if (target.type === 'aircraft' && target.obj.rcs) {
+                            detectionProb *= Math.min(1.0, target.obj.rcs / 10);
+                        } else if (target.type === 'missile') {
+                            detectionProb *= 0.3; // Missiles are small
+                        }
+
+                        // Random detection check
+                        if (Math.random() < detectionProb) {
+                            // Classify contact
+                            let classification = 'unknown';
+                            if (target.obj.isPlayer === this.isPlayer) {
+                                classification = 'friendly';
+                            } else if (target.obj.isPlayer !== undefined && target.obj.isPlayer !== this.isPlayer) {
+                                classification = 'hostile';
+                            }
+
+                            radar.contacts.push({
+                                id: target.id,
+                                obj: target.obj,
+                                type: target.type,
+                                x: target.obj.x,
+                                y: target.obj.y,
+                                bearing: bearing,
+                                range: distance,
+                                classification: classification,
+                                strength: detectionProb,
+                                altitude: target.obj.altitude || 0
+                            });
+                        }
+                    }
+                }
+            }
+
+            performRadarTrack(effectiveSensorRange) {
+                const radar = this.radarSystem;
+                const target = radar.trackedTarget;
+
+                if (!target || target.isDestroyed) {
+                    // Lost track - return to search mode
+                    radar.mode = 'search';
+                    radar.trackedTarget = null;
+                    console.log(`${this.name}: Lost radar track, returning to search mode`);
+                    return;
+                }
+
+                const dx = target.x - this.x;
+                const dy = target.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                // Check if target still in range
+                if (distance > Math.min(effectiveSensorRange, radar.rangeScale)) {
+                    // Out of range - lost track
+                    radar.mode = 'search';
+                    radar.trackedTarget = null;
+                    console.log(`${this.name}: Target out of range, lost track`);
+                    return;
+                }
+
+                // Calculate bearing
+                let bearing = Math.atan2(dx, -dy) * 180 / Math.PI;
+                if (bearing < 0) bearing += 360;
+
+                // Update RWR on target (they're being tracked!)
+                if (target.radarSystem && target.radarSystem.rwr) {
+                    target.radarSystem.rwr.isBeingTracked = true;
+                    target.radarSystem.rwr.lastWarningTime = Date.now();
+                }
+
+                // High-precision track data
+                radar.contacts = [{
+                    id: target.id || `plane_${target.name}`,
+                    obj: target,
+                    type: target.type || 'ship',
+                    x: target.x,
+                    y: target.y,
+                    bearing: bearing,
+                    range: distance,
+                    classification: target.isPlayer === this.isPlayer ? 'friendly' : 'hostile',
+                    strength: 1.0,
+                    altitude: target.altitude || 0,
+                    velocity: target.speed || target.currentSpeed || 0,
+                    heading: target.heading
+                }];
+            }
+
+            calculateRadarJammingEffect(target, distance) {
+                if (!target.ecmSuite || !target.ecmSuite.isActive) return 0;
+
+                const suite = target.ecmSuite;
+                let effect = 0;
+
+                // Distance-based jamming effectiveness
+                if (distance < suite.jammingRange) {
+                    effect = 1.0 - (distance / suite.jammingRange);
+
+                    // Power-based effectiveness
+                    effect *= Math.min(1.0, suite.jammingPower / 3000);
+
+                    // Mode-based effects
+                    switch (suite.currentMode) {
+                        case 'noise':
+                            effect *= 0.8; // 80% effective against search radar
+                            break;
+                        case 'deception':
+                            effect *= 0.6; // 60% effective, may create false returns
+                            if (Math.random() < 0.3) {
+                                this.createFalseRadarReturn(target);
+                            }
+                            break;
+                        case 'barrage':
+                            effect *= 1.0; // 100% effective but high power drain
+                            break;
+                    }
+                }
+
+                return Math.min(1.0, effect);
+            }
+
+            createFalseRadarReturn(target) {
+                const radar = this.radarSystem;
+
+                // Create 1-3 false contacts near the real target
+                const numFalse = 1 + Math.floor(Math.random() * 3);
+                for (let i = 0; i < numFalse; i++) {
+                    const offsetX = (Math.random() - 0.5) * 10000; // ±5km
+                    const offsetY = (Math.random() - 0.5) * 10000;
+
+                    const dx = (target.x + offsetX) - this.x;
+                    const dy = (target.y + offsetY) - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    let bearing = Math.atan2(dx, -dy) * 180 / Math.PI;
+                    if (bearing < 0) bearing += 360;
+
+                    radar.contacts.push({
+                        id: `false_${Date.now()}_${i}`,
+                        obj: null,
+                        type: 'false',
+                        x: target.x + offsetX,
+                        y: target.y + offsetY,
+                        bearing: bearing,
+                        range: distance,
+                        classification: 'unknown',
+                        strength: 0.5,
+                        altitude: target.altitude || 0
+                    });
+                }
+            }
+
+            updateRWR(dt) {
+                const rwr = this.radarSystem.rwr;
+                rwr.threats = [];
+                rwr.isBeingPainted = false;
+                rwr.isBeingTracked = false;
+                rwr.missileWarning = false;
+
+                // Check if enemy ships are scanning us
+                if (typeof capitalShips !== 'undefined') {
+                    for (let ship of capitalShips) {
+                        if (ship === this || ship.isDestroyed) continue;
+                        if (ship.isPlayer === this.isPlayer) continue; // Ignore friendlies
+
+                        // Check if we're in their radar range
+                        const dx = this.x - ship.x;
+                        const dy = this.y - ship.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance <= ship.sensorRange) {
+                            // Calculate bearing to threat (where it's coming from)
+                            let bearing = Math.atan2(-dx, dy) * 180 / Math.PI;
+                            if (bearing < 0) bearing += 360;
+
+                            let threatType = 'search';
+                            let strength = 1.0 - (distance / ship.sensorRange);
+
+                            // Check if they're tracking us specifically
+                            if (ship.radarSystem && ship.radarSystem.mode === 'track' && ship.radarSystem.trackedTarget === this) {
+                                threatType = 'track';
+                                strength = 1.0;
+                                rwr.isBeingTracked = true;
+                            } else {
+                                rwr.isBeingPainted = true;
+                            }
+
+                            rwr.threats.push({
+                                id: ship.id,
+                                bearing: bearing,
+                                type: threatType,
+                                strength: strength,
+                                distance: distance
+                            });
+                        }
+                    }
+                }
+
+                // Check for incoming missiles (highest priority threat)
+                if (typeof missiles !== 'undefined') {
+                    for (let missile of missiles) {
+                        if (missile.hasDetonated) continue;
+                        if (missile.target !== this) continue;
+
+                        const dx = this.x - missile.x;
+                        const dy = this.y - missile.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        // Missile warning within 20km
+                        if (distance < 20000) {
+                            let bearing = Math.atan2(-dx, dy) * 180 / Math.PI;
+                            if (bearing < 0) bearing += 360;
+
+                            rwr.missileWarning = true;
+                            rwr.threats.push({
+                                id: `missile_inbound`,
+                                bearing: bearing,
+                                type: 'missile_lock',
+                                strength: 1.0,
+                                distance: distance
+                            });
+                        }
+                    }
+                }
+            }
+
+            updateGroundClutter(dt) {
+                const radar = this.radarSystem;
+
+                // For space combat, minimal clutter from asteroids/debris
+                if (this.faction === 'tog' || this.faction === 'commonwealth') {
+                    radar.clutterIntensity = 0.1;
+
+                    // Check if near terrain features
+                    if (typeof terrain !== 'undefined' && terrain.asteroids) {
+                        let nearbyAsteroids = 0;
+                        for (let asteroid of terrain.asteroids) {
+                            const dx = (asteroid.x || 0) - this.x;
+                            const dy = (asteroid.y || 0) - this.y;
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            if (distance < 50000) nearbyAsteroids++;
+                        }
+                        radar.clutterIntensity = Math.min(0.5, nearbyAsteroids * 0.05);
+                    }
+                } else {
+                    // Wet navy - terrain-based clutter
+                    if (typeof terrain !== 'undefined' && terrain.getHeightAt) {
+                        // Sample terrain around ship
+                        let clutterSamples = 0;
+                        let clutterSum = 0;
+
+                        for (let angle = 0; angle < 360; angle += 45) {
+                            const sampleDist = 5000; // 5km sample distance
+                            const sampleX = this.x + Math.cos(angle * Math.PI / 180) * sampleDist;
+                            const sampleY = this.y + Math.sin(angle * Math.PI / 180) * sampleDist;
+
+                            const terrainHeight = terrain.getHeightAt(sampleX, sampleY);
+                            if (terrainHeight > 100) { // Land/mountains create clutter
+                                clutterSum += Math.min(1.0, terrainHeight / 500);
+                                clutterSamples++;
+                            }
+                        }
+
+                        radar.clutterIntensity = clutterSamples > 0 ? (clutterSum / 8) : 0;
+                    } else {
+                        radar.clutterIntensity = 0.2; // Default low clutter
+                    }
+                }
+            }
 
             render() {
                 if (this.sinkProgress > 0.95) return; // Don't render fully sunk ships
@@ -7568,25 +7925,76 @@
                     ctx.translate(-this.x, -this.y);
 
                     if (flak.type === 'ciws') {
-                        // CIWS tracer rounds - draw line from CIWS to target
-                        ctx.strokeStyle = `rgba(255, 200, 50, ${alpha * 0.8})`;
-                        ctx.lineWidth = 2;
+                        // CIWS tracer rounds - enhanced multi-layer rendering
+                        // Outer glow tracer
+                        ctx.strokeStyle = `rgba(255, 200, 50, ${alpha * 0.5})`;
+                        ctx.lineWidth = 5;
+                        ctx.shadowColor = 'rgba(255, 200, 50, 0.8)';
+                        ctx.shadowBlur = 15;
                         ctx.beginPath();
                         ctx.moveTo(flak.sourceX, flak.sourceY);
                         ctx.lineTo(flak.x, flak.y);
                         ctx.stroke();
 
-                        // Muzzle flash at CIWS
+                        // Core tracer line
+                        ctx.strokeStyle = `rgba(255, 220, 100, ${alpha * 0.9})`;
+                        ctx.lineWidth = 2;
+                        ctx.shadowBlur = 8;
+                        ctx.beginPath();
+                        ctx.moveTo(flak.sourceX, flak.sourceY);
+                        ctx.lineTo(flak.x, flak.y);
+                        ctx.stroke();
+
+                        // Bright inner tracer
+                        ctx.strokeStyle = `rgba(255, 255, 200, ${alpha})`;
+                        ctx.lineWidth = 1;
+                        ctx.shadowBlur = 5;
+                        ctx.beginPath();
+                        ctx.moveTo(flak.sourceX, flak.sourceY);
+                        ctx.lineTo(flak.x, flak.y);
+                        ctx.stroke();
+
+                        // Enhanced muzzle flash at CIWS
+                        ctx.shadowBlur = 20;
+                        ctx.shadowColor = 'rgba(255, 200, 50, 1)';
                         ctx.fillStyle = `rgba(255, 220, 100, ${alpha})`;
                         ctx.beginPath();
-                        ctx.arc(flak.sourceX, flak.sourceY, 6, 0, Math.PI * 2);
+                        ctx.arc(flak.sourceX, flak.sourceY, 8, 0, Math.PI * 2);
                         ctx.fill();
 
-                        // Impact sparks
-                        ctx.fillStyle = `rgba(255, 150, 50, ${alpha * 0.7})`;
+                        // Muzzle flash ring
+                        if (progress < 0.3) {
+                            const flashAlpha = (1 - progress / 0.3);
+                            ctx.strokeStyle = `rgba(255, 255, 200, ${flashAlpha * 0.7})`;
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.arc(flak.sourceX, flak.sourceY, 8 + progress * 10, 0, Math.PI * 2);
+                            ctx.stroke();
+                        }
+
+                        // Enhanced impact sparks
+                        ctx.shadowBlur = 12;
+                        ctx.fillStyle = `rgba(255, 150, 50, ${alpha * 0.9})`;
                         ctx.beginPath();
-                        ctx.arc(flak.x, flak.y, 4, 0, Math.PI * 2);
+                        ctx.arc(flak.x, flak.y, 6, 0, Math.PI * 2);
                         ctx.fill();
+
+                        // Impact spark particles
+                        if (progress < 0.5) {
+                            for (let i = 0; i < 4; i++) {
+                                const angle = (i / 4) * Math.PI * 2 + progress * Math.PI;
+                                const dist = 5 + progress * 12;
+                                const sx = flak.x + Math.cos(angle) * dist;
+                                const sy = flak.y + Math.sin(angle) * dist;
+                                const sparkAlpha = (1 - progress / 0.5);
+
+                                ctx.fillStyle = `rgba(255, 180, 80, ${sparkAlpha * 0.8})`;
+                                ctx.shadowBlur = 6;
+                                ctx.beginPath();
+                                ctx.arc(sx, sy, 2, 0, Math.PI * 2);
+                                ctx.fill();
+                            }
+                        }
                     } else {
                         // Traditional flak burst (black smoke puff)
                         ctx.fillStyle = `rgba(40, 40, 40, ${alpha * 0.6})`;
@@ -7814,14 +8222,19 @@
 
                 // === POWER MANAGEMENT: SHIELD VISUAL ===
                 const shields = this.powerManagement.shields;
-                // Overall shield glow when active
+                // Overall shield glow when active - ENHANCED
                 if (shields.flickerState && shields.currentFlicker > 0) {
-                    const shieldAlpha = shields.currentFlicker * 0.15;
-                    ctx.strokeStyle = `rgba(100, 200, 255, ${shieldAlpha})`;
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    // Draw shield outline around ship
+                    const shieldAlpha = shields.currentFlicker * 0.2;
                     const shieldPadding = 10;
+                    const pulsePhase = Date.now() / 1000;
+                    const pulse = 0.8 + Math.sin(pulsePhase * 3) * 0.2; // Subtle pulsing
+
+                    // Outer shield glow layer
+                    ctx.strokeStyle = `rgba(100, 200, 255, ${shieldAlpha * 0.4 * pulse})`;
+                    ctx.lineWidth = 6;
+                    ctx.shadowColor = 'rgba(100, 200, 255, 0.6)';
+                    ctx.shadowBlur = 20;
+                    ctx.beginPath();
                     ctx.moveTo(0, -this.length / 2 - shieldPadding);
                     ctx.lineTo(this.beam / 2 + shieldPadding, -this.length / 4);
                     ctx.lineTo(this.beam / 2 + shieldPadding, this.length / 3);
@@ -7830,25 +8243,103 @@
                     ctx.lineTo(-this.beam / 2 - shieldPadding, -this.length / 4);
                     ctx.closePath();
                     ctx.stroke();
+
+                    // Core shield layer
+                    ctx.strokeStyle = `rgba(150, 220, 255, ${shieldAlpha * 0.8 * pulse})`;
+                    ctx.lineWidth = 3;
+                    ctx.shadowBlur = 12;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -this.length / 2 - shieldPadding);
+                    ctx.lineTo(this.beam / 2 + shieldPadding, -this.length / 4);
+                    ctx.lineTo(this.beam / 2 + shieldPadding, this.length / 3);
+                    ctx.lineTo(0, this.length / 2 + shieldPadding);
+                    ctx.lineTo(-this.beam / 2 - shieldPadding, this.length / 3);
+                    ctx.lineTo(-this.beam / 2 - shieldPadding, -this.length / 4);
+                    ctx.closePath();
+                    ctx.stroke();
+
+                    // Energy nodes at vertices
+                    const nodes = [
+                        [0, -this.length / 2 - shieldPadding],
+                        [this.beam / 2 + shieldPadding, -this.length / 4],
+                        [this.beam / 2 + shieldPadding, this.length / 3],
+                        [0, this.length / 2 + shieldPadding],
+                        [-this.beam / 2 - shieldPadding, this.length / 3],
+                        [-this.beam / 2 - shieldPadding, -this.length / 4]
+                    ];
+
+                    ctx.shadowBlur = 15;
+                    for (let node of nodes) {
+                        ctx.fillStyle = `rgba(200, 240, 255, ${shieldAlpha * 0.9 * pulse})`;
+                        ctx.beginPath();
+                        ctx.arc(node[0], node[1], 4, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
                 }
 
-                // Shield arcs when blocking attacks
+                // Shield arcs when blocking attacks - ENHANCED
                 for (let arc of shields.shieldArcs) {
                     const age = (Date.now() - arc.time) / 500;
                     const arcAlpha = 1 - age;
-                    ctx.strokeStyle = `rgba(100, 200, 255, ${arcAlpha * 0.8})`;
-                    ctx.lineWidth = 4;
-                    ctx.beginPath();
                     const arcRad = 40;
                     const arcAngle = arc.angle * Math.PI / 180;
+
+                    // Outer shield impact glow
+                    ctx.strokeStyle = `rgba(100, 200, 255, ${arcAlpha * 0.5})`;
+                    ctx.lineWidth = 8;
+                    ctx.shadowColor = 'rgba(100, 200, 255, 0.9)';
+                    ctx.shadowBlur = 25;
+                    ctx.beginPath();
+                    ctx.arc(arc.x, arc.y, arcRad, arcAngle - Math.PI / 3, arcAngle + Math.PI / 3);
+                    ctx.stroke();
+
+                    // Core shield arc
+                    ctx.strokeStyle = `rgba(150, 220, 255, ${arcAlpha * 0.9})`;
+                    ctx.lineWidth = 5;
+                    ctx.shadowBlur = 15;
+                    ctx.beginPath();
                     ctx.arc(arc.x, arc.y, arcRad, arcAngle - Math.PI / 4, arcAngle + Math.PI / 4);
                     ctx.stroke();
 
-                    // Impact flash
-                    ctx.fillStyle = `rgba(255, 255, 255, ${arcAlpha * 0.6})`;
+                    // Bright impact line
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${arcAlpha})`;
+                    ctx.lineWidth = 2;
+                    ctx.shadowBlur = 10;
                     ctx.beginPath();
-                    ctx.arc(arc.x, arc.y, 5, 0, Math.PI * 2);
+                    ctx.arc(arc.x, arc.y, arcRad, arcAngle - Math.PI / 6, arcAngle + Math.PI / 6);
+                    ctx.stroke();
+
+                    // Enhanced impact flash at center
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = '#ffffff';
+                    ctx.fillStyle = `rgba(255, 255, 255, ${arcAlpha * 0.9})`;
+                    ctx.beginPath();
+                    ctx.arc(arc.x, arc.y, 8, 0, Math.PI * 2);
                     ctx.fill();
+
+                    // Impact burst particles
+                    if (age < 0.4) {
+                        for (let i = 0; i < 6; i++) {
+                            const particleAngle = arcAngle + (i - 3) * Math.PI / 12;
+                            const particleDist = arcRad + age * 30;
+                            const px = arc.x + Math.cos(particleAngle) * particleDist;
+                            const py = arc.y + Math.sin(particleAngle) * particleDist;
+                            const particleAlpha = (1 - age / 0.4);
+
+                            ctx.fillStyle = `rgba(150, 220, 255, ${particleAlpha * 0.7})`;
+                            ctx.shadowBlur = 8;
+                            ctx.beginPath();
+                            ctx.arc(px, py, 3, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+
+                    // Expanding ripple
+                    ctx.strokeStyle = `rgba(100, 200, 255, ${arcAlpha * 0.4})`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(arc.x, arc.y, arcRad + 25 * age, 0, Math.PI * 2);
+                    ctx.stroke();
                 }
 
                 // === RENEGADE LEGION: SHIELD ARCS (% Block Chance System) ===
@@ -7863,26 +8354,82 @@
                         ctx.rotate(-this.heading * Math.PI / 180);
                         ctx.translate(-this.x, -this.y);
 
-                        // Draw shield arc
-                        ctx.strokeStyle = `rgba(100, 200, 255, ${arcAlpha * 0.8})`;
-                        ctx.lineWidth = 6;
-                        ctx.beginPath();
+                        // Draw shield arc - ENHANCED
                         const arcRad = 50;
                         const arcAngle = arc.angle * Math.PI / 180;
+
+                        // Outer shield impact glow
+                        ctx.strokeStyle = `rgba(100, 200, 255, ${arcAlpha * 0.6})`;
+                        ctx.lineWidth = 10;
+                        ctx.shadowColor = 'rgba(100, 200, 255, 0.9)';
+                        ctx.shadowBlur = 30;
+                        ctx.beginPath();
+                        ctx.arc(arc.x, arc.y, arcRad, arcAngle - Math.PI / 2.5, arcAngle + Math.PI / 2.5);
+                        ctx.stroke();
+
+                        // Core shield arc
+                        ctx.strokeStyle = `rgba(150, 220, 255, ${arcAlpha * 0.9})`;
+                        ctx.lineWidth = 6;
+                        ctx.shadowBlur = 18;
+                        ctx.beginPath();
                         ctx.arc(arc.x, arc.y, arcRad, arcAngle - Math.PI / 3, arcAngle + Math.PI / 3);
                         ctx.stroke();
 
-                        // Impact flash at center
-                        ctx.fillStyle = `rgba(255, 255, 255, ${arcAlpha * 0.7})`;
+                        // Bright impact line
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${arcAlpha})`;
+                        ctx.lineWidth = 3;
+                        ctx.shadowBlur = 12;
                         ctx.beginPath();
-                        ctx.arc(arc.x, arc.y, 8, 0, Math.PI * 2);
+                        ctx.arc(arc.x, arc.y, arcRad, arcAngle - Math.PI / 4, arcAngle + Math.PI / 4);
+                        ctx.stroke();
+
+                        // Enhanced impact flash at center
+                        ctx.shadowBlur = 25;
+                        ctx.shadowColor = '#ffffff';
+                        ctx.fillStyle = `rgba(255, 255, 255, ${arcAlpha * 0.95})`;
+                        ctx.beginPath();
+                        ctx.arc(arc.x, arc.y, 12, 0, Math.PI * 2);
                         ctx.fill();
 
-                        // Ripple effect
-                        ctx.strokeStyle = `rgba(100, 200, 255, ${arcAlpha * 0.4})`;
+                        // Impact ring burst
+                        if (age < 0.3) {
+                            const burstAlpha = (1 - age / 0.3);
+                            ctx.strokeStyle = `rgba(255, 255, 255, ${burstAlpha * 0.8})`;
+                            ctx.lineWidth = 3;
+                            ctx.beginPath();
+                            ctx.arc(arc.x, arc.y, 12 + age * 40, 0, Math.PI * 2);
+                            ctx.stroke();
+                        }
+
+                        // Impact particles along arc
+                        if (age < 0.5) {
+                            for (let i = 0; i < 8; i++) {
+                                const particleAngle = arcAngle + (i - 4) * Math.PI / 16;
+                                const particleDist = arcRad + age * 35;
+                                const px = arc.x + Math.cos(particleAngle) * particleDist;
+                                const py = arc.y + Math.sin(particleAngle) * particleDist;
+                                const particleAlpha = (1 - age / 0.5);
+
+                                ctx.fillStyle = `rgba(150, 220, 255, ${particleAlpha * 0.8})`;
+                                ctx.shadowBlur = 10;
+                                ctx.beginPath();
+                                ctx.arc(px, py, 4, 0, Math.PI * 2);
+                                ctx.fill();
+                            }
+                        }
+
+                        // Expanding ripple effects
+                        ctx.strokeStyle = `rgba(100, 200, 255, ${arcAlpha * 0.5})`;
                         ctx.lineWidth = 3;
                         ctx.beginPath();
-                        ctx.arc(arc.x, arc.y, arcRad + 20 * age, 0, Math.PI * 2);
+                        ctx.arc(arc.x, arc.y, arcRad + 30 * age, 0, Math.PI * 2);
+                        ctx.stroke();
+
+                        // Secondary ripple
+                        ctx.strokeStyle = `rgba(150, 220, 255, ${arcAlpha * 0.3})`;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(arc.x, arc.y, arcRad + 45 * age, 0, Math.PI * 2);
                         ctx.stroke();
 
                         ctx.restore();
@@ -19761,10 +20308,33 @@
                     if (age < beam.duration) {
                         const progress = age / beam.duration;
                         const alpha = 1 - progress;
+                        const weaponClass = beam.weaponClass || 'laser';
+
+                        // Weapon-specific visual properties
+                        let outerWidth, coreWidth, innerWidth, muzzleSize, impactSize, sparkCount;
+                        let beamFlicker = 1.0;
+
+                        if (weaponClass === 'particle_beam') {
+                            outerWidth = 12; coreWidth = 5; innerWidth = 2;
+                            muzzleSize = 10; impactSize = 15; sparkCount = 10;
+                            beamFlicker = 0.85 + Math.sin(age * 0.05) * 0.15; // Pulsing
+                        } else if (weaponClass === 'mass_driver') {
+                            outerWidth = 6; coreWidth = 3; innerWidth = 1;
+                            muzzleSize = 8; impactSize = 12; sparkCount = 8;
+                        } else {
+                            outerWidth = 8; coreWidth = 3; innerWidth = 1;
+                            muzzleSize = 6; impactSize = 10; sparkCount = 6;
+                        }
+
+                        // Critical hit enhancement
+                        if (beam.isCritical) {
+                            outerWidth *= 1.5; coreWidth *= 1.5;
+                            muzzleSize *= 1.5; impactSize *= 1.8; sparkCount *= 1.5;
+                        }
 
                         // Outer glow
-                        ctx.strokeStyle = beam.color.replace(/[\d.]+\)$/, `${alpha * 0.4})`);
-                        ctx.lineWidth = 8;
+                        ctx.strokeStyle = beam.color.replace(/[\d.]+\)$/, `${alpha * 0.5 * beamFlicker})`);
+                        ctx.lineWidth = outerWidth;
                         ctx.shadowColor = beam.color;
                         ctx.shadowBlur = 25;
                         ctx.beginPath();
@@ -19773,8 +20343,8 @@
                         ctx.stroke();
 
                         // Core beam (brighter)
-                        ctx.strokeStyle = beam.color.replace(/[\d.]+\)$/, `${alpha * 0.95})`);
-                        ctx.lineWidth = 3;
+                        ctx.strokeStyle = beam.color.replace(/[\d.]+\)$/, `${alpha * 0.95 * beamFlicker})`);
+                        ctx.lineWidth = coreWidth;
                         ctx.shadowBlur = 15;
                         ctx.beginPath();
                         ctx.moveTo(beam.fromX, beam.fromY);
@@ -19782,47 +20352,116 @@
                         ctx.stroke();
 
                         // Inner bright core
-                        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.6})`;
-                        ctx.lineWidth = 1;
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.7 * beamFlicker})`;
+                        ctx.lineWidth = innerWidth;
                         ctx.shadowBlur = 8;
                         ctx.beginPath();
                         ctx.moveTo(beam.fromX, beam.fromY);
                         ctx.lineTo(beam.toX, beam.toY);
                         ctx.stroke();
 
-                        // Muzzle flash at origin
+                        // Particle beam special effect: Energy ribbons
+                        if (weaponClass === 'particle_beam') {
+                            const dx = beam.toX - beam.fromX;
+                            const dy = beam.toY - beam.fromY;
+                            const angle = Math.atan2(dy, dx);
+                            const segments = 5;
+
+                            for (let i = 0; i < segments; i++) {
+                                const t = i / segments;
+                                const x = beam.fromX + dx * t;
+                                const y = beam.fromY + dy * t;
+                                const offset = Math.sin(t * Math.PI * 3 + age * 0.02) * 3;
+                                const perpX = x + Math.cos(angle + Math.PI / 2) * offset;
+                                const perpY = y + Math.sin(angle + Math.PI / 2) * offset;
+
+                                ctx.fillStyle = beam.color.replace(/[\d.]+\)$/, `${alpha * 0.3})`);
+                                ctx.beginPath();
+                                ctx.arc(perpX, perpY, 2, 0, Math.PI * 2);
+                                ctx.fill();
+                            }
+                        }
+
+                        // Enhanced muzzle flash at origin
                         if (progress < 0.3) {
                             const muzzleAlpha = (1 - progress / 0.3);
-                            ctx.fillStyle = `rgba(255, 220, 180, ${muzzleAlpha * 0.8})`;
+                            const muzzleColor = weaponClass === 'particle_beam' ?
+                                `rgba(200, 150, 255, ${muzzleAlpha * 0.9})` :
+                                weaponClass === 'mass_driver' ?
+                                `rgba(255, 200, 120, ${muzzleAlpha * 0.8})` :
+                                `rgba(255, 220, 180, ${muzzleAlpha * 0.8})`;
+
+                            ctx.fillStyle = muzzleColor;
                             ctx.shadowColor = beam.color;
-                            ctx.shadowBlur = 20;
+                            ctx.shadowBlur = 25;
                             ctx.beginPath();
-                            ctx.arc(beam.fromX, beam.fromY, 6 * (1 + progress * 2), 0, Math.PI * 2);
+                            ctx.arc(beam.fromX, beam.fromY, muzzleSize * (1 + progress * 2), 0, Math.PI * 2);
                             ctx.fill();
+
+                            // Critical hit: Additional muzzle ring
+                            if (beam.isCritical) {
+                                ctx.strokeStyle = `rgba(255, 255, 255, ${muzzleAlpha * 0.6})`;
+                                ctx.lineWidth = 2;
+                                ctx.beginPath();
+                                ctx.arc(beam.fromX, beam.fromY, muzzleSize * (1.5 + progress * 3), 0, Math.PI * 2);
+                                ctx.stroke();
+                            }
                         }
 
                         // Enhanced impact flash at target
-                        ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.9})`;
-                        ctx.shadowColor = '#ffffff';
-                        ctx.shadowBlur = 20;
+                        const impactFlashSize = impactSize * (1 + progress * 0.5);
+                        ctx.fillStyle = beam.isCritical ?
+                            `rgba(255, 100, 100, ${alpha * 0.95})` :
+                            `rgba(255, 255, 255, ${alpha * 0.9})`;
+                        ctx.shadowColor = beam.isCritical ? '#ff0000' : '#ffffff';
+                        ctx.shadowBlur = 25;
                         ctx.beginPath();
-                        ctx.arc(beam.toX, beam.toY, 10 * (1 + progress * 0.5), 0, Math.PI * 2);
+                        ctx.arc(beam.toX, beam.toY, impactFlashSize, 0, Math.PI * 2);
                         ctx.fill();
 
-                        // Impact sparks
-                        if (progress < 0.4) {
-                            for (let i = 0; i < 6; i++) {
-                                const angle = (i / 6) * Math.PI * 2 + progress * Math.PI;
-                                const sparkDist = 8 + progress * 15;
+                        // Impact burst ring
+                        ctx.strokeStyle = beam.color.replace(/[\d.]+\)$/, `${alpha * 0.7})`);
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.arc(beam.toX, beam.toY, impactFlashSize * 1.5, 0, Math.PI * 2);
+                        ctx.stroke();
+
+                        // Enhanced impact sparks with weapon-specific colors
+                        if (progress < 0.5) {
+                            for (let i = 0; i < sparkCount; i++) {
+                                const angle = (i / sparkCount) * Math.PI * 2 + progress * Math.PI * 1.5;
+                                const sparkDist = 8 + progress * 20;
                                 const sparkX = beam.toX + Math.cos(angle) * sparkDist;
                                 const sparkY = beam.toY + Math.sin(angle) * sparkDist;
-                                const sparkAlpha = (1 - progress / 0.4);
+                                const sparkAlpha = (1 - progress / 0.5);
 
-                                ctx.fillStyle = `rgba(255, 200, 100, ${sparkAlpha * 0.7})`;
+                                // Weapon-specific spark colors
+                                let sparkColor;
+                                if (weaponClass === 'particle_beam') {
+                                    sparkColor = `rgba(200, 150, 255, ${sparkAlpha * 0.8})`;
+                                } else if (weaponClass === 'mass_driver') {
+                                    sparkColor = `rgba(255, 180, 80, ${sparkAlpha * 0.7})`;
+                                } else {
+                                    sparkColor = `rgba(255, 200, 100, ${sparkAlpha * 0.7})`;
+                                }
+
+                                ctx.fillStyle = sparkColor;
+                                ctx.shadowBlur = 8;
+                                ctx.shadowColor = sparkColor;
                                 ctx.beginPath();
-                                ctx.arc(sparkX, sparkY, 2, 0, Math.PI * 2);
+                                ctx.arc(sparkX, sparkY, beam.isCritical ? 3 : 2, 0, Math.PI * 2);
                                 ctx.fill();
                             }
+                        }
+
+                        // Critical hit: Shockwave effect
+                        if (beam.isCritical && progress < 0.6) {
+                            const shockwaveAlpha = (1 - progress / 0.6);
+                            ctx.strokeStyle = `rgba(255, 100, 100, ${shockwaveAlpha * 0.5})`;
+                            ctx.lineWidth = 4;
+                            ctx.beginPath();
+                            ctx.arc(beam.toX, beam.toY, 25 + progress * 40, 0, Math.PI * 2);
+                            ctx.stroke();
                         }
                     }
                 }
