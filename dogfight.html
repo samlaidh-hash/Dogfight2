@@ -20850,6 +20850,311 @@
                 ctx.fillText('Click ship to select • Click elsewhere to deselect', panelX + panelWidth / 2, panelY + panelHeight - 8);
             }
 
+            // === RADAR SCOPE DISPLAY ===
+            if (selectedCapitalShip && selectedCapitalShip.radarSystem) {
+                const radar = selectedCapitalShip.radarSystem;
+                const scopeX = canvas.width - 320;
+                const scopeY = canvas.height - 320;
+                const scopeRadius = 140;
+
+                // Radar scope background
+                ctx.save();
+                ctx.fillStyle = 'rgba(0, 20, 0, 0.9)';
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 2;
+
+                ctx.beginPath();
+                ctx.arc(scopeX, scopeY, scopeRadius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Draw range rings
+                ctx.strokeStyle = '#004400';
+                ctx.lineWidth = 1;
+                for (let i = 1; i <= 3; i++) {
+                    ctx.beginPath();
+                    ctx.arc(scopeX, scopeY, scopeRadius * i / 3, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // Draw bearing markers
+                ctx.strokeStyle = '#006600';
+                for (let angle = 0; angle < 360; angle += 45) {
+                    const rad = angle * Math.PI / 180;
+                    const startR = scopeRadius * 0.95;
+                    const endR = scopeRadius;
+                    ctx.beginPath();
+                    ctx.moveTo(scopeX + Math.sin(rad) * startR, scopeY - Math.cos(rad) * startR);
+                    ctx.lineTo(scopeX + Math.sin(rad) * endR, scopeY - Math.cos(rad) * endR);
+                    ctx.stroke();
+                }
+
+                // Draw cardinal direction labels
+                ctx.fillStyle = '#00ff00';
+                ctx.font = 'bold 12px Courier New';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('N', scopeX, scopeY - scopeRadius - 15);
+                ctx.fillText('S', scopeX, scopeY + scopeRadius + 15);
+                ctx.fillText('E', scopeX + scopeRadius + 15, scopeY);
+                ctx.fillText('W', scopeX - scopeRadius - 15, scopeY);
+
+                // Draw radar sweep line (search mode only)
+                if (radar.mode === 'search') {
+                    const sweepRad = radar.sweepAngle * Math.PI / 180;
+                    ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(scopeX, scopeY);
+                    ctx.lineTo(scopeX + Math.sin(sweepRad) * scopeRadius, scopeY - Math.cos(sweepRad) * scopeRadius);
+                    ctx.stroke();
+
+                    // Sweep fade trail
+                    const gradient = ctx.createRadialGradient(scopeX, scopeY, 0, scopeX, scopeY, scopeRadius);
+                    gradient.addColorStop(0, 'rgba(0, 255, 0, 0.1)');
+                    gradient.addColorStop(1, 'rgba(0, 255, 0, 0)');
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.moveTo(scopeX, scopeY);
+                    ctx.arc(scopeX, scopeY, scopeRadius, sweepRad - Math.PI / 4, sweepRad);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                // Draw radar contacts
+                for (let contact of radar.contacts) {
+                    const normalizedRange = contact.range / radar.rangeScale;
+                    if (normalizedRange > 1.0) continue;
+
+                    const contactRadius = normalizedRange * scopeRadius;
+                    const contactBearing = contact.bearing * Math.PI / 180;
+                    const contactX = scopeX + Math.sin(contactBearing) * contactRadius;
+                    const contactY = scopeY - Math.cos(contactBearing) * contactRadius;
+
+                    // Color based on classification
+                    let contactColor;
+                    switch (contact.classification) {
+                        case 'friendly':
+                            contactColor = '#0080ff';
+                            break;
+                        case 'hostile':
+                            contactColor = '#ff0000';
+                            break;
+                        case 'unknown':
+                            contactColor = '#ffff00';
+                            break;
+                        default:
+                            contactColor = '#888888';
+                    }
+
+                    // False contacts are dimmer
+                    if (contact.type === 'false') {
+                        contactColor += '80'; // Add alpha
+                    }
+
+                    // Draw contact symbol
+                    ctx.fillStyle = contactColor;
+                    ctx.strokeStyle = contactColor;
+                    ctx.lineWidth = 2;
+
+                    if (contact.type === 'ship') {
+                        // Diamond for ships
+                        ctx.beginPath();
+                        ctx.moveTo(contactX, contactY - 5);
+                        ctx.lineTo(contactX + 4, contactY);
+                        ctx.lineTo(contactX, contactY + 5);
+                        ctx.lineTo(contactX - 4, contactY);
+                        ctx.closePath();
+                        ctx.fill();
+                    } else if (contact.type === 'aircraft') {
+                        // Triangle for aircraft
+                        ctx.beginPath();
+                        ctx.moveTo(contactX, contactY - 5);
+                        ctx.lineTo(contactX + 4, contactY + 5);
+                        ctx.lineTo(contactX - 4, contactY + 5);
+                        ctx.closePath();
+                        ctx.fill();
+                    } else if (contact.type === 'missile') {
+                        // X for missiles
+                        ctx.beginPath();
+                        ctx.moveTo(contactX - 4, contactY - 4);
+                        ctx.lineTo(contactX + 4, contactY + 4);
+                        ctx.moveTo(contactX + 4, contactY - 4);
+                        ctx.lineTo(contactX - 4, contactY + 4);
+                        ctx.stroke();
+                    } else {
+                        // Circle for unknown/false
+                        ctx.beginPath();
+                        ctx.arc(contactX, contactY, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    // Draw contact label if tracked
+                    if (radar.mode === 'track' && contact === radar.contacts[0]) {
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = '10px Courier New';
+                        ctx.textAlign = 'left';
+                        ctx.fillText(`${(contact.range / 1000).toFixed(1)}km`, contactX + 6, contactY);
+                        ctx.fillText(`${contact.bearing.toFixed(0)}°`, contactX + 6, contactY + 12);
+                        if (contact.velocity) {
+                            ctx.fillText(`${contact.velocity.toFixed(0)}m/s`, contactX + 6, contactY + 24);
+                        }
+                    }
+                }
+
+                // Ground clutter visualization
+                if (radar.clutterIntensity > 0.2) {
+                    ctx.fillStyle = `rgba(100, 100, 0, ${radar.clutterIntensity * 0.3})`;
+                    for (let i = 0; i < 50; i++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const distance = Math.random() * scopeRadius;
+                        const x = scopeX + Math.sin(angle) * distance;
+                        const y = scopeY - Math.cos(angle) * distance;
+                        ctx.fillRect(x, y, 1, 1);
+                    }
+                }
+
+                // Radar mode and range display
+                ctx.fillStyle = '#00ff00';
+                ctx.font = 'bold 14px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText(`RADAR: ${radar.mode.toUpperCase()}`, scopeX, scopeY - scopeRadius - 35);
+                ctx.font = '12px Courier New';
+                ctx.fillText(`Range: ${(radar.rangeScale / 1000).toFixed(0)}km`, scopeX, scopeY + scopeRadius + 35);
+
+                // Clutter indicator
+                if (radar.clutterIntensity > 0.2) {
+                    ctx.fillStyle = '#ffaa00';
+                    ctx.font = '10px Courier New';
+                    ctx.fillText(`CLUTTER: ${(radar.clutterIntensity * 100).toFixed(0)}%`, scopeX, scopeY + scopeRadius + 50);
+                }
+
+                // Controls hint
+                ctx.fillStyle = '#888888';
+                ctx.font = '9px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText('R:Mode +/-:Range T:Track', scopeX, scopeY + scopeRadius + 65);
+
+                ctx.restore();
+            }
+
+            // === RWR (RADAR WARNING RECEIVER) DISPLAY ===
+            if (selectedCapitalShip && selectedCapitalShip.radarSystem && selectedCapitalShip.radarSystem.rwr) {
+                const rwr = selectedCapitalShip.radarSystem.rwr;
+
+                if (rwr.threats.length > 0) {
+                    const rwrX = canvas.width - 600;
+                    const rwrY = canvas.height - 180;
+                    const rwrRadius = 70;
+
+                    ctx.save();
+
+                    // RWR scope background
+                    ctx.fillStyle = 'rgba(40, 0, 0, 0.9)';
+                    ctx.strokeStyle = rwr.missileWarning ? '#ff0000' : '#ff8800';
+                    ctx.lineWidth = rwr.missileWarning ? 3 : 2;
+
+                    ctx.beginPath();
+                    ctx.arc(rwrX, rwrY, rwrRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Flash missile warning
+                    if (rwr.missileWarning && Math.floor(Date.now() / 250) % 2 === 0) {
+                        ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+                        ctx.beginPath();
+                        ctx.arc(rwrX, rwrY, rwrRadius, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    // Draw center cross
+                    ctx.strokeStyle = '#ffaa00';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(rwrX - 8, rwrY);
+                    ctx.lineTo(rwrX + 8, rwrY);
+                    ctx.moveTo(rwrX, rwrY - 8);
+                    ctx.lineTo(rwrX, rwrY + 8);
+                    ctx.stroke();
+
+                    // Draw threat indicators
+                    for (let threat of rwr.threats) {
+                        const threatBearing = threat.bearing * Math.PI / 180;
+                        const threatDist = rwrRadius * 0.7 * threat.strength;
+                        const threatX = rwrX + Math.sin(threatBearing) * threatDist;
+                        const threatY = rwrY - Math.cos(threatBearing) * threatDist;
+
+                        // Color based on threat type
+                        let threatColor;
+                        let threatSymbol;
+                        switch (threat.type) {
+                            case 'search':
+                                threatColor = '#ffff00';
+                                threatSymbol = '◇'; // Search radar
+                                break;
+                            case 'track':
+                                threatColor = '#ff8800';
+                                threatSymbol = '◆'; // Track radar
+                                break;
+                            case 'missile_lock':
+                                threatColor = '#ff0000';
+                                threatSymbol = 'M'; // Missile
+                                break;
+                            default:
+                                threatColor = '#888888';
+                                threatSymbol = '?';
+                        }
+
+                        // Draw threat symbol
+                        ctx.fillStyle = threatColor;
+                        ctx.font = 'bold 14px Courier New';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(threatSymbol, threatX, threatY);
+
+                        // Pulse effect for missile warnings
+                        if (threat.type === 'missile_lock') {
+                            const pulseSize = 10 + Math.sin(Date.now() / 100) * 5;
+                            ctx.strokeStyle = threatColor;
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.arc(threatX, threatY, pulseSize, 0, Math.PI * 2);
+                            ctx.stroke();
+                        }
+                    }
+
+                    // RWR status text
+                    ctx.fillStyle = rwr.missileWarning ? '#ff0000' : rwr.isBeingTracked ? '#ff8800' : '#ffff00';
+                    ctx.font = 'bold 12px Courier New';
+                    ctx.textAlign = 'center';
+
+                    let statusText = 'RWR';
+                    if (rwr.missileWarning) {
+                        statusText = 'MISSILE WARNING!';
+                    } else if (rwr.isBeingTracked) {
+                        statusText = 'TRACKED';
+                    } else if (rwr.isBeingPainted) {
+                        statusText = 'PAINTED';
+                    }
+
+                    ctx.fillText(statusText, rwrX, rwrY - rwrRadius - 15);
+
+                    // Threat count
+                    ctx.font = '10px Courier New';
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText(`${rwr.threats.length} threat${rwr.threats.length !== 1 ? 's' : ''}`, rwrX, rwrY + rwrRadius + 15);
+
+                    // Audio warning indication
+                    if (rwr.missileWarning || rwr.isBeingTracked) {
+                        ctx.fillStyle = '#ff0000';
+                        ctx.font = '9px Courier New';
+                        ctx.fillText('AUDIO ALARM', rwrX, rwrY + rwrRadius + 28);
+                    }
+
+                    ctx.restore();
+                }
+            }
+
             ctx.restore(); // Restore state after drawing UI elements
         }
 
@@ -21771,6 +22076,66 @@
                     if (selectedAircraft.ecmSuite.jammingTypes.includes('barrage')) {
                         selectedAircraft.ecmSuite.currentMode = 'barrage';
                         console.log(selectedAircraft.name + ' ECM: Barrage jamming mode');
+                    }
+                    return;
+                }
+            }
+
+            // Radar Controls (for capital ships)
+            if (selectedCapitalShip && selectedCapitalShip.radarSystem) {
+                const key = e.key.toLowerCase();
+                const radar = selectedCapitalShip.radarSystem;
+
+                if (key === 'r') {
+                    // Toggle radar mode (search/track)
+                    if (radar.mode === 'search') {
+                        // Find nearest hostile contact to track
+                        const hostileContacts = radar.contacts.filter(c => c.classification === 'hostile');
+                        if (hostileContacts.length > 0) {
+                            // Sort by range
+                            hostileContacts.sort((a, b) => a.range - b.range);
+                            radar.mode = 'track';
+                            radar.trackedTarget = hostileContacts[0].obj;
+                            console.log(`${selectedCapitalShip.name}: Radar tracking ${hostileContacts[0].type} at ${(hostileContacts[0].range / 1000).toFixed(1)}km`);
+                        } else {
+                            console.log(`${selectedCapitalShip.name}: No hostile contacts to track`);
+                        }
+                    } else {
+                        radar.mode = 'search';
+                        radar.trackedTarget = null;
+                        console.log(`${selectedCapitalShip.name}: Radar returned to search mode`);
+                    }
+                    return;
+                } else if (key === 't') {
+                    // Track nearest contact (any classification)
+                    if (radar.contacts.length > 0) {
+                        // Sort by range
+                        const sortedContacts = [...radar.contacts].sort((a, b) => a.range - b.range);
+                        radar.mode = 'track';
+                        radar.trackedTarget = sortedContacts[0].obj;
+                        console.log(`${selectedCapitalShip.name}: Radar tracking ${sortedContacts[0].type} (${sortedContacts[0].classification}) at ${(sortedContacts[0].range / 1000).toFixed(1)}km`);
+                    } else {
+                        console.log(`${selectedCapitalShip.name}: No contacts to track`);
+                    }
+                    return;
+                } else if (key === '+' || key === '=') {
+                    // Increase radar range scale
+                    if (radar.currentScaleIndex < radar.rangeScales.length - 1) {
+                        radar.currentScaleIndex++;
+                        radar.rangeScale = radar.rangeScales[radar.currentScaleIndex];
+                        console.log(`${selectedCapitalShip.name}: Radar range increased to ${(radar.rangeScale / 1000).toFixed(0)}km`);
+                    } else {
+                        console.log(`${selectedCapitalShip.name}: Already at maximum radar range`);
+                    }
+                    return;
+                } else if (key === '-' || key === '_') {
+                    // Decrease radar range scale
+                    if (radar.currentScaleIndex > 0) {
+                        radar.currentScaleIndex--;
+                        radar.rangeScale = radar.rangeScales[radar.currentScaleIndex];
+                        console.log(`${selectedCapitalShip.name}: Radar range decreased to ${(radar.rangeScale / 1000).toFixed(0)}km`);
+                    } else {
+                        console.log(`${selectedCapitalShip.name}: Already at minimum radar range`);
                     }
                     return;
                 }
