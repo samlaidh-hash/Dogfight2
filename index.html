@@ -758,6 +758,34 @@
             <div id="shipsList"></div>
         </div>
 
+        <!-- Weapon Legend Panel -->
+        <div id="weaponLegendPanel" class="ui-panel" style="display: none; top: 150px; left: 320px; width: 180px;">
+            <div class="panel-tab" onclick="togglePanel('weaponLegendPanel')">WEAPONS</div>
+            <h2 style="font-size: 14px; margin-bottom: 8px;">Hardpoint Colors</h2>
+            <div style="font-size: 11px; line-height: 1.6;">
+                <div style="display: flex; align-items: center; margin-bottom: 4px;">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: rgba(255, 50, 50, 0.8); margin-right: 8px;"></div>
+                    <span>Particle Beam</span>
+                </div>
+                <div style="display: flex; align-items: center; margin-bottom: 4px;">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: rgba(50, 150, 255, 0.8); margin-right: 8px;"></div>
+                    <span>Laser</span>
+                </div>
+                <div style="display: flex; align-items: center; margin-bottom: 4px;">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: rgba(255, 200, 50, 0.8); margin-right: 8px;"></div>
+                    <span>Mass Driver</span>
+                </div>
+                <div style="display: flex; align-items: center; margin-bottom: 4px;">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: rgba(150, 255, 150, 0.8); margin-right: 8px;"></div>
+                    <span>Spinal Mount</span>
+                </div>
+                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #444; font-size: 10px; color: #aaa;">
+                    Bright = Ready<br>
+                    Dim = Cooling
+                </div>
+            </div>
+        </div>
+
         <!-- Controls Panel (Center Top - Landscape) -->
         <div id="controlsPanel" class="ui-panel">
             <div class="panel-tab" onclick="togglePanel('controlsPanel')">Control</div>
@@ -8275,28 +8303,55 @@
                 for (let weaponName of activeWeapons) {
                     const weapon = weaponName === 'broadside' ? null : this.laserWeapons[weaponName];
                     if (!weapon || !weapon.banks) {
-                        // Handle broadside - glow both sides
+                        // Handle broadside - draw rectangles for each bank
                         if (weaponName === 'broadside') {
-                            // Port side glow
-                            ctx.fillStyle = 'rgba(255, 50, 50, 0.3)';
-                            ctx.beginPath();
-                            ctx.arc(-this.beam * 0.4, 0, 8, 0, Math.PI * 2);
-                            ctx.fill();
-                            // Starboard side glow
-                            ctx.beginPath();
-                            ctx.arc(this.beam * 0.4, 0, 8, 0, Math.PI * 2);
-                            ctx.fill();
+                            // Port broadside banks
+                            if (this.laserWeapons.broadside_port) {
+                                for (let bank of this.laserWeapons.broadside_port.banks) {
+                                    const glowAlpha = bank.cooldown > 0 ? 0.2 : 0.5;
+                                    ctx.fillStyle = this.laserWeapons.broadside_port.color.replace(/[\d.]+\)$/, `${glowAlpha})`);
+                                    const rectLength = bank.gunsPerBank * 2; // 2 pixels per gun
+                                    const rectWidth = 4;
+                                    ctx.fillRect(bank.x - rectWidth / 2, bank.y - rectLength / 2, rectWidth, rectLength);
+                                }
+                            }
+                            // Starboard broadside banks
+                            if (this.laserWeapons.broadside_starboard) {
+                                for (let bank of this.laserWeapons.broadside_starboard.banks) {
+                                    const glowAlpha = bank.cooldown > 0 ? 0.2 : 0.5;
+                                    ctx.fillStyle = this.laserWeapons.broadside_starboard.color.replace(/[\d.]+\)$/, `${glowAlpha})`);
+                                    const rectLength = bank.gunsPerBank * 2; // 2 pixels per gun
+                                    const rectWidth = 4;
+                                    ctx.fillRect(bank.x - rectWidth / 2, bank.y - rectLength / 2, rectWidth, rectLength);
+                                }
+                            }
                         }
                         continue;
                     }
 
                     for (let bank of weapon.banks) {
-                        // Glow active weapon hardpoints
                         const glowAlpha = bank.cooldown > 0 ? 0.2 : 0.5; // Dim when cooling
                         ctx.fillStyle = weapon.color.replace(/[\d.]+\)$/, `${glowAlpha})`);
-                        ctx.beginPath();
-                        ctx.arc(bank.x, bank.y, 5, 0, Math.PI * 2);
-                        ctx.fill();
+
+                        // Determine shape based on weapon type and gun count
+                        const gunsPerBank = bank.gunsPerBank || 1;
+
+                        if (weaponName === 'missiles' || weaponName === 'missile_arrays') {
+                            // Missiles: rectangular blocks
+                            const rectLength = 12;
+                            const rectWidth = 6;
+                            ctx.fillRect(bank.x - rectWidth / 2, bank.y - rectLength / 2, rectWidth, rectLength);
+                        } else if (gunsPerBank >= 10) {
+                            // Chasers (10 guns) or large banks: rectangles
+                            const rectLength = gunsPerBank * 2; // 2 pixels per gun
+                            const rectWidth = 4;
+                            ctx.fillRect(bank.x - rectWidth / 2, bank.y - rectLength / 2, rectWidth, rectLength);
+                        } else {
+                            // Spinal mounts (1 gun) and turrets (2 guns): points
+                            ctx.beginPath();
+                            ctx.arc(bank.x, bank.y, 5, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
                     }
                 }
 
@@ -18747,6 +18802,19 @@
             // Render capital ships
             for (let ship of capitalShips) {
                 ship.render();
+
+                // Draw sensor range circle for selected ship
+                if (ship === selectedCapitalShip) {
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(0, 255, 0, 0.4)';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([10, 5]);
+                    ctx.beginPath();
+                    ctx.arc(ship.x, ship.y, ship.sensorRange, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.restore();
+                }
             }
 
             // === POWER MANAGEMENT: Render Laser Beams ===
@@ -19107,10 +19175,12 @@
             // Show ships panel only if there are capital ships
             if (!capitalShips || capitalShips.length === 0) {
                 document.getElementById('shipsPanel').style.display = 'none';
+                document.getElementById('weaponLegendPanel').style.display = 'none';
                 return;
             }
 
             document.getElementById('shipsPanel').style.display = 'block';
+            document.getElementById('weaponLegendPanel').style.display = 'block';
 
             const shipsList = document.getElementById('shipsList');
             shipsList.innerHTML = '';
@@ -19160,6 +19230,12 @@
                         ${ship.reactor ? `
                             <div>Reactor: ${Math.floor(ship.reactor.stability)}%</div>
                         ` : ''}
+                        <div>Heading: ${Math.floor(ship.orderedEndHeading || ship.heading)}° / ${Math.floor(ship.heading)}°</div>
+                        <div>Pitch: ${Math.floor(ship.orderedPitch || ship.pitch || 0)}° / ${Math.floor(ship.pitch || 0)}°</div>
+                        <div>Roll: ${Math.floor(ship.orderedRoll || ship.roll || 0)}° / ${Math.floor(ship.roll || 0)}°</div>
+                        <div>Thrust: ${ship.orderedThrust >= 0 ? '+' : ''}${ship.orderedThrust}G / ${ship.currentThrust >= 0 ? '+' : ''}${ship.currentThrust.toFixed(1)}G</div>
+                        <div>Velocity: ${Math.floor(Math.sqrt(ship.vx * ship.vx + ship.vy * ship.vy))} m/s</div>
+                        <div>Direction: ${Math.floor(Math.atan2(ship.vy, ship.vx) * 180 / Math.PI + 360) % 360}°</div>
                     </div>
                 `;
 
@@ -19550,6 +19626,11 @@
             const levelChange = newLevel - groupCurrentLevel;
             const newDeviation = currentDeviation + levelChange;
 
+            // Allow temporary imbalances during ORDER phase, require balance when locking orders
+            // This makes the UI more usable - user can adjust one system at a time
+            if (gameState === 'ORDER') {
+                return Math.abs(newDeviation) <= 2; // Allow deviation of -2 to +2
+            }
             return newDeviation === 0;
         }
 
@@ -20198,7 +20279,7 @@
                 if (e.deltaY < 0) {
                     zoomLevel = Math.min(3.0, zoomLevel * 1.1); // Max 3x zoom
                 } else {
-                    zoomLevel = Math.max(0.5, zoomLevel / 1.1); // Min 0.5x zoom
+                    zoomLevel = Math.max(0.1, zoomLevel / 1.1); // Min 0.1x zoom
                 }
             }
         });
