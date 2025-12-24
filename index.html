@@ -3901,7 +3901,7 @@
                 firstYear: 1960,
                 lastYear: 2016,
                 sizeMultiplier: 1.45,
-                maxSpeed: 630,
+                maxSpeed: 410, // m/s (~1,476 km/h, Mach 1.2 at sea level) - Fixed from 630
                 minSpeed: 75,
                 maxTurnRate: 85,
                 maxClimbRate: 50,
@@ -3947,7 +3947,7 @@
                 firstYear: 1978,
                 lastYear: 1996,
                 sizeMultiplier: 1.45,
-                maxSpeed: 630,
+                maxSpeed: 410, // m/s (~1,476 km/h, Mach 1.2 at sea level) - Fixed from 630
                 minSpeed: 75,
                 maxTurnRate: 85,
                 maxClimbRate: 50,
@@ -3995,7 +3995,7 @@
                 firstYear: 1979,
                 lastYear: 2025,
                 sizeMultiplier: 1.30,
-                maxSpeed: 720,
+                maxSpeed: 450, // m/s (~1,620 km/h, Mach 1.3 at sea level) - Fixed from 720, slightly faster than F-4
                 minSpeed: 70,
                 maxTurnRate: 100,
                 maxClimbRate: 75,
@@ -4029,6 +4029,37 @@
                     effectiveness: 0.75
                 },
                 color: '#3366ff'
+            },
+            'MiG-21': {
+                name: 'Mikoyan-Gurevich MiG-21 Fishbed',
+                nation: 'Soviet',
+                role: 'Interceptor',
+                era: 'Vietnam',
+                generation: 2,
+                firstYear: 1959,
+                lastYear: 2013,
+                sizeMultiplier: 1.15, // Wingspan: 7.15m
+                maxSpeed: 400, // m/s (~1,440 km/h, Mach 1.17 at sea level)
+                minSpeed: 70,
+                maxTurnRate: 75, // Good turn rate for light fighter
+                maxClimbRate: 60,
+                maxDiveRate: 110,
+                maxGForce: 8.5,
+                maxAcceleration: 70,
+                maxBraking: 35,
+                serviceCeiling: 19000,
+                weapons: { type: 'cannon', count: 1, ammo: 200, burstSize: 6, damage: [8, 15], rof: 2 },
+                fuelCapacity: 6000,
+                fuelConsumption: 4.0,
+                canCarryBombs: true,
+                bombCapacity: 4,
+                canCarryRockets: true,
+                rocketCapacity: 8,
+                isJet: true,
+                durability: 0.85,
+                specialCapability: 'Lightweight interceptor - Fast and agile',
+                rcs: 8, // Smaller radar cross-section than F-4
+                color: '#ff6666'
             },
 
             //==============================================================================
@@ -10306,6 +10337,7 @@
             hurricane: new Image(),
             fw190: new Image(),
             me262: new Image(),
+            mig21: new Image(),
             zero: new Image(),
             bf110: new Image(),
             ju87: new Image(),
@@ -10421,6 +10453,7 @@
         aircraftImages.hurricane.src = 'images/hurricane.png';
         aircraftImages.fw190.src = 'images/fw190.png';
         aircraftImages.me262.src = 'images/me262.png';
+        aircraftImages.mig21.src = 'images/mig21.png';
         aircraftImages.zero.src = 'images/zero.png';
         aircraftImages.bf110.src = 'images/bf110.png';
         aircraftImages.ju87.src = 'images/ju87.png';
@@ -13571,6 +13604,7 @@
                         'BristolF2': 'f2',
                         'HanriotHD3': 'hd3',
                         'LetordLet5': 'let5',
+                        'DrI': 'dri',  // Fokker Dr.I Triplane - Fixed missing entry
                         'DrII': 'drii',
                         'DVII': 'dvii',
                         'DV': 'dv',
@@ -13593,6 +13627,10 @@
                         'Hurricane': 'hurricane',
                         'Fw-190': 'fw190',
                         'Me-262': 'me262',
+                        'F-4': 'f4phantom',
+                        'F-4G': 'f4phantom',
+                        'F-15C': 'f15eagle',
+                        'MiG-21': 'mig21',
                         'Zero': 'zero',
                         'Bf-110': 'bf110',
                         'Ju-87': 'ju87',
@@ -21245,8 +21283,8 @@
                 aircraft: [
                     { type: 'Camel', side: 'allied', isPlayer: true, x: 300, y: 500, altitude: 2000, heading: 90 },
                     { type: 'Camel', side: 'allied', isPlayer: false, x: 400, y: 500, altitude: 2000, heading: 90 },
-                    { type: 'DrII', side: 'central', isPlayer: false, x: 1500, y: 500, altitude: 2000, heading: 270 },
-                    { type: 'DrII', side: 'central', isPlayer: false, x: 1600, y: 500, altitude: 2000, heading: 270 }
+                    { type: 'DrI', side: 'central', isPlayer: false, x: 1500, y: 500, altitude: 2000, heading: 270 },
+                    { type: 'DrI', side: 'central', isPlayer: false, x: 1600, y: 500, altitude: 2000, heading: 270 }
                 ],
                 year: 1917,
                 terrain: 'auto'
@@ -21259,7 +21297,7 @@
                 aircraft: [
                     { type: 'SE5', side: 'allied', isPlayer: true, x: 300, y: 500, altitude: 2500, heading: 90 },
                     { type: 'SE5', side: 'allied', isPlayer: false, x: 400, y: 500, altitude: 2500, heading: 90 },
-                    { type: 'DrII', side: 'central', isPlayer: false, x: 1500, y: 500, altitude: 2500, heading: 270 }
+                    { type: 'DrI', side: 'central', isPlayer: false, x: 1500, y: 500, altitude: 2500, heading: 270 }
                 ],
                 year: 1918,
                 terrain: 'auto'
@@ -21305,8 +21343,8 @@
                     { type: 'Camel', side: 'allied', isPlayer: false, x: 500, y: 600, altitude: 2000, heading: 90 },
                     { type: 'DVII', side: 'central', isPlayer: false, x: 1400, y: 400, altitude: 2000, heading: 270 },
                     { type: 'DVII', side: 'central', isPlayer: false, x: 1500, y: 400, altitude: 2000, heading: 270 },
-                    { type: 'DrII', side: 'central', isPlayer: false, x: 1600, y: 500, altitude: 2000, heading: 270 },
-                    { type: 'DrII', side: 'central', isPlayer: false, x: 1700, y: 600, altitude: 2000, heading: 270 }
+                    { type: 'DrI', side: 'central', isPlayer: false, x: 1600, y: 500, altitude: 2000, heading: 270 },
+                    { type: 'DrI', side: 'central', isPlayer: false, x: 1700, y: 600, altitude: 2000, heading: 270 }
                 ],
                 year: 1917,
                 terrain: 'auto'

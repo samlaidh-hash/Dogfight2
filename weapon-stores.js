@@ -987,22 +987,38 @@ function createRocketFromStore(store, x, y, altitude, heading, target = null) {
 
 /**
  * Create a Missile instance from a missile store
- * Note: Missile class needs to be created
+ * @param {WeaponStore} store - Missile store
+ * @param {number} x - Launch X position
+ * @param {number} y - Launch Y position
+ * @param {number} altitude - Launch altitude
+ * @param {Aircraft} shooter - Aircraft launching the missile
+ * @param {Aircraft|CapitalShip} target - Target to lock onto
+ * @returns {Missile|null} - Missile object or null if invalid
  */
-function createMissileFromStore(store, x, y, altitude, heading, target) {
+function createMissileFromStore(store, x, y, altitude, shooter, target) {
     if (store.type !== 'missile') {
         console.error('Store is not a missile type');
         return null;
     }
 
-    // This will use a Missile class when it's created
-    // For now, return a placeholder or use modified Rocket class
-    console.warn('Missile class not yet implemented');
+    if (!shooter || !target) {
+        console.error('Shooter and target required for missile launch');
+        return null;
+    }
 
-    // Mark store as used
+    // Check if Missile class is available (should be defined in main game)
+    if (typeof Missile === 'undefined') {
+        console.error('Missile class not defined - ensure it is loaded before weapon-stores.js');
+        return null;
+    }
+
+    // Create missile instance
+    const missile = new Missile(x, y, altitude, shooter, target, store);
+    
+    // Mark store as used (decrements count)
     store.use();
 
-    return null;  // TODO: Implement Missile class
+    return missile;
 }
 
 // ============================================================================

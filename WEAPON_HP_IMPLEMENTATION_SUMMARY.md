@@ -229,3 +229,11 @@ useAngleBasedComponentDamage: true // Enable realistic component selection
 The system is now more realistic, with weapons being destroyed based on which component is hit and where the weapons are mounted on the aircraft.
 
 
+
+
+
+
+
+
+
+

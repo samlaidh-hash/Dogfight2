@@ -285,3 +285,11 @@ If full rescaling is too complex, consider:
 - **Consider performance**: Larger images may impact performance (test on slower devices)
 - **Backup first**: Save current working version before making changes
 
+
+
+
+
+
+
+
+

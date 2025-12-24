@@ -660,6 +660,484 @@
             }
         }
 
+        /* ===== LOADOUT PANEL STYLING ===== */
+        #loadoutPanel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 30px;
+            border-radius: 10px;
+            border: 2px solid #0f3460;
+            display: none;
+            width: 90%;
+            max-width: 1400px;
+            max-height: 90vh;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .loadout-container {
+            display: grid;
+            grid-template-columns: 280px 1fr 280px;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .performance-preview {
+            background: rgba(15, 52, 96, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #0f3460;
+        }
+
+        .performance-preview h3 {
+            font-size: 16px;
+            color: #e94560;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .perf-stat {
+            margin-bottom: 15px;
+        }
+
+        .perf-label {
+            font-size: 12px;
+            color: #ccc;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .perf-bar-container {
+            background: rgba(0, 0, 0, 0.5);
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid #0f3460;
+        }
+
+        .perf-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #0f9d58 0%, #88ff88 100%);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .perf-bar.degraded {
+            background: linear-gradient(90deg, #e94560 0%, #ff8877 100%);
+        }
+
+        .perf-bar.moderate {
+            background: linear-gradient(90deg, #f39c12 0%, #ffcc77 100%);
+        }
+
+        .perf-warning {
+            background: rgba(233, 69, 96, 0.2);
+            border: 1px solid #e94560;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 15px;
+            font-size: 11px;
+            color: #ff8877;
+        }
+
+        .aircraft-display {
+            background: rgba(15, 52, 96, 0.2);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #0f3460;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .aircraft-silhouette {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            aspect-ratio: 3/2;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400"><rect x="280" y="50" width="40" height="200" fill="%23888"/><rect x="150" y="180" width="300" height="40" fill="%23888"/><ellipse cx="300" cy="120" rx="25" ry="35" fill="%23666"/><rect x="260" y="250" width="20" height="50" fill="%23888"/><rect x="320" y="250" width="20" height="50" fill="%23888"/></svg>') center center no-repeat;
+            background-size: contain;
+            margin-bottom: 20px;
+        }
+
+        .hardpoint {
+            position: absolute;
+            width: 32px;
+            height: 32px;
+            background: rgba(15, 52, 96, 0.8);
+            border: 2px solid #0f9d58;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #fff;
+        }
+
+        .hardpoint:hover {
+            background: rgba(15, 157, 88, 0.5);
+            border-color: #88ff88;
+            transform: scale(1.2);
+            box-shadow: 0 0 10px rgba(136, 255, 136, 0.5);
+        }
+
+        .hardpoint.selected {
+            background: rgba(233, 69, 96, 0.8);
+            border-color: #e94560;
+            box-shadow: 0 0 15px rgba(233, 69, 96, 0.8);
+        }
+
+        .hardpoint.mounted {
+            border-color: #f39c12;
+            background: rgba(243, 156, 18, 0.5);
+        }
+
+        .hardpoint.mounted.selected {
+            background: rgba(233, 69, 96, 0.8);
+            border-color: #e94560;
+        }
+
+        .store-icon {
+            font-size: 16px;
+        }
+
+        .loadout-info {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 13px;
+            color: #ccc;
+        }
+
+        .loadout-weight {
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
+        .loadout-weight.warning {
+            color: #e94560;
+        }
+
+        .store-inventory {
+            background: rgba(15, 52, 96, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #0f3460;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .store-inventory h3 {
+            font-size: 16px;
+            color: #e94560;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .store-category {
+            margin-bottom: 20px;
+        }
+
+        .store-category-title {
+            font-size: 13px;
+            color: #88ff88;
+            font-weight: bold;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #0f3460;
+        }
+
+        .store-item {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 5px;
+            border: 1px solid #0f3460;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .store-item:hover {
+            background: rgba(15, 157, 88, 0.3);
+            border-color: #0f9d58;
+            transform: translateX(5px);
+        }
+
+        .store-item.selected {
+            background: rgba(233, 69, 96, 0.3);
+            border-color: #e94560;
+        }
+
+        .store-item.incompatible {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .store-item.incompatible:hover {
+            background: rgba(0, 0, 0, 0.4);
+            border-color: #666;
+            transform: none;
+        }
+
+        .store-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .store-item-name {
+            font-size: 13px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .store-item-icon {
+            font-size: 18px;
+        }
+
+        .store-item-stats {
+            font-size: 11px;
+            color: #aaa;
+            line-height: 1.4;
+        }
+
+        .store-item-stat {
+            margin-top: 2px;
+        }
+
+        .presets-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(15, 52, 96, 0.3);
+            border-radius: 8px;
+            border: 1px solid #0f3460;
+        }
+
+        .presets-section h3 {
+            font-size: 16px;
+            color: #e94560;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .presets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .preset-btn {
+            padding: 12px;
+            background: rgba(15, 52, 96, 0.6);
+            color: #fff;
+            border: 1px solid #0f3460;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .preset-btn:hover {
+            background: rgba(15, 157, 88, 0.6);
+            border-color: #0f9d58;
+            transform: translateY(-2px);
+        }
+
+        .preset-btn .preset-name {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .preset-btn .preset-desc {
+            font-size: 10px;
+            color: #ccc;
+        }
+
+        .symmetric-loading {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(243, 156, 18, 0.2);
+            border: 1px solid #f39c12;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .symmetric-loading label {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .symmetric-loading input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        #hudLoadout {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #0f3460;
+            min-width: 250px;
+            z-index: 75;
+            font-size: 12px;
+        }
+
+        #hudLoadout h4 {
+            font-size: 14px;
+            color: #e94560;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .hud-weapon-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin-bottom: 5px;
+            background: rgba(15, 52, 96, 0.3);
+            border-radius: 5px;
+            border: 1px solid #0f3460;
+            transition: all 0.2s;
+        }
+
+        .hud-weapon-item.selected {
+            background: rgba(233, 69, 96, 0.5);
+            border-color: #e94560;
+            box-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
+        }
+
+        .hud-weapon-item.depleted {
+            opacity: 0.4;
+        }
+
+        .hud-weapon-name {
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .hud-weapon-count {
+            font-size: 11px;
+            color: #88ff88;
+        }
+
+        .hud-weapon-count.low {
+            color: #f39c12;
+        }
+
+        .hud-weapon-count.empty {
+            color: #e94560;
+        }
+
+        .hud-weapon-hotkey {
+            font-size: 10px;
+            color: #888;
+            margin-left: 10px;
+        }
+
+        #loadoutTutorial {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .tutorial-content {
+            background: rgba(15, 52, 96, 0.95);
+            padding: 40px;
+            border-radius: 10px;
+            border: 2px solid #0f9d58;
+            max-width: 700px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .tutorial-content h2 {
+            font-size: 28px;
+            color: #e94560;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .tutorial-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+        }
+
+        .tutorial-section h3 {
+            font-size: 16px;
+            color: #88ff88;
+            margin-bottom: 10px;
+        }
+
+        .tutorial-section p {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #ccc;
+            margin-bottom: 8px;
+        }
+
+        .tutorial-section ul {
+            margin-left: 20px;
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .tutorial-section li {
+            margin-bottom: 5px;
+        }
+
+        .hotkey-ref {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .hotkey-key {
+            background: rgba(233, 69, 96, 0.3);
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .hotkey-action {
+            padding: 5px;
+            color: #ccc;
+        }
+
     </style>
 </head>
 <body>
@@ -916,7 +1394,192 @@
             <div class="panel-title">MISSION BRIEFING</div>
             <div id="briefingContent"></div>
             <div style="text-align: center; margin-top: 20px;">
-                <button class="btn btn-primary" onclick="startMission()">START MISSION</button>
+                <button class="btn btn-primary" onclick="proceedToLoadout()">CONFIGURE LOADOUT</button>
+            </div>
+        </div>
+
+        <!-- Loadout Selection Panel -->
+        <div id="loadoutPanel">
+            <div class="panel-title">AIRCRAFT LOADOUT</div>
+            <div id="loadoutAircraftName" style="text-align: center; font-size: 18px; color: #88ff88; margin-bottom: 15px;"></div>
+
+            <div class="loadout-container">
+                <!-- Left: Performance Preview -->
+                <div class="performance-preview">
+                    <h3>PERFORMANCE IMPACT</h3>
+                    <div class="perf-stat">
+                        <div class="perf-label">
+                            <span>Max Speed</span>
+                            <span id="perfSpeedValue">100%</span>
+                        </div>
+                        <div class="perf-bar-container">
+                            <div class="perf-bar" id="perfSpeedBar" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <div class="perf-stat">
+                        <div class="perf-label">
+                            <span>Turn Rate</span>
+                            <span id="perfTurnValue">100%</span>
+                        </div>
+                        <div class="perf-bar-container">
+                            <div class="perf-bar" id="perfTurnBar" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <div class="perf-stat">
+                        <div class="perf-label">
+                            <span>Climb Rate</span>
+                            <span id="perfClimbValue">100%</span>
+                        </div>
+                        <div class="perf-bar-container">
+                            <div class="perf-bar" id="perfClimbBar" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <div class="perf-stat">
+                        <div class="perf-label">
+                            <span>Acceleration</span>
+                            <span id="perfAccelValue">100%</span>
+                        </div>
+                        <div class="perf-bar-container">
+                            <div class="perf-bar" id="perfAccelBar" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <div id="perfWarning" class="perf-warning" style="display: none;">
+                        Warning: Heavy loadout will significantly impact aircraft performance!
+                    </div>
+                </div>
+
+                <!-- Center: Aircraft Silhouette -->
+                <div class="aircraft-display">
+                    <div class="aircraft-silhouette" id="aircraftSilhouette">
+                        <!-- Hardpoints will be dynamically added here -->
+                    </div>
+                    <div class="loadout-info">
+                        <div id="hardpointInfo">Click a hardpoint to select it, then choose a store from the right panel</div>
+                        <div class="loadout-weight">
+                            Total Weight: <span id="loadoutWeight">0</span> kg
+                        </div>
+                    </div>
+
+                    <!-- Presets Section -->
+                    <div class="presets-section">
+                        <h3>QUICK LOADOUTS</h3>
+                        <div class="presets-grid">
+                            <button class="preset-btn" onclick="applyPreset('air_to_air')">
+                                <div class="preset-name">Air-to-Air</div>
+                                <div class="preset-desc">All missiles</div>
+                            </button>
+                            <button class="preset-btn" onclick="applyPreset('ground_attack')">
+                                <div class="preset-name">Ground Attack</div>
+                                <div class="preset-desc">Bombs & rockets</div>
+                            </button>
+                            <button class="preset-btn" onclick="applyPreset('long_range')">
+                                <div class="preset-name">Long Range</div>
+                                <div class="preset-desc">Fuel tanks</div>
+                            </button>
+                            <button class="preset-btn" onclick="applyPreset('sead')">
+                                <div class="preset-name">SEAD</div>
+                                <div class="preset-desc">Anti-radar</div>
+                            </button>
+                            <button class="preset-btn" onclick="applyPreset('clean')">
+                                <div class="preset-name">Clean</div>
+                                <div class="preset-desc">No stores</div>
+                            </button>
+                        </div>
+                        <div class="symmetric-loading">
+                            <label>
+                                <input type="checkbox" id="symmetricLoading" checked>
+                                Symmetric Loading (auto-mirror left/right)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Store Inventory -->
+                <div class="store-inventory">
+                    <h3>AVAILABLE STORES</h3>
+                    <div id="storeInventory">
+                        <!-- Stores will be dynamically added here -->
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn" onclick="showLoadoutTutorial()">HELP</button>
+                <button class="btn btn-primary" onclick="confirmLoadout()">START MISSION</button>
+            </div>
+        </div>
+
+        <!-- In-game HUD Loadout Display -->
+        <div id="hudLoadout" style="display: none;">
+            <h4>LOADOUT</h4>
+            <div id="hudWeaponList">
+                <!-- Weapons will be dynamically added here -->
+            </div>
+            <div style="text-align: center; font-size: 10px; color: #888; margin-top: 10px;">
+                Press Z to cycle weapons
+            </div>
+        </div>
+
+        <!-- Tutorial/Help Overlay -->
+        <div id="loadoutTutorial">
+            <div class="tutorial-content">
+                <h2>LOADOUT SYSTEM GUIDE</h2>
+
+                <div class="tutorial-section">
+                    <h3>Overview</h3>
+                    <p>Configure your aircraft's weapons and equipment before each mission. Your loadout affects both your combat capability and aircraft performance.</p>
+                </div>
+
+                <div class="tutorial-section">
+                    <h3>How to Use</h3>
+                    <ul>
+                        <li>Click a <strong>hardpoint</strong> (circle on aircraft) to select it</li>
+                        <li>Choose a <strong>store</strong> from the right panel to mount it</li>
+                        <li>Compatible stores are highlighted; incompatible ones are grayed out</li>
+                        <li>Use <strong>Symmetric Loading</strong> to auto-mirror left/right pylons</li>
+                        <li>Click <strong>Quick Loadouts</strong> for pre-configured setups</li>
+                    </ul>
+                </div>
+
+                <div class="tutorial-section">
+                    <h3>Performance Impact</h3>
+                    <p>External stores add weight and drag, reducing your aircraft's performance:</p>
+                    <ul>
+                        <li><strong>Green bars (80-100%)</strong>: Minimal impact</li>
+                        <li><strong>Yellow bars (60-79%)</strong>: Moderate degradation</li>
+                        <li><strong>Red bars (<60%)</strong>: Significant penalty</li>
+                    </ul>
+                    <p>Balance firepower against maneuverability based on your mission!</p>
+                </div>
+
+                <div class="tutorial-section">
+                    <h3>In-Game Weapon Selection</h3>
+                    <div class="hotkey-ref">
+                        <div class="hotkey-key">Z</div>
+                        <div class="hotkey-action">Cycle through mounted weapons</div>
+                        <div class="hotkey-key">M</div>
+                        <div class="hotkey-action">Fire selected air-to-air missile</div>
+                        <div class="hotkey-key">N</div>
+                        <div class="hotkey-action">Drop selected bomb</div>
+                        <div class="hotkey-key">K</div>
+                        <div class="hotkey-action">Fire selected rocket</div>
+                    </div>
+                </div>
+
+                <div class="tutorial-section">
+                    <h3>Store Types</h3>
+                    <ul>
+                        <li><strong>Air-to-Air Missiles</strong>: Lock-on guided weapons for dogfighting</li>
+                        <li><strong>Bombs</strong>: Unguided gravity weapons for ground targets</li>
+                        <li><strong>Rockets</strong>: Unguided projectiles, good vs soft targets</li>
+                        <li><strong>Anti-Radar</strong>: Homing missiles for SEAD missions</li>
+                        <li><strong>Fuel Tanks</strong>: Extended range, minimal combat penalty</li>
+                    </ul>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <button class="btn btn-primary" onclick="hideLoadoutTutorial()">GOT IT</button>
+                </div>
             </div>
         </div>
 
@@ -1759,6 +2422,1184 @@
         ];
 
         // Aircraft database with historically accurate specifications
+        // ===== LOADOUT SYSTEM - WEAPON STORES =====
+        const WEAPON_STORES = {
+            aim9_sidewinder: {
+                id: 'aim9_sidewinder',
+                name: 'AIM-9 Sidewinder',
+                type: 'missile_aa',
+                icon: '🚀',
+                weight: 85,
+                drag: 0.15,
+                count: 1,
+                damage: 50,
+                range: 3000,
+                speed: 600,
+                compatibleHardpoints: ['wing_tip', 'wing_inner', 'wing_outer', 'fuselage'],
+                description: 'Short-range infrared-guided air-to-air missile'
+            },
+            aim7_sparrow: {
+                id: 'aim7_sparrow',
+                name: 'AIM-7 Sparrow',
+                type: 'missile_aa',
+                icon: '🚀',
+                weight: 230,
+                drag: 0.25,
+                count: 1,
+                damage: 70,
+                range: 5000,
+                speed: 800,
+                compatibleHardpoints: ['fuselage', 'wing_inner'],
+                description: 'Medium-range radar-guided air-to-air missile',
+                era: 'Vietnam'
+            },
+            bomb_250lb: {
+                id: 'bomb_250lb',
+                name: '250lb GP Bomb',
+                type: 'bomb',
+                icon: '💣',
+                weight: 113,
+                drag: 0.20,
+                count: 1,
+                damage: 100,
+                blastRadius: 50,
+                compatibleHardpoints: ['wing_inner', 'wing_outer', 'fuselage', 'centerline'],
+                description: 'General purpose 250-pound bomb',
+                era: 'WW2'
+            },
+            bomb_500lb: {
+                id: 'bomb_500lb',
+                name: '500lb GP Bomb',
+                type: 'bomb',
+                icon: '💣',
+                weight: 227,
+                drag: 0.30,
+                count: 1,
+                damage: 200,
+                blastRadius: 80,
+                compatibleHardpoints: ['wing_inner', 'fuselage', 'centerline'],
+                description: 'General purpose 500-pound bomb',
+                era: 'WW2'
+            },
+            bomb_1000lb: {
+                id: 'bomb_1000lb',
+                name: '1000lb GP Bomb',
+                type: 'bomb',
+                icon: '💣',
+                weight: 454,
+                drag: 0.40,
+                count: 1,
+                damage: 400,
+                blastRadius: 120,
+                compatibleHardpoints: ['centerline', 'fuselage'],
+                description: 'Heavy general purpose 1000-pound bomb',
+                era: 'Modern'
+            },
+            hydra_70: {
+                id: 'hydra_70',
+                name: 'Hydra 70 Rocket Pod',
+                type: 'rocket',
+                icon: '🎯',
+                weight: 115,
+                drag: 0.25,
+                count: 19,
+                damage: 20,
+                range: 8000,
+                compatibleHardpoints: ['wing_outer', 'wing_inner'],
+                description: '19x 70mm unguided rockets',
+                era: 'Modern'
+            },
+            zuni_rocket: {
+                id: 'zuni_rocket',
+                name: 'Zuni Rocket Pod',
+                type: 'rocket',
+                icon: '🎯',
+                weight: 180,
+                drag: 0.30,
+                count: 4,
+                damage: 60,
+                range: 4500,
+                compatibleHardpoints: ['wing_inner', 'fuselage'],
+                description: '4x 127mm heavy unguided rockets',
+                era: 'Vietnam'
+            },
+            agm45_shrike: {
+                id: 'agm45_shrike',
+                name: 'AGM-45 Shrike',
+                type: 'missile_ar',
+                icon: '⚡',
+                weight: 177,
+                drag: 0.20,
+                count: 1,
+                damage: 150,
+                range: 16000,
+                compatibleHardpoints: ['wing_inner', 'fuselage'],
+                description: 'Anti-radiation missile for SEAD missions',
+                era: 'Vietnam'
+            },
+            fuel_tank_150gal: {
+                id: 'fuel_tank_150gal',
+                name: '150gal Fuel Tank',
+                type: 'fuel',
+                icon: '⛽',
+                weight: 567,
+                drag: 0.35,
+                fuelCapacity: 567,
+                compatibleHardpoints: ['wing_inner', 'centerline'],
+                description: 'External fuel tank for extended range',
+                era: 'WW2'
+            },
+            fuel_tank_300gal: {
+                id: 'fuel_tank_300gal',
+                name: '300gal Fuel Tank',
+                type: 'fuel',
+                icon: '⛽',
+                weight: 1134,
+                drag: 0.50,
+                fuelCapacity: 1134,
+                compatibleHardpoints: ['centerline', 'fuselage'],
+                description: 'Large external fuel tank for long-range missions',
+                era: 'Modern'
+            },
+            gunpod_20mm: {
+                id: 'gunpod_20mm',
+                name: '20mm Gun Pod',
+                type: 'gun',
+                icon: '🔫',
+                weight: 272,
+                drag: 0.25,
+                ammo: 300,
+                rof: 6,
+                damage: [8, 15],
+                compatibleHardpoints: ['centerline', 'fuselage'],
+                description: 'External 20mm cannon pod',
+                era: 'Vietnam'
+            },
+
+            // ========================================================================
+            // ADDITIONAL BOMBS FROM WEAPON-STORES.JS
+            // ========================================================================
+
+            // WW2 Era Bombs
+            an_m64_500: {
+                id: 'an_m64_500',
+                name: 'AN-M64 500lb GP Bomb',
+                type: 'bomb',
+                icon: '💣',
+                weight: 227,
+                drag: 0.15,
+                count: 1,
+                damage: 80,
+                blastRadius: 50,
+                compatibleHardpoints: ['wing_inner', 'wing_outer', 'fuselage', 'centerline'],
+                description: 'WW2 American 500-pound general purpose bomb',
+                era: 'WW2'
+            },
+            gp_500: {
+                id: 'gp_500',
+                name: 'GP 500lb Bomb (British)',
+                type: 'bomb',
+                icon: '💣',
+                weight: 227,
+                drag: 0.16,
+                count: 1,
+                damage: 75,
+                blastRadius: 48,
+                compatibleHardpoints: ['wing_inner', 'wing_outer', 'fuselage', 'centerline'],
+                description: 'WW2 British 500-pound general purpose bomb',
+                era: 'WW2'
+            },
+            sc_500: {
+                id: 'sc_500',
+                name: 'SC 500 (German 500kg)',
+                type: 'bomb',
+                icon: '💣',
+                weight: 500,
+                drag: 0.14,
+                count: 1,
+                damage: 100,
+                blastRadius: 60,
+                compatibleHardpoints: ['centerline', 'fuselage'],
+                description: 'WW2 German 500kg bomb - most powerful WW2 bomb',
+                era: 'WW2'
+            },
+            an_m30_100: {
+                id: 'an_m30_100',
+                name: 'AN-M30 100lb GP Bomb',
+                type: 'bomb',
+                icon: '💣',
+                weight: 45,
+                drag: 0.18,
+                count: 1,
+                damage: 40,
+                blastRadius: 30,
+                compatibleHardpoints: ['wing_inner', 'wing_outer', 'fuselage', 'centerline'],
+                description: 'WW2 American 100-pound bomb - lightest bomb',
+                era: 'WW2'
+            },
+            sc_250: {
+                id: 'sc_250',
+                name: 'SC 250 (German 250kg)',
+                type: 'bomb',
+                icon: '💣',
+                weight: 250,
+                drag: 0.15,
+                count: 1,
+                damage: 65,
+                blastRadius: 45,
+                compatibleHardpoints: ['wing_inner', 'fuselage', 'centerline'],
+                description: 'WW2 German 250kg bomb',
+                era: 'WW2'
+            },
+
+            // Modern Era Bombs
+            mk82: {
+                id: 'mk82',
+                name: 'Mk.82 500lb Bomb',
+                type: 'bomb',
+                icon: '💣',
+                weight: 241,
+                drag: 0.12,
+                count: 1,
+                damage: 95,
+                blastRadius: 55,
+                compatibleHardpoints: ['wing_inner', 'wing_outer', 'fuselage', 'centerline'],
+                description: 'Modern 500-pound bomb',
+                era: 'Modern'
+            },
+            mk83: {
+                id: 'mk83',
+                name: 'Mk.83 1000lb Bomb',
+                type: 'bomb',
+                icon: '💣',
+                weight: 447,
+                drag: 0.13,
+                count: 1,
+                damage: 130,
+                blastRadius: 70,
+                compatibleHardpoints: ['wing_inner', 'fuselage', 'centerline'],
+                description: 'Modern 1000-pound bomb',
+                era: 'Modern'
+            },
+            mk84: {
+                id: 'mk84',
+                name: 'Mk.84 2000lb Bomb',
+                type: 'bomb',
+                icon: '💣',
+                weight: 894,
+                drag: 0.13,
+                count: 1,
+                damage: 180,
+                blastRadius: 90,
+                compatibleHardpoints: ['centerline', 'fuselage'],
+                description: 'Modern 2000-pound bomb - heaviest bomb',
+                era: 'Modern'
+            },
+
+            // ========================================================================
+            // ADDITIONAL MISSILES FROM WEAPON-STORES.JS
+            // ========================================================================
+
+            aim9l: {
+                id: 'aim9l',
+                name: 'AIM-9L Sidewinder (All-Aspect)',
+                type: 'missile_aa',
+                icon: '🚀',
+                weight: 85,
+                drag: 0.07,
+                count: 1,
+                damage: 65,
+                range: 3500,
+                speed: 650,
+                compatibleHardpoints: ['wing_tip', 'wing_inner', 'wing_outer', 'fuselage'],
+                description: 'All-aspect infrared-guided air-to-air missile',
+                era: 'Modern'
+            },
+            r60_aphid: {
+                id: 'r60_aphid',
+                name: 'R-60 Aphid (AA-8)',
+                type: 'missile_aa',
+                icon: '🚀',
+                weight: 43,
+                drag: 0.09,
+                count: 1,
+                damage: 50,
+                range: 2500,
+                speed: 550,
+                compatibleHardpoints: ['wing_tip', 'wing_inner', 'wing_outer', 'fuselage'],
+                description: 'Soviet short-range infrared-guided missile - lightest missile',
+                era: 'Modern'
+            },
+            aim120_amraam: {
+                id: 'aim120_amraam',
+                name: 'AIM-120 AMRAAM',
+                type: 'missile_aa',
+                icon: '🚀',
+                weight: 152,
+                drag: 0.06,
+                count: 1,
+                damage: 75,
+                range: 8000,
+                speed: 1000,
+                compatibleHardpoints: ['fuselage', 'wing_inner'],
+                description: 'Modern active radar-guided air-to-air missile',
+                era: 'Modern'
+            },
+            r27_alamo: {
+                id: 'r27_alamo',
+                name: 'R-27 Alamo (AA-10)',
+                type: 'missile_aa',
+                icon: '🚀',
+                weight: 253,
+                drag: 0.07,
+                count: 1,
+                damage: 85,
+                range: 7000,
+                speed: 900,
+                compatibleHardpoints: ['fuselage', 'wing_inner'],
+                description: 'Soviet radar-guided air-to-air missile - heaviest missile',
+                era: 'Modern'
+            },
+
+            // ========================================================================
+            // ADDITIONAL ROCKET PODS FROM WEAPON-STORES.JS
+            // ========================================================================
+
+            lau3_19: {
+                id: 'lau3_19',
+                name: 'LAU-3/A (19× 2.75" Rockets)',
+                type: 'rocket',
+                icon: '🎯',
+                weight: 95,
+                drag: 0.25,
+                count: 19,
+                damage: 40,
+                range: 8000,
+                compatibleHardpoints: ['wing_outer', 'wing_inner'],
+                description: 'Vietnam era 19× 2.75" unguided rockets',
+                era: 'Vietnam'
+            },
+            ub32: {
+                id: 'ub32',
+                name: 'UB-32 (32× S-5 Rockets)',
+                type: 'rocket',
+                icon: '🎯',
+                weight: 115,
+                drag: 0.28,
+                count: 32,
+                damage: 35,
+                range: 6000,
+                compatibleHardpoints: ['wing_outer', 'wing_inner'],
+                description: 'Soviet rocket pod with 32 rockets - most rockets',
+                era: 'Modern'
+            },
+            rp3_rail: {
+                id: 'rp3_rail',
+                name: 'RP-3 Rail (8× 60lb Rockets)',
+                type: 'rocket',
+                icon: '🎯',
+                weight: 85,
+                drag: 0.35,
+                count: 8,
+                damage: 55,
+                range: 5000,
+                compatibleHardpoints: ['wing_outer', 'wing_inner'],
+                description: 'WW2 British 8× 60-pound rockets',
+                era: 'WW2'
+            },
+            m8_launcher: {
+                id: 'm8_launcher',
+                name: 'M8 4.5" Launcher (6 Rockets)',
+                type: 'rocket',
+                icon: '🎯',
+                weight: 65,
+                drag: 0.32,
+                count: 6,
+                damage: 48,
+                range: 4500,
+                compatibleHardpoints: ['wing_outer', 'wing_inner'],
+                description: 'WW2 American 6× 4.5" rockets',
+                era: 'WW2'
+            },
+            hydra70_7: {
+                id: 'hydra70_7',
+                name: 'LAU-68 (7× Hydra 70)',
+                type: 'rocket',
+                icon: '🎯',
+                weight: 58,
+                drag: 0.22,
+                count: 7,
+                damage: 42,
+                range: 8000,
+                compatibleHardpoints: ['wing_outer', 'wing_inner'],
+                description: 'Modern 7× Hydra 70 rockets - lightest rocket pod',
+                era: 'Modern'
+            },
+
+            // ========================================================================
+            // ADDITIONAL FUEL TANKS FROM WEAPON-STORES.JS
+            // ========================================================================
+
+            drop_300: {
+                id: 'drop_300',
+                name: '300 Gallon Drop Tank',
+                type: 'fuel',
+                icon: '⛽',
+                weight: 910,
+                drag: 0.18,
+                fuelCapacity: 1136,
+                compatibleHardpoints: ['wing_inner', 'centerline'],
+                description: 'WW2 300-gallon external fuel tank',
+                era: 'WW2'
+            },
+            drop_600: {
+                id: 'drop_600',
+                name: '600 Gallon Drop Tank',
+                type: 'fuel',
+                icon: '⛽',
+                weight: 1820,
+                drag: 0.20,
+                fuelCapacity: 2271,
+                compatibleHardpoints: ['centerline', 'fuselage'],
+                description: 'Modern 600-gallon external fuel tank - heaviest store',
+                era: 'Modern'
+            },
+            drop_1000l: {
+                id: 'drop_1000l',
+                name: '1000 Liter Drop Tank',
+                type: 'fuel',
+                icon: '⛽',
+                weight: 800,
+                drag: 0.19,
+                fuelCapacity: 1000,
+                compatibleHardpoints: ['wing_inner', 'centerline'],
+                description: 'Modern 1000-liter external fuel tank',
+                era: 'Modern'
+            },
+            centerline_370: {
+                id: 'centerline_370',
+                name: '370 Gallon Centerline Tank',
+                type: 'fuel',
+                icon: '⛽',
+                weight: 1122,
+                drag: 0.17,
+                fuelCapacity: 1401,
+                compatibleHardpoints: ['centerline'],
+                description: 'Vietnam era 370-gallon centerline fuel tank',
+                era: 'Vietnam'
+            },
+
+            // ========================================================================
+            // ADDITIONAL GUN PODS FROM WEAPON-STORES.JS
+            // ========================================================================
+
+            suu23_a: {
+                id: 'suu23_a',
+                name: 'SUU-23/A 20mm Gun Pod',
+                type: 'gun',
+                icon: '🔫',
+                weight: 286,
+                drag: 0.22,
+                ammo: 1200,
+                rof: 100,
+                damage: [8, 15],
+                compatibleHardpoints: ['centerline', 'fuselage'],
+                description: 'Vietnam era 20mm gun pod with 1200 rounds',
+                era: 'Vietnam'
+            },
+            gpu5_a: {
+                id: 'gpu5_a',
+                name: 'GPU-5/A 30mm GAU-8 Pod',
+                type: 'gun',
+                icon: '🔫',
+                weight: 860,
+                drag: 0.24,
+                ammo: 353,
+                rof: 70,
+                damage: [15, 25],
+                compatibleHardpoints: ['centerline', 'fuselage'],
+                description: 'Modern 30mm GAU-8 gun pod - heaviest gun pod',
+                era: 'Modern'
+            },
+            aden_pod: {
+                id: 'aden_pod',
+                name: 'ADEN 30mm Gun Pod',
+                type: 'gun',
+                icon: '🔫',
+                weight: 320,
+                drag: 0.21,
+                ammo: 150,
+                rof: 22,
+                damage: [12, 20],
+                compatibleHardpoints: ['centerline', 'fuselage'],
+                description: 'Modern 30mm cannon pod',
+                era: 'Modern'
+            },
+
+            // ========================================================================
+            // ECM PODS FROM WEAPON-STORES.JS
+            // ========================================================================
+
+            alq131: {
+                id: 'alq131',
+                name: 'ALQ-131 ECM Pod',
+                type: 'ecm',
+                icon: '📡',
+                weight: 195,
+                drag: 0.15,
+                jamEffectiveness: 0.65,
+                compatibleHardpoints: ['centerline', 'fuselage'],
+                description: 'Standard ECM pod - reduces enemy radar effectiveness by 65%',
+                era: 'Modern'
+            },
+            alq184: {
+                id: 'alq184',
+                name: 'ALQ-184 ECM Pod',
+                type: 'ecm',
+                icon: '📡',
+                weight: 160,
+                drag: 0.14,
+                jamEffectiveness: 0.70,
+                compatibleHardpoints: ['centerline', 'fuselage'],
+                description: 'Advanced ECM pod - 70% effectiveness, lightest ECM pod',
+                era: 'Modern'
+            },
+            sps141: {
+                id: 'sps141',
+                name: 'SPS-141 ECM Pod (Soviet)',
+                type: 'ecm',
+                icon: '📡',
+                weight: 170,
+                drag: 0.16,
+                jamEffectiveness: 0.60,
+                compatibleHardpoints: ['centerline', 'fuselage'],
+                description: 'Soviet ECM pod - 60% effectiveness',
+                era: 'Modern'
+            }
+        };
+
+        // Hardpoint definitions for different aircraft
+        const AIRCRAFT_HARDPOINTS = {
+            'Spitfire': [
+                { id: 'wing_left_outer', position: { left: '22%', top: '45%' }, type: 'wing_outer', mirror: 'wing_right_outer' },
+                { id: 'wing_right_outer', position: { left: '78%', top: '45%' }, type: 'wing_outer', mirror: 'wing_left_outer' },
+                { id: 'wing_left_inner', position: { left: '35%', top: '48%' }, type: 'wing_inner', mirror: 'wing_right_inner' },
+                { id: 'wing_right_inner', position: { left: '65%', top: '48%' }, type: 'wing_inner', mirror: 'wing_left_inner' },
+                { id: 'fuselage_center', position: { left: '50%', top: '52%' }, type: 'centerline', mirror: null }
+            ],
+            'Me-109': [
+                { id: 'wing_left', position: { left: '28%', top: '47%' }, type: 'wing_outer', mirror: 'wing_right' },
+                { id: 'wing_right', position: { left: '72%', top: '47%' }, type: 'wing_outer', mirror: 'wing_left' },
+                { id: 'centerline', position: { left: '50%', top: '50%' }, type: 'centerline', mirror: null }
+            ],
+            'P-51': [
+                { id: 'wing_tip_left', position: { left: '18%', top: '44%' }, type: 'wing_tip', mirror: 'wing_tip_right' },
+                { id: 'wing_tip_right', position: { left: '82%', top: '44%' }, type: 'wing_tip', mirror: 'wing_tip_left' },
+                { id: 'wing_left_outer', position: { left: '28%', top: '46%' }, type: 'wing_outer', mirror: 'wing_right_outer' },
+                { id: 'wing_right_outer', position: { left: '72%', top: '46%' }, type: 'wing_outer', mirror: 'wing_left_outer' },
+                { id: 'wing_left_inner', position: { left: '38%', top: '48%' }, type: 'wing_inner', mirror: 'wing_right_inner' },
+                { id: 'wing_right_inner', position: { left: '62%', top: '48%' }, type: 'wing_inner', mirror: 'wing_left_inner' }
+            ],
+            'P-47': [
+                { id: 'wing_left_outer', position: { left: '25%', top: '46%' }, type: 'wing_outer', mirror: 'wing_right_outer' },
+                { id: 'wing_right_outer', position: { left: '75%', top: '46%' }, type: 'wing_outer', mirror: 'wing_left_outer' },
+                { id: 'wing_left_mid', position: { left: '32%', top: '47%' }, type: 'wing_outer', mirror: 'wing_right_mid' },
+                { id: 'wing_right_mid', position: { left: '68%', top: '47%' }, type: 'wing_outer', mirror: 'wing_left_mid' },
+                { id: 'wing_left_inner', position: { left: '38%', top: '48%' }, type: 'wing_inner', mirror: 'wing_right_inner' },
+                { id: 'wing_right_inner', position: { left: '62%', top: '48%' }, type: 'wing_inner', mirror: 'wing_left_inner' },
+                { id: 'fuselage_center', position: { left: '50%', top: '50%' }, type: 'fuselage', mirror: null }
+            ],
+            'Hurricane': [
+                { id: 'wing_left', position: { left: '30%', top: '46%' }, type: 'wing_outer', mirror: 'wing_right' },
+                { id: 'wing_right', position: { left: '70%', top: '46%' }, type: 'wing_outer', mirror: 'wing_left' }
+            ],
+            'P-40': [
+                { id: 'wing_left', position: { left: '32%', top: '47%' }, type: 'wing_outer', mirror: 'wing_right' },
+                { id: 'wing_right', position: { left: '68%', top: '47%' }, type: 'wing_outer', mirror: 'wing_left' },
+                { id: 'centerline', position: { left: '50%', top: '50%' }, type: 'centerline', mirror: null }
+            ],
+            'Fw-190': [
+                { id: 'wing_left_outer', position: { left: '26%', top: '46%' }, type: 'wing_outer', mirror: 'wing_right_outer' },
+                { id: 'wing_right_outer', position: { left: '74%', top: '46%' }, type: 'wing_outer', mirror: 'wing_left_outer' },
+                { id: 'wing_left_inner', position: { left: '36%', top: '48%' }, type: 'wing_inner', mirror: 'wing_right_inner' },
+                { id: 'wing_right_inner', position: { left: '64%', top: '48%' }, type: 'wing_inner', mirror: 'wing_left_inner' }
+            ],
+            'Me-262': [
+                { id: 'wing_left_outer', position: { left: '24%', top: '45%' }, type: 'wing_outer', mirror: 'wing_right_outer' },
+                { id: 'wing_right_outer', position: { left: '76%', top: '45%' }, type: 'wing_outer', mirror: 'wing_left_outer' },
+                { id: 'wing_left_inner', position: { left: '34%', top: '47%' }, type: 'wing_inner', mirror: 'wing_right_inner' },
+                { id: 'wing_right_inner', position: { left: '66%', top: '47%' }, type: 'wing_inner', mirror: 'wing_left_inner' },
+                { id: 'fuselage_front', position: { left: '50%', top: '48%' }, type: 'fuselage', mirror: null },
+                { id: 'fuselage_rear', position: { left: '50%', top: '52%' }, type: 'fuselage', mirror: null }
+            ],
+            'Zero': [
+                { id: 'wing_left', position: { left: '28%', top: '46%' }, type: 'wing_outer', mirror: 'wing_right' },
+                { id: 'wing_right', position: { left: '72%', top: '46%' }, type: 'wing_outer', mirror: 'wing_left' },
+                { id: 'centerline', position: { left: '50%', top: '50%' }, type: 'centerline', mirror: null }
+            ],
+            'F-4': [
+                { id: 'wing_tip_l', position: { left: '20%', top: '44%' }, type: 'wing_tip', mirror: 'wing_tip_r' },
+                { id: 'wing_tip_r', position: { left: '80%', top: '44%' }, type: 'wing_tip', mirror: 'wing_tip_l' },
+                { id: 'wing_outer_l', position: { left: '28%', top: '46%' }, type: 'wing_outer', mirror: 'wing_outer_r' },
+                { id: 'wing_outer_r', position: { left: '72%', top: '46%' }, type: 'wing_outer', mirror: 'wing_outer_l' },
+                { id: 'wing_inner_l', position: { left: '38%', top: '48%' }, type: 'wing_inner', mirror: 'wing_inner_r' },
+                { id: 'wing_inner_r', position: { left: '62%', top: '48%' }, type: 'wing_inner', mirror: 'wing_inner_l' },
+                { id: 'fuselage_l', position: { left: '45%', top: '50%' }, type: 'fuselage', mirror: 'fuselage_r' },
+                { id: 'fuselage_r', position: { left: '55%', top: '50%' }, type: 'fuselage', mirror: 'fuselage_l' },
+                { id: 'centerline', position: { left: '50%', top: '52%' }, type: 'centerline', mirror: null }
+            ],
+            'F-4G': [
+                { id: 'wing_tip_l', position: { left: '20%', top: '44%' }, type: 'wing_tip', mirror: 'wing_tip_r' },
+                { id: 'wing_tip_r', position: { left: '80%', top: '44%' }, type: 'wing_tip', mirror: 'wing_tip_l' },
+                { id: 'wing_outer_l', position: { left: '28%', top: '46%' }, type: 'wing_outer', mirror: 'wing_outer_r' },
+                { id: 'wing_outer_r', position: { left: '72%', top: '46%' }, type: 'wing_outer', mirror: 'wing_outer_l' },
+                { id: 'wing_inner_l', position: { left: '38%', top: '48%' }, type: 'wing_inner', mirror: 'wing_inner_r' },
+                { id: 'wing_inner_r', position: { left: '62%', top: '48%' }, type: 'wing_inner', mirror: 'wing_inner_l' },
+                { id: 'fuselage_l', position: { left: '45%', top: '50%' }, type: 'fuselage', mirror: 'fuselage_r' },
+                { id: 'fuselage_r', position: { left: '55%', top: '50%' }, type: 'fuselage', mirror: 'fuselage_l' },
+                { id: 'centerline', position: { left: '50%', top: '52%' }, type: 'centerline', mirror: null }
+            ],
+            'F-15C': [
+                { id: 'wing_tip_l', position: { left: '18%', top: '44%' }, type: 'wing_tip', mirror: 'wing_tip_r' },
+                { id: 'wing_tip_r', position: { left: '82%', top: '44%' }, type: 'wing_tip', mirror: 'wing_tip_l' },
+                { id: 'wing_outer_l', position: { left: '26%', top: '46%' }, type: 'wing_outer', mirror: 'wing_outer_r' },
+                { id: 'wing_outer_r', position: { left: '74%', top: '46%' }, type: 'wing_outer', mirror: 'wing_outer_l' },
+                { id: 'wing_inner_l', position: { left: '36%', top: '48%' }, type: 'wing_inner', mirror: 'wing_inner_r' },
+                { id: 'wing_inner_r', position: { left: '64%', top: '48%' }, type: 'wing_inner', mirror: 'wing_inner_l' },
+                { id: 'fuselage_l1', position: { left: '45%', top: '50%' }, type: 'fuselage', mirror: 'fuselage_r1' },
+                { id: 'fuselage_r1', position: { left: '55%', top: '50%' }, type: 'fuselage', mirror: 'fuselage_l1' },
+                { id: 'fuselage_l2', position: { left: '47%', top: '51%' }, type: 'fuselage', mirror: 'fuselage_r2' },
+                { id: 'fuselage_r2', position: { left: '53%', top: '51%' }, type: 'fuselage', mirror: 'fuselage_l2' },
+                { id: 'centerline', position: { left: '50%', top: '52%' }, type: 'centerline', mirror: null }
+            ],
+            'MiG-21': [
+                { id: 'wing_outer_l', position: { left: '30%', top: '46%' }, type: 'wing_outer', mirror: 'wing_outer_r' },
+                { id: 'wing_outer_r', position: { left: '70%', top: '46%' }, type: 'wing_outer', mirror: 'wing_outer_l' },
+                { id: 'fuselage_l', position: { left: '47%', top: '50%' }, type: 'fuselage', mirror: 'fuselage_r' },
+                { id: 'fuselage_r', position: { left: '53%', top: '50%' }, type: 'fuselage', mirror: 'fuselage_l' },
+                { id: 'centerline', position: { left: '50%', top: '52%' }, type: 'centerline', mirror: null }
+            ]
+        };
+
+        // Loadout state
+        let currentLoadout = {
+            aircraft: null,
+            hardpoints: {},
+            selectedHardpoint: null,
+            symmetricLoading: true,
+            basePerformance: { speed: 100, turn: 100, climb: 100, accel: 100 }
+        };
+
+        let selectedWeaponIndex = 0;
+
+        // Loadout panel functions
+        function showLoadoutPanel(aircraftType) {
+            currentLoadout.aircraft = aircraftType;
+            currentLoadout.hardpoints = {};
+            currentLoadout.selectedHardpoint = null;
+            currentLoadout.symmetricLoading = document.getElementById('symmetricLoading')?.checked ?? true;
+            document.getElementById('loadoutAircraftName').textContent = aircraftType;
+            const silhouette = document.getElementById('aircraftSilhouette');
+            silhouette.innerHTML = '';
+            const hardpoints = AIRCRAFT_HARDPOINTS[aircraftType] || AIRCRAFT_HARDPOINTS['Spitfire'];
+            hardpoints.forEach(hp => {
+                const hardpointDiv = document.createElement('div');
+                hardpointDiv.className = 'hardpoint';
+                hardpointDiv.id = `hp_${hp.id}`;
+                hardpointDiv.style.left = hp.position.left;
+                hardpointDiv.style.top = hp.position.top;
+                hardpointDiv.title = `${hp.id} (${hp.type})`;
+                hardpointDiv.setAttribute('data-hardpoint-id', hp.id);
+                hardpointDiv.setAttribute('data-hardpoint-type', hp.type);
+                hardpointDiv.setAttribute('data-mirror', hp.mirror || '');
+                hardpointDiv.onclick = () => selectHardpoint(hp.id);
+                silhouette.appendChild(hardpointDiv);
+            });
+            buildStoreInventory();
+            updatePerformanceDisplay();
+            document.getElementById('loadoutPanel').style.display = 'block';
+            const hasSeenTutorial = localStorage.getItem('loadout_tutorial_seen');
+            if (!hasSeenTutorial) {
+                setTimeout(() => {
+                    showLoadoutTutorial();
+                    localStorage.setItem('loadout_tutorial_seen', 'true');
+                }, 500);
+            }
+        }
+
+        function hideLoadoutPanel() {
+            document.getElementById('loadoutPanel').style.display = 'none';
+        }
+
+        function selectHardpoint(hardpointId) {
+            document.querySelectorAll('.hardpoint').forEach(hp => hp.classList.remove('selected'));
+            const hardpointDiv = document.getElementById(`hp_${hardpointId}`);
+            if (hardpointDiv) {
+                hardpointDiv.classList.add('selected');
+                currentLoadout.selectedHardpoint = hardpointId;
+                const currentStore = currentLoadout.hardpoints[hardpointId];
+                if (currentStore) {
+                    const store = WEAPON_STORES[currentStore];
+                    document.getElementById('hardpointInfo').textContent = `${hardpointId}: ${store.name} - Click a store to replace, or click the same hardpoint to remove`;
+                } else {
+                    document.getElementById('hardpointInfo').textContent = `${hardpointId}: Empty - Select a store from the right panel`;
+                }
+                updateStoreCompatibility(hardpointDiv.getAttribute('data-hardpoint-type'));
+            }
+        }
+
+        function buildStoreInventory() {
+            const inventory = document.getElementById('storeInventory');
+            inventory.innerHTML = '';
+            
+            // Get aircraft era for filtering
+            const aircraftType = currentLoadout.aircraft;
+            const aircraft = aircraftDatabase[aircraftType];
+            const aircraftEra = aircraft ? aircraft.era : null;
+            
+            const categories = {
+                'Air-to-Air': ['missile_aa'],
+                'Air-to-Ground': ['bomb', 'rocket'],
+                'SEAD': ['missile_ar'],
+                'Fuel': ['fuel'],
+                'Guns': ['gun'],
+                'ECM': ['ecm']
+            };
+            
+            for (const [categoryName, types] of Object.entries(categories)) {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'store-category';
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'store-category-title';
+                titleDiv.textContent = categoryName;
+                categoryDiv.appendChild(titleDiv);
+                
+                // Filter stores by type AND era compatibility
+                let stores = Object.values(WEAPON_STORES).filter(s => types.includes(s.type));
+                
+                // Apply era filtering if aircraft era is known
+                if (aircraftEra && aircraftEra !== 'Renegade Legion') {
+                    // Allow stores from same era or earlier eras (historical progression)
+                    const eraOrder = { 'WW1': 1, 'WW2': 2, 'Vietnam': 3, 'Modern': 4 };
+                    const aircraftEraLevel = eraOrder[aircraftEra] || 4;
+                    
+                    stores = stores.filter(store => {
+                        if (!store.era) return true; // No era restriction
+                        const storeEraLevel = eraOrder[store.era] || 4;
+                        // Allow stores from same era or earlier (can't use future tech)
+                        return storeEraLevel <= aircraftEraLevel;
+                    });
+                }
+                
+                stores.forEach(store => {
+                    const storeDiv = createStoreItem(store, aircraftEra);
+                    categoryDiv.appendChild(storeDiv);
+                });
+                if (stores.length > 0) inventory.appendChild(categoryDiv);
+            }
+        }
+
+        function createStoreItem(store, aircraftEra = null) {
+            const div = document.createElement('div');
+            div.className = 'store-item';
+            div.setAttribute('data-store-id', store.id);
+            
+            // Check era compatibility
+            let eraCompatible = true;
+            if (aircraftEra && store.era && aircraftEra !== 'Renegade Legion') {
+                const eraOrder = { 'WW1': 1, 'WW2': 2, 'Vietnam': 3, 'Modern': 4 };
+                const aircraftEraLevel = eraOrder[aircraftEra] || 4;
+                const storeEraLevel = eraOrder[store.era] || 4;
+                eraCompatible = storeEraLevel <= aircraftEraLevel;
+                
+                if (!eraCompatible) {
+                    div.classList.add('incompatible');
+                    div.title = `Incompatible: ${store.era} era store cannot be used on ${aircraftEra} era aircraft`;
+                }
+            }
+            
+            const header = document.createElement('div');
+            header.className = 'store-item-header';
+            const name = document.createElement('div');
+            name.className = 'store-item-name';
+            name.textContent = store.name;
+            const icon = document.createElement('div');
+            icon.className = 'store-item-icon';
+            icon.textContent = store.icon;
+            header.appendChild(name);
+            header.appendChild(icon);
+            div.appendChild(header);
+            const stats = document.createElement('div');
+            stats.className = 'store-item-stats';
+            const weight = document.createElement('div');
+            weight.className = 'store-item-stat';
+            weight.textContent = `Weight: ${store.weight}kg | Drag: ${(store.drag * 100).toFixed(0)}%`;
+            stats.appendChild(weight);
+            
+            // Show era badge if different from aircraft era
+            if (store.era && aircraftEra && store.era !== aircraftEra && eraCompatible) {
+                const eraBadge = document.createElement('div');
+                eraBadge.className = 'store-item-stat';
+                eraBadge.style.color = '#f39c12';
+                eraBadge.textContent = `Era: ${store.era}`;
+                stats.appendChild(eraBadge);
+            }
+            
+            if (store.damage) {
+                const damage = document.createElement('div');
+                damage.className = 'store-item-stat';
+                damage.textContent = `Damage: ${store.damage}` + (store.count > 1 ? ` x${store.count}` : '');
+                stats.appendChild(damage);
+            }
+            if (store.range) {
+                const range = document.createElement('div');
+                range.className = 'store-item-stat';
+                range.textContent = `Range: ${(store.range/1000).toFixed(1)}km`;
+                stats.appendChild(range);
+            }
+            div.appendChild(stats);
+            div.onclick = () => {
+                if (!eraCompatible) {
+                    alert(`Cannot mount ${store.name}: Incompatible era (${store.era} store on ${aircraftEra} aircraft)`);
+                    return;
+                }
+                mountStore(store.id);
+            };
+            return div;
+        }
+
+        function updateStoreCompatibility(selectedHardpointType) {
+            document.querySelectorAll('.store-item').forEach(item => {
+                const storeId = item.getAttribute('data-store-id');
+                const store = WEAPON_STORES[storeId];
+                if (store.compatibleHardpoints.includes(selectedHardpointType)) {
+                    item.classList.remove('incompatible');
+                } else {
+                    item.classList.add('incompatible');
+                }
+            });
+        }
+
+        function mountStore(storeId) {
+            if (!currentLoadout.selectedHardpoint) {
+                alert('Please select a hardpoint first!');
+                return;
+            }
+            const hardpointDiv = document.getElementById(`hp_${currentLoadout.selectedHardpoint}`);
+            const hardpointType = hardpointDiv.getAttribute('data-hardpoint-type');
+            const store = WEAPON_STORES[storeId];
+            
+            // Check hardpoint compatibility
+            if (!store.compatibleHardpoints.includes(hardpointType)) {
+                alert(`${store.name} is not compatible with this hardpoint type (${hardpointType})`);
+                return;
+            }
+            
+            // Check era compatibility
+            const aircraftType = currentLoadout.aircraft;
+            const aircraft = aircraftDatabase[aircraftType];
+            if (aircraft && aircraft.era && store.era && aircraft.era !== 'Renegade Legion') {
+                const eraOrder = { 'WW1': 1, 'WW2': 2, 'Vietnam': 3, 'Modern': 4 };
+                const aircraftEraLevel = eraOrder[aircraft.era] || 4;
+                const storeEraLevel = eraOrder[store.era] || 4;
+                if (storeEraLevel > aircraftEraLevel) {
+                    alert(`Cannot mount ${store.name}: ${store.era} era store is incompatible with ${aircraft.era} era aircraft`);
+                    return;
+                }
+            }
+            
+            currentLoadout.hardpoints[currentLoadout.selectedHardpoint] = storeId;
+            hardpointDiv.classList.add('mounted');
+            hardpointDiv.innerHTML = `<span class="store-icon">${store.icon}</span>`;
+            if (currentLoadout.symmetricLoading) {
+                const mirrorId = hardpointDiv.getAttribute('data-mirror');
+                if (mirrorId) {
+                    currentLoadout.hardpoints[mirrorId] = storeId;
+                    const mirrorDiv = document.getElementById(`hp_${mirrorId}`);
+                    if (mirrorDiv) {
+                        mirrorDiv.classList.add('mounted');
+                        mirrorDiv.innerHTML = `<span class="store-icon">${store.icon}</span>`;
+                    }
+                }
+            }
+            updatePerformanceDisplay();
+            updateLoadoutWeight();
+        }
+
+        function removeStore(hardpointId) {
+            delete currentLoadout.hardpoints[hardpointId];
+            const hardpointDiv = document.getElementById(`hp_${hardpointId}`);
+            if (hardpointDiv) {
+                hardpointDiv.classList.remove('mounted');
+                hardpointDiv.innerHTML = '';
+            }
+            updatePerformanceDisplay();
+            updateLoadoutWeight();
+        }
+
+        function updateLoadoutWeight() {
+            let totalWeight = 0;
+            for (const [hardpointId, storeId] of Object.entries(currentLoadout.hardpoints)) {
+                const store = WEAPON_STORES[storeId];
+                totalWeight += store.weight;
+            }
+            document.getElementById('loadoutWeight').textContent = totalWeight.toFixed(0);
+            const weightSpan = document.querySelector('.loadout-weight');
+            if (totalWeight > 2000) {
+                weightSpan.classList.add('warning');
+            } else {
+                weightSpan.classList.remove('warning');
+            }
+        }
+
+        function updatePerformanceDisplay() {
+            let totalWeight = 0;
+            let totalDrag = 0;
+            for (const [hardpointId, storeId] of Object.entries(currentLoadout.hardpoints)) {
+                const store = WEAPON_STORES[storeId];
+                totalWeight += store.weight;
+                totalDrag += store.drag;
+            }
+            const weightPenalty = totalWeight / 100;
+            const dragPenalty = totalDrag * 10;
+            const speedPenalty = Math.min(50, dragPenalty * 1.2);
+            const turnPenalty = Math.min(60, weightPenalty + dragPenalty * 0.8);
+            const climbPenalty = Math.min(55, weightPenalty * 1.5 + dragPenalty * 0.5);
+            const accelPenalty = Math.min(45, weightPenalty * 1.2);
+            const perfSpeed = Math.max(50, 100 - speedPenalty);
+            const perfTurn = Math.max(40, 100 - turnPenalty);
+            const perfClimb = Math.max(45, 100 - climbPenalty);
+            const perfAccel = Math.max(55, 100 - accelPenalty);
+            updatePerformanceBar('perfSpeed', perfSpeed);
+            updatePerformanceBar('perfTurn', perfTurn);
+            updatePerformanceBar('perfClimb', perfClimb);
+            updatePerformanceBar('perfAccel', perfAccel);
+            const avgPerf = (perfSpeed + perfTurn + perfClimb + perfAccel) / 4;
+            const warning = document.getElementById('perfWarning');
+            if (avgPerf < 70) {
+                warning.style.display = 'block';
+                warning.textContent = avgPerf < 60 ? '⚠️ CRITICAL: Extreme performance degradation!' : '⚠️ WARNING: Heavy loadout will impact performance';
+            } else {
+                warning.style.display = 'none';
+            }
+        }
+
+        function updatePerformanceBar(statName, percentage) {
+            const bar = document.getElementById(`${statName}Bar`);
+            const value = document.getElementById(`${statName}Value`);
+            bar.style.width = `${percentage}%`;
+            value.textContent = `${percentage.toFixed(0)}%`;
+            bar.classList.remove('degraded', 'moderate');
+            if (percentage < 60) {
+                bar.classList.add('degraded');
+            } else if (percentage < 80) {
+                bar.classList.add('moderate');
+            }
+        }
+
+        function applyPreset(presetName) {
+            for (const hardpointId of Object.keys(currentLoadout.hardpoints)) {
+                removeStore(hardpointId);
+            }
+            currentLoadout.hardpoints = {};
+            const hardpoints = AIRCRAFT_HARDPOINTS[currentLoadout.aircraft] || AIRCRAFT_HARDPOINTS['Spitfire'];
+            switch (presetName) {
+                case 'air_to_air':
+                    hardpoints.forEach(hp => {
+                        if (hp.type === 'wing_tip' || hp.type === 'wing_outer') {
+                            currentLoadout.hardpoints[hp.id] = 'aim9_sidewinder';
+                        } else if (hp.type === 'wing_inner') {
+                            currentLoadout.hardpoints[hp.id] = 'aim7_sparrow';
+                        }
+                    });
+                    break;
+                case 'ground_attack':
+                    hardpoints.forEach(hp => {
+                        if (hp.type === 'wing_outer') {
+                            currentLoadout.hardpoints[hp.id] = 'hydra_70';
+                        } else if (hp.type === 'wing_inner') {
+                            currentLoadout.hardpoints[hp.id] = 'bomb_500lb';
+                        } else if (hp.type === 'centerline') {
+                            currentLoadout.hardpoints[hp.id] = 'bomb_1000lb';
+                        }
+                    });
+                    break;
+                case 'long_range':
+                    hardpoints.forEach(hp => {
+                        if (hp.type === 'centerline') {
+                            currentLoadout.hardpoints[hp.id] = 'fuel_tank_300gal';
+                        } else if (hp.type === 'wing_inner') {
+                            currentLoadout.hardpoints[hp.id] = 'fuel_tank_150gal';
+                        }
+                    });
+                    break;
+                case 'sead':
+                    hardpoints.forEach(hp => {
+                        if (hp.type === 'wing_inner' || hp.type === 'fuselage') {
+                            currentLoadout.hardpoints[hp.id] = 'agm45_shrike';
+                        }
+                    });
+                    break;
+                case 'clean':
+                    break;
+            }
+            for (const [hardpointId, storeId] of Object.entries(currentLoadout.hardpoints)) {
+                const hardpointDiv = document.getElementById(`hp_${hardpointId}`);
+                const store = WEAPON_STORES[storeId];
+                if (hardpointDiv && store) {
+                    hardpointDiv.classList.add('mounted');
+                    hardpointDiv.innerHTML = `<span class="store-icon">${store.icon}</span>`;
+                }
+            }
+            updatePerformanceDisplay();
+            updateLoadoutWeight();
+        }
+
+        function showLoadoutTutorial() {
+            document.getElementById('loadoutTutorial').style.display = 'flex';
+        }
+
+        function hideLoadoutTutorial() {
+            document.getElementById('loadoutTutorial').style.display = 'none';
+        }
+
+        function confirmLoadout() {
+            if (selectedAircraft && currentLoadout.aircraft) {
+                if (!selectedAircraft.mountedWeapons) selectedAircraft.mountedWeapons = [];
+                selectedAircraft.mountedWeapons = getMountedWeapons();
+                selectedAircraft.loadout = { ...currentLoadout.hardpoints };
+            }
+            hideLoadoutPanel();
+            if (typeof startMission === 'function') {
+                startMission();
+            }
+        }
+
+        function getMountedWeapons() {
+            const weapons = [];
+            const weaponCounts = {};
+            for (const [hardpointId, storeId] of Object.entries(currentLoadout.hardpoints)) {
+                const store = WEAPON_STORES[storeId];
+                if (!weaponCounts[storeId]) {
+                    weaponCounts[storeId] = { store: store, count: 0, hardpoints: [] };
+                }
+                weaponCounts[storeId].count += (store.count || 1);
+                weaponCounts[storeId].hardpoints.push(hardpointId);
+            }
+            for (const [storeId, data] of Object.entries(weaponCounts)) {
+                weapons.push({
+                    id: storeId,
+                    name: data.store.name,
+                    type: data.store.type,
+                    icon: data.store.icon,
+                    remaining: data.count,
+                    total: data.count,
+                    hardpoints: data.hardpoints,
+                    store: data.store
+                });
+            }
+            return weapons;
+        }
+
+        function updateHUDLoadout() {
+            if (!selectedAircraft || !selectedAircraft.mountedWeapons) return;
+            const hudLoadout = document.getElementById('hudLoadout');
+            if (gameState === 'ORDER' || gameState === 'EXECUTION') {
+                hudLoadout.style.display = 'block';
+            } else {
+                hudLoadout.style.display = 'none';
+                return;
+            }
+            const weaponList = document.getElementById('hudWeaponList');
+            weaponList.innerHTML = '';
+            selectedAircraft.mountedWeapons.forEach((weapon, index) => {
+                const weaponDiv = document.createElement('div');
+                weaponDiv.className = 'hud-weapon-item';
+                if (index === selectedWeaponIndex) {
+                    weaponDiv.classList.add('selected');
+                }
+                if (weapon.remaining === 0) {
+                    weaponDiv.classList.add('depleted');
+                }
+                const leftDiv = document.createElement('div');
+                leftDiv.innerHTML = `${weapon.icon} <span class="hud-weapon-name">${weapon.name}</span>`;
+                const rightDiv = document.createElement('div');
+                const countSpan = document.createElement('span');
+                countSpan.className = 'hud-weapon-count';
+                if (weapon.remaining === 0) {
+                    countSpan.classList.add('empty');
+                } else if (weapon.remaining < weapon.total * 0.3) {
+                    countSpan.classList.add('low');
+                }
+                countSpan.textContent = `${weapon.remaining}/${weapon.total}`;
+                rightDiv.appendChild(countSpan);
+                weaponDiv.appendChild(leftDiv);
+                weaponDiv.appendChild(rightDiv);
+                weaponList.appendChild(weaponDiv);
+            });
+        }
+
+        function cycleWeapon() {
+            if (!selectedAircraft || !selectedAircraft.mountedWeapons || selectedAircraft.mountedWeapons.length === 0) {
+                return;
+            }
+            selectedWeaponIndex = (selectedWeaponIndex + 1) % selectedAircraft.mountedWeapons.length;
+            let attempts = 0;
+            while (selectedAircraft.mountedWeapons[selectedWeaponIndex].remaining === 0 && attempts < selectedAircraft.mountedWeapons.length) {
+                selectedWeaponIndex = (selectedWeaponIndex + 1) % selectedAircraft.mountedWeapons.length;
+                attempts++;
+            }
+            updateHUDLoadout();
+            const weapon = selectedAircraft.mountedWeapons[selectedWeaponIndex];
+            console.log(`[WEAPON] Selected: ${weapon.name} (${weapon.remaining} remaining)`);
+        }
+
+        function getCurrentWeapon() {
+            if (!selectedAircraft || !selectedAircraft.mountedWeapons || selectedAircraft.mountedWeapons.length === 0) {
+                return null;
+            }
+            return selectedAircraft.mountedWeapons[selectedWeaponIndex];
+        }
+
+        function fireCurrentWeapon() {
+            const weapon = getCurrentWeapon();
+            if (!weapon || weapon.remaining === 0) {
+                console.log('[WEAPON] No weapon selected or depleted');
+                return false;
+            }
+            weapon.remaining--;
+            updateHUDLoadout();
+            switch (weapon.store.type) {
+                case 'missile_aa':
+                    console.log(`[WEAPON] Fired ${weapon.name}`);
+                    return true;
+                case 'bomb':
+                    console.log(`[WEAPON] Dropped ${weapon.name}`);
+                    return true;
+                case 'rocket':
+                    console.log(`[WEAPON] Fired ${weapon.name}`);
+                    return true;
+                case 'missile_ar':
+                    console.log(`[WEAPON] Fired ${weapon.name}`);
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        window.showLoadoutPanel = showLoadoutPanel;
+        window.hideLoadoutPanel = hideLoadoutPanel;
+        window.applyPreset = applyPreset;
+        window.confirmLoadout = confirmLoadout;
+        window.showLoadoutTutorial = showLoadoutTutorial;
+        window.hideLoadoutTutorial = hideLoadoutTutorial;
+        window.cycleWeapon = cycleWeapon;
+        window.getCurrentWeapon = getCurrentWeapon;
+        window.fireCurrentWeapon = fireCurrentWeapon;
+        window.updateHUDLoadout = updateHUDLoadout;
+        window.WEAPON_STORES = WEAPON_STORES;
+        window.AIRCRAFT_HARDPOINTS = AIRCRAFT_HARDPOINTS;
+
         const aircraftDatabase = {
             'Spitfire': {
                 name: 'Supermarine Spitfire Mk Vb',
@@ -4112,7 +5953,7 @@
                 firstYear: 1960,
                 lastYear: 2016,
                 sizeMultiplier: 1.45,
-                maxSpeed: 630,
+                maxSpeed: 410, // m/s (~1,476 km/h, Mach 1.2 at sea level) - Fixed from 630
                 minSpeed: 75,
                 maxTurnRate: 85,
                 maxClimbRate: 50,
@@ -4158,7 +5999,7 @@
                 firstYear: 1978,
                 lastYear: 1996,
                 sizeMultiplier: 1.45,
-                maxSpeed: 630,
+                maxSpeed: 410, // m/s (~1,476 km/h, Mach 1.2 at sea level) - Fixed from 630
                 minSpeed: 75,
                 maxTurnRate: 85,
                 maxClimbRate: 50,
@@ -4206,7 +6047,7 @@
                 firstYear: 1979,
                 lastYear: 2025,
                 sizeMultiplier: 1.30,
-                maxSpeed: 720,
+                maxSpeed: 450, // m/s (~1,620 km/h, Mach 1.3 at sea level) - Fixed from 720, slightly faster than F-4
                 minSpeed: 70,
                 maxTurnRate: 100,
                 maxClimbRate: 75,
@@ -4240,6 +6081,37 @@
                     effectiveness: 0.75
                 },
                 color: '#3366ff'
+            },
+            'MiG-21': {
+                name: 'Mikoyan-Gurevich MiG-21 Fishbed',
+                nation: 'Soviet',
+                role: 'Interceptor',
+                era: 'Vietnam',
+                generation: 2,
+                firstYear: 1959,
+                lastYear: 2013,
+                sizeMultiplier: 1.15, // Wingspan: 7.15m
+                maxSpeed: 400, // m/s (~1,440 km/h, Mach 1.17 at sea level)
+                minSpeed: 70,
+                maxTurnRate: 75, // Good turn rate for light fighter
+                maxClimbRate: 60,
+                maxDiveRate: 110,
+                maxGForce: 8.5,
+                maxAcceleration: 70,
+                maxBraking: 35,
+                serviceCeiling: 19000,
+                weapons: { type: 'cannon', count: 1, ammo: 200, burstSize: 6, damage: [8, 15], rof: 2 },
+                fuelCapacity: 6000,
+                fuelConsumption: 4.0,
+                canCarryBombs: true,
+                bombCapacity: 4,
+                canCarryRockets: true,
+                rocketCapacity: 8,
+                isJet: true,
+                durability: 0.85,
+                specialCapability: 'Lightweight interceptor - Fast and agile',
+                rcs: 8, // Smaller radar cross-section than F-4
+                color: '#ff6666'
             },
 
             //==============================================================================
@@ -10569,6 +12441,236 @@
             }
         }
 
+        /**
+         * Generic Missile Class for Aircraft (Air-to-Air)
+         * Supports heat-seeking and radar-guided missiles
+         */
+        class Missile {
+            constructor(x, y, altitude, shooter, target, store) {
+                this.x = x;
+                this.y = y;
+                this.altitude = altitude;
+                this.shooter = shooter;
+                this.target = target;
+                this.store = store; // Reference to WeaponStore
+                
+                // Missile type from store
+                this.guidanceType = store.guidanceType || 'heat-seeking'; // 'heat-seeking', 'radar-guided', 'beam-riding'
+                this.name = store.name || 'Missile';
+                
+                // Physics
+                this.heading = shooter.heading;
+                this.vx = 0;
+                this.vy = 0;
+                this.speed = shooter.speed || 0; // Start with shooter's speed
+                this.altitudeVelocity = 0;
+                
+                // Missile specifications from store
+                this.damage = store.explosiveYield || 50;
+                this.explosionRadius = store.explosionRadius || 20;
+                this.maxRange = store.range || 8000; // meters
+                this.distanceTraveled = 0;
+                
+                // Guidance properties
+                this.maxTurnRate = 180; // degrees/second (can pull high Gs)
+                this.acceleration = 100; // m/s² (10G acceleration)
+                this.maxSpeed = 400; // m/s (~Mach 1.2)
+                this.motorBurnTime = 3; // seconds of motor burn
+                this.motorTime = 0;
+                this.fuelRemaining = this.motorBurnTime;
+                
+                // Lock-on state
+                this.isLocked = false;
+                this.lockTime = 0;
+                this.lockOnTime = 1.0; // seconds to acquire lock (faster for heat-seeking)
+                if (this.guidanceType === 'radar-guided') {
+                    this.lockOnTime = 2.0; // Slower for radar
+                }
+                
+                // Proximity fuse
+                this.proximityFuseRange = 10; // meters
+                this.hasExploded = false;
+                this.isActive = true;
+                
+                // Countermeasure susceptibility
+                this.chaffSusceptibility = this.guidanceType === 'radar-guided' ? 0.7 : 0.0;
+                this.flareSusceptibility = this.guidanceType === 'heat-seeking' ? 0.8 : 0.0;
+                
+                // Initialize velocity from shooter
+                const shooterVelX = shooter.speed * Math.sin(shooter.heading * Math.PI / 180);
+                const shooterVelY = -shooter.speed * Math.cos(shooter.heading * Math.PI / 180);
+                this.vx = shooterVelX;
+                this.vy = shooterVelY;
+                
+                // Trail for visual effect
+                this.trailPoints = [];
+            }
+            
+            update(dt) {
+                if (!this.isActive || this.hasExploded) return false;
+                
+                this.motorTime += dt;
+                this.lockTime += dt;
+                this.distanceTraveled += this.speed * dt;
+                
+                // Check max range
+                if (this.distanceTraveled > this.maxRange) {
+                    this.isActive = false;
+                    return false;
+                }
+                
+                // Lock-on delay
+                if (this.lockTime >= this.lockOnTime) {
+                    this.isLocked = true;
+                }
+                
+                // Motor burn phase - accelerate during burn
+                if (this.motorTime < this.motorBurnTime) {
+                    this.speed = Math.min(this.maxSpeed, this.speed + this.acceleration * dt);
+                    this.fuelRemaining = this.motorBurnTime - this.motorTime;
+                } else {
+                    // Coasting phase - gradual slowdown
+                    this.speed = Math.max(this.maxSpeed * 0.5, this.speed - 20 * dt);
+                }
+                
+                // Guidance (only if locked on and target exists)
+                if (this.isLocked && this.target && !this.target.isDestroyed) {
+                    // Calculate angle to target
+                    const dx = this.target.x - this.x;
+                    const dy = this.target.y - this.y;
+                    const dz = (this.target.altitude || 0) - this.altitude;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // Proportional navigation guidance
+                    const angleToTarget = Math.atan2(dx, -dy) * 180 / Math.PI;
+                    const currentHeading = Math.atan2(this.vx, -this.vy) * 180 / Math.PI;
+                    
+                    let angleDiff = angleToTarget - currentHeading;
+                    while (angleDiff > 180) angleDiff -= 360;
+                    while (angleDiff < -180) angleDiff += 360;
+                    
+                    // Apply turn rate limit
+                    const maxTurn = this.maxTurnRate * dt;
+                    if (Math.abs(angleDiff) > maxTurn) {
+                        angleDiff = angleDiff > 0 ? maxTurn : -maxTurn;
+                    }
+                    
+                    // Update heading
+                    const newHeading = currentHeading + angleDiff;
+                    this.heading = newHeading;
+                    
+                    // Update velocity vector
+                    this.vx = this.speed * Math.sin(newHeading * Math.PI / 180);
+                    this.vy = -this.speed * Math.cos(newHeading * Math.PI / 180);
+                    
+                    // Altitude guidance (simplified)
+                    if (Math.abs(dz) > 10) {
+                        const climbRate = 50; // m/s
+                        const altitudeChange = Math.sign(dz) * Math.min(climbRate * dt, Math.abs(dz));
+                        this.altitude += altitudeChange;
+                    }
+                    
+                    // Check proximity fuse
+                    if (distance < this.proximityFuseRange) {
+                        this.explode();
+                        return true; // Signal hit
+                    }
+                } else {
+                    // No target or not locked - fly straight
+                    const currentHeading = Math.atan2(this.vx, -this.vy) * 180 / Math.PI;
+                    this.heading = currentHeading;
+                }
+                
+                // Update position
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+                
+                // Add trail point
+                this.trailPoints.push({ x: this.x, y: this.y, time: Date.now() });
+                // Keep only last 10 trail points
+                if (this.trailPoints.length > 10) {
+                    this.trailPoints.shift();
+                }
+                
+                // Timeout after motor burn + 5 seconds coast
+                if (this.motorTime > this.motorBurnTime + 5) {
+                    this.isActive = false;
+                }
+                
+                return false;
+            }
+            
+            explode() {
+                this.hasExploded = true;
+                this.isActive = false;
+                this.explosionTime = Date.now();
+            }
+            
+            render() {
+                if (!this.isActive || this.hasExploded) return;
+                
+                ctx.save();
+                ctx.translate(this.x * WORLD_SCALE, this.y * WORLD_SCALE);
+                
+                // Missile body
+                const bodyColor = this.motorTime < this.motorBurnTime ? '#ffcc00' : '#cccccc';
+                ctx.fillStyle = bodyColor;
+                ctx.beginPath();
+                ctx.arc(0, 0, 3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Motor plume during burn
+                if (this.motorTime < this.motorBurnTime) {
+                    const plumeLength = 15;
+                    const heading = this.heading * Math.PI / 180;
+                    const gradient = ctx.createLinearGradient(
+                        0, 0,
+                        -Math.sin(heading) * plumeLength,
+                        Math.cos(heading) * plumeLength
+                    );
+                    gradient.addColorStop(0, 'rgba(255, 200, 100, 0.9)');
+                    gradient.addColorStop(0.5, 'rgba(255, 150, 50, 0.6)');
+                    gradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+                    
+                    ctx.strokeStyle = gradient;
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(
+                        -Math.sin(heading) * plumeLength,
+                        Math.cos(heading) * plumeLength
+                    );
+                    ctx.stroke();
+                }
+                
+                // Lock indicator (if not locked yet)
+                if (!this.isLocked) {
+                    ctx.strokeStyle = 'rgba(255, 255, 0, 0.6)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 10, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+                
+                // Trail
+                if (this.trailPoints.length > 1) {
+                    ctx.strokeStyle = 'rgba(255, 200, 100, 0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    for (let i = this.trailPoints.length - 1; i >= 0; i--) {
+                        const point = this.trailPoints[i];
+                        const px = (point.x - this.x) * WORLD_SCALE;
+                        const py = (point.y - this.y) * WORLD_SCALE;
+                        ctx.lineTo(px, py);
+                    }
+                    ctx.stroke();
+                }
+                
+                ctx.restore();
+            }
+        }
+
         class RocketAA {
             constructor(x, y, altitude, heading, target) {
                 this.x = x;
@@ -10760,6 +12862,7 @@
             hurricane: new Image(),
             fw190: new Image(),
             me262: new Image(),
+            mig21: new Image(),
             zero: new Image(),
             bf110: new Image(),
             ju87: new Image(),
@@ -10862,6 +12965,7 @@
         aircraftImages.hurricane.src = 'images/hurricane.png';
         aircraftImages.fw190.src = 'images/fw190.png';
         aircraftImages.me262.src = 'images/me262.png';
+        aircraftImages.mig21.src = 'images/mig21.png';
         aircraftImages.zero.src = 'images/zero.png';
         aircraftImages.bf110.src = 'images/bf110.png';
         aircraftImages.ju87.src = 'images/ju87.png';
@@ -14403,8 +16507,12 @@
                 this.baseMaxAcceleration = this.maxAcceleration;
                 this.baseMaxBraking = this.maxBraking;
 
-                // Hardpoints for loadout system (will be populated by other agents)
-                this.hardpoints = [];
+                // Hardpoints for loadout system
+                this.hardpoints = this.initializeHardpoints(type);
+                
+                // Loadout and mounted weapons (for UI system)
+                this.loadout = {};  // Hardpoint assignments { hardpointId: storeId }
+                this.mountedWeapons = [];  // Weapon inventory from loadout
 
                 // Performance impact tracking
                 this.performanceImpact = {
@@ -14426,6 +16534,213 @@
                 }
                 this.detectedShips = new Set(); // Set of detected ship/aircraft IDs
                 this.detectionState = new Map(); // Map of ship ID -> detection state for hysteresis
+                
+                // === MISSILE LOCK-ON SYSTEM ===
+                this.lockTarget = null; // Currently locked target
+                this.lockProgress = 0; // 0.0 to 1.0
+                this.isLocked = false; // Lock acquired
+                this.lockTone = false; // Audio feedback flag
+                this.lockCone = 30; // Degrees - forward arc for lock acquisition
+                this.lockRange = 5000; // meters - max lock range (weapon-dependent)
+                this.lockOnTime = 2.0; // seconds - time to acquire lock (weapon-dependent)
+                this.missiles = []; // Active missiles launched by this aircraft
+            }
+            
+            /**
+             * Attempt to lock onto a target
+             * @param {Aircraft|CapitalShip} target - Target to lock onto
+             * @returns {boolean} - True if lock acquisition started
+             */
+            attemptLock(target) {
+                if (!target || target.isDestroyed) {
+                    this.breakLock();
+                    return false;
+                }
+                
+                // Check if target is in lock cone (30° forward arc)
+                const dx = target.x - this.x;
+                const dy = target.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Check range
+                if (distance > this.lockRange) {
+                    this.breakLock();
+                    return false;
+                }
+                
+                // Check angle (must be in forward arc)
+                const angleToTarget = Math.atan2(dx, -dy) * 180 / Math.PI;
+                let angleDiff = angleToTarget - this.heading;
+                while (angleDiff > 180) angleDiff -= 360;
+                while (angleDiff < -180) angleDiff += 360;
+                
+                if (Math.abs(angleDiff) > this.lockCone / 2) {
+                    this.breakLock();
+                    return false;
+                }
+                
+                // Start or continue lock acquisition
+                if (this.lockTarget !== target) {
+                    this.lockTarget = target;
+                    this.lockProgress = 0;
+                    this.isLocked = false;
+                }
+                
+                return true;
+            }
+            
+            /**
+             * Update lock-on progress
+             * Called each frame during lock acquisition
+             * @param {number} dt - Delta time in seconds
+             */
+            updateLockOn(dt) {
+                if (!this.lockTarget || this.lockTarget.isDestroyed) {
+                    this.breakLock();
+                    return;
+                }
+                
+                // Check if still in lock cone and range
+                if (!this.attemptLock(this.lockTarget)) {
+                    return; // Lock broken
+                }
+                
+                // Increment lock progress
+                this.lockProgress += dt / this.lockOnTime;
+                
+                if (this.lockProgress >= 1.0) {
+                    this.lockProgress = 1.0;
+                    this.isLocked = true;
+                    this.lockTone = true; // Trigger audio feedback
+                }
+            }
+            
+            /**
+             * Break current lock
+             */
+            breakLock() {
+                this.lockTarget = null;
+                this.lockProgress = 0;
+                this.isLocked = false;
+                this.lockTone = false;
+            }
+            
+            /**
+             * Launch a missile at locked target
+             * @param {WeaponStore} store - Missile store to launch
+             * @returns {Missile|null} - Launched missile or null if can't launch
+             */
+            launchMissile(store) {
+                if (!this.isLocked || !this.lockTarget) {
+                    return null;
+                }
+                
+                // Handle both WeaponStore instances and store objects from WEAPON_STORES
+                let missileStore = store;
+                if (store.type === 'missile_aa' || store.type === 'missile_ar') {
+                    // It's a store object from WEAPON_STORES, convert to WeaponStore-like format
+                    missileStore = {
+                        type: 'missile',
+                        name: store.name,
+                        guidanceType: store.type === 'missile_aa' ? 'heat-seeking' : 'radar-guided',
+                        explosiveYield: store.damage || 50,
+                        explosionRadius: 20,
+                        range: store.range || 5000
+                    };
+                } else if (store.type !== 'missile') {
+                    return null;
+                }
+                
+                // Create missile from store
+                const missile = new Missile(
+                    this.x,
+                    this.y,
+                    this.altitude,
+                    this,
+                    this.lockTarget,
+                    missileStore
+                );
+                
+                // Add to aircraft's missile array
+                this.missiles.push(missile);
+                
+                // Use the store (decrement count if it has a use method)
+                if (typeof store.use === 'function') {
+                    store.use();
+                } else if (store.remaining !== undefined) {
+                    // Handle mounted weapon store objects
+                    store.remaining--;
+                }
+                
+                // Break lock after launch (fire-and-forget)
+                this.breakLock();
+                
+                return missile;
+            }
+
+            /**
+             * Initialize hardpoints based on aircraft type
+             * @param {string} type - Aircraft type identifier
+             * @returns {Array} - Array of hardpoint objects
+             */
+            initializeHardpoints(type) {
+                const hardpoints = [];
+                
+                // Hardpoint configurations for modern jets
+                if (type === 'F-4') {
+                    // F-4 Phantom II: 9 hardpoints (4 wing pylons, 4 fuselage, 1 centerline)
+                    hardpoints.push(
+                        { id: 'wing_tip_l', type: 'wing_tip', position: { x: -8, y: -2 }, mirror: 'wing_tip_r', maxWeight: 500, compatibleTypes: ['missile', 'fuel_tank'] },
+                        { id: 'wing_tip_r', type: 'wing_tip', position: { x: 8, y: -2 }, mirror: 'wing_tip_l', maxWeight: 500, compatibleTypes: ['missile', 'fuel_tank'] },
+                        { id: 'wing_outer_l', type: 'wing_outer', position: { x: -6, y: -1 }, mirror: 'wing_outer_r', maxWeight: 1000, compatibleTypes: ['missile', 'bomb', 'rocket_pod', 'fuel_tank'] },
+                        { id: 'wing_outer_r', type: 'wing_outer', position: { x: 6, y: -1 }, mirror: 'wing_outer_l', maxWeight: 1000, compatibleTypes: ['missile', 'bomb', 'rocket_pod', 'fuel_tank'] },
+                        { id: 'wing_inner_l', type: 'wing_inner', position: { x: -4, y: 0 }, mirror: 'wing_inner_r', maxWeight: 1500, compatibleTypes: ['missile', 'bomb', 'rocket_pod', 'fuel_tank'] },
+                        { id: 'wing_inner_r', type: 'wing_inner', position: { x: 4, y: 0 }, mirror: 'wing_inner_l', maxWeight: 1500, compatibleTypes: ['missile', 'bomb', 'rocket_pod', 'fuel_tank'] },
+                        { id: 'fuselage_l', type: 'fuselage', position: { x: -2, y: 1 }, mirror: 'fuselage_r', maxWeight: 500, compatibleTypes: ['missile'] },
+                        { id: 'fuselage_r', type: 'fuselage', position: { x: 2, y: 1 }, mirror: 'fuselage_l', maxWeight: 500, compatibleTypes: ['missile'] },
+                        { id: 'centerline', type: 'centerline', position: { x: 0, y: 2 }, mirror: null, maxWeight: 2000, compatibleTypes: ['bomb', 'fuel_tank', 'ecm_pod'] }
+                    );
+                } else if (type === 'F-4G') {
+                    // F-4G Wild Weasel: Same as F-4 but optimized for SEAD
+                    hardpoints.push(
+                        { id: 'wing_tip_l', type: 'wing_tip', position: { x: -8, y: -2 }, mirror: 'wing_tip_r', maxWeight: 500, compatibleTypes: ['missile'] },
+                        { id: 'wing_tip_r', type: 'wing_tip', position: { x: 8, y: -2 }, mirror: 'wing_tip_l', maxWeight: 500, compatibleTypes: ['missile'] },
+                        { id: 'wing_outer_l', type: 'wing_outer', position: { x: -6, y: -1 }, mirror: 'wing_outer_r', maxWeight: 1000, compatibleTypes: ['missile', 'rocket_pod'] },
+                        { id: 'wing_outer_r', type: 'wing_outer', position: { x: 6, y: -1 }, mirror: 'wing_outer_l', maxWeight: 1000, compatibleTypes: ['missile', 'rocket_pod'] },
+                        { id: 'wing_inner_l', type: 'wing_inner', position: { x: -4, y: 0 }, mirror: 'wing_inner_r', maxWeight: 1500, compatibleTypes: ['missile'] },
+                        { id: 'wing_inner_r', type: 'wing_inner', position: { x: 4, y: 0 }, mirror: 'wing_inner_l', maxWeight: 1500, compatibleTypes: ['missile'] },
+                        { id: 'fuselage_l', type: 'fuselage', position: { x: -2, y: 1 }, mirror: 'fuselage_r', maxWeight: 500, compatibleTypes: ['missile'] },
+                        { id: 'fuselage_r', type: 'fuselage', position: { x: 2, y: 1 }, mirror: 'fuselage_l', maxWeight: 500, compatibleTypes: ['missile'] },
+                        { id: 'centerline', type: 'centerline', position: { x: 0, y: 2 }, mirror: null, maxWeight: 2000, compatibleTypes: ['ecm_pod'] }
+                    );
+                } else if (type === 'F-15C') {
+                    // F-15C Eagle: 11 hardpoints (4 wing pylons, 4 fuselage, 2 wing tips, 1 centerline)
+                    hardpoints.push(
+                        { id: 'wing_tip_l', type: 'wing_tip', position: { x: -7, y: -2 }, mirror: 'wing_tip_r', maxWeight: 300, compatibleTypes: ['missile'] },
+                        { id: 'wing_tip_r', type: 'wing_tip', position: { x: 7, y: -2 }, mirror: 'wing_tip_l', maxWeight: 300, compatibleTypes: ['missile'] },
+                        { id: 'wing_outer_l', type: 'wing_outer', position: { x: -5, y: -1 }, mirror: 'wing_outer_r', maxWeight: 800, compatibleTypes: ['missile'] },
+                        { id: 'wing_outer_r', type: 'wing_outer', position: { x: 5, y: -1 }, mirror: 'wing_outer_l', maxWeight: 800, compatibleTypes: ['missile'] },
+                        { id: 'wing_inner_l', type: 'wing_inner', position: { x: -3, y: 0 }, mirror: 'wing_inner_r', maxWeight: 1200, compatibleTypes: ['missile'] },
+                        { id: 'wing_inner_r', type: 'wing_inner', position: { x: 3, y: 0 }, mirror: 'wing_inner_l', maxWeight: 1200, compatibleTypes: ['missile'] },
+                        { id: 'fuselage_l1', type: 'fuselage', position: { x: -2, y: 1 }, mirror: 'fuselage_r1', maxWeight: 500, compatibleTypes: ['missile'] },
+                        { id: 'fuselage_r1', type: 'fuselage', position: { x: 2, y: 1 }, mirror: 'fuselage_l1', maxWeight: 500, compatibleTypes: ['missile'] },
+                        { id: 'fuselage_l2', type: 'fuselage', position: { x: -1.5, y: 1.5 }, mirror: 'fuselage_r2', maxWeight: 500, compatibleTypes: ['missile'] },
+                        { id: 'fuselage_r2', type: 'fuselage', position: { x: 1.5, y: 1.5 }, mirror: 'fuselage_l2', maxWeight: 500, compatibleTypes: ['missile'] },
+                        { id: 'centerline', type: 'centerline', position: { x: 0, y: 2 }, mirror: null, maxWeight: 1500, compatibleTypes: ['fuel_tank', 'ecm_pod'] }
+                    );
+                } else if (type === 'MiG-21') {
+                    // MiG-21 Fishbed: 5 hardpoints (2 wing pylons, 2 fuselage, 1 centerline)
+                    hardpoints.push(
+                        { id: 'wing_outer_l', type: 'wing_outer', position: { x: -4, y: -1 }, mirror: 'wing_outer_r', maxWeight: 500, compatibleTypes: ['missile', 'rocket_pod'] },
+                        { id: 'wing_outer_r', type: 'wing_outer', position: { x: 4, y: -1 }, mirror: 'wing_outer_l', maxWeight: 500, compatibleTypes: ['missile', 'rocket_pod'] },
+                        { id: 'fuselage_l', type: 'fuselage', position: { x: -1.5, y: 1 }, mirror: 'fuselage_r', maxWeight: 300, compatibleTypes: ['missile'] },
+                        { id: 'fuselage_r', type: 'fuselage', position: { x: 1.5, y: 1 }, mirror: 'fuselage_l', maxWeight: 300, compatibleTypes: ['missile'] },
+                        { id: 'centerline', type: 'centerline', position: { x: 0, y: 2 }, mirror: null, maxWeight: 1000, compatibleTypes: ['fuel_tank', 'bomb'] }
+                    );
+                }
+                // For other aircraft types, hardpoints array remains empty (can be extended later)
+                
+                return hardpoints;
             }
 
             /**
@@ -14713,6 +17028,7 @@
                         'BristolF2': 'f2',
                         'HanriotHD3': 'hd3',
                         'LetordLet5': 'let5',
+                        'DrI': 'dri',  // Fokker Dr.I Triplane - Fixed missing entry
                         'DrII': 'drii',
                         'DVII': 'dvii',
                         'DV': 'dv',
@@ -14735,6 +17051,10 @@
                         'Hurricane': 'hurricane',
                         'Fw-190': 'fw190',
                         'Me-262': 'me262',
+                        'F-4': 'f4phantom',
+                        'F-4G': 'f4phantom',
+                        'F-15C': 'f15eagle',
+                        'MiG-21': 'mig21',
                         'Zero': 'zero',
                         'Bf-110': 'bf110',
                         'Ju-87': 'ju87',
@@ -18816,11 +21136,23 @@
                         missile.render();
                     }
                 }
+                
+                // Render aircraft-launched missiles (air-to-air)
+                if (plane.missiles) {
+                    for (let missile of plane.missiles) {
+                        missile.render();
+                    }
+                }
             }
 
             // Render ghost if in order mode
             if (ghostAircraft) {
                 ghostAircraft.aircraft.renderSVG(true, ghostAircraft.state);
+            }
+
+            // Update HUD loadout display
+            if (typeof updateHUDLoadout === 'function') {
+                updateHUDLoadout();
             }
 
             // Render predicted AI ghost (realistic mode)
@@ -20126,6 +22458,12 @@
                     updateGhostPanel();
                     break;
                 case 'z':
+                case 'Z':
+                    // Cycle weapons (loadout system)
+                    if (typeof cycleWeapon === 'function') {
+                        cycleWeapon();
+                    }
+                    return;
                     // Decrease fire threshold (fire more aggressively, less accurate)
                     selectedAircraft.fireThreshold = Math.max(0.05, selectedAircraft.fireThreshold - 0.05);
                     updateGhost();
@@ -20392,6 +22730,64 @@
                         }
                     }
                 }
+                
+                // Update aircraft-launched missiles (air-to-air)
+                for (let plane of aircraft) {
+                    if (!plane.missiles || plane.missiles.length === 0) continue;
+                    
+                    // Update lock-on progress
+                    if (plane.lockTarget && !plane.isLocked) {
+                        plane.updateLockOn(dt);
+                    }
+                    
+                    // Update missiles
+                    for (let i = plane.missiles.length - 1; i >= 0; i--) {
+                        const missile = plane.missiles[i];
+                        const hit = missile.update(dt);
+                        
+                        // Apply damage if missile hit
+                        if (hit && missile.target && !missile.target.isDestroyed) {
+                            let damageAmount = missile.damage;
+                            
+                            // Apply durability multiplier
+                            if (missile.target.durability) {
+                                damageAmount *= missile.target.durability;
+                            }
+                            
+                            // Apply damage to target aircraft
+                            if (missile.target.hitpoints !== undefined) {
+                                missile.target.hitpoints -= damageAmount;
+                                if (missile.target.hitpoints <= 0) {
+                                    missile.target.isDestroyed = true;
+                                    console.log(`${missile.target.fullName || 'Aircraft'} destroyed by ${missile.name}!`);
+                                }
+                            }
+                            
+                            // Create explosion effect
+                            if (typeof explosions !== 'undefined') {
+                                explosions.push({
+                                    x: missile.x,
+                                    y: missile.y,
+                                    altitude: missile.altitude,
+                                    size: missile.explosionRadius,
+                                    time: Date.now()
+                                });
+                            }
+                        }
+                        
+                        // Remove inactive missiles
+                        if (!missile.isActive || missile.hasExploded) {
+                            if (missile.hasExploded && missile.explosionTime) {
+                                // Keep missile for explosion animation
+                                if (Date.now() - missile.explosionTime > 1000) {
+                                    plane.missiles.splice(i, 1);
+                                }
+                            } else {
+                                plane.missiles.splice(i, 1);
+                            }
+                        }
+                    }
+                }
 
                 // Update capital ships
                 for (let ship of capitalShips) {
@@ -20552,6 +22948,12 @@
                 ctx.fillText('Press RESTART to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80);
                 ctx.textAlign = 'left';
             }
+            
+            // Update HUD loadout display each frame
+            if (typeof updateHUDLoadout === 'function') {
+                updateHUDLoadout();
+            }
+            
             if (!isPaused) {
                 requestAnimationFrame(gameLoop);
             }
@@ -21556,8 +23958,35 @@
             document.getElementById('missionBriefing').style.display = 'block';
         }
 
+        function proceedToLoadout() {
+            document.getElementById('missionBriefing').style.display = 'none';
+            if (typeof showLoadoutPanel === 'function' && currentMission && currentMission.playerAircraft) {
+                showLoadoutPanel(currentMission.playerAircraft);
+            } else {
+                // Fallback: start mission directly if loadout system not available
+                startMission();
+            }
+        }
+
         function startMission() {
             document.getElementById('missionBriefing').style.display = 'none';
+            document.getElementById('loadoutPanel').style.display = 'none';
+
+            // Apply loadout to player aircraft if configured
+            if (selectedAircraft && currentLoadout && currentLoadout.aircraft) {
+                if (!selectedAircraft.mountedWeapons) selectedAircraft.mountedWeapons = [];
+                if (typeof getMountedWeapons === 'function') {
+                    selectedAircraft.mountedWeapons = getMountedWeapons();
+                }
+                if (currentLoadout.hardpoints) {
+                    selectedAircraft.loadout = { ...currentLoadout.hardpoints };
+                }
+                
+                // Apply performance impact from loadout
+                if (typeof selectedAircraft.updatePerformance === 'function') {
+                    selectedAircraft.updatePerformance();
+                }
+            }
 
             // Initialize mission
             gameState = 'ORDER';
@@ -23092,8 +25521,8 @@
                 aircraft: [
                     { type: 'Camel', side: 'allied', isPlayer: true, x: 300, y: 500, altitude: 2000, heading: 90 },
                     { type: 'Camel', side: 'allied', isPlayer: false, x: 400, y: 500, altitude: 2000, heading: 90 },
-                    { type: 'DrII', side: 'central', isPlayer: false, x: 1500, y: 500, altitude: 2000, heading: 270 },
-                    { type: 'DrII', side: 'central', isPlayer: false, x: 1600, y: 500, altitude: 2000, heading: 270 }
+                    { type: 'DrI', side: 'central', isPlayer: false, x: 1500, y: 500, altitude: 2000, heading: 270 },
+                    { type: 'DrI', side: 'central', isPlayer: false, x: 1600, y: 500, altitude: 2000, heading: 270 }
                 ],
                 year: 1917,
                 terrain: 'auto'
@@ -23106,7 +25535,7 @@
                 aircraft: [
                     { type: 'SE5', side: 'allied', isPlayer: true, x: 300, y: 500, altitude: 2500, heading: 90 },
                     { type: 'SE5', side: 'allied', isPlayer: false, x: 400, y: 500, altitude: 2500, heading: 90 },
-                    { type: 'DrII', side: 'central', isPlayer: false, x: 1500, y: 500, altitude: 2500, heading: 270 }
+                    { type: 'DrI', side: 'central', isPlayer: false, x: 1500, y: 500, altitude: 2500, heading: 270 }
                 ],
                 year: 1918,
                 terrain: 'auto'
@@ -23152,8 +25581,8 @@
                     { type: 'Camel', side: 'allied', isPlayer: false, x: 500, y: 600, altitude: 2000, heading: 90 },
                     { type: 'DVII', side: 'central', isPlayer: false, x: 1400, y: 400, altitude: 2000, heading: 270 },
                     { type: 'DVII', side: 'central', isPlayer: false, x: 1500, y: 400, altitude: 2000, heading: 270 },
-                    { type: 'DrII', side: 'central', isPlayer: false, x: 1600, y: 500, altitude: 2000, heading: 270 },
-                    { type: 'DrII', side: 'central', isPlayer: false, x: 1700, y: 600, altitude: 2000, heading: 270 }
+                    { type: 'DrI', side: 'central', isPlayer: false, x: 1600, y: 500, altitude: 2000, heading: 270 },
+                    { type: 'DrI', side: 'central', isPlayer: false, x: 1700, y: 600, altitude: 2000, heading: 270 }
                 ],
                 year: 1917,
                 terrain: 'auto'
