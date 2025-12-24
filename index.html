@@ -26,19 +26,23 @@
         }
 
         #gameContainer {
-            position: relative;
             width: 100vw;
             height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            overflow: hidden;
         }
 
         #gameCanvas {
-            border: 2px solid #4a5a3a;
+            display: block;
+            border: none;
             background: #3d5235;
             cursor: crosshair;
             z-index: 1;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
 
         /* Split UI panels with slide-out functionality */
@@ -621,11 +625,110 @@
             <div>📋 SCENARIOS</div>
             <div class="mode-description">Historical battles and preset scenarios</div>
         </button>
+        <button class="game-mode-btn" onclick="showTutorialSelector()" style="background: linear-gradient(135deg, #2a9d4a 0%, #1a5d3a 100%); border-color: #2a9d4a;">
+            <div>📚 TUTORIALS</div>
+            <div class="mode-description">Learn the game - Step-by-step interactive training</div>
+        </button>
+        <button class="game-mode-btn" onclick="showCareerMode()" style="background: linear-gradient(135deg, #d4af37 0%, #8b7500 100%); border-color: #d4af37;">
+            <div>🎖️ CAREER MODE</div>
+            <div class="mode-description">Long-term pilot progression - Build your legacy</div>
+        </button>
         <div class="splash-version">v2.1.0 - Renegade Legion</div>
     </div>
 
+    <!-- Pilot Career Mode UI Screens -->
+
+    <!-- Pilot Selection Screen -->
+    <div id="pilotSelectionScreen" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.95); z-index: 1000; overflow-y: auto;">
+        <div style="max-width: 1200px; margin: 50px auto; padding: 30px;">
+            <h1 style="text-align: center; color: #d4af37; font-size: 36px; margin-bottom: 30px;">PILOT CAREER MODE</h1>
+
+            <div style="text-align: center; margin-bottom: 30px;">
+                <button class="btn" onclick="showPilotCreationScreen()" style="padding: 15px 30px; font-size: 18px; background: #0f9d58;">
+                    ➕ CREATE NEW PILOT
+                </button>
+                <button class="btn" onclick="hidePilotSelectionScreen()" style="padding: 15px 30px; font-size: 18px; background: #aa0000; margin-left: 15px;">
+                    ← BACK TO MENU
+                </button>
+            </div>
+
+            <div id="pilotList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; margin-top: 30px;">
+                <!-- Pilot cards will be inserted here -->
+            </div>
+
+            <div id="noPilotsMessage" style="text-align: center; color: #888; font-size: 18px; margin-top: 50px; display: none;">
+                <p>No pilots created yet.</p>
+                <p style="margin-top: 15px;">Create your first pilot to begin your career!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pilot Creation Screen -->
+    <div id="pilotCreationScreen" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.95); z-index: 1001; overflow-y: auto;">
+        <div style="max-width: 800px; margin: 50px auto; padding: 30px; background: rgba(20, 30, 40, 0.9); border-radius: 10px; border: 2px solid #d4af37;">
+            <h1 style="text-align: center; color: #d4af37; font-size: 32px; margin-bottom: 30px;">CREATE NEW PILOT</h1>
+
+            <div style="margin-bottom: 25px;">
+                <label style="display: block; color: #aaa; font-size: 14px; margin-bottom: 8px;">PILOT NAME:</label>
+                <input type="text" id="pilotNameInput" placeholder="Enter your name" style="width: 100%; padding: 12px; font-size: 16px; background: rgba(0, 0, 0, 0.5); border: 1px solid #555; color: #fff; border-radius: 5px;" maxlength="30">
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <label style="display: block; color: #aaa; font-size: 14px; margin-bottom: 8px;">CALLSIGN:</label>
+                <input type="text" id="pilotCallsignInput" placeholder="Enter your callsign" style="width: 100%; padding: 12px; font-size: 16px; background: rgba(0, 0, 0, 0.5); border: 1px solid #555; color: #fff; border-radius: 5px;" maxlength="20">
+            </div>
+
+            <div style="background: rgba(0, 0, 0, 0.3); padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+                <h3 style="color: #d4af37; margin-bottom: 15px;">CAREER FEATURES:</h3>
+                <ul style="color: #ccc; line-height: 1.8;">
+                    <li>✈️ Persistent pilot progression across all missions</li>
+                    <li>🎖️ 10 rank levels from Cadet to Ace</li>
+                    <li>⭐ 9 skill categories with 10 levels each</li>
+                    <li>🌟 6 specializations to unlock (Fighter Ace, Bomber Pilot, etc.)</li>
+                    <li>🏅 10+ medals and achievements to earn</li>
+                    <li>📊 Detailed mission history and statistics</li>
+                    <li>💪 Skill bonuses affect aircraft performance</li>
+                    <li>😴 Fatigue and morale system</li>
+                </ul>
+            </div>
+
+            <div style="text-align: center;">
+                <button class="btn" onclick="confirmCreatePilot()" style="padding: 15px 40px; font-size: 18px; background: #0f9d58;">
+                    ✓ CREATE PILOT
+                </button>
+                <button class="btn" onclick="cancelCreatePilot()" style="padding: 15px 40px; font-size: 18px; background: #aa0000; margin-left: 15px;">
+                    ✗ CANCEL
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pilot Career Overview Screen -->
+    <div id="careerOverviewScreen" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.95); z-index: 1000; overflow-y: auto;">
+        <div style="max-width: 1400px; margin: 30px auto; padding: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <h1 style="color: #d4af37; font-size: 32px;">PILOT CAREER</h1>
+                <div>
+                    <button class="btn" onclick="restCurrentPilot()" style="padding: 10px 20px; background: #0f9d58; margin-right: 10px;">
+                        😴 REST (-30 Fatigue)
+                    </button>
+                    <button class="btn" onclick="startCareerMission()" style="padding: 10px 20px; background: #4a9eff;">
+                        🎯 START MISSION
+                    </button>
+                    <button class="btn" onclick="hideCareerOverviewScreen()" style="padding: 10px 20px; background: #aa0000; margin-left: 10px;">
+                        ← BACK
+                    </button>
+                </div>
+            </div>
+
+            <div id="careerOverviewContent" style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+                <!-- Content will be dynamically generated -->
+            </div>
+        </div>
+    </div>
+
     <div id="gameContainer" style="display: none;">
-        <canvas id="gameCanvas" width="1800" height="1000"></canvas>
+        <canvas id="gameCanvas"></canvas>
 
         <!-- Aircraft Info Panel (Top) -->
         <div id="aircraftPanel" class="ui-panel">
@@ -653,6 +756,34 @@
             <div class="panel-tab" onclick="togglePanel('shipsPanel')">SHIPS</div>
             <h2 style="font-size: 16px; margin-bottom: 10px;">Capital Ships</h2>
             <div id="shipsList"></div>
+        </div>
+
+        <!-- Weapon Legend Panel -->
+        <div id="weaponLegendPanel" class="ui-panel" style="display: none; top: 150px; left: 320px; width: 180px;">
+            <div class="panel-tab" onclick="togglePanel('weaponLegendPanel')">WEAPONS</div>
+            <h2 style="font-size: 14px; margin-bottom: 8px;">Hardpoint Colors</h2>
+            <div style="font-size: 11px; line-height: 1.6;">
+                <div style="display: flex; align-items: center; margin-bottom: 4px;">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: rgba(255, 50, 50, 0.8); margin-right: 8px;"></div>
+                    <span>Particle Beam</span>
+                </div>
+                <div style="display: flex; align-items: center; margin-bottom: 4px;">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: rgba(50, 150, 255, 0.8); margin-right: 8px;"></div>
+                    <span>Laser</span>
+                </div>
+                <div style="display: flex; align-items: center; margin-bottom: 4px;">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: rgba(255, 200, 50, 0.8); margin-right: 8px;"></div>
+                    <span>Mass Driver</span>
+                </div>
+                <div style="display: flex; align-items: center; margin-bottom: 4px;">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: rgba(150, 255, 150, 0.8); margin-right: 8px;"></div>
+                    <span>Spinal Mount</span>
+                </div>
+                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #444; font-size: 10px; color: #aaa;">
+                    Bright = Ready<br>
+                    Dim = Cooling
+                </div>
+            </div>
         </div>
 
         <!-- Controls Panel (Center Top - Landscape) -->
@@ -1117,11 +1248,11 @@
                                     <option value="Fighter-Fluttering Petal">Fluttering Petal Fighter</option>
                                 </optgroup>
                                 <optgroup label="Capital Ships">
-                                    <option value="battleship">Battleship (BB)</option>
-                                    <option value="battlecruiser">Battlecruiser (BC)</option>
-                                    <option value="cruiser">Heavy Cruiser (CA)</option>
-                                    <option value="destroyer">Destroyer (DD)</option>
-                                    <option value="carrier">Carrier (CT)</option>
+                                    <option value="Battleship-Repulse">Repulse Battleship (BB)</option>
+                                    <option value="Battlecruiser-Syracuse">Syracuse Battlecruiser (BC)</option>
+                                    <option value="Cruiser-Xerxes">Xerxes Heavy Cruiser (CA)</option>
+                                    <option value="Destroyer-Serpens">Serpens Destroyer (DD)</option>
+                                    <option value="Carrier-Commonwealth">Commonwealth Carrier (CT)</option>
                                 </optgroup>
                             </select>
                         </div>
@@ -1146,11 +1277,11 @@
                                     <option value="Fighter-Verutum">Verutum Fighter</option>
                                 </optgroup>
                                 <optgroup label="Capital Ships">
-                                    <option value="battleship">Battleship (BB)</option>
-                                    <option value="battlecruiser">Battlecruiser (BC)</option>
-                                    <option value="cruiser">Heavy Cruiser (CA)</option>
-                                    <option value="destroyer">Destroyer (DD)</option>
-                                    <option value="carrier">Carrier (CT)</option>
+                                    <option value="Battleship-Shiva">Shiva Battleship (BB)</option>
+                                    <option value="Battlecruiser-Carthage">Carthage Battlecruiser (BC)</option>
+                                    <option value="Cruiser-Valiant">Valiant Heavy Cruiser (CA)</option>
+                                    <option value="Destroyer-Fulgur">Fulgur Destroyer (DD)</option>
+                                    <option value="Carrier-Terran">Terran Carrier (CT)</option>
                                 </optgroup>
                             </select>
                         </div>
@@ -1195,6 +1326,110 @@
             </div>
         </div>
 
+        <!-- Tutorial Selector -->
+        <div id="tutorialSelector" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); display: none; z-index: 1000; overflow-y: auto;">
+            <div style="max-width: 1000px; margin: 0 auto; padding: 40px; color: #fff;">
+                <div class="panel-title" style="font-size: 36px; margin-bottom: 30px; color: #2a9d4a;">📚 TUTORIAL SELECTION</div>
+
+                <div style="font-size: 16px; color: #ccc; margin-bottom: 30px; text-align: center;">
+                    Choose a tutorial to learn the game mechanics step-by-step. Each tutorial is interactive and will guide you through the controls and strategies.
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+                    <!-- WW2 Tutorial -->
+                    <div onclick="startTutorial('ww2')" style="background: rgba(100, 100, 150, 0.3); padding: 20px; border-radius: 10px; border: 2px solid #6677ff; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='rgba(100, 100, 150, 0.5)'" onmouseout="this.style.background='rgba(100, 100, 150, 0.3)'">
+                        <div style="font-size: 24px; font-weight: bold; color: #6677ff; margin-bottom: 10px;">⚡ WW2 AIRCRAFT</div>
+                        <div style="font-size: 14px; color: #ccc; margin-bottom: 10px;">Basic dogfighting tutorial</div>
+                        <div style="font-size: 12px; color: #999;">
+                            • Basic flight controls<br>
+                            • Speed and altitude management<br>
+                            • Gun combat and aiming<br>
+                            • Energy fighting tactics
+                        </div>
+                        <div id="ww2TutorialStatus" style="margin-top: 10px; font-size: 12px; color: #2a9d4a;">
+                            <!-- Status will be updated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- WW1 Tutorial -->
+                    <div onclick="startTutorial('ww1')" style="background: rgba(150, 100, 50, 0.3); padding: 20px; border-radius: 10px; border: 2px solid #cc8844; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='rgba(150, 100, 50, 0.5)'" onmouseout="this.style.background='rgba(150, 100, 50, 0.3)'">
+                        <div style="font-size: 24px; font-weight: bold; color: #cc8844; margin-bottom: 10px;">⚔️ WW1 BIPLANES</div>
+                        <div style="font-size: 14px; color: #ccc; margin-bottom: 10px;">Biplane combat tutorial</div>
+                        <div style="font-size: 12px; color: #999;">
+                            • Slower speed tactics<br>
+                            • Tight turn maneuvers<br>
+                            • Fabric construction damage<br>
+                            • Close-range dogfighting
+                        </div>
+                        <div id="ww1TutorialStatus" style="margin-top: 10px; font-size: 12px; color: #2a9d4a;">
+                            <!-- Status will be updated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Renegade Legion Tutorial -->
+                    <div onclick="startTutorial('renegade')" style="background: rgba(100, 50, 150, 0.3); padding: 20px; border-radius: 10px; border: 2px solid #aa00ff; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='rgba(100, 50, 150, 0.5)'" onmouseout="this.style.background='rgba(100, 50, 150, 0.3)'">
+                        <div style="font-size: 24px; font-weight: bold; color: #aa00ff; margin-bottom: 10px;">🚀 RENEGADE LEGION</div>
+                        <div style="font-size: 14px; color: #ccc; margin-bottom: 10px;">Space combat tutorial</div>
+                        <div style="font-size: 12px; color: #999;">
+                            • Capital ship controls<br>
+                            • Power allocation system<br>
+                            • Shield management<br>
+                            • Space fighter tactics
+                        </div>
+                        <div id="renegadeTutorialStatus" style="margin-top: 10px; font-size: 12px; color: #2a9d4a;">
+                            <!-- Status will be updated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Wet Navy Tutorial -->
+                    <div onclick="startTutorial('naval')" style="background: rgba(50, 100, 150, 0.3); padding: 20px; border-radius: 10px; border: 2px solid #4488cc; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='rgba(50, 100, 150, 0.5)'" onmouseout="this.style.background='rgba(50, 100, 150, 0.3)'">
+                        <div style="font-size: 24px; font-weight: bold; color: #4488cc; margin-bottom: 10px;">⚓ WET NAVY</div>
+                        <div style="font-size: 14px; color: #ccc; margin-bottom: 10px;">Naval warfare tutorial</div>
+                        <div style="font-size: 12px; color: #999;">
+                            • Battleship positioning<br>
+                            • Broadside tactics<br>
+                            • Armor and penetration<br>
+                            • Naval engagement ranges
+                        </div>
+                        <div id="navalTutorialStatus" style="margin-top: 10px; font-size: 12px; color: #2a9d4a;">
+                            <!-- Status will be updated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <button class="btn" onclick="hideTutorialSelector()" style="font-size: 18px; padding: 15px 40px;">BACK TO MENU</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tutorial Overlay -->
+        <div id="tutorialOverlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: none; z-index: 500; pointer-events: none;">
+            <!-- Tutorial instruction panel -->
+            <div id="tutorialPanel" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.95); padding: 30px; border-radius: 10px; border: 3px solid #2a9d4a; max-width: 600px; pointer-events: auto; z-index: 501;">
+                <div id="tutorialTitle" style="font-size: 24px; font-weight: bold; color: #2a9d4a; margin-bottom: 15px; text-align: center;">Tutorial</div>
+                <div id="tutorialStepCounter" style="font-size: 14px; color: #888; margin-bottom: 15px; text-align: center;">Step 1 of 10</div>
+                <div id="tutorialInstruction" style="font-size: 16px; color: #eee; margin-bottom: 20px; line-height: 1.6;">
+                    Welcome to the tutorial!
+                </div>
+                <div id="tutorialHint" style="font-size: 14px; color: #aaa; margin-bottom: 20px; line-height: 1.4; font-style: italic;">
+                    <!-- Optional hint text -->
+                </div>
+                <div style="text-align: center;">
+                    <button id="tutorialNextBtn" class="btn btn-primary" onclick="tutorialSystem.nextStep()" style="padding: 10px 30px; display: none;">NEXT</button>
+                    <button class="btn" onclick="tutorialSystem.skip()" style="padding: 10px 30px; margin-left: 10px;">SKIP TUTORIAL</button>
+                </div>
+                <div id="tutorialProgress" style="margin-top: 15px; height: 6px; background: rgba(255, 255, 255, 0.2); border-radius: 3px; overflow: hidden;">
+                    <div id="tutorialProgressBar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #2a9d4a 0%, #44dd77 100%); transition: width 0.3s;"></div>
+                </div>
+            </div>
+
+            <!-- Tutorial highlight boxes -->
+            <div id="tutorialHighlight" style="position: absolute; border: 3px solid #2a9d4a; border-radius: 5px; pointer-events: none; display: none; z-index: 499; box-shadow: 0 0 20px rgba(42, 157, 74, 0.6); background: rgba(42, 157, 74, 0.1);">
+                <!-- Animated highlight box -->
+            </div>
+        </div>
+
         <!-- Hot-seat Player Switch Screen (Enhancement #14) -->
         <div id="playerSwitchScreen" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); display: none; z-index: 2000; justify-content: center; align-items: center; flex-direction: column;">
             <div style="text-align: center; color: #fff;">
@@ -1227,12 +1462,15 @@
         const soundMe109Cannon = new Audio('sounds/AC.mp3');
         const soundSpitfireEngine = new Audio('sounds/SPITFIRE.mp3');
         const soundMe109Engine = new Audio('sounds/BF109.mp3');
+        const soundBiplaneEngine = new Audio('sounds/biplane.mp3');
 
         // Configure engine sounds to loop
         soundSpitfireEngine.loop = true;
         soundMe109Engine.loop = true;
+        soundBiplaneEngine.loop = true;
         soundSpitfireEngine.volume = 0.3; // Keep engine sounds subtle
         soundMe109Engine.volume = 0.3;
+        soundBiplaneEngine.volume = 0.3;
 
         // Configure weapon sounds
         soundSpitfireMG.volume = 0.6;
@@ -1250,8 +1488,13 @@
         console.log('%c  • Mac: Cmd+Shift+R', 'color: #ffaa00;');
         console.log('%c  • Or clear browser cache completely', 'color: #ffaa00;');
 
-        const CANVAS_WIDTH = 1800;
-        const CANVAS_HEIGHT = 1000;
+        let CANVAS_WIDTH = window.innerWidth;
+        let CANVAS_HEIGHT = window.innerHeight;
+
+        // World scale factor: 6x increase for better visual detail
+        // 1 pixel = 0.167 meters (6x more detail than original 1 pixel = 1 meter)
+        const WORLD_SCALE = 6.0;
+
         let executionTime = 4000; // milliseconds - can be changed by player (2s, 4s, 6s, 8s)
         let turnTime = 4; // seconds - matches executionTime / 1000
         const ALTITUDE_MIN = 0;
@@ -1316,6 +1559,646 @@
             score: 0
         };
 
+        // ============================================================================
+        // PILOT CAREER MODE SYSTEM
+        // ============================================================================
+
+        // Pilot Career Data Structure
+        let currentPilot = null;
+        let careerMode = false;
+
+        // Rank progression system
+        const pilotRanks = [
+            { name: 'Cadet', xpRequired: 0, bonusMultiplier: 1.0 },
+            { name: 'Second Lieutenant', xpRequired: 500, bonusMultiplier: 1.05 },
+            { name: 'First Lieutenant', xpRequired: 1500, bonusMultiplier: 1.10 },
+            { name: 'Captain', xpRequired: 3000, bonusMultiplier: 1.15 },
+            { name: 'Major', xpRequired: 5000, bonusMultiplier: 1.20 },
+            { name: 'Lieutenant Colonel', xpRequired: 8000, bonusMultiplier: 1.25 },
+            { name: 'Colonel', xpRequired: 12000, bonusMultiplier: 1.30 },
+            { name: 'Wing Commander', xpRequired: 17000, bonusMultiplier: 1.35 },
+            { name: 'Air Commodore', xpRequired: 23000, bonusMultiplier: 1.40 },
+            { name: 'Ace', xpRequired: 30000, bonusMultiplier: 1.50 }
+        ];
+
+        // Specialization system
+        const specializations = {
+            fighter_ace: {
+                name: 'Fighter Ace',
+                description: 'Expert in air-to-air combat',
+                icon: '✈️',
+                bonuses: {
+                    turnRateBonus: 0.10,      // +10% turn rate
+                    accuracyBonus: 0.15,       // +15% accuracy
+                    combatXpBonus: 0.25        // +25% XP from kills
+                },
+                unlockRequirement: { kills: 10 }
+            },
+            bomber_pilot: {
+                name: 'Bomber Pilot',
+                description: 'Specialist in ground attack missions',
+                icon: '💣',
+                bonuses: {
+                    bombAccuracyBonus: 0.20,   // +20% bomb accuracy
+                    durabilityBonus: 0.10,     // +10% HP
+                    groundAttackXpBonus: 0.25  // +25% XP from ground targets
+                },
+                unlockRequirement: { groundTargetsDestroyed: 15 }
+            },
+            energy_fighter: {
+                name: 'Energy Fighter',
+                description: 'Master of boom and zoom tactics',
+                icon: '⚡',
+                bonuses: {
+                    climbRateBonus: 0.15,      // +15% climb rate
+                    diveSpeedBonus: 0.10,      // +10% dive speed
+                    energyManagementBonus: 0.20 // Better energy retention
+                },
+                unlockRequirement: { missionsCompleted: 8 }
+            },
+            ship_commander: {
+                name: 'Ship Commander',
+                description: 'Expert in naval operations',
+                icon: '⚓',
+                bonuses: {
+                    shipHandlingBonus: 0.15,   // +15% ship turn rate
+                    aaAccuracyBonus: 0.20,     // +20% AA accuracy
+                    navalXpBonus: 0.25         // +25% XP from naval missions
+                },
+                unlockRequirement: { shipsDestroyed: 5 }
+            },
+            ground_attack_specialist: {
+                name: 'Ground Attack Specialist',
+                description: 'Expert in strafing and rocket attacks',
+                icon: '🎯',
+                bonuses: {
+                    rocketAccuracyBonus: 0.15, // +15% rocket accuracy
+                    strafingDamageBonus: 0.20, // +20% strafe damage
+                    tankBusterXpBonus: 0.25    // +25% XP from tanks
+                },
+                unlockRequirement: { groundTargetsDestroyed: 10 }
+            },
+            defensive_specialist: {
+                name: 'Defensive Specialist',
+                description: 'Master of evasive maneuvers',
+                icon: '🛡️',
+                bonuses: {
+                    evasionBonus: 0.15,        // +15% dodge chance
+                    damageReductionBonus: 0.10, // -10% damage taken
+                    survivalXpBonus: 0.20      // +20% XP for surviving
+                },
+                unlockRequirement: { missionsCompleted: 5, deaths: 0 }
+            }
+        };
+
+        // Medal/Award system
+        const medals = {
+            first_blood: { name: 'First Blood', description: 'First enemy destroyed', icon: '🎖️' },
+            ace_in_a_day: { name: 'Ace in a Day', description: '5 kills in one mission', icon: '🏆' },
+            tank_buster: { name: 'Tank Buster', description: 'Destroy 20 ground targets', icon: '💥' },
+            ship_killer: { name: 'Ship Killer', description: 'Sink 10 ships', icon: '⚓' },
+            death_from_above: { name: 'Death From Above', description: 'Win 10 dive bombing missions', icon: '📉' },
+            survivor: { name: 'Survivor', description: 'Complete 10 missions without dying', icon: '🛡️' },
+            marksman: { name: 'Marksman', description: 'Achieve 75% accuracy in a mission', icon: '🎯' },
+            century_club: { name: 'Century Club', description: '100 total kills', icon: '💯' },
+            mission_master: { name: 'Mission Master', description: 'Complete all campaign missions', icon: '✅' },
+            perfect_mission: { name: 'Perfect Mission', description: 'Complete a mission with 100% accuracy', icon: '⭐' }
+        };
+
+        // Skill system
+        const pilotSkills = {
+            accuracy: { name: 'Accuracy', maxLevel: 10, xpPerLevel: 200 },
+            reflexes: { name: 'Reflexes', maxLevel: 10, xpPerLevel: 250 },
+            g_tolerance: { name: 'G-Tolerance', maxLevel: 10, xpPerLevel: 300 },
+            aircraft_handling: { name: 'Aircraft Handling', maxLevel: 10, xpPerLevel: 250 },
+            energy_management: { name: 'Energy Management', maxLevel: 10, xpPerLevel: 300 },
+            situational_awareness: { name: 'Situational Awareness', maxLevel: 10, xpPerLevel: 200 },
+            gunnery: { name: 'Gunnery', maxLevel: 10, xpPerLevel: 250 },
+            bombing: { name: 'Bombing', maxLevel: 10, xpPerLevel: 200 },
+            navigation: { name: 'Navigation', maxLevel: 10, xpPerLevel: 150 }
+        };
+
+        // Create a new pilot
+        function createPilot(name, callsign) {
+            const pilot = {
+                id: Date.now().toString(),
+                name: name,
+                callsign: callsign,
+                createdDate: new Date().toISOString(),
+
+                // Core stats
+                rank: 0, // Index into pilotRanks
+                experience: 0,
+
+                // Career statistics
+                stats: {
+                    missionsCompleted: 0,
+                    missionsAttempted: 0,
+                    kills: 0,
+                    deaths: 0,
+                    groundTargetsDestroyed: 0,
+                    shipsDestroyed: 0,
+                    totalDamageDealt: 0,
+                    totalDamageTaken: 0,
+                    shotsHit: 0,
+                    shotsFired: 0,
+                    flightHours: 0,
+
+                    // Mission type stats
+                    dogfightMissions: 0,
+                    groundAttackMissions: 0,
+                    navalStrikeMissions: 0,
+                    escortMissions: 0,
+
+                    // Best performance
+                    highestKillsInMission: 0,
+                    longestKillStreak: 0,
+                    bestAccuracy: 0,
+
+                    // Game mode stats
+                    aircraftMissions: 0,
+                    rlMissions: 0,
+                    wetNavyMissions: 0
+                },
+
+                // Skills (each skill has current XP and level)
+                skills: {},
+
+                // Specializations (can have multiple, but limited)
+                specializations: [],
+                maxSpecializations: 2,
+
+                // Medals and achievements
+                medals: [],
+
+                // Mission history (last 50 missions)
+                missionHistory: [],
+                maxHistorySize: 50,
+
+                // Current campaign progress
+                currentCampaignMission: 1,
+                campaignScore: 0,
+
+                // Fatigue and condition
+                fatigue: 0, // 0-100
+                morale: 100, // 0-100
+
+                // Preferred aircraft
+                preferredAircraft: [],
+
+                // Custom settings
+                favoriteCallouts: [],
+
+                // Career milestones
+                milestones: {
+                    firstKill: null,
+                    firstDeath: null,
+                    becomingAce: null,
+                    firstMedalEarned: null
+                }
+            };
+
+            // Initialize skills
+            for (let skillKey in pilotSkills) {
+                pilot.skills[skillKey] = {
+                    level: 0,
+                    xp: 0
+                };
+            }
+
+            return pilot;
+        }
+
+        // Calculate current rank
+        function getPilotRank(pilot) {
+            for (let i = pilotRanks.length - 1; i >= 0; i--) {
+                if (pilot.experience >= pilotRanks[i].xpRequired) {
+                    return pilotRanks[i];
+                }
+            }
+            return pilotRanks[0];
+        }
+
+        // Add experience to pilot
+        function addPilotExperience(pilot, xp, source = 'general') {
+            const oldRank = getPilotRank(pilot);
+            pilot.experience += xp;
+            const newRank = getPilotRank(pilot);
+
+            // Check for rank up
+            if (newRank.xpRequired > oldRank.xpRequired) {
+                showRankUpNotification(pilot, newRank);
+            }
+
+            // Also add to specific skills based on source
+            if (source === 'combat') {
+                addSkillXP(pilot, 'gunnery', xp * 0.5);
+                addSkillXP(pilot, 'accuracy', xp * 0.3);
+            } else if (source === 'ground_attack') {
+                addSkillXP(pilot, 'bombing', xp * 0.5);
+                addSkillXP(pilot, 'gunnery', xp * 0.3);
+            } else if (source === 'evasion') {
+                addSkillXP(pilot, 'reflexes', xp * 0.5);
+                addSkillXP(pilot, 'aircraft_handling', xp * 0.3);
+            }
+
+            savePilot(pilot);
+        }
+
+        // Add XP to a specific skill
+        function addSkillXP(pilot, skillKey, xp) {
+            if (!pilot.skills[skillKey]) return;
+
+            const skill = pilot.skills[skillKey];
+            const skillDef = pilotSkills[skillKey];
+
+            if (skill.level >= skillDef.maxLevel) return;
+
+            skill.xp += xp;
+
+            // Check for level up
+            const xpNeeded = skillDef.xpPerLevel * (skill.level + 1);
+            if (skill.xp >= xpNeeded) {
+                skill.xp -= xpNeeded;
+                skill.level++;
+                showSkillLevelUpNotification(pilot, skillKey, skill.level);
+            }
+        }
+
+        // Check if pilot can unlock a specialization
+        function canUnlockSpecialization(pilot, specKey) {
+            const spec = specializations[specKey];
+            if (!spec) return false;
+
+            // Check if already has it
+            if (pilot.specializations.includes(specKey)) return false;
+
+            // Check if has slots
+            if (pilot.specializations.length >= pilot.maxSpecializations) return false;
+
+            // Check requirements
+            const req = spec.unlockRequirement;
+            if (req.kills && pilot.stats.kills < req.kills) return false;
+            if (req.groundTargetsDestroyed && pilot.stats.groundTargetsDestroyed < req.groundTargetsDestroyed) return false;
+            if (req.shipsDestroyed && pilot.stats.shipsDestroyed < req.shipsDestroyed) return false;
+            if (req.missionsCompleted && pilot.stats.missionsCompleted < req.missionsCompleted) return false;
+            if (req.deaths !== undefined && pilot.stats.deaths > req.deaths) return false;
+
+            return true;
+        }
+
+        // Unlock a specialization
+        function unlockSpecialization(pilot, specKey) {
+            if (!canUnlockSpecialization(pilot, specKey)) return false;
+
+            pilot.specializations.push(specKey);
+            showSpecializationUnlockedNotification(pilot, specKey);
+            savePilot(pilot);
+            return true;
+        }
+
+        // Get all active bonuses for pilot
+        function getPilotBonuses(pilot) {
+            const bonuses = {
+                turnRateBonus: 0,
+                accuracyBonus: 0,
+                climbRateBonus: 0,
+                diveSpeedBonus: 0,
+                durabilityBonus: 0,
+                damageBonus: 0,
+                xpBonus: 0,
+                evasionBonus: 0,
+                damageReductionBonus: 0
+            };
+
+            // Rank bonuses
+            const rank = getPilotRank(pilot);
+            const rankMultiplier = rank.bonusMultiplier - 1.0;
+            bonuses.accuracyBonus += rankMultiplier * 0.1;
+            bonuses.xpBonus += rankMultiplier * 0.1;
+
+            // Specialization bonuses
+            for (let specKey of pilot.specializations) {
+                const spec = specializations[specKey];
+                if (spec && spec.bonuses) {
+                    for (let bonusKey in spec.bonuses) {
+                        if (bonuses.hasOwnProperty(bonusKey)) {
+                            bonuses[bonusKey] += spec.bonuses[bonusKey];
+                        }
+                    }
+                }
+            }
+
+            // Skill bonuses
+            if (pilot.skills.accuracy) {
+                bonuses.accuracyBonus += pilot.skills.accuracy.level * 0.02; // 2% per level
+            }
+            if (pilot.skills.aircraft_handling) {
+                bonuses.turnRateBonus += pilot.skills.aircraft_handling.level * 0.015; // 1.5% per level
+            }
+            if (pilot.skills.g_tolerance) {
+                bonuses.damageReductionBonus += pilot.skills.g_tolerance.level * 0.01; // 1% per level
+            }
+            if (pilot.skills.energy_management) {
+                bonuses.climbRateBonus += pilot.skills.energy_management.level * 0.01; // 1% per level
+            }
+
+            // Fatigue penalties
+            if (pilot.fatigue > 50) {
+                const fatiguePenalty = (pilot.fatigue - 50) / 100;
+                bonuses.accuracyBonus -= fatiguePenalty * 0.3;
+                bonuses.turnRateBonus -= fatiguePenalty * 0.2;
+            }
+
+            // Morale bonuses
+            if (pilot.morale > 75) {
+                const moraleBonus = (pilot.morale - 75) / 100;
+                bonuses.accuracyBonus += moraleBonus * 0.1;
+            }
+
+            return bonuses;
+        }
+
+        // Apply pilot bonuses to aircraft
+        function applyPilotBonusesToAircraft(aircraft, pilot) {
+            if (!pilot || !aircraft) return;
+
+            const bonuses = getPilotBonuses(pilot);
+
+            // Apply bonuses
+            if (bonuses.turnRateBonus) {
+                aircraft.maxTurnRate *= (1 + bonuses.turnRateBonus);
+            }
+            if (bonuses.climbRateBonus) {
+                aircraft.maxClimbRate *= (1 + bonuses.climbRateBonus);
+            }
+            if (bonuses.diveSpeedBonus) {
+                aircraft.maxDiveRate *= (1 + bonuses.diveSpeedBonus);
+            }
+            if (bonuses.durabilityBonus) {
+                aircraft.hp *= (1 + bonuses.durabilityBonus);
+                aircraft.maxHp *= (1 + bonuses.durabilityBonus);
+            }
+
+            // Store bonuses on aircraft for use during combat
+            aircraft.pilotBonuses = bonuses;
+        }
+
+        // Record mission completion
+        function recordMissionCompletion(pilot, missionData) {
+            pilot.stats.missionsCompleted++;
+            pilot.stats.missionsAttempted++;
+
+            // Update mission history
+            pilot.missionHistory.unshift({
+                date: new Date().toISOString(),
+                missionName: missionData.missionName || 'Unknown',
+                missionType: missionData.missionType || 'unknown',
+                kills: missionData.kills || 0,
+                died: missionData.died || false,
+                accuracy: missionData.accuracy || 0,
+                score: missionData.score || 0,
+                xpEarned: missionData.xpEarned || 0
+            });
+
+            // Trim history
+            if (pilot.missionHistory.length > pilot.maxHistorySize) {
+                pilot.missionHistory = pilot.missionHistory.slice(0, pilot.maxHistorySize);
+            }
+
+            // Update stats
+            if (missionData.kills) {
+                pilot.stats.kills += missionData.kills;
+                if (missionData.kills > pilot.stats.highestKillsInMission) {
+                    pilot.stats.highestKillsInMission = missionData.kills;
+                }
+
+                // Check for first kill milestone
+                if (!pilot.milestones.firstKill && pilot.stats.kills > 0) {
+                    pilot.milestones.firstKill = new Date().toISOString();
+                }
+
+                // Check for ace milestone (5 kills)
+                if (!pilot.milestones.becomingAce && pilot.stats.kills >= 5) {
+                    pilot.milestones.becomingAce = new Date().toISOString();
+                    checkAndAwardMedal(pilot, 'ace_in_a_day');
+                }
+            }
+
+            if (missionData.died) {
+                pilot.stats.deaths++;
+                if (!pilot.milestones.firstDeath) {
+                    pilot.milestones.firstDeath = new Date().toISOString();
+                }
+                pilot.morale = Math.max(20, pilot.morale - 20);
+            } else {
+                pilot.morale = Math.min(100, pilot.morale + 10);
+            }
+
+            if (missionData.groundTargetsDestroyed) {
+                pilot.stats.groundTargetsDestroyed += missionData.groundTargetsDestroyed;
+            }
+
+            if (missionData.shipsDestroyed) {
+                pilot.stats.shipsDestroyed += missionData.shipsDestroyed;
+            }
+
+            if (missionData.shotsHit) {
+                pilot.stats.shotsHit += missionData.shotsHit;
+            }
+
+            if (missionData.shotsFired) {
+                pilot.stats.shotsFired += missionData.shotsFired;
+            }
+
+            // Update best accuracy
+            if (missionData.accuracy > pilot.stats.bestAccuracy) {
+                pilot.stats.bestAccuracy = missionData.accuracy;
+            }
+
+            // Increase fatigue
+            pilot.fatigue = Math.min(100, pilot.fatigue + 15);
+
+            // Check for medals
+            checkMedals(pilot);
+
+            // Check for available specializations
+            checkAvailableSpecializations(pilot);
+
+            savePilot(pilot);
+        }
+
+        // Check and award medals
+        function checkMedals(pilot) {
+            // First Blood
+            if (pilot.stats.kills >= 1 && !pilot.medals.includes('first_blood')) {
+                awardMedal(pilot, 'first_blood');
+            }
+
+            // Tank Buster
+            if (pilot.stats.groundTargetsDestroyed >= 20 && !pilot.medals.includes('tank_buster')) {
+                awardMedal(pilot, 'tank_buster');
+            }
+
+            // Ship Killer
+            if (pilot.stats.shipsDestroyed >= 10 && !pilot.medals.includes('ship_killer')) {
+                awardMedal(pilot, 'ship_killer');
+            }
+
+            // Century Club
+            if (pilot.stats.kills >= 100 && !pilot.medals.includes('century_club')) {
+                awardMedal(pilot, 'century_club');
+            }
+
+            // Survivor
+            if (pilot.stats.missionsCompleted >= 10 && pilot.stats.deaths === 0 && !pilot.medals.includes('survivor')) {
+                awardMedal(pilot, 'survivor');
+            }
+
+            // Marksman
+            if (pilot.stats.bestAccuracy >= 0.75 && !pilot.medals.includes('marksman')) {
+                awardMedal(pilot, 'marksman');
+            }
+        }
+
+        function awardMedal(pilot, medalKey) {
+            if (pilot.medals.includes(medalKey)) return;
+
+            pilot.medals.push(medalKey);
+
+            if (!pilot.milestones.firstMedalEarned) {
+                pilot.milestones.firstMedalEarned = new Date().toISOString();
+            }
+
+            showMedalAwardedNotification(pilot, medalKey);
+            savePilot(pilot);
+        }
+
+        function checkAndAwardMedal(pilot, medalKey) {
+            awardMedal(pilot, medalKey);
+        }
+
+        // Check for available specializations
+        function checkAvailableSpecializations(pilot) {
+            const availableSpecs = [];
+            for (let specKey in specializations) {
+                if (canUnlockSpecialization(pilot, specKey)) {
+                    availableSpecs.push(specKey);
+                }
+            }
+
+            if (availableSpecs.length > 0) {
+                showAvailableSpecializationsNotification(pilot, availableSpecs);
+            }
+        }
+
+        // Rest pilot (reduce fatigue)
+        function restPilot(pilot, amount = 30) {
+            pilot.fatigue = Math.max(0, pilot.fatigue - amount);
+            savePilot(pilot);
+        }
+
+        // Save pilot to localStorage
+        function savePilot(pilot) {
+            if (!pilot) return;
+
+            try {
+                const pilots = getAllPilots();
+                const index = pilots.findIndex(p => p.id === pilot.id);
+
+                if (index >= 0) {
+                    pilots[index] = pilot;
+                } else {
+                    pilots.push(pilot);
+                }
+
+                localStorage.setItem('dogfight2_pilots', JSON.stringify(pilots));
+                localStorage.setItem('dogfight2_currentPilotId', pilot.id);
+            } catch (e) {
+                console.error('Failed to save pilot:', e);
+            }
+        }
+
+        // Load pilot from localStorage
+        function loadPilot(pilotId) {
+            const pilots = getAllPilots();
+            return pilots.find(p => p.id === pilotId) || null;
+        }
+
+        // Get all pilots
+        function getAllPilots() {
+            try {
+                const data = localStorage.getItem('dogfight2_pilots');
+                return data ? JSON.parse(data) : [];
+            } catch (e) {
+                console.error('Failed to load pilots:', e);
+                return [];
+            }
+        }
+
+        // Load current pilot
+        function loadCurrentPilot() {
+            try {
+                const pilotId = localStorage.getItem('dogfight2_currentPilotId');
+                if (pilotId) {
+                    return loadPilot(pilotId);
+                }
+            } catch (e) {
+                console.error('Failed to load current pilot:', e);
+            }
+            return null;
+        }
+
+        // Delete a pilot
+        function deletePilot(pilotId) {
+            try {
+                const pilots = getAllPilots();
+                const filtered = pilots.filter(p => p.id !== pilotId);
+                localStorage.setItem('dogfight2_pilots', JSON.stringify(filtered));
+
+                // If deleted current pilot, clear it
+                if (localStorage.getItem('dogfight2_currentPilotId') === pilotId) {
+                    localStorage.removeItem('dogfight2_currentPilotId');
+                    currentPilot = null;
+                }
+            } catch (e) {
+                console.error('Failed to delete pilot:', e);
+            }
+        }
+
+        // Notification functions (these will show UI notifications)
+        function showRankUpNotification(pilot, newRank) {
+            console.log(`🎖️ RANK UP! ${pilot.callsign} promoted to ${newRank.name}`);
+            // TODO: Show UI notification
+        }
+
+        function showSkillLevelUpNotification(pilot, skillKey, newLevel) {
+            const skillName = pilotSkills[skillKey].name;
+            console.log(`⬆️ SKILL UP! ${skillName} increased to level ${newLevel}`);
+            // TODO: Show UI notification
+        }
+
+        function showSpecializationUnlockedNotification(pilot, specKey) {
+            const spec = specializations[specKey];
+            console.log(`🌟 SPECIALIZATION UNLOCKED! ${spec.name}`);
+            // TODO: Show UI notification
+        }
+
+        function showMedalAwardedNotification(pilot, medalKey) {
+            const medal = medals[medalKey];
+            console.log(`🏅 MEDAL AWARDED! ${medal.name}: ${medal.description}`);
+            // TODO: Show UI notification
+        }
+
+        function showAvailableSpecializationsNotification(pilot, availableSpecs) {
+            console.log(`✨ ${availableSpecs.length} specialization(s) available to unlock!`);
+            // TODO: Show UI notification
+        }
+
+        // ============================================================================
+        // END PILOT CAREER MODE SYSTEM
+        // ============================================================================
+
         // Ship images - organized by faction and ship type
         const shipImages = {
             commonwealth: {
@@ -1325,7 +2208,7 @@
                 battleship: null,       // BB
                 carrier: null
             },
-            terran: {
+            tog: {
                 destroyer: null,        // DD
                 cruiser: null,          // CL (Light Cruiser) / CA (Heavy Cruiser)
                 battlecruiser: null,    // BC
@@ -1345,7 +2228,7 @@
                 destroyer: 'serpens',
                 carrier: null           // No carrier image yet
             },
-            terran: {
+            tog: {
                 battleship: 'shiva',
                 battlecruiser: 'carthage',
                 cruiser: 'valiant',     // Heavy Cruiser (CA)
@@ -1363,8 +2246,8 @@
             // And type is "bb", "bc", "ca", "cl", "dd", "cv"
 
             const shipTypes = ['destroyer', 'cruiser', 'battlecruiser', 'battleship', 'carrier'];
-            const factions = ['commonwealth', 'terran'];
-            const factionAbbr = { commonwealth: 'cw', terran: 'tog' };
+            const factions = ['commonwealth', 'tog'];
+            const factionAbbr = { commonwealth: 'cw', tog: 'tog' };
 
             for (let faction of factions) {
                 for (let type of shipTypes) {
@@ -5060,6 +5943,217 @@
             }
         }
 
+        // === RENEGADE LEGION MISSILE CLASS ===
+        class RLMissile {
+            constructor(launchShip, target, missileType, maxRange) {
+                this.x = launchShip.x;
+                this.y = launchShip.y;
+                this.launchShip = launchShip;
+                this.target = target;
+                this.missileType = missileType; // 'standard' or 'dogfight'
+                this.maxRange = maxRange;
+
+                // Physics properties - initialized below based on type
+                this.velocityX = 0;
+                this.velocityY = 0;
+                this.speed = 0;
+
+                // Configure missile specs based on type (Official RL specifications)
+                if (missileType === 'dogfight') {
+                    // Dogfight Missiles: Close-in defense, high acceleration, short burn
+                    this.damage = 200;
+                    this.acceleration = 60 * 9.81; // 60G = 588.6 m/s²
+                    this.motorBurnTime = 5; // seconds
+                    this.maxTurnRate = 240; // deg/sec - very agile
+                    this.fuelConsumptionRate = 1.0; // burns fuel faster
+                } else {
+                    // Standard Missiles: Primary anti-ship, moderate acceleration, long burn
+                    this.damage = 1000;
+                    this.acceleration = 30 * 9.81; // 30G = 294.3 m/s²
+                    this.motorBurnTime = 20; // seconds
+                    this.maxTurnRate = 180; // deg/sec - maneuverable
+                    this.fuelConsumptionRate = 0.5; // efficient fuel use
+                }
+
+                // Calculate max speed from acceleration and burn time
+                this.maxSpeed = this.acceleration * this.motorBurnTime;
+
+                // Fuel management (normalized to burn time)
+                this.maxFuel = this.motorBurnTime; // Fuel in "seconds of thrust"
+                this.currentFuel = this.maxFuel;
+
+                // Guidance
+                this.heading = 0; // Current heading in degrees
+
+                // State
+                this.isActive = true;
+                this.hasDetonated = false;
+                this.distanceTraveled = 0;
+                this.timeAlive = 0;
+
+                // Smart fuel management
+                this.coastingMode = false; // Saves fuel when close enough
+                this.proximityDetonationRange = 10; // meters
+
+                // Calculate initial heading towards target
+                const dx = target.x - this.x;
+                const dy = target.y - this.y;
+                this.heading = Math.atan2(dx, -dy) * 180 / Math.PI;
+            }
+
+            update(dt) {
+                if (!this.isActive || this.hasDetonated) return;
+
+                this.timeAlive += dt;
+
+                // Check if target still valid
+                if (!this.target || this.target.isDestroyed) {
+                    this.isActive = false;
+                    return;
+                }
+
+                // Calculate distance and direction to target
+                const dx = this.target.x - this.x;
+                const dy = this.target.y - this.y;
+                const distanceToTarget = Math.sqrt(dx * dx + dy * dy);
+                const angleToTarget = Math.atan2(dx, -dy) * 180 / Math.PI;
+
+                // Check proximity detonation
+                if (distanceToTarget < this.proximityDetonationRange) {
+                    this.detonate();
+                    return;
+                }
+
+                // Check max range
+                if (this.distanceTraveled > this.maxRange) {
+                    this.isActive = false;
+                    return;
+                }
+
+                // Smart fuel management
+                // Estimate time to target and fuel needed
+                const timeToTarget = distanceToTarget / (this.speed > 0 ? this.speed : this.maxSpeed);
+                const fuelNeeded = timeToTarget * this.fuelConsumptionRate;
+
+                // Decide whether to thrust or coast
+                let shouldThrust = false;
+                if (this.currentFuel > 0) {
+                    if (this.speed < this.maxSpeed * 0.8) {
+                        // Not at cruising speed, thrust to accelerate
+                        shouldThrust = true;
+                    } else if (distanceToTarget > this.maxRange * 0.5 && this.currentFuel > fuelNeeded * 1.5) {
+                        // Far from target and plenty of fuel, thrust
+                        shouldThrust = true;
+                    } else if (distanceToTarget < this.maxRange * 0.3) {
+                        // Close to target, use remaining fuel aggressively
+                        shouldThrust = true;
+                    }
+                }
+
+                // Turn towards target
+                let angleDiff = angleToTarget - this.heading;
+                while (angleDiff > 180) angleDiff -= 360;
+                while (angleDiff < -180) angleDiff += 360;
+
+                const maxTurn = this.maxTurnRate * dt;
+                if (Math.abs(angleDiff) < maxTurn) {
+                    this.heading = angleToTarget;
+                } else {
+                    this.heading += Math.sign(angleDiff) * maxTurn;
+                }
+
+                // Normalize heading
+                while (this.heading > 180) this.heading -= 360;
+                while (this.heading < -180) this.heading += 360;
+
+                // Apply thrust or coast
+                if (shouldThrust) {
+                    // Accelerate
+                    const accelX = Math.sin(this.heading * Math.PI / 180) * this.acceleration * dt;
+                    const accelY = -Math.cos(this.heading * Math.PI / 180) * this.acceleration * dt;
+                    this.velocityX += accelX;
+                    this.velocityY += accelY;
+
+                    // Consume fuel
+                    this.currentFuel -= this.fuelConsumptionRate * dt;
+                    this.currentFuel = Math.max(0, this.currentFuel);
+                    this.coastingMode = false;
+                } else {
+                    // Coast - maintain current velocity
+                    this.coastingMode = true;
+                }
+
+                // Limit to max speed
+                this.speed = Math.sqrt(this.velocityX * this.velocityX + this.velocityY * this.velocityY);
+                if (this.speed > this.maxSpeed) {
+                    const ratio = this.maxSpeed / this.speed;
+                    this.velocityX *= ratio;
+                    this.velocityY *= ratio;
+                    this.speed = this.maxSpeed;
+                }
+
+                // Update position
+                this.x += this.velocityX * dt;
+                this.y += this.velocityY * dt;
+                this.distanceTraveled += this.speed * dt;
+            }
+
+            detonate() {
+                if (this.hasDetonated) return;
+                this.hasDetonated = true;
+                this.isActive = false;
+
+                // Apply damage to target
+                if (this.target && !this.target.isDestroyed) {
+                    const distance = Math.sqrt(
+                        (this.target.x - this.x) ** 2 +
+                        (this.target.y - this.y) ** 2
+                    );
+
+                    // Use the launch ship's damage application method
+                    if (this.launchShip && this.launchShip.applyRLDamage) {
+                        this.launchShip.applyRLDamage(this.target, this.damage, 'missile', distance);
+                    }
+
+                    console.log(`RL Missile detonated on ${this.target.type || 'target'}: ${this.damage} damage`);
+                }
+            }
+
+            render() {
+                if (!this.isActive) return;
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.heading * Math.PI / 180);
+
+                // Missile body
+                ctx.fillStyle = '#ffaa00';
+                ctx.fillRect(-2, -6, 4, 12);
+
+                // Missile nose
+                ctx.fillStyle = '#ff4400';
+                ctx.beginPath();
+                ctx.moveTo(0, -6);
+                ctx.lineTo(-2, -4);
+                ctx.lineTo(2, -4);
+                ctx.closePath();
+                ctx.fill();
+
+                // Exhaust trail (if thrusting)
+                if (!this.coastingMode && this.currentFuel > 0) {
+                    ctx.fillStyle = 'rgba(255, 150, 0, 0.8)';
+                    ctx.beginPath();
+                    ctx.moveTo(-1.5, 6);
+                    ctx.lineTo(0, 12);
+                    ctx.lineTo(1.5, 6);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
         // Capital Ship class - Large naval vessels with AA batteries
         // Global ship ID counter for unique identification
         let _shipIdCounter = 0;
@@ -5069,7 +6163,16 @@
                 this.id = `ship_${++_shipIdCounter}`; // Unique ID for detection tracking
                 this.x = x;
                 this.y = y;
-                this.type = type; // 'battleship', 'battlecruiser', 'cruiser', 'destroyer', 'carrier'
+                // Parse type if it's in "Type-Name" format (e.g., "Battleship-Repulse" -> "battleship")
+                // Extract ship class from format, convert to lowercase for specs lookup
+                if (type.includes('-')) {
+                    const shipClass = type.split('-')[0].toLowerCase();
+                    this.type = shipClass;
+                    this.shipName = type.split('-')[1]; // Store ship name separately
+                } else {
+                    this.type = type.toLowerCase();
+                    this.shipName = null;
+                }
                 this.faction = faction; // 'commonwealth' or 'terran'
                 this.heading = 90; // degrees (0 = north, 90 = east)
 
@@ -5361,7 +6464,7 @@
                 };
                 } // End of wet navy specs
 
-                const spec = specs[type];
+                const spec = specs[this.type]; // Use this.type (already parsed and lowercased)
                 this.length = spec.length;
                 this.beam = spec.beam;
                 this.compartments = spec.compartments;
@@ -5387,37 +6490,52 @@
                 }
 
                 // Assign ship name based on faction
-                this.name = this.generateShipName(faction, type);
+                // If shipName was provided in Type-Name format, use it; otherwise generate one
+                if (this.shipName) {
+                    const prefix = faction === 'tog' ? 'TIS' : 'CWS';
+                    this.name = `${prefix} ${this.shipName}`;
+                } else {
+                    this.name = this.generateShipName(faction, this.type);
+                }
 
-                // Initialize AA batteries with cooldowns (wet navy only)
-                this.aaBatteries = (spec.aaBatteries || []).map(battery => ({
-                    ...battery,
-                    fireCooldown: 0,
-                    isDestroyed: false
-                }));
+                // Initialize wet navy weapon systems (only for non-RL ships)
+                if (!isRenegadeLegion) {
+                    // Initialize AA batteries with cooldowns
+                    this.aaBatteries = (spec.aaBatteries || []).map(battery => ({
+                        ...battery,
+                        fireCooldown: 0,
+                        isDestroyed: false
+                    }));
 
-                // Initialize SAM launchers
-                this.samLaunchers = (spec.samLaunchers || []).map(launcher => ({
-                    ...launcher,
-                    fireCooldown: 0,
-                    reloadCooldown: 0,
-                    isDestroyed: false,
-                    trackedTarget: null,
-                    trackingTime: 0,
-                    minTrackTime: 1.5 // Seconds needed to lock on
-                }));
+                    // Initialize SAM launchers
+                    this.samLaunchers = (spec.samLaunchers || []).map(launcher => ({
+                        ...launcher,
+                        fireCooldown: 0,
+                        reloadCooldown: 0,
+                        isDestroyed: false,
+                        trackedTarget: null,
+                        trackingTime: 0,
+                        minTrackTime: 1.5 // Seconds needed to lock on
+                    }));
 
-                // Initialize CIWS systems
-                this.ciwsSystems = (spec.ciws || []).map(ciws => ({
-                    ...ciws,
-                    fireCooldown: 0,
-                    isDestroyed: false,
-                    burstMode: false,
-                    burstTime: 0
-                }));
+                    // Initialize CIWS systems
+                    this.ciwsSystems = (spec.ciws || []).map(ciws => ({
+                        ...ciws,
+                        fireCooldown: 0,
+                        isDestroyed: false,
+                        burstMode: false,
+                        burstTime: 0
+                    }));
 
-                // Track launched missiles
-                this.launchedMissiles = [];
+                    // Track launched missiles
+                    this.launchedMissiles = [];
+                } else {
+                    // RL ships don't use wet navy weapons
+                    this.aaBatteries = [];
+                    this.samLaunchers = [];
+                    this.ciwsSystems = [];
+                    this.launchedMissiles = [];
+                }
 
                 // === RENEGADE LEGION SPACE WEAPONS ===
                 // Standard RL faction uses banks, chasers, spinal mounts, missiles, and PD
@@ -5558,16 +6676,22 @@
                         },
 
                         // MISSILE ARRAYS
-                        // 50 cells each, doubled count (2 arrays = 100 cells total)
+                        // Official RL specifications: Standard (90%) and Dogfight (10%) missiles
                         missiles: {
                             arrays: rlCounts.missileArrays,
-                            cellsPerArray: 50,
-                            totalCells: rlCounts.missileArrays * 50,
-                            currentMissiles: rlCounts.missileArrays * 50,
-                            damage: 200,
-                            range: 50000,              // 50km range
-                            speed: 500,                // m/s
-                            rateOfFire: 2,             // 2 seconds between launches
+                            cellsPerArray: 25,
+                            totalCells: rlCounts.missileArrays * 25,
+
+                            // Standard missiles: 90% of cells (1 missile per cell)
+                            standardMissiles: Math.floor(rlCounts.missileArrays * 25 * 0.9),
+                            currentStandard: Math.floor(rlCounts.missileArrays * 25 * 0.9),
+
+                            // Dogfight missiles: 10% of cells (4 missiles per cell)
+                            dogfightMissiles: Math.floor(rlCounts.missileArrays * 25 * 0.1) * 4,
+                            currentDogfight: Math.floor(rlCounts.missileArrays * 25 * 0.1) * 4,
+
+                            range: 50000,              // 50km range (both types)
+                            rateOfFire: 1,             // 1 missile/second (official RL spec)
                             fireCooldown: 0,
                             ecm: this.type === 'battleship' ? 0.21 :
                                  this.type === 'battlecruiser' ? 0.18 :
@@ -5581,6 +6705,7 @@
                                   0.05,  // Half of ECM
                             weaponType: 'missile',
                             isDestroyed: false,
+                            fireMode: 'offensive',     // offensive or defensive
                             name: 'Missile Arrays'
                         },
 
@@ -5746,7 +6871,11 @@
                 this.fireLocations = [];
 
                 // === PHASE 3: HIT LOCATION SYSTEM ===
-                this.initializeHitLocations();
+                // Only initialize hit locations for wet navy ships
+                // RL ships use the percentage-based systemHP and armorBlocks instead
+                if (!isRenegadeLegion) {
+                    this.initializeHitLocations();
+                }
 
                 // === PHASE 3: CRITICAL HP POOL ===
                 this.criticalHP = {
@@ -5841,6 +6970,13 @@
                         weapons: 50,
                         hull: { bow: 400, midship: 600, stern: 350 }
                     },
+                    battlecruiser: {
+                        propulsion: 250,
+                        commandControl: 220,
+                        sensors: 180,
+                        weapons: 45,
+                        hull: { bow: 350, midship: 500, stern: 300 }
+                    },
                     carrier: {
                         propulsion: 250,
                         flightDeck: 300,
@@ -5874,6 +7010,13 @@
                         sensors: 60,
                         weapons: { navalGun: 150, aaBattery: 30, samLauncher: 50, ciws: 25 },
                         hull: { bow: 100, midship: 150, stern: 80 }
+                    },
+                    battlecruiser: {
+                        propulsion: 100,
+                        commandControl: 90,
+                        sensors: 55,
+                        weapons: { navalGun: 130, aaBattery: 28, samLauncher: 45, ciws: 22 },
+                        hull: { bow: 85, midship: 130, stern: 70 }
                     },
                     carrier: {
                         propulsion: 80,
@@ -6772,6 +7915,15 @@
                 this.torpedoes.forEach(t => t.update(dt));
                 this.torpedoes = this.torpedoes.filter(t => t.isActive);
 
+                // === RENEGADE LEGION MISSILES ===
+                // Update RL missiles (Standard and Dogfight types)
+                if (this.activeMissiles && this.activeMissiles.length > 0) {
+                    // Update each missile
+                    this.activeMissiles.forEach(m => m.update(dt));
+                    // Remove inactive missiles
+                    this.activeMissiles = this.activeMissiles.filter(m => m.isActive);
+                }
+
                 // === SENSOR DETECTION SYSTEM ===
                 this.updateSensorDetection(dt);
             }
@@ -6941,6 +8093,15 @@
                 const shipImage = shipImages[this.faction] ? shipImages[this.faction][this.type] : null;
                 const useImage = shipImage && shipImage.complete && shipImage.naturalWidth > 0;
 
+                // Debug: Log ship rendering info (once per ship)
+                if (!this._loggedImageStatus) {
+                    console.log(`Ship ${this.id}: faction="${this.faction}", type="${this.type}", hasImage=${!!shipImage}, useImage=${useImage}`);
+                    if (shipImage) {
+                        console.log(`  Image complete=${shipImage.complete}, naturalWidth=${shipImage.naturalWidth}`);
+                    }
+                    this._loggedImageStatus = true;
+                }
+
                 // Render flak bursts and CIWS tracers
                 const now = Date.now();
                 this.flakEffects = this.flakEffects.filter(flak => now - flak.time < flak.duration);
@@ -6996,10 +8157,20 @@
                 const hullAlpha = this.isSinking ? Math.max(0.3, 1 - this.sinkProgress) : 1;
 
                 if (useImage) {
-                    // Draw ship image
+                    // Draw ship image using natural aspect ratio
                     ctx.globalAlpha = hullAlpha;
-                    const imgWidth = this.length;
-                    const imgHeight = this.beam * 2; // Adjust aspect ratio as needed
+
+                    // For Renegade Legion ships, scale from meters to world units
+                    // RL ships have length in meters (e.g., 800m), but world coordinates need scaling
+                    // Using 0.05 scale (1m = 0.05 world units) to match space battle scale
+                    const isRenegadeLegion = (this.faction === 'commonwealth' || this.faction === 'tog');
+                    const lengthScale = isRenegadeLegion ? 0.05 : 1.0;
+
+                    // Use ship length as the primary dimension, scale height proportionally
+                    const imgWidth = this.length * lengthScale;
+                    const naturalAspectRatio = shipImage.naturalWidth / shipImage.naturalHeight;
+                    const imgHeight = imgWidth / naturalAspectRatio;
+
                     ctx.drawImage(
                         shipImage,
                         -imgWidth / 2,
@@ -7163,28 +8334,55 @@
                 for (let weaponName of activeWeapons) {
                     const weapon = weaponName === 'broadside' ? null : this.laserWeapons[weaponName];
                     if (!weapon || !weapon.banks) {
-                        // Handle broadside - glow both sides
+                        // Handle broadside - draw rectangles for each bank
                         if (weaponName === 'broadside') {
-                            // Port side glow
-                            ctx.fillStyle = 'rgba(255, 50, 50, 0.3)';
-                            ctx.beginPath();
-                            ctx.arc(-this.beam * 0.4, 0, 8, 0, Math.PI * 2);
-                            ctx.fill();
-                            // Starboard side glow
-                            ctx.beginPath();
-                            ctx.arc(this.beam * 0.4, 0, 8, 0, Math.PI * 2);
-                            ctx.fill();
+                            // Port broadside banks
+                            if (this.laserWeapons.broadside_port) {
+                                for (let bank of this.laserWeapons.broadside_port.banks) {
+                                    const glowAlpha = bank.cooldown > 0 ? 0.2 : 0.5;
+                                    ctx.fillStyle = this.laserWeapons.broadside_port.color.replace(/[\d.]+\)$/, `${glowAlpha})`);
+                                    const rectLength = bank.gunsPerBank * 2; // 2 pixels per gun
+                                    const rectWidth = 4;
+                                    ctx.fillRect(bank.x - rectWidth / 2, bank.y - rectLength / 2, rectWidth, rectLength);
+                                }
+                            }
+                            // Starboard broadside banks
+                            if (this.laserWeapons.broadside_starboard) {
+                                for (let bank of this.laserWeapons.broadside_starboard.banks) {
+                                    const glowAlpha = bank.cooldown > 0 ? 0.2 : 0.5;
+                                    ctx.fillStyle = this.laserWeapons.broadside_starboard.color.replace(/[\d.]+\)$/, `${glowAlpha})`);
+                                    const rectLength = bank.gunsPerBank * 2; // 2 pixels per gun
+                                    const rectWidth = 4;
+                                    ctx.fillRect(bank.x - rectWidth / 2, bank.y - rectLength / 2, rectWidth, rectLength);
+                                }
+                            }
                         }
                         continue;
                     }
 
                     for (let bank of weapon.banks) {
-                        // Glow active weapon hardpoints
                         const glowAlpha = bank.cooldown > 0 ? 0.2 : 0.5; // Dim when cooling
                         ctx.fillStyle = weapon.color.replace(/[\d.]+\)$/, `${glowAlpha})`);
-                        ctx.beginPath();
-                        ctx.arc(bank.x, bank.y, 5, 0, Math.PI * 2);
-                        ctx.fill();
+
+                        // Determine shape based on weapon type and gun count
+                        const gunsPerBank = bank.gunsPerBank || 1;
+
+                        if (weaponName === 'missiles' || weaponName === 'missile_arrays') {
+                            // Missiles: rectangular blocks
+                            const rectLength = 12;
+                            const rectWidth = 6;
+                            ctx.fillRect(bank.x - rectWidth / 2, bank.y - rectLength / 2, rectWidth, rectLength);
+                        } else if (gunsPerBank >= 10) {
+                            // Chasers (10 guns) or large banks: rectangles
+                            const rectLength = gunsPerBank * 2; // 2 pixels per gun
+                            const rectWidth = 4;
+                            ctx.fillRect(bank.x - rectWidth / 2, bank.y - rectLength / 2, rectWidth, rectLength);
+                        } else {
+                            // Spinal mounts (1 gun) and turrets (2 guns): points
+                            ctx.beginPath();
+                            ctx.arc(bank.x, bank.y, 5, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
                     }
                 }
 
@@ -9261,34 +10459,89 @@
 
             fireRLMissiles(targets) {
                 const weapon = this.rlWeapons.missiles;
-                if (!weapon || weapon.isDestroyed || weapon.fireCooldown > 0 || weapon.currentMissiles <= 0) return;
+                if (!weapon || weapon.isDestroyed || weapon.fireCooldown > 0) return;
 
-                // Find closest target in range
                 let closestTarget = null;
                 let closestDist = Infinity;
+                let targetType = 'ship';
 
-                for (let target of targets) {
-                    const distance = this.distanceTo(target);
-                    if (distance < weapon.range && distance < closestDist) {
-                        closestTarget = target;
-                        closestDist = distance;
+                // Check fire mode
+                if (weapon.fireMode === 'defensive') {
+                    // DEFENSIVE MODE: Prioritize fighters, then ships
+                    // Check for enemy fighters first
+                    if (window.aircraft) {
+                        for (let plane of window.aircraft) {
+                            if (!plane || plane.isDestroyed || plane.side === this.faction) continue;
+                            const distance = this.distanceTo(plane);
+                            if (distance < weapon.range && distance < closestDist) {
+                                closestTarget = plane;
+                                closestDist = distance;
+                                targetType = 'fighter';
+                            }
+                        }
+                    }
+
+                    // If no fighters, target ships
+                    if (!closestTarget) {
+                        for (let target of targets) {
+                            const distance = this.distanceTo(target);
+                            if (distance < weapon.range && distance < closestDist) {
+                                closestTarget = target;
+                                closestDist = distance;
+                                targetType = 'ship';
+                            }
+                        }
+                    }
+                } else {
+                    // OFFENSIVE MODE: Target enemy ships only
+                    for (let target of targets) {
+                        const distance = this.distanceTo(target);
+                        if (distance < weapon.range && distance < closestDist) {
+                            closestTarget = target;
+                            closestDist = distance;
+                        }
                     }
                 }
 
                 if (!closestTarget) return;
 
-                // Launch missile
-                weapon.currentMissiles--;
+                // Select missile type: Dogfight for close defense, Standard for long range
+                // Dogfight missiles: High acceleration, short burn, close range (< 10km)
+                // Standard missiles: Moderate acceleration, long burn, primary anti-ship
+                let missileType = 'standard';
+                if (weapon.fireMode === 'defensive' && closestDist < 10000 && weapon.currentDogfight > 0) {
+                    // Use dogfight missiles for close-in defense
+                    missileType = 'dogfight';
+                    weapon.currentDogfight--;
+                } else if (weapon.currentStandard > 0) {
+                    // Use standard missiles for normal engagement
+                    missileType = 'standard';
+                    weapon.currentStandard--;
+                } else if (weapon.currentDogfight > 0) {
+                    // Fallback to dogfight if standard depleted
+                    missileType = 'dogfight';
+                    weapon.currentDogfight--;
+                } else {
+                    // No missiles available
+                    return;
+                }
+
                 weapon.fireCooldown = weapon.rateOfFire;
 
-                console.log(`${this.type} launched missile at ${closestTarget.type} @ ${(closestDist/1000).toFixed(1)}km (${weapon.currentMissiles}/${weapon.totalCells} remaining)`);
-
-                // TODO: Create actual missile object to track in flight
-                // For now, apply damage directly with ECM/ECCM contest
-                const hitChance = 0.70; // Base 70% hit chance
-                if (Math.random() < hitChance) {
-                    this.applyRLDamage(closestTarget, weapon.damage, weapon.weaponType, closestDist);
+                // Play missile launch sound
+                if (typeof soundMissile !== 'undefined') {
+                    soundMissile.currentTime = 0;
+                    soundMissile.play().catch(e => console.log('Missile sound failed:', e));
                 }
+
+                console.log(`${this.type} [${weapon.fireMode.toUpperCase()}] launched ${missileType.toUpperCase()} missile at ${targetType} @ ${(closestDist/1000).toFixed(1)}km (S:${weapon.currentStandard} D:${weapon.currentDogfight})`);
+
+                // Create actual missile object with full physics
+                const missile = new RLMissile(this, closestTarget, missileType, weapon.range);
+
+                // Store missile in ship's active missiles array
+                if (!this.activeMissiles) this.activeMissiles = [];
+                this.activeMissiles.push(missile);
             }
 
             fireRLPointDefense(targets) {
@@ -9540,32 +10793,28 @@
             }
 
             generateShipName(faction, type) {
-                // TOG ships: historical names (places, people, events from Earth history)
-                const togNames = [
-                    'Achilles', 'Sparta', 'Trajan', 'Kursk', 'Tiber', 'Danube',
-                    'Marathon', 'Thermopylae', 'Caesar', 'Hannibal', 'Napoleon', 'Wellington',
-                    'Waterloo', 'Gettysburg', 'Stalingrad', 'Midway', 'Trafalgar', 'Austerlitz',
-                    'Thames', 'Rhine', 'Seine', 'Nile', 'Amazon', 'Mississippi',
-                    'Everest', 'Olympus', 'Kilimanjaro', 'Vesuvius', 'Etna', 'Fuji',
-                    'Alexander', 'Leonidas', 'Scipio', 'Agincourt', 'Hastings', 'Salamis',
-                    'Verdun', 'Somme', 'Guadalcanal', 'Iwo Jima', 'El Alamein', 'Normandy'
-                ];
+                // TOG ships: historical names organized by ship class
+                const togNames = {
+                    battleship: ['Caesar', 'Alexander', 'Napoleon', 'Hannibal', 'Leonidas', 'Trajan', 'Spartacus', 'Attila', 'Charlemagne', 'Genghis'],
+                    battlecruiser: ['Waterloo', 'Stalingrad', 'Austerlitz', 'Trafalgar', 'Midway', 'Kursk', 'Gettysburg', 'Verdun', 'Salamis', 'Marathon'],
+                    cruiser: ['Rhine', 'Danube', 'Nile', 'Amazon', 'Thames', 'Seine', 'Volga', 'Ganges', 'Euphrates', 'Yangtze'],
+                    destroyer: ['Achilles', 'Ajax', 'Hector', 'Perseus', 'Hercules', 'Odysseus', 'Theseus', 'Jason', 'Orion', 'Apollo'],
+                    carrier: ['Olympus', 'Everest', 'Vesuvius', 'Etna', 'Fuji', 'Kilimanjaro', 'Ararat', 'Sinai', 'Parnassus', 'Helicon']
+                };
 
-                // Commonwealth ships: abstract nouns and verbs
-                const commonwealthNames = [
-                    'Daring', 'Illustrious', 'Revenge', 'Adamant', 'Endurance',
-                    'Resolute', 'Intrepid', 'Valiant', 'Defiant', 'Relentless',
-                    'Indomitable', 'Invincible', 'Formidable', 'Tremendous', 'Audacious',
-                    'Courageous', 'Glorious', 'Victorious', 'Magnificent', 'Majestic',
-                    'Fearless', 'Dauntless', 'Undaunted', 'Reliant', 'Steadfast',
-                    'Vigilant', 'Dominant', 'Triumphant', 'Resurgent', 'Ascendant',
-                    'Vengeance', 'Justice', 'Liberty', 'Freedom', 'Unity',
-                    'Stalwart', 'Tenacious', 'Indefatigable', 'Inexorable', 'Implacable'
-                ];
+                // Commonwealth ships: abstract nouns organized by ship class
+                const commonwealthNames = {
+                    battleship: ['Invincible', 'Indomitable', 'Formidable', 'Implacable', 'Inexorable', 'Magnificent', 'Tremendous', 'Colossus', 'Leviathan', 'Behemoth'],
+                    battlecruiser: ['Glorious', 'Victorious', 'Illustrious', 'Courageous', 'Furious', 'Audacious', 'Outrageous', 'Conqueror', 'Renown', 'Repulse'],
+                    cruiser: ['Valiant', 'Adamant', 'Resolute', 'Steadfast', 'Stalwart', 'Intrepid', 'Dauntless', 'Undaunted', 'Fearless', 'Reliant'],
+                    destroyer: ['Daring', 'Defiant', 'Relentless', 'Vengeful', 'Vigilant', 'Swift', 'Lightning', 'Thunder', 'Tempest', 'Hurricane'],
+                    carrier: ['Endurance', 'Enterprise', 'Endeavour', 'Expeditionary', 'Vanguard', 'Bulwark', 'Ark Royal', 'Eagle', 'Hermes', 'Argus']
+                };
 
                 const prefix = faction === 'tog' ? 'TIS' : 'CWS';
                 const namePool = faction === 'tog' ? togNames : commonwealthNames;
-                const randomName = namePool[Math.floor(Math.random() * namePool.length)];
+                const classNames = namePool[type] || namePool['cruiser']; // Default to cruiser if type not found
+                const randomName = classNames[Math.floor(Math.random() * classNames.length)];
 
                 return `${prefix} ${randomName}`;
             }
@@ -10325,6 +11574,18 @@
         const ctx = canvas.getContext('2d');
         const minimapCanvas = document.getElementById('minimap');
         const minimapCtx = minimapCanvas.getContext('2d');
+
+        // Resize canvas to match window size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            canvas.style.width = window.innerWidth + 'px';
+            canvas.style.height = window.innerHeight + 'px';
+            CANVAS_WIDTH = window.innerWidth;
+            CANVAS_HEIGHT = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
 
         // Load aircraft SVG images
         const aircraftImages = {
@@ -11341,7 +12602,7 @@
             // Generate asteroids that drift slowly
             generateAsteroids() {
                 const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
-                const numAsteroids = 15 + Math.floor(Math.random() * 10); // 15-25 asteroids
+                const numAsteroids = this.isBlackHole ? (10 + Math.floor(Math.random() * 6)) : (8 + Math.floor(Math.random() * 5)); // 10-15 for black hole, 8-12 standard
 
                 for (let i = 0; i < numAsteroids; i++) {
                     const x = Math.random() * TERRAIN_WIDTH - CANVAS_WIDTH;
@@ -11354,7 +12615,19 @@
                         const centerY = CANVAS_HEIGHT / 2;
                         const distance = 200 + Math.random() * 400;
                         const angle = Math.random() * Math.PI * 2;
-                        const orbitalSpeed = 0.0005 + Math.random() * 0.0015; // radians per ms
+                        const orbitalSpeed = 0.5 + Math.random() * 1.5; // radians per second (converted from ms)
+
+                        // Pre-generate asteroid shape to avoid regenerating every frame
+                        const numPoints = 6 + Math.floor(Math.random() * 3);
+                        const shapePoints = [];
+                        for (let i = 0; i < numPoints; i++) {
+                            const angle = (i / numPoints) * Math.PI * 2;
+                            const radiusVar = 0.7 + Math.random() * 0.3;
+                            shapePoints.push({
+                                angle: angle,
+                                radiusVar: radiusVar
+                            });
+                        }
 
                         this.asteroids.push({
                             orbitDistance: distance,
@@ -11362,18 +12635,32 @@
                             orbitalSpeed: orbitalSpeed,
                             size: size,
                             rotation: Math.random() * Math.PI * 2,
-                            rotationSpeed: (Math.random() - 0.5) * 0.001
+                            rotationSpeed: (Math.random() - 0.5) * 0.01, // Slow rotation: ~3 deg/sec
+                            shapePoints: shapePoints
                         });
                     } else {
+                        // Pre-generate asteroid shape to avoid regenerating every frame
+                        const numPoints = 6 + Math.floor(Math.random() * 3);
+                        const shapePoints = [];
+                        for (let i = 0; i < numPoints; i++) {
+                            const angle = (i / numPoints) * Math.PI * 2;
+                            const radiusVar = 0.7 + Math.random() * 0.3;
+                            shapePoints.push({
+                                angle: angle,
+                                radiusVar: radiusVar
+                            });
+                        }
+
                         // Asteroids drift slowly
                         this.asteroids.push({
                             x: x,
                             y: y,
                             size: size,
-                            driftVx: (Math.random() - 0.5) * 0.02, // -0.01 to 0.01 m/ms
-                            driftVy: (Math.random() - 0.5) * 0.02,
+                            driftVx: (Math.random() - 0.5) * 5, // ±2.5 pixels/second for slow drift
+                            driftVy: (Math.random() - 0.5) * 5,
                             rotation: Math.random() * Math.PI * 2,
-                            rotationSpeed: (Math.random() - 0.5) * 0.001
+                            rotationSpeed: (Math.random() - 0.5) * 0.01, // Slow rotation: ~3 deg/sec
+                            shapePoints: shapePoints
                         });
                     }
                 }
@@ -11382,13 +12669,13 @@
             // Generate planets and moons with realistic sizes
             generatePlanets() {
                 const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
-                const numPlanets = 1 + Math.floor(Math.random() * 3); // 1-3 planets
+                const numPlanets = 1 + Math.floor(Math.random() * 2); // 1-2 planets
 
-                // Planet size categories
+                // Planet size categories (reduced sizes)
                 const sizeCategories = [
-                    { name: 'small', radius: [30, 50], types: ['rocky', 'ice'], moonChance: 0.3, maxMoons: 1 }, // Mercury, Pluto
-                    { name: 'medium', radius: [60, 100], types: ['rocky', 'desert', 'ocean'], moonChance: 0.6, maxMoons: 2 }, // Earth, Mars, Venus
-                    { name: 'large', radius: [120, 200], types: ['gas_giant'], moonChance: 0.9, maxMoons: 4 } // Jupiter, Saturn
+                    { name: 'small', radius: [20, 35], types: ['rocky', 'ice'], moonChance: 0.3, maxMoons: 1 }, // Mercury, Pluto
+                    { name: 'medium', radius: [40, 70], types: ['rocky', 'desert', 'ocean'], moonChance: 0.6, maxMoons: 2 }, // Earth, Mars, Venus
+                    { name: 'large', radius: [80, 120], types: ['gas_giant'], moonChance: 0.9, maxMoons: 4 } // Jupiter, Saturn
                 ];
 
                 for (let i = 0; i < numPlanets; i++) {
@@ -11445,18 +12732,18 @@
                         };
                     }
 
-                    // Add moons based on planet size
+                    // Add moons based on planet size (moons are relatively larger now)
                     if (Math.random() < category.moonChance) {
                         const numMoons = 1 + Math.floor(Math.random() * category.maxMoons);
                         for (let m = 0; m < numMoons; m++) {
-                            const moonRadius = category.name === 'large' ? (15 + Math.random() * 20) :
-                                             category.name === 'medium' ? (10 + Math.random() * 15) :
-                                             (5 + Math.random() * 10);
+                            const moonRadius = category.name === 'large' ? (20 + Math.random() * 30) :
+                                             category.name === 'medium' ? (15 + Math.random() * 20) :
+                                             (10 + Math.random() * 15);
 
                             planet.moons.push({
-                                distance: radius + 40 + m * 50 + Math.random() * 50,
+                                distance: radius + 80 + m * 120 + Math.random() * 80, // Closer spacing
                                 angle: Math.random() * Math.PI * 2,
-                                orbitalSpeed: (0.0002 + Math.random() * 0.0005) / (1 + m * 0.5), // Outer moons slower
+                                orbitalSpeed: (0.002 + Math.random() * 0.005) / (1 + m * 0.5), // Orbital speed in radians/second
                                 radius: moonRadius,
                                 color: Math.random() > 0.5 ? '#aaaaaa' : '#998877' // Gray or brownish
                             });
@@ -11480,10 +12767,25 @@
 
             // Generate nebulae with lightning
             generateNebulae(isBlackHole) {
-                const numNebulae = isBlackHole ? (5 + Math.floor(Math.random() * 5)) : (2 + Math.floor(Math.random() * 3));
+                const numNebulae = isBlackHole ? (5 + Math.floor(Math.random() * 4)) : (2 + Math.floor(Math.random() * 2)); // 5-8 for black hole, 2-3 standard
                 const TERRAIN_WIDTH = CANVAS_WIDTH * 3;
 
                 for (let i = 0; i < numNebulae; i++) {
+                    const baseRadius = 150 + Math.random() * 200; // Increased from 80-200 to 150-350
+
+                    // Generate cloudlike blobs for irregular shape
+                    const numBlobs = 5 + Math.floor(Math.random() * 8); // 5-12 overlapping circles
+                    const cloudBlobs = [];
+                    for (let b = 0; b < numBlobs; b++) {
+                        const angle = (b / numBlobs) * Math.PI * 2 + Math.random() * 0.5;
+                        const distance = (Math.random() * 0.6) * baseRadius; // Within 60% of base radius
+                        cloudBlobs.push({
+                            offsetX: Math.cos(angle) * distance,
+                            offsetY: Math.sin(angle) * distance,
+                            radius: baseRadius * (0.4 + Math.random() * 0.4) // 40-80% of base size
+                        });
+                    }
+
                     if (isBlackHole) {
                         // Nebulae orbit the black hole
                         const distance = 300 + Math.random() * 350;
@@ -11494,7 +12796,8 @@
                             orbitDistance: distance,
                             orbitAngle: angle,
                             orbitalSpeed: orbitalSpeed,
-                            radius: 80 + Math.random() * 120,
+                            radius: baseRadius,
+                            cloudBlobs: cloudBlobs,
                             lightningBolts: [],
                             nextLightning: Date.now() + Math.random() * 2000
                         });
@@ -11502,7 +12805,8 @@
                         this.nebulae.push({
                             x: Math.random() * TERRAIN_WIDTH - CANVAS_WIDTH,
                             y: Math.random() * CANVAS_HEIGHT,
-                            radius: 80 + Math.random() * 120,
+                            radius: baseRadius,
+                            cloudBlobs: cloudBlobs,
                             lightningBolts: [],
                             nextLightning: Date.now() + Math.random() * 2000
                         });
@@ -11540,7 +12844,7 @@
 
                         // Rotate black hole accretion disk
                         if (this.blackHole) {
-                            this.blackHole.rotationAngle += 0.0005 * dt;
+                            this.blackHole.rotationAngle += 0.5 * dt; // Converted from per-ms to per-second
                         }
                     } else {
                         // Update drifting asteroids
@@ -11604,9 +12908,8 @@
             }
 
             render() {
-                // Render black background
-                ctx.fillStyle = '#000000';
-                ctx.fillRect(-CANVAS_WIDTH, 0, CANVAS_WIDTH * 3, CANVAS_HEIGHT);
+                // Black background is now drawn in screen coordinates before transform
+                // (see render() function)
 
                 // Render stars
                 ctx.save();
@@ -11756,16 +13059,29 @@
                         nebulaY = nebula.y;
                     }
 
-                    // Nebula cloud with bluish tinge
-                    const gradient = ctx.createRadialGradient(nebulaX, nebulaY, 0, nebulaX, nebulaY, nebula.radius);
-                    gradient.addColorStop(0, 'rgba(100, 100, 255, 0.4)');
-                    gradient.addColorStop(0.5, 'rgba(80, 80, 200, 0.3)');
-                    gradient.addColorStop(1, 'rgba(60, 60, 150, 0)');
+                    // Render cloudlike nebula using multiple overlapping blobs
+                    ctx.save();
+                    ctx.globalAlpha = 0.6;
 
-                    ctx.fillStyle = gradient;
-                    ctx.beginPath();
-                    ctx.arc(nebulaX, nebulaY, nebula.radius, 0, Math.PI * 2);
-                    ctx.fill();
+                    // Draw each blob to create irregular cloud shape
+                    for (let blob of nebula.cloudBlobs) {
+                        const blobX = nebulaX + blob.offsetX;
+                        const blobY = nebulaY + blob.offsetY;
+
+                        // Nebula cloud with bluish tinge (varying colors for depth)
+                        const gradient = ctx.createRadialGradient(blobX, blobY, 0, blobX, blobY, blob.radius);
+                        const hue = 200 + Math.random() * 80; // Blue to purple range
+                        gradient.addColorStop(0, `rgba(100, 100, ${Math.floor(hue)}, 0.5)`);
+                        gradient.addColorStop(0.5, `rgba(80, 80, ${Math.floor(hue * 0.8)}, 0.35)`);
+                        gradient.addColorStop(1, `rgba(60, 60, ${Math.floor(hue * 0.6)}, 0)`);
+
+                        ctx.fillStyle = gradient;
+                        ctx.beginPath();
+                        ctx.arc(blobX, blobY, blob.radius, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    ctx.restore();
 
                     // Lightning bolts (purple)
                     ctx.save();
@@ -11800,18 +13116,17 @@
                     ctx.translate(asteroidX, asteroidY);
                     ctx.rotate(asteroid.rotation);
 
-                    // Draw irregular asteroid shape
+                    // Draw irregular asteroid shape using pre-generated points
                     ctx.fillStyle = '#8b7355';
                     ctx.strokeStyle = '#5a4a3a';
                     ctx.lineWidth = 1;
 
                     ctx.beginPath();
-                    const numPoints = 6 + Math.floor(Math.random() * 3);
-                    for (let i = 0; i < numPoints; i++) {
-                        const angle = (i / numPoints) * Math.PI * 2;
-                        const radiusVar = 0.7 + Math.random() * 0.3;
-                        const x = Math.cos(angle) * asteroid.size * radiusVar;
-                        const y = Math.sin(angle) * asteroid.size * radiusVar;
+                    // Use pre-generated shape points instead of random generation each frame
+                    for (let i = 0; i < asteroid.shapePoints.length; i++) {
+                        const point = asteroid.shapePoints[i];
+                        const x = Math.cos(point.angle) * asteroid.size * point.radiusVar;
+                        const y = Math.sin(point.angle) * asteroid.size * point.radiusVar;
                         if (i === 0) {
                             ctx.moveTo(x, y);
                         } else {
@@ -16920,6 +18235,12 @@
             ctx.fillStyle = '#3d5235';
             ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
+            // For space terrain, draw black background in screen coordinates before transform
+            if (terrain && terrain instanceof SpaceTerrain) {
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            }
+
             // Apply zoom and pan transform
             ctx.save();
             ctx.translate(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
@@ -17519,6 +18840,19 @@
             // Render capital ships
             for (let ship of capitalShips) {
                 ship.render();
+
+                // Draw sensor range circle for selected ship
+                if (ship === selectedCapitalShip) {
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(0, 255, 0, 0.4)';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([10, 5]);
+                    ctx.beginPath();
+                    ctx.arc(ship.x, ship.y, ship.sensorRange, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.restore();
+                }
             }
 
             // === POWER MANAGEMENT: Render Laser Beams ===
@@ -17551,37 +18885,13 @@
                 window.laserBeams = window.laserBeams.filter(b => now - b.time < b.duration);
             }
 
-            // Render capital ship missiles
+            // Render capital ship missiles (RL missiles)
             for (let ship of capitalShips) {
                 if (ship.activeMissiles) {
-                    ctx.save();
                     for (let missile of ship.activeMissiles) {
-                        // Draw missile
-                        ctx.fillStyle = 'rgba(255, 200, 0, 0.9)';
-                        ctx.beginPath();
-                        ctx.arc(missile.x, missile.y, 3, 0, Math.PI * 2);
-                        ctx.fill();
-
-                        // Draw exhaust trail
-                        const dx = missile.targetX - missile.x;
-                        const dy = missile.targetY - missile.y;
-                        const dist = Math.sqrt(dx * dx + dy * dy);
-                        const trailLength = 15;
-                        const trailX = missile.x - (dx / dist) * trailLength;
-                        const trailY = missile.y - (dy / dist) * trailLength;
-
-                        const gradient = ctx.createLinearGradient(missile.x, missile.y, trailX, trailY);
-                        gradient.addColorStop(0, 'rgba(255, 150, 0, 0.8)');
-                        gradient.addColorStop(1, 'rgba(255, 50, 0, 0)');
-
-                        ctx.strokeStyle = gradient;
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.moveTo(missile.x, missile.y);
-                        ctx.lineTo(trailX, trailY);
-                        ctx.stroke();
+                        // Use RLMissile's render method
+                        missile.render();
                     }
-                    ctx.restore();
                 }
             }
 
@@ -17651,9 +18961,31 @@
             ctx.globalAlpha = 1.0; // Ensure full opacity
             ctx.globalCompositeOperation = 'source-over'; // Ensure normal blending
 
-            const scaleBarLength = 100; // Represents 100 meters
+            // Calculate actual scale bar length accounting for WORLD_SCALE and zoom
+            // For space battles with capital ships, use a much smaller scale
+            // For aircraft, use normal WORLD_SCALE = 6.0
+            const isSpaceBattle = (terrain instanceof SpaceTerrain) || (capitalShips.length > 0);
+            const effectiveWorldScale = isSpaceBattle ? 0.05 : WORLD_SCALE; // 0.05 for space (1m = 0.05px), 6.0 for aircraft
+
+            // We want a 100-pixel bar on screen
+            const scaleBarPixels = 100; // Screen pixels
+            const metersRepresented = scaleBarPixels / (effectiveWorldScale * zoomLevel);
+
+            // Round to nice numbers for display
+            let displayDistance, displayUnit;
+            if (metersRepresented >= 1000) {
+                displayDistance = (metersRepresented / 1000).toFixed(1);
+                displayUnit = 'km';
+            } else if (metersRepresented >= 1) {
+                displayDistance = Math.round(metersRepresented);
+                displayUnit = 'm';
+            } else {
+                displayDistance = Math.round(metersRepresented * 100);
+                displayUnit = 'cm';
+            }
+
             const infoBoxX = canvas.width - 240; // Position from right edge
-            const infoBoxY = canvas.height - 240;
+            const infoBoxY = canvas.height - 120; // Moved down to avoid overlapping minimap
 
             // Draw semi-transparent background for entire info box
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -17670,7 +19002,7 @@
 
             ctx.beginPath();
             ctx.moveTo(scaleBarX, scaleBarY);
-            ctx.lineTo(scaleBarX + scaleBarLength, scaleBarY);
+            ctx.lineTo(scaleBarX + scaleBarPixels, scaleBarY);
             ctx.stroke();
 
             // Draw end caps
@@ -17678,13 +19010,13 @@
             ctx.beginPath();
             ctx.moveTo(scaleBarX, scaleBarY - 5);
             ctx.lineTo(scaleBarX, scaleBarY + 5);
-            ctx.moveTo(scaleBarX + scaleBarLength, scaleBarY - 5);
-            ctx.lineTo(scaleBarX + scaleBarLength, scaleBarY + 5);
+            ctx.moveTo(scaleBarX + scaleBarPixels, scaleBarY - 5);
+            ctx.lineTo(scaleBarX + scaleBarPixels, scaleBarY + 5);
             ctx.stroke();
 
-            // Draw scale label
+            // Draw scale label with actual distance
             ctx.font = '12px Courier New';
-            ctx.fillText('Scale: 100m', scaleBarX, scaleBarY - 10);
+            ctx.fillText(`Scale: ${displayDistance}${displayUnit}`, scaleBarX, scaleBarY - 10);
 
             // Draw zoom level
             ctx.fillText(`Zoom: ${zoomLevel.toFixed(1)}x`, scaleBarX + 110, scaleBarY - 10);
@@ -17820,22 +19152,29 @@
             document.getElementById('currentPhase').textContent = phaseText;
             document.getElementById('currentTurn').textContent = currentTurn;
 
-            // Update aircraft stats - dynamically handle different game modes
-            // In WW2: spitfire vs me109, in WW1: different aircraft, etc.
-            if (spitfire && me109) {
-                // WW2 mode
-                document.getElementById('spitfireStats').innerHTML = spitfire.getStatsHTML();
-                document.getElementById('me109Stats').innerHTML = me109.getStatsHTML();
-            } else if (aircraft.length >= 2) {
-                // Other modes (WW1, Renegade Legion, etc.) - show first two aircraft
-                const playerAircraft = aircraft.filter(a => a.isPlayer);
-                const enemyAircraft = aircraft.filter(a => !a.isPlayer);
+            // Hide aircraft panel in Renegade Legion mode (ships panel is used instead)
+            if (gameEra === 'Renegade Legion') {
+                document.getElementById('aircraftPanel').style.display = 'none';
+            } else {
+                document.getElementById('aircraftPanel').style.display = 'block';
 
-                if (playerAircraft.length > 0) {
-                    document.getElementById('spitfireStats').innerHTML = playerAircraft[0].getStatsHTML();
-                }
-                if (enemyAircraft.length > 0) {
-                    document.getElementById('me109Stats').innerHTML = enemyAircraft[0].getStatsHTML();
+                // Update aircraft stats - dynamically handle different game modes
+                // In WW2: spitfire vs me109, in WW1: different aircraft, etc.
+                if (spitfire && me109) {
+                    // WW2 mode
+                    document.getElementById('spitfireStats').innerHTML = spitfire.getStatsHTML();
+                    document.getElementById('me109Stats').innerHTML = me109.getStatsHTML();
+                } else if (aircraft.length >= 2) {
+                    // Other modes (WW1, etc.) - show first two aircraft
+                    const playerAircraft = aircraft.filter(a => a.isPlayer);
+                    const enemyAircraft = aircraft.filter(a => !a.isPlayer);
+
+                    if (playerAircraft.length > 0) {
+                        document.getElementById('spitfireStats').innerHTML = playerAircraft[0].getStatsHTML();
+                    }
+                    if (enemyAircraft.length > 0) {
+                        document.getElementById('me109Stats').innerHTML = enemyAircraft[0].getStatsHTML();
+                    }
                 }
             }
 
@@ -17874,10 +19213,12 @@
             // Show ships panel only if there are capital ships
             if (!capitalShips || capitalShips.length === 0) {
                 document.getElementById('shipsPanel').style.display = 'none';
+                document.getElementById('weaponLegendPanel').style.display = 'none';
                 return;
             }
 
             document.getElementById('shipsPanel').style.display = 'block';
+            document.getElementById('weaponLegendPanel').style.display = 'block';
 
             const shipsList = document.getElementById('shipsList');
             shipsList.innerHTML = '';
@@ -17927,6 +19268,12 @@
                         ${ship.reactor ? `
                             <div>Reactor: ${Math.floor(ship.reactor.stability)}%</div>
                         ` : ''}
+                        <div>Heading: ${Math.floor(ship.orderedEndHeading || ship.heading)}° / ${Math.floor(ship.heading)}°</div>
+                        <div>Pitch: ${Math.floor(ship.orderedPitch || ship.pitch || 0)}° / ${Math.floor(ship.pitch || 0)}°</div>
+                        <div>Roll: ${Math.floor(ship.orderedRoll || ship.roll || 0)}° / ${Math.floor(ship.roll || 0)}°</div>
+                        <div>Thrust: ${ship.orderedThrust >= 0 ? '+' : ''}${ship.orderedThrust}G / ${ship.currentThrust >= 0 ? '+' : ''}${ship.currentThrust.toFixed(1)}G</div>
+                        <div>Velocity: ${Math.floor(Math.sqrt(ship.vx * ship.vx + ship.vy * ship.vy))} m/s</div>
+                        <div>Direction: ${Math.floor(Math.atan2(ship.vy, ship.vx) * 180 / Math.PI + 360) % 360}°</div>
                     </div>
                 `;
 
@@ -18317,6 +19664,11 @@
             const levelChange = newLevel - groupCurrentLevel;
             const newDeviation = currentDeviation + levelChange;
 
+            // Allow temporary imbalances during ORDER phase, require balance when locking orders
+            // This makes the UI more usable - user can adjust one system at a time
+            if (gameState === 'ORDER') {
+                return Math.abs(newDeviation) <= 2; // Allow deviation of -2 to +2
+            }
             return newDeviation === 0;
         }
 
@@ -18965,7 +20317,7 @@
                 if (e.deltaY < 0) {
                     zoomLevel = Math.min(3.0, zoomLevel * 1.1); // Max 3x zoom
                 } else {
-                    zoomLevel = Math.max(0.5, zoomLevel / 1.1); // Min 0.5x zoom
+                    zoomLevel = Math.max(0.1, zoomLevel / 1.1); // Min 0.1x zoom
                 }
             }
         });
@@ -19072,25 +20424,53 @@
         // Main game loop
         function gameLoop() {
             // Manage engine sounds based on game state and aircraft status
-            // Only for WW2 mode (spitfire/me109 exist)
             if (gameState === 'EXECUTION') {
-                if (spitfire && !spitfire.isDestroyed && soundSpitfireEngine.paused) {
-                    soundSpitfireEngine.play().catch(e => console.log('Engine audio failed:', e));
-                }
-                if (me109 && !me109.isDestroyed && soundMe109Engine.paused) {
-                    soundMe109Engine.play().catch(e => console.log('Engine audio failed:', e));
+                // Check if we're in biplane mode (WW1 aircraft)
+                const hasBiplanes = (spitfire && spitfire.isBiplane) || (me109 && me109.isBiplane);
+
+                if (hasBiplanes) {
+                    // Play biplane sound for WW1 aircraft
+                    if ((spitfire && !spitfire.isDestroyed) || (me109 && !me109.isDestroyed)) {
+                        if (soundBiplaneEngine.paused) {
+                            soundBiplaneEngine.play().catch(e => console.log('Engine audio failed:', e));
+                        }
+                    }
+                    // Pause WW2 sounds
+                    if (!soundSpitfireEngine.paused) soundSpitfireEngine.pause();
+                    if (!soundMe109Engine.paused) soundMe109Engine.pause();
+                } else {
+                    // Play WW2 sounds
+                    if (spitfire && !spitfire.isDestroyed && soundSpitfireEngine.paused) {
+                        soundSpitfireEngine.play().catch(e => console.log('Engine audio failed:', e));
+                    }
+                    if (me109 && !me109.isDestroyed && soundMe109Engine.paused) {
+                        soundMe109Engine.play().catch(e => console.log('Engine audio failed:', e));
+                    }
+                    // Pause biplane sound
+                    if (!soundBiplaneEngine.paused) soundBiplaneEngine.pause();
                 }
             } else {
+                // Pause all engine sounds when not in execution
                 if (!soundSpitfireEngine.paused) soundSpitfireEngine.pause();
                 if (!soundMe109Engine.paused) soundMe109Engine.pause();
+                if (!soundBiplaneEngine.paused) soundBiplaneEngine.pause();
             }
 
             // Stop engine sounds for destroyed aircraft
-            if (spitfire && spitfire.isDestroyed && !soundSpitfireEngine.paused) {
-                soundSpitfireEngine.pause();
-            }
-            if (me109 && me109.isDestroyed && !soundMe109Engine.paused) {
-                soundMe109Engine.pause();
+            const hasBiplanes = (spitfire && spitfire.isBiplane) || (me109 && me109.isBiplane);
+            if (hasBiplanes) {
+                // Stop biplane sound if both aircraft destroyed
+                if ((!spitfire || spitfire.isDestroyed) && (!me109 || me109.isDestroyed)) {
+                    if (!soundBiplaneEngine.paused) soundBiplaneEngine.pause();
+                }
+            } else {
+                // Stop WW2 sounds individually
+                if (spitfire && spitfire.isDestroyed && !soundSpitfireEngine.paused) {
+                    soundSpitfireEngine.pause();
+                }
+                if (me109 && me109.isDestroyed && !soundMe109Engine.paused) {
+                    soundMe109Engine.pause();
+                }
             }
 
             if (gameState === 'EXECUTION') {
@@ -19108,8 +20488,9 @@
                 const dt = 1 / 60; // Assume 60 FPS for physics
 
                 // Update space terrain (asteroids, lightning, orbits) if it's a SpaceTerrain
+                // Use dt (frame time in seconds) instead of elapsed (total time in ms)
                 if (terrain && typeof terrain.update === 'function') {
-                    terrain.update(elapsed, gameState);
+                    terrain.update(dt, gameState);
                 }
 
                 for (let i = bombs.length - 1; i >= 0; i--) {
@@ -20820,39 +22201,32 @@
             document.getElementById('gameContainer').style.display = 'block';
         }
 
-        function startQuickBattle() {
-            hideSplashScreen();
-
-            // Set game era to WW2
-            gameEra = 'WW2';
-
-            // Reset game state
-            gameState = 'ORDER';
-            currentTurn = 1;
-            groundTargets = [];
-            capitalShips = [];
-            executionRecording = [];
-
-            // Create WW2 terrain
-            terrain = new Terrain();
-
-            // Create default aircraft at safe altitude above terrain (1200m)
-            spitfire = new Aircraft('Spitfire', 'Spitfire', 400, 500, 1200, 90, true);
-            me109 = new Aircraft('Me-109', 'Me-109', 1400, 500, 1200, 270, false);
-            aircraft = [spitfire, me109];
-
-            // Start game loop
-            gameLoop();
-        }
-
-        // Validation function for UI elements
         function validateRLBattleUI() {
             const requiredElements = ['rlLoadoutConfig', 'renegadeLegionBattleSelector',
                                       'gameContainer', 'blackHoleMode', 'splashScreen'];
-            const missing = requiredElements.filter(id => !document.getElementById(id));
+            const missing = requiredElements.filter(id => {
+                const element = document.getElementById(id);
+                if (!element) {
+                    console.warn(`Element '${id}' not found in DOM`);
+                    return true;
+                }
+                return false;
+            });
             if (missing.length > 0) {
                 console.error('Missing UI elements:', missing);
-                alert('UI initialization error. Please refresh the page.');
+                // Try to find elements again after a short delay (DOM might not be ready)
+                setTimeout(() => {
+                    const stillMissing = requiredElements.filter(id => !document.getElementById(id));
+                    if (stillMissing.length > 0) {
+                        console.error('Elements still missing after delay:', stillMissing);
+                        alert('UI initialization error. Please refresh the page.');
+                    }
+                }, 100);
+                // Don't block execution if only rlLoadoutConfig is missing (it might be conditionally rendered)
+                if (missing.length === 1 && missing[0] === 'rlLoadoutConfig') {
+                    console.warn('rlLoadoutConfig missing but continuing - may be conditionally rendered');
+                    return true; // Allow continuation
+                }
                 return false;
             }
             return true;
@@ -20918,9 +22292,6 @@
                 return;
             }
 
-            document.getElementById('renegadeLegionBattleSelector').style.display = 'none';
-            document.getElementById('gameContainer').style.display = 'block';
-
             // Set game era to Renegade Legion
             gameEra = 'Renegade Legion';
 
@@ -20935,84 +22306,325 @@
             rockets = [];
             missiles = [];
             aircraft = [];
+            selectedAircraft = null;
+            selectedCapitalShip = null;
+            ghostAircraft = null;
+
+            // Reset AI/execution state
+            aiPredictedGhost = null;
+            executionStartTime = 0;
+            isPaused = false;
+            pausedTime = 0;
+
+            // Reset weather state
+            weatherState = {
+                windSpeed: 0,
+                windDirection: 0,
+                rainfall: 0,
+                visibility: 1.0
+            };
+
+            // Reset camera panning state
+            isPanning = false;
+            lastPanX = 0;
+            lastPanY = 0;
+
+            // Clear legacy aircraft references
+            spitfire = null;
+            me109 = null;
+
+            // Reset hot-seat mode
+            hotSeatMode = false;
+            currentPlayer = 1;
+            player1Aircraft = [];
+            player2Aircraft = [];
+            awaitingPlayerSwitch = false;
+
+            // Reset camera
+            zoomLevel = 1;
+            panX = 0;
+            panY = 0;
+
+            // Reset squadron/formation system
+            squadron = {
+                formation: 'finger_four',
+                leader: null,
+                wingmen: [],
+                inFormation: false,
+                formationBonus: 0
+            };
+            activeWingmanCommand = null;
 
             // Create space terrain with black hole toggle
-            const isBlackHole = document.getElementById('blackHoleMode').checked;
-            terrain = new SpaceTerrain(isBlackHole);
+            try {
+                const isBlackHole = document.getElementById('blackHoleMode').checked;
+                terrain = new SpaceTerrain(isBlackHole);
 
-            console.log('🚀 Space Terrain created:',
-                isBlackHole ? 'BLACK HOLE MODE' : 'Standard Space',
-                terrain.stars.length, 'stars,',
-                terrain.asteroids.length, 'asteroids,',
-                terrain.planets ? terrain.planets.length : 0, 'planets,',
-                terrain.nebulae.length, 'nebulae');
-
-            // Create Commonwealth ships
-            let commonwealthX = 300;
-            let hasPlayerShip = false;
-            commonwealthShips.forEach((ship, index) => {
-                const y = 400 + (index % 2) * 200;
-
-                if (ship.type.startsWith('Fighter-')) {
-                    // Create fighter
-                    const fighterName = 'CW ' + ship.type.split('-')[1];
-                    const fighter = new Aircraft(fighterName, ship.type, commonwealthX, y, 0, 90, ship.isPlayer);
-                    fighter.faction = 'commonwealth';
-                    fighter.side = 'commonwealth';
-                    aircraft.push(fighter);
-
-                    if (ship.isPlayer && !hasPlayerShip) {
-                        selectedAircraft = fighter;
-                        hasPlayerShip = true;
-                    }
-                } else {
-                    // Create capital ship
-                    const capShip = new CapitalShip(commonwealthX - 100, y, ship.type, 'commonwealth');
-                    capShip.heading = 90;
-                    capitalShips.push(capShip);
-                }
-
-                commonwealthX += 100;
-            });
-
-            // Create TOG ships
-            let togX = 1500;
-            togShips.forEach((ship, index) => {
-                const y = 400 + (index % 2) * 200;
-
-                if (ship.type.startsWith('Fighter-')) {
-                    // Create fighter
-                    const fighterName = 'TOG ' + ship.type.split('-')[1];
-                    const fighter = new Aircraft(fighterName, ship.type, togX, y, 0, 270, ship.isPlayer);
-                    fighter.faction = 'tog';
-                    fighter.side = 'tog';
-                    aircraft.push(fighter);
-
-                    if (ship.isPlayer && !hasPlayerShip) {
-                        selectedAircraft = fighter;
-                        hasPlayerShip = true;
-                    }
-                } else {
-                    // Create capital ship
-                    const capShip = new CapitalShip(togX + 100, y, ship.type, 'tog');
-                    capShip.heading = 270;
-                    capitalShips.push(capShip);
-                }
-
-                togX += 100;
-            });
-
-            // If no player ship was selected, default to first aircraft
-            if (!selectedAircraft && aircraft.length > 0) {
-                selectedAircraft = aircraft[0];
-                selectedAircraft.isPlayer = true;
+                console.log('🚀 Space Terrain created:',
+                    isBlackHole ? 'BLACK HOLE MODE' : 'Standard Space',
+                    terrain.stars.length, 'stars,',
+                    terrain.asteroids.length, 'asteroids,',
+                    terrain.planets ? terrain.planets.length : 0, 'planets,',
+                    terrain.nebulae.length, 'nebulae');
+            } catch (e) {
+                console.error('Error creating space terrain:', e);
+                alert('Error creating space terrain. Check console for details.');
+                cleanupRLBattleError();
+                return;
             }
 
-            console.log('🚀 Renegade Legion Battle Started!');
-            console.log('- Commonwealth:', commonwealthShips.length, 'ships');
-            console.log('- TOG:', togShips.length, 'ships');
-            console.log('- Total aircraft:', aircraft.length);
-            console.log('- Capital ships:', capitalShips.length);
+            // Create Commonwealth and TOG forces
+            let commonwealthX = 300;
+            let hasPlayerShip = false;
+            let fighterCount = 0;
+            let capitalShipCount = 0;
+
+            try {
+                // Create Commonwealth forces
+                commonwealthShips.forEach((ship, shipIndex) => {
+                    const y = 400 + (shipIndex % 3) * 250;
+
+                    // Check if this is a capital ship
+                    const isCapitalShip = !ship.type.startsWith('Fighter-') &&
+                                         !ship.type.startsWith('Dropship-') &&
+                                         !ship.type.startsWith('Gunship-');
+
+                    if (isCapitalShip) {
+                        // Create capital ship
+                        const capShip = new CapitalShip(commonwealthX - 100, y, ship.type, 'commonwealth');
+                        capShip.heading = 90;
+                        capShip.isPlayer = ship.isPlayer || false;
+
+                        // Apply missile loadout configuration
+                        if (ship.loadout && ship.loadout.missileArrays) {
+                            capShip.missileLoadout = {
+                                dogfight: ship.loadout.missileArrays.dogfight * 4, // 4 missiles per cell
+                                standard: ship.loadout.missileArrays.standard,     // 1 missile per cell
+                                torpedo: ship.loadout.missileArrays.torpedo        // 1 torpedo per cell
+                            };
+                            console.log(`  ${ship.type} missile loadout:`, capShip.missileLoadout);
+                        }
+
+                        capitalShips.push(capShip);
+                        capitalShipCount++;
+
+                        // Check if this is the player's capital ship
+                        if (ship.isPlayer && !hasPlayerShip) {
+                            selectedCapitalShip = capShip;
+                            hasPlayerShip = true;
+                        }
+
+                        // Launch fighters from configured bays
+                        if (ship.loadout && ship.loadout.fighterBays) {
+                            let bayIndex = 0;
+                            ship.loadout.fighterBays.forEach((bay, idx) => {
+                                if (bay && bay.type) {
+                                    // Spawn fighter offset from capital ship
+                                    const offsetX = -150 - (bayIndex * 80);
+                                    const offsetY = (bayIndex % 2 === 0 ? -100 : 100);
+
+                                    const fighterName = `CW ${bay.type.split('-')[1]} ${bayIndex + 1}`;
+                                    const fighter = new Aircraft(
+                                        fighterName,
+                                        bay.type,
+                                        commonwealthX + offsetX,
+                                        y + offsetY,
+                                        0,
+                                        90,
+                                        false // Fighters launched from bays are AI controlled
+                                    );
+                                    fighter.faction = 'commonwealth';
+                                    fighter.side = 'commonwealth';
+                                    fighter.motherShip = capShip; // Track which ship launched this fighter
+                                    aircraft.push(fighter);
+                                    fighterCount++;
+                                    bayIndex++;
+                                }
+                            });
+                        }
+                    } else {
+                        // Create standalone fighter, dropship, or gunship
+                        const craftType = ship.type.split('-')[0]; // 'Fighter', 'Dropship', or 'Gunship'
+                        const craftName = ship.type.split('-')[1];
+                        const displayName = `CW ${craftName}`;
+
+                        const craft = new Aircraft(displayName, ship.type, commonwealthX, y, 0, 90, ship.isPlayer);
+                        craft.faction = 'commonwealth';
+                        craft.side = 'commonwealth';
+                        aircraft.push(craft);
+                        fighterCount++;
+
+                        if (ship.isPlayer && !hasPlayerShip) {
+                            selectedAircraft = craft;
+                            hasPlayerShip = true;
+                        }
+                    }
+
+                    commonwealthX += 150;
+                });
+
+                // Create TOG forces
+                let togX = 1500;
+                togShips.forEach((ship, shipIndex) => {
+                    const y = 400 + (shipIndex % 3) * 250;
+
+                    // Check if this is a capital ship
+                    const isCapitalShip = !ship.type.startsWith('Fighter-') &&
+                                         !ship.type.startsWith('Dropship-') &&
+                                         !ship.type.startsWith('Gunship-');
+
+                    if (isCapitalShip) {
+                        // Create capital ship
+                        const capShip = new CapitalShip(togX + 100, y, ship.type, 'tog');
+                        capShip.heading = 270;
+                        capShip.isPlayer = ship.isPlayer || false;
+
+                        // Apply missile loadout configuration
+                        if (ship.loadout && ship.loadout.missileArrays) {
+                            capShip.missileLoadout = {
+                                dogfight: ship.loadout.missileArrays.dogfight * 4, // 4 missiles per cell
+                                standard: ship.loadout.missileArrays.standard,     // 1 missile per cell
+                                torpedo: ship.loadout.missileArrays.torpedo        // 1 torpedo per cell
+                            };
+                            console.log(`  ${ship.type} missile loadout:`, capShip.missileLoadout);
+                        }
+
+                        capitalShips.push(capShip);
+                        capitalShipCount++;
+
+                        // Check if this is the player's capital ship
+                        if (ship.isPlayer && !hasPlayerShip) {
+                            selectedCapitalShip = capShip;
+                            hasPlayerShip = true;
+                        }
+
+                        // Launch fighters from configured bays
+                        if (ship.loadout && ship.loadout.fighterBays) {
+                            let bayIndex = 0;
+                            ship.loadout.fighterBays.forEach((bay, idx) => {
+                                if (bay && bay.type) {
+                                    // Spawn fighter offset from capital ship
+                                    const offsetX = 150 + (bayIndex * 80);
+                                    const offsetY = (bayIndex % 2 === 0 ? -100 : 100);
+
+                                    const fighterName = `TOG ${bay.type.split('-')[1]} ${bayIndex + 1}`;
+                                    const fighter = new Aircraft(
+                                        fighterName,
+                                        bay.type,
+                                        togX + offsetX,
+                                        y + offsetY,
+                                        0,
+                                        270,
+                                        false // Fighters launched from bays are AI controlled
+                                    );
+                                    fighter.faction = 'tog';
+                                    fighter.side = 'tog';
+                                    fighter.motherShip = capShip; // Track which ship launched this fighter
+                                    aircraft.push(fighter);
+                                    fighterCount++;
+                                    bayIndex++;
+                                }
+                            });
+                        }
+                    } else {
+                        // Create standalone fighter, dropship, or gunship
+                        const craftType = ship.type.split('-')[0]; // 'Fighter', 'Dropship', or 'Gunship'
+                        const craftName = ship.type.split('-')[1];
+                        const displayName = `TOG ${craftName}`;
+
+                        const craft = new Aircraft(displayName, ship.type, togX, y, 0, 270, ship.isPlayer);
+                        craft.faction = 'tog';
+                        craft.side = 'tog';
+                        aircraft.push(craft);
+                        fighterCount++;
+
+                        if (ship.isPlayer && !hasPlayerShip) {
+                            selectedAircraft = craft;
+                            hasPlayerShip = true;
+                        }
+                    }
+
+                    togX += 150;
+                });
+
+                // Auto-select player ship if one was marked
+                // If no player ship was selected, default to first aircraft or capital ship
+                if (!hasPlayerShip) {
+                    if (aircraft.length > 0) {
+                        selectedAircraft = aircraft[0];
+                        selectedAircraft.isPlayer = true;
+                        hasPlayerShip = true;
+                    } else if (capitalShips.length > 0) {
+                        selectedCapitalShip = capitalShips[0];
+                        selectedCapitalShip.isPlayer = true;
+                        hasPlayerShip = true;
+                    }
+                }
+
+                console.log('🚀 Renegade Legion Battle Started!');
+                console.log('- Commonwealth ships configured:', commonwealthShips.length);
+                console.log('- TOG ships configured:', togShips.length);
+                console.log('- Capital ships deployed:', capitalShipCount);
+                console.log('- Total fighters/craft:', fighterCount);
+                console.log('- Aircraft array size:', aircraft.length);
+            } catch (e) {
+                console.error('Error creating Renegade Legion forces:', e);
+                alert('Error creating ships and fighters. Check console for details.');
+                cleanupRLBattleError();
+                return;
+            }
+
+            // Both terrain and forces created successfully - now update UI
+            // Hide loadout config screen (may be visible if coming from there)
+            const rlLoadout = document.getElementById('rlLoadoutConfig');
+            if (rlLoadout) rlLoadout.style.display = 'none';
+            document.getElementById('renegadeLegionBattleSelector').style.display = 'none';
+            document.getElementById('splashScreen').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
+
+            // Start game loop
+            console.log('Starting game loop...');
+            gameLoop();
+        }
+
+        function startQuickBattle() {
+            hideSplashScreen();
+
+            // Set game era to WW2
+            gameEra = 'WW2';
+
+            // Reset game state
+            gameState = 'ORDER';
+            currentTurn = 1;
+            groundTargets = [];
+            capitalShips = [];
+            executionRecording = [];
+            aerialUnits = [];
+            bombs = [];
+            rockets = [];
+            missiles = [];
+            selectedAircraft = null;
+            ghostAircraft = null;
+
+            // Reset hot-seat mode
+            hotSeatMode = false;
+            currentPlayer = 1;
+            player1Aircraft = [];
+            player2Aircraft = [];
+            awaitingPlayerSwitch = false;
+
+            // Reset camera
+            zoomLevel = 1;
+            panX = 0;
+            panY = 0;
+
+            // Create WW2 terrain
+            terrain = new Terrain();
+
+            // Create default aircraft at safe altitude above terrain (1200m)
+            spitfire = new Aircraft('Spitfire', 'Spitfire', 400, 500, 1200, 90, true);
+            me109 = new Aircraft('Me-109', 'Me-109', 1400, 500, 1200, 270, false);
+            aircraft = [spitfire, me109];
 
             // Start game loop
             gameLoop();
@@ -21063,14 +22675,12 @@
             document.getElementById('splashScreen').style.display = 'none';
             document.getElementById('renegadeLegionBattleSelector').style.display = 'block';
 
-            // Set up default forces
+            // Set up default forces - Shiva BB (player) vs Repulse BB (AI)
             commonwealthShips = [
-                { type: 'Fighter-Avenger', isPlayer: true },
-                { type: 'Fighter-Cheetah', isPlayer: false }
+                { type: 'Battleship-Repulse', isPlayer: false }  // Repulse Battleship (AI)
             ];
             togShips = [
-                { type: 'Fighter-Gladius', isPlayer: false },
-                { type: 'Fighter-Lancea', isPlayer: false }
+                { type: 'Battleship-Shiva', isPlayer: true }  // Shiva Battleship (player)
             ];
 
             updateShipLists();
@@ -21788,7 +23398,18 @@
             missiles = [];
             selectedAircraft = null;
             ghostAircraft = null;
-            
+
+            // Clear legacy aircraft references (WW2)
+            spitfire = null;
+            me109 = null;
+
+            // Reset hot-seat mode
+            hotSeatMode = false;
+            currentPlayer = 1;
+            player1Aircraft = [];
+            player2Aircraft = [];
+            awaitingPlayerSwitch = false;
+
             // Reset camera
             zoomLevel = 1;
             panX = 0;
@@ -21869,6 +23490,24 @@
             groundTargets = [];
             capitalShips = [];
             executionRecording = [];
+            aerialUnits = [];
+            bombs = [];
+            rockets = [];
+            missiles = [];
+            selectedAircraft = null;
+            ghostAircraft = null;
+
+            // Reset hot-seat mode
+            hotSeatMode = false;
+            currentPlayer = 1;
+            player1Aircraft = [];
+            player2Aircraft = [];
+            awaitingPlayerSwitch = false;
+
+            // Reset camera
+            zoomLevel = 1;
+            panX = 0;
+            panY = 0;
 
             // Create WW2 terrain
             terrain = new Terrain();

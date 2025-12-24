@@ -18,7 +18,10 @@
 - Degradation only occurs when shield successfully blocks (not when penetrated)
 
 **Recharge:**
-- Shields regain **1% at the end of each round**
+- **REQUIREMENT 3:** Shield recharge only begins after **4 seconds** of the shield face not being hit
+- Once recharge begins, shields regain **1% block chance per second** (continuous)
+- Each shield face tracks its own `lastHitTime` independently
+- RL1.md says "at the end of each round" but implementation uses continuous recharge with 4-second delay
 
 **Special Cases:**
 - Railgun slugs: 25% kinetic energy transfers through even when blocked (75% reduction)
@@ -109,17 +112,34 @@ applyShieldedDamage(target, damage, weaponType, faceIndex) {
 }
 ```
 
-### Recharge Logic (End of Round)
+### Recharge Logic (Continuous with 4-Second Delay)
+**IMPORTANT: Shield recharge only begins after 4 seconds of the shield face not being hit**
+
 ```javascript
-rechargeShields(currentRound) {
-    for (let face of this.shields.faceBlockChance) {
-        if (face.lastHitRound < currentRound) {
-            // Not hit this round - recharge
-            face.current = Math.min(face.base, face.current + this.shields.rechargePerRound);
-        }
+// In update loop (dogfight.html lines 7035-7048):
+for (let i = 0; i < this.shields.faceHP.length; i++) {
+    const face = this.shields.faceHP[i];
+
+    // Check if enough time has passed since last hit for recharge
+    const timeSinceHit = currentTime - face.lastHitTime;
+
+    // REQUIREMENT 3: Recharge only begins AFTER 4 seconds of not being hit
+    if (timeSinceHit >= this.shields.rechargeDelay && face.blockChance < this.shields.baseBlockChance) {
+        // Recharge this shield face (+1% per second)
+        face.recharging = true;
+        face.blockChance = Math.min(this.shields.baseBlockChance, face.blockChance + this.shields.rechargeRate * dt);
+    } else if (timeSinceHit < this.shields.rechargeDelay) {
+        face.recharging = false;
     }
 }
+
+// When shield is hit (dogfight.html line 9687):
+face.lastHitTime = Date.now(); // Reset recharge timer
 ```
+
+**Key Parameters (dogfight.html line 6020):**
+- `rechargeDelay: 4000` - 4 seconds (in milliseconds) before recharge can begin
+- `rechargeRate: 1.0` - +1% block chance per second while recharging
 
 ## Required Fixes
 
